@@ -11,6 +11,13 @@
 </head>
 <body>
   <div id="out"></div>
-  <script type="module" src="engine.test.js"></script>
+  <script type="module">
+    // Import each suite in turn (they register tests via the shared harness),
+    // then report once.
+    await import("./engine.test.js");
+    await import("./board.test.js");
+    const { report } = await import("./harness.js");
+    report();
+  </script>
 </body>
 </html>

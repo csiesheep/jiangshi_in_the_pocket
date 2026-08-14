@@ -1,5 +1,5 @@
 import * as E from "../js/engine.js";
-import { test, assert, eq, report } from "./harness.js";
+import { test, assert, eq } from "./harness.js";
 
 // Load the real game data so tests run against the shipped tables.
 const [cards, items] = await Promise.all([
@@ -284,5 +284,3 @@ test("resolveCard ITEM declined: no draw, no item", () => {
   eq(r.taken, null);
   eq(s.deck.length, before, "no card spent");
 });
-
-report();
