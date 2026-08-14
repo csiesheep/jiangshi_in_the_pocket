@@ -1,0 +1,11 @@
+[
+  {"id":1,"item":"oil",         "9":{"t":"EVENT","hp":0},  "10":{"t":"ITEM"},         "11":{"t":"ZOMBIES","n":6}},
+  {"id":2,"item":"gasoline",    "9":{"t":"ZOMBIES","n":4}, "10":{"t":"EVENT","hp":-1},"11":{"t":"ITEM"}},
+  {"id":3,"item":"board-nails", "9":{"t":"ITEM"},          "10":{"t":"ZOMBIES","n":4},"11":{"t":"EVENT","hp":-1}},
+  {"id":4,"item":"machete",     "9":{"t":"ZOMBIES","n":4}, "10":{"t":"EVENT","hp":-1},"11":{"t":"ZOMBIES","n":6}},
+  {"id":5,"item":"grisly-femur","9":{"t":"ITEM"},          "10":{"t":"ZOMBIES","n":5},"11":{"t":"EVENT","hp":-1}},
+  {"id":6,"item":"golf-club",   "9":{"t":"EVENT","hp":-1}, "10":{"t":"ZOMBIES","n":4},"11":{"t":"EVENT","hp":0}},
+  {"id":7,"item":"candle",      "9":{"t":"EVENT","hp":0},  "10":{"t":"EVENT","hp":1}, "11":{"t":"ZOMBIES","n":4}},
+  {"id":8,"item":"can-of-soda", "9":{"t":"EVENT","hp":1},  "10":{"t":"ITEM"},         "11":{"t":"ZOMBIES","n":4}},
+  {"id":9,"item":"chainsaw",    "9":{"t":"ZOMBIES","n":3}, "10":{"t":"EVENT","hp":0}, "11":{"t":"ZOMBIES","n":5}}
+]

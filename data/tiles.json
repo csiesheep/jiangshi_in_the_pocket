@@ -1,0 +1,22 @@
+{
+  "indoor": [
+    {"id":"foyer",       "exits":["N"],              "start":true},
+    {"id":"bathroom",    "exits":["N"]},
+    {"id":"bedroom",     "exits":["N","W"]},
+    {"id":"family-room", "exits":["N","E","W"]},
+    {"id":"dining-room", "exits":["N","E","S","W"], "exteriorDoor":true},
+    {"id":"storage",     "exits":["N"],              "onResolve":"BONUS_ITEM"},
+    {"id":"kitchen",     "exits":["N","E","W"],      "onTurnEnd":"HEAL_1"},
+    {"id":"evil-temple", "exits":["E","W"],          "onResolve":"SECOND_CARD_THEN_GAIN_TOTEM"}
+  ],
+  "outdoor": [
+    {"id":"patio",        "exits":["E","S"],      "seam":"N", "start":true},
+    {"id":"garage",       "exits":["S","W"]},
+    {"id":"yard-1",       "exits":["E","S","W"]},
+    {"id":"yard-2",       "exits":["E","S","W"]},
+    {"id":"yard-3",       "exits":["E","S","W"]},
+    {"id":"sitting-area", "exits":["E","S","W"]},
+    {"id":"garden",       "exits":["E","S","W"],  "onTurnEnd":"HEAL_1"},
+    {"id":"graveyard",    "exits":["E","S"],      "onResolve":"SECOND_CARD_THEN_BURY_TOTEM"}
+  ]
+}

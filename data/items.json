@@ -1,0 +1,11 @@
+[
+  {"id":"board-nails",  "type":"weapon",     "attack":1},
+  {"id":"grisly-femur", "type":"weapon",     "attack":1},
+  {"id":"golf-club",    "type":"weapon",     "attack":1},
+  {"id":"machete",      "type":"weapon",     "attack":2},
+  {"id":"chainsaw",     "type":"weapon",     "attack":3, "fuel":2, "refuellable":true, "keepWhenSpent":true},
+  {"id":"can-of-soda",  "type":"heal",       "health":2},
+  {"id":"oil",          "type":"consumable", "uses":1, "fleeNoDamage":true, "combo":{"candle":"KILL_ALL"}},
+  {"id":"gasoline",     "type":"consumable", "uses":1, "combo":{"candle":"KILL_ALL","chainsaw":"REFUEL_2"}},
+  {"id":"candle",       "type":"enabler"}
+]

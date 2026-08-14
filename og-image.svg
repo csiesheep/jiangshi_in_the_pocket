@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="100%">
+      <stop offset="0%" stop-color="#14161a"/>
+      <stop offset="100%" stop-color="#0a0b0d"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <text x="600" y="300" text-anchor="middle" font-family="Georgia, serif"
+        font-size="84" font-weight="700" fill="#e6e3dc">Zombie in the Pocket</text>
+  <text x="600" y="370" text-anchor="middle" font-family="system-ui, sans-serif"
+        font-size="34" fill="#9aa0aa">Find the totem. Bury it before midnight.</text>
+  <text x="600" y="560" text-anchor="middle" font-family="system-ui, sans-serif"
+        font-size="24" fill="#7fb539">games.csiesheep.com</text>
+</svg>

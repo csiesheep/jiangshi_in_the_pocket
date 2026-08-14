@@ -1,0 +1,36 @@
+{
+  "_note": "PLACEHOLDER theme. Display names below are the original working labels used in the spec; flavour text is neutral placeholder, NOT the original copyrighted card text. Replace all of this during the clean-room re-theme (Phase 4). Mechanics live in tiles.json / cards.json / items.json and do not change.",
+  "title": "Zombie in the Pocket",
+  "tiles": {
+    "foyer": "Foyer",
+    "bathroom": "Bathroom",
+    "bedroom": "Bedroom",
+    "family-room": "Family Room",
+    "dining-room": "Dining Room",
+    "storage": "Storage",
+    "kitchen": "Kitchen",
+    "evil-temple": "Evil Temple",
+    "patio": "Patio",
+    "garage": "Garage",
+    "yard-1": "Yard",
+    "yard-2": "Yard",
+    "yard-3": "Yard",
+    "sitting-area": "Sitting Area",
+    "garden": "Garden",
+    "graveyard": "Graveyard"
+  },
+  "items": {
+    "board-nails": "Board with Nails",
+    "grisly-femur": "Grisly Femur",
+    "golf-club": "Golf Club",
+    "machete": "Machete",
+    "chainsaw": "Chainsaw",
+    "can-of-soda": "Can of Soda",
+    "oil": "Oil",
+    "gasoline": "Gasoline",
+    "candle": "Candle"
+  },
+  "cardFlavour": {
+    "_todo": "One neutral line per card per hour band; write during re-theme."
+  }
+}
