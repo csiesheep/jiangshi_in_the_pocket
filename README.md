@@ -28,9 +28,25 @@ src/index.js    Cloudflare prefix router
 
 ## Status
 
-Scaffolded. Engine, board and UI not yet implemented.
+Playable end-to-end on the placeholder theme, and live at
+`https://games.csiesheep.com/zombie_in_the_pocket/` (`noindex` until the
+clean-room rename ships).
 
-Target URL: `https://games.csiesheep.com/zombie_in_the_pocket/`
+- **Done** — engine, board model, playable UI, rulebook, Cloudflare deploy.
+- **Remaining** — the re-theme (new title, art, flavour text), AdSense +
+  Search Console, and polish (save/resume, v1.75 hard mode).
+
+## Running it locally
+
+No build step and no Node on the dev machine — any static server works:
+
+```bash
+python -m http.server 8788
+```
+
+Then open `http://localhost:8788/`. The test suite runs in the browser at
+`/tests/` (zero-dep harness; it prints a pass/fail count into the page
+title). `game.html?seed=123` replays a deterministic run.
 
 ## Credits
 

@@ -127,7 +127,6 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   display: grid;
   place-items: center;
 }
-.board .placeholder { color: var(--muted); text-align: center; padding: 40px; }
 .board { display: block; overflow: auto; padding: 16px; }
 
 .world-label {
@@ -228,3 +227,40 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .article th, .article td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
 .article th { background: var(--panel); }
 .article .muted { color: var(--muted); }
+.article ul, .article ol { padding-left: 22px; }
+.article li { margin-bottom: 8px; }
+.article li > ul, .article li > ol { margin-top: 8px; }
+.article blockquote {
+  margin: 16px 0;
+  padding: 12px 18px;
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* Long rules page — tables need to scroll rather than push the body wide. */
+.article .table-scroll { overflow-x: auto; }
+
+.toc {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 20px 16px;
+  margin: 24px 0 8px;
+}
+.toc h2 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+  border: 0;
+  margin-top: 16px;
+  padding-bottom: 0;
+}
+.toc ol { columns: 2; column-gap: 32px; margin: 0; }
+.toc li { margin-bottom: 4px; break-inside: avoid; }
+.toc a { text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+@media (max-width: 520px) {
+  .toc ol { columns: 1; }
+}

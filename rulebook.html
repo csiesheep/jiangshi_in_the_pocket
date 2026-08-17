@@ -5,11 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
   <title>Rulebook — Zombie in the Pocket</title>
-  <meta name="description" content="How to play Zombie in the Pocket: setup, turns, combat, the clock, and how to win.">
-  <link rel="canonical" href="https://games.csiesheep.com/zombie_in_the_pocket/rulebook.html">
+  <meta name="description" content="How to play Zombie in the Pocket: setup, the turn sequence, combat, zombie doors, items, the clock, and how to win. The full playable rules on one page.">
+  <link rel="canonical" href="https://games.csiesheep.com/zombie_in_the_pocket/rulebook">
   <meta name="theme-color" content="#0a0b0d">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="csiesheep games">
+  <meta property="og:title" content="Zombie in the Pocket — Rulebook">
+  <meta property="og:description" content="Setup, the turn sequence, combat, zombie doors, items and the clock. The full playable rules on one page.">
+  <meta property="og:url" content="https://games.csiesheep.com/zombie_in_the_pocket/rulebook">
+  <meta property="og:image" content="https://games.csiesheep.com/zombie_in_the_pocket/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
   <header class="topnav">
@@ -19,31 +27,261 @@
     <a href="index.html">Menu</a>
   </header>
 
+  <!-- Room and item names below mirror data/theme.json, so the Phase 4
+       re-theme is a find-and-replace here rather than a rewrite. -->
   <main class="wrap article">
     <h1>Rulebook</h1>
-    <p class="muted">Placeholder — full playable rules to be filled in from the
-      design notes (Phase 3). Section skeleton below.</p>
+    <p class="muted">Everything you need to play, on one page. The game runs
+      itself — this is here for when you want to know <em>why</em> it just did
+      that to you.</p>
 
-    <h2>Goal</h2>
-    <p>Find the totem, then bury it in the graveyard before midnight. You play alone.</p>
+    <nav class="toc" aria-label="Contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#goal">Goal</a></li>
+        <li><a href="#components">What's in the box</a></li>
+        <li><a href="#setup">Setup</a></li>
+        <li><a href="#turn">Taking a turn</a></li>
+        <li><a href="#rooms">Special rooms</a></li>
+        <li><a href="#outside">Going outside</a></li>
+        <li><a href="#clock">The clock</a></li>
+        <li><a href="#combat">Combat</a></li>
+        <li><a href="#fleeing">Running away</a></li>
+        <li><a href="#cowering">Cowering</a></li>
+        <li><a href="#zombie-doors">Zombie doors</a></li>
+        <li><a href="#items">Items</a></li>
+        <li><a href="#winning">Winning &amp; losing</a></li>
+        <li><a href="#house-rules">House rules</a></li>
+      </ol>
+    </nav>
 
-    <h2>Setup</h2>
-    <p>TODO.</p>
+    <h2 id="goal">Goal</h2>
+    <p>You wake alone in the Foyer at 9 PM. Somewhere in the house is a zombie
+      totem; somewhere out back is a graveyard. Find the totem, bury it in the
+      graveyard, and be standing when it's done — all before midnight.</p>
+    <p>There are no dice. Every fight is arithmetic, and the only clock that
+      matters is the development deck running dry.</p>
 
-    <h2>Taking a turn</h2>
-    <p>TODO — move, place a tile, draw a card, resolve the room.</p>
+    <h2 id="components">What's in the box</h2>
+    <ul>
+      <li><strong>8 indoor tiles</strong> and <strong>8 outdoor tiles</strong>,
+        drawn from two separate face-down stacks.</li>
+      <li><strong>9 development cards.</strong> Each one says a different thing
+        depending on the hour — you read only the current hour's line.</li>
+      <li><strong>Health</strong>, <strong>Attack</strong> and the time are just
+        numbers. The game tracks them in the bar above the board.</li>
+    </ul>
 
-    <h2>Combat</h2>
-    <p>TODO — damage is zombies minus your attack, capped at 4.</p>
+    <h2 id="setup">Setup</h2>
+    <ol>
+      <li>The <strong>Foyer</strong> goes down first. The <strong>Patio</strong>
+        is set aside — it only appears when you first step outside.</li>
+      <li>The remaining indoor and outdoor tiles are shuffled into two separate
+        face-down stacks.</li>
+      <li>The 9 development cards are shuffled and the <strong>top two are
+        burned face down, unseen</strong>. That leaves seven live cards per
+        hour.</li>
+      <li>You start with <strong>Attack 1</strong> and <strong>Health 6</strong>.
+        Both move up and down, and neither has an upper limit.</li>
+      <li>The clock starts at <strong>9 PM</strong>.</li>
+    </ol>
+    <p>You begin in the Foyer and <strong>draw no card for it</strong> — the game
+      only starts once you walk out. Come back to the Foyer later, though, and
+      you draw as normal.</p>
 
-    <h2>The clock</h2>
-    <p>TODO — time only advances when the deck runs out; 9 PM → 10 PM → 11 PM.</p>
+    <h2 id="turn">Taking a turn</h2>
+    <ol>
+      <li><strong>Move.</strong> Pick a door out of the room you're in, into
+        either unexplored space or somewhere you've already been. Moving is
+        <strong>mandatory</strong> — you can't peer into a room and decide to
+        stay put. You can flee <em>after</em> walking into trouble, but you did
+        walk in.</li>
+      <li><strong>Place the tile</strong> if the space is unexplored. The top
+        tile of the stack is revealed and you <strong>choose its rotation</strong>,
+        with one constraint: one of its doors must line up with the door you
+        just came through. The rest don't have to match anything — a door can
+        open onto a blank wall, and a wall can seal off a neighbour's door.
+        That's intended. There's no fixed footprint either; the house sprawls
+        as far as the tiles take it.</li>
+      <li><strong>Draw a development card.</strong> Always — even when
+        re-entering a room you already know. Read only the line for the current
+        hour:
+        <ul>
+          <li><strong>Item</strong> — you <em>may</em> draw the next card and
+            take the item pictured on <em>that</em> one. Declining costs
+            nothing, but you get nothing.</li>
+          <li><strong>Zombies</strong> — fight them, or run.</li>
+          <li><strong>Event</strong> — gain or lose the Health shown, if any.</li>
+        </ul>
+        If the deck is empty when you need to draw, <a href="#clock">an hour has
+        passed</a>.</li>
+      <li><strong>Apply the room's own instructions</strong>, after the card is
+        finished. Only <a href="#rooms">some rooms</a> have any.</li>
+      <li><strong>Check for a dead end.</strong> Nowhere left to go means
+        <a href="#zombie-doors">zombie doors</a>.</li>
+      <li><strong>Kitchen and Garden</strong> give <strong>+1 Health</strong> if
+        you finish your turn in them.</li>
+      <li><strong>Cower, if you want to.</strong> See
+        <a href="#cowering">Cowering</a>.</li>
+    </ol>
 
-    <h2>Items</h2>
-    <p>TODO — carry two; weapons don't stack.</p>
+    <h2 id="rooms">Special rooms</h2>
+    <ul>
+      <li><strong>Evil Temple.</strong> The totem is here. Resolve the room's
+        card as normal, then draw and resolve <strong>a second card</strong> —
+        that one is the search itself. Survive it, still standing in the room,
+        and the totem is yours. Carrying it does <em>not</em> use an item
+        slot.</li>
+      <li><strong>Graveyard.</strong> The same two-card procedure, this time
+        standing for the burial. Survive it holding the totem and you've
+        won.</li>
+      <li><strong>Storage.</strong> Resolve the card as normal, then you
+        <em>may</em> draw one more and take the item on it.</li>
+      <li><strong>Kitchen</strong> and <strong>Garden.</strong> +1 Health if you
+        end your turn there.</li>
+    </ul>
 
-    <h2>Winning &amp; losing</h2>
-    <p>TODO.</p>
+    <h2 id="outside">Going outside</h2>
+    <p>The only way out of the house is the <strong>Dining Room's exterior
+      door</strong>, marked with an arrow. It's one of the Dining Room's four
+      ordinary doors, not a secret fifth exit.</p>
+    <p>Take it and the <strong>Patio</strong> goes down against the Dining Room
+      with the two arrows aligned. Then you draw a card as usual.</p>
+    <p>Outside, turns work exactly as they do indoors with one substitution:
+      instead of a door, you leave across an <strong>open grassy edge</strong>.
+      <strong>Hedges are walls</strong> — you can't push through them. As
+      indoors, one grassy edge on each newly placed tile has to line up with the
+      edge you left by.</p>
+
+    <h2 id="clock">The clock</h2>
+    <p>Time doesn't pass on a turn counter. It passes when the deck does.
+      <strong>Need to draw a card with none left, and an hour has gone by.</strong>
+      From that point on you read the new hour's line on every card.</p>
+    <p>The deck is then reshuffled — including the two burned at setup — and two
+      are burned again.</p>
+    <p>Hours run <strong>9 PM → 10 PM → 11 PM</strong>. There is no midnight line
+      to read; see <a href="#winning">Losing</a>.</p>
+    <p class="muted">Edge case: if an <strong>Item</strong> card is the last one
+      in the deck, the deck reshuffles and burns first, then you draw the top of
+      the fresh deck to see what you found.</p>
+
+    <h2 id="combat">Combat</h2>
+    <p>Fighting is arithmetic, not dice:</p>
+    <blockquote>
+      <strong>Health lost = (number of zombies) − (your Attack)</strong>
+    </blockquote>
+    <p>You can never lose more than <strong>4 Health</strong> in a single fight,
+      and you can never <em>gain</em> Health from one.</p>
+    <p><strong>Attack never stacks.</strong> You use exactly one weapon per
+      fight — the best one you're holding — and its bonus doesn't accumulate
+      with anything else. Carrying the Grisly Femur (+1) and the Machete (+2)
+      leaves you at +2, not +3. Drop a weapon and its bonus goes with it.</p>
+
+    <h2 id="fleeing">Running away</h2>
+    <p>Instead of fighting, you can leave through a door or grassy edge into a
+      room you've <strong>already explored</strong>. The zombies get a parting
+      swipe: <strong>−1 Health</strong>. You do <em>not</em> draw a card for the
+      room you retreat into.</p>
+    <p>You can only run <strong>one step</strong>, to an adjacent explored room —
+      see <a href="#house-rules">House rules</a>.</p>
+    <p>Holding <strong>Oil</strong>, you can throw it as you go and take no
+      damage at all. One use.</p>
+
+    <h2 id="cowering">Cowering</h2>
+    <p>Once a room's turn is finished you may hole up and catch your breath:
+      <strong>+3 Health</strong>, at the cost of discarding the top development
+      card unresolved. Health is cheap. Time is not.</p>
+    <ul>
+      <li>Any tile counts, <strong>including outdoor ones</strong>.</li>
+      <li>You may cower <strong>after running away</strong> — the turn resolved,
+        it just didn't happen to involve a card.</li>
+      <li>You may cower <strong>between the Temple's or Graveyard's two
+        cards</strong>. It behaves like an ordinary fresh turn.</li>
+      <li>You may <strong>not</strong> cower before a zombie-door attack.
+        Afterwards is fine.</li>
+      <li>Once per turn — see <a href="#house-rules">House rules</a>.</li>
+    </ul>
+
+    <h2 id="zombie-doors">Zombie doors</h2>
+    <p>Sometimes you end up somewhere with nowhere to go. The classic case is the
+      Bathroom placed directly above the Foyer, its only door facing back the way
+      you came. It also happens when every exit is explored and the room you
+      still need hasn't turned up.</p>
+    <p>When that happens, <strong>three zombies smash through a wall of your
+      choosing</strong>, making a new opening. Fight them as normal.</p>
+    <ul>
+      <li>They arrive <strong>after the room's own card is resolved</strong>, not
+        instead of it. Deal with the room first, then with the fact that it's a
+        dead end. A bad tile can therefore mean <strong>two fights in one
+        turn</strong>, and you can't cower between them.</li>
+      <li>You <strong>may run</strong> from them. If you do, the new opening is
+        made in the room you end up in, and it stays there.</li>
+      <li>The hole is a <strong>hole</strong>, not a matched pair of doors — the
+        tile beyond it goes down wall-to-wall, in any rotation. It persists, and
+        you can use it again later.</li>
+      <li>You <strong>don't</strong> have to go through straight away. Cower
+        first if you like and head through on a later turn. Entering draws a
+        card as normal.</li>
+    </ul>
+
+    <h2 id="items">Items</h2>
+    <p>You can carry <strong>two at a time</strong>. Picking up a third means
+      dropping one, and anything you drop is gone as soon as you leave the room.
+      You may <em>carry</em> two weapons but only ever <em>use</em> one in a
+      fight. The totem is exempt and doesn't count toward the limit.</p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Board with Nails</td><td>+1 Attack</td></tr>
+        <tr><td>Grisly Femur</td><td>+1 Attack</td></tr>
+        <tr><td>Golf Club</td><td>+1 Attack</td></tr>
+        <tr><td>Machete</td><td>+2 Attack</td></tr>
+        <tr><td>Chainsaw</td><td>+3 Attack, but only enough fuel for <strong>2 fights</strong></td></tr>
+        <tr><td>Can of Soda</td><td>+2 Health</td></tr>
+        <tr><td>Candle</td><td>Nothing on its own — pairs with Oil or Gasoline</td></tr>
+        <tr><td>Oil</td><td>Throw it while fleeing to escape damage. <strong>+ Candle</strong>: every zombie in the room burns, you're untouched. One use</td></tr>
+        <tr><td>Gasoline</td><td><strong>+ Candle</strong>: every zombie in the room burns, you're untouched. <strong>+ Chainsaw</strong>: two more fights' worth of fuel. One use</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>An empty chainsaw isn't discarded.</strong> It stays in your
+      hands, keeps occupying a slot, and can be refuelled with Gasoline as often
+      as you can find it. Dropping it is your call, not automatic.</p>
+
+    <h2 id="winning">Winning &amp; losing</h2>
+    <p><strong>You win</strong> by surviving the burial of the totem in the
+      Graveyard. Every zombie drops where it stands.</p>
+    <p><strong>You lose</strong> if:</p>
+    <ul>
+      <li>zombies finish you off,</li>
+      <li>an Event takes your last Health, or</li>
+      <li>you need a development card during the <strong>11 PM</strong> hour and
+        the deck is empty. Midnight.</li>
+    </ul>
+
+    <h2 id="house-rules">House rules</h2>
+    <p>Three ordinary situations the original rules never settled. These are our
+      calls, and they're what the game above actually does.</p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Gap</th><th>Our ruling</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>How far can you flee?</td><td>One step, to an adjacent explored room</td></tr>
+        <tr><td>How often can you cower?</td><td>Once per turn</td></tr>
+        <tr><td>Can the Temple be re-searched?</td><td>No — the second-card draw happens once, and is used up on success</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="muted">Based on the free print-and-play solo game by Jeremiah Lee.
+      These rules are paraphrased in our own words, with the designer's later
+      clarifications folded in where you'd look for them. See
+      <a href="credits.html">Credits</a>.</p>
   </main>
 </body>
 </html>

@@ -9,37 +9,31 @@ const PREFIX = "/zombie_in_the_pocket";
 const ORIGIN = "https://games.csiesheep.com";
 const CANONICAL = ORIGIN + PREFIX + "/";
 
-// robots.txt and sitemap.xml must live at the host ROOT (crawlers only honour
-// robots.txt at the domain root), which is outside the app prefix.
-const ROBOTS_TXT = "Sitemap: " + ORIGIN + "/sitemap.xml\n";
-
+// This Worker is attached by path-scoped Routes, so it only ever sees requests
+// under PREFIX — the host root (`/robots.txt`, `/sitemap.xml`, `/ads.txt`) is
+// served by the games-hub Worker and never reaches us. Crawlers only honour
+// robots.txt and ads.txt at the domain root, so those two stay the hub's job;
+// what we can own is a prefix-scoped sitemap, linked from the hub's sitemap
+// index or submitted to Search Console directly.
 const PAGES = ["", "game", "rulebook", "credits"]; // "" = the menu / index
+
+// Extensionless URLs: the static-asset handler 307s `/game.html` -> `/game`, so
+// the bare form is where a crawler actually lands. Page <link rel=canonical>
+// tags match these exactly. Internal hrefs keep `.html` so the site still works
+// off a plain local static server, which has no such rewriting.
 const SITEMAP_XML =
   '<?xml version="1.0" encoding="UTF-8"?>\n' +
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   PAGES.map(
-    (p) =>
-      "  <url>\n" +
-      "    <loc>" + CANONICAL + (p ? p + ".html" : "") + "</loc>\n" +
-      "  </url>\n"
+    (p) => "  <url>\n    <loc>" + CANONICAL + p + "</loc>\n  </url>\n"
   ).join("") +
   "</urlset>\n";
-
-// TODO (Phase 5 — deploy): add /ads.txt (AdSense pub id) and the Search
-// Console site-verification path once those tokens exist. See the
-// betrayal_sound_effect repo's src/index.js for the exact pattern.
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/robots.txt") {
-      return new Response(ROBOTS_TXT, {
-        headers: { "content-type": "text/plain; charset=utf-8" },
-      });
-    }
-
-    if (url.pathname === "/sitemap.xml") {
+    if (url.pathname === PREFIX + "/sitemap.xml") {
       return new Response(SITEMAP_XML, {
         headers: { "content-type": "application/xml; charset=utf-8" },
       });
