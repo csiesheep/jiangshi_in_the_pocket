@@ -12,17 +12,25 @@ import {
   clearLog,
   showOverlay,
   hideOverlay,
+  loadIcons,
   tileName as tName,
   itemName as iName,
 } from "./render.js";
 
+// `no-cache` forces a revalidation rather than a blind cache hit: it still
+// costs only a 304 when nothing changed, but it means a re-theme or a rules fix
+// actually reaches players who already have the old data cached.
+const FETCH_OPTS = { cache: "no-cache" };
+
 async function loadData() {
-  const [tiles, cards, items, theme] = await Promise.all([
-    fetch("data/tiles.json").then((r) => r.json()),
-    fetch("data/cards.json").then((r) => r.json()),
-    fetch("data/items.json").then((r) => r.json()),
-    fetch("data/theme.json").then((r) => r.json()),
-  ]);
+  const [tiles, cards, items, theme] = await Promise.all(
+    ["tiles", "cards", "items", "theme"].map((name) =>
+      fetch(`data/${name}.json`, FETCH_OPTS).then((r) => {
+        if (!r.ok) throw new Error(`data/${name}.json -> HTTP ${r.status}`);
+        return r.json();
+      })
+    )
+  );
   return { tiles, cards, items, theme };
 }
 
@@ -38,13 +46,27 @@ class Game {
 
   tileName(id) { return tName(this, id); }
   itemName(id) { return iName(this, id); }
+
+  // Themed nouns, so nothing player-visible is hardcoded to one setting.
+  word(key) { return (this.data.theme.words && this.data.theme.words[key]) || key; }
+
+  // The flavour line for a card in the current hour band, if the skin has one.
+  flavour(cardId) {
+    const f = this.data.theme.cardFlavour;
+    const byCard = f && f[cardId];
+    return (byCard && byCard[E.bandKey(this.state)]) || null;
+  }
+
   refresh() { renderHud(this); renderBoard(this); }
 
   start() {
     E.beginTurn(this.state);
     this.refresh();
     clearLog();
-    log(`You wake in the ${this.tileName("foyer")}. Find the totem, bury it before midnight.`);
+    log(
+      `You wake in the ${this.tileName("foyer")}. Find the ${this.word("relic")}, ` +
+        `bury it in the ${this.tileName("graveyard")} before midnight.`
+    );
     this.renderMoves();
   }
 
@@ -97,7 +119,7 @@ class Game {
 
   doOutside() {
     Bd.goOutside(this.board);
-    log("You step out onto the patio. Night air, and worse.");
+    log(`You step out onto the ${this.tileName("patio")}. Night air, and worse.`);
     this.refresh();
     this.arriveAndDraw();
   }
@@ -112,10 +134,12 @@ class Game {
 
   presentCard(cardId, ctx) {
     const o = this.state.cardsById[cardId][E.bandKey(this.state)];
+    const flavour = this.flavour(cardId);
+    if (flavour) log(flavour);
 
     if (o.t === "EVENT") {
       E.changeHealth(this.state, o.hp || 0);
-      log(o.hp ? `Fate: ${o.hp > 0 ? "+" : ""}${o.hp} HP.` : "A quiet, dreadful moment.");
+      if (o.hp) log(`${o.hp > 0 ? "+" : ""}${o.hp} HP.`, o.hp > 0 ? "good" : "bad");
       this.refresh();
       if (this.state.status === "lost") return this.gameOver();
       return this.proceed(ctx);
@@ -140,52 +164,61 @@ class Game {
         },
         { label: "Leave it", onClick: () => this.proceed(ctx) },
       ],
-      "You spot something useful. Take the time to grab it?"
+      "Worth the time to grab it?"
     );
   }
 
-  // ---- Combat (shared by card zombies and zombie doors) --------------------
+  // ---- Combat (shared by card monsters and zombie doors) -------------------
   presentCombat(n, onDone, opts = {}) {
     const s = this.state;
+    const foes = this.word("monsters");
     const usable = E.usableWeapons(s);
     const acts = [];
 
     if (usable.length > 1) {
       for (const w of usable) {
         acts.push({
-          label: `Fight with ${this.itemName(w)} (atk ${1 + s.itemsById[w].attack})`,
+          label: `Fight with the ${this.itemName(w)} (atk ${1 + s.itemsById[w].attack})`,
           primary: true,
           onClick: () => this.doFight(n, w, onDone),
         });
       }
     } else {
-      acts.push({ label: `Fight ${n} zombies`, primary: true, onClick: () => this.doFight(n, null, onDone) });
+      acts.push({ label: `Fight ${n} ${foes}`, primary: true, onClick: () => this.doFight(n, null, onDone) });
     }
 
     if (opts.allowFlee !== false) {
       const dests = Bd.listMoves(this.board).filter((m) => m.type === "move" || m.type === "cross");
       for (const d of dests) {
         const to = this.board.worlds[d.to.world].get(Bd.cellKey(d.to.x, d.to.y));
-        acts.push({ label: `Flee ${d.dir} to ${this.tileName(to.id)} (-1 HP)`, onClick: () => this.doFlee(d, false, onDone) });
+        acts.push({ label: `Flee ${d.dir} to the ${this.tileName(to.id)} (-1 HP)`, onClick: () => this.doFlee(d, false, onDone) });
         if (s.items.includes("oil")) {
-          acts.push({ label: `Flee ${d.dir} — throw oil (no damage)`, onClick: () => this.doFlee(d, true, onDone) });
+          acts.push({
+            label: `Flee ${d.dir} — throw the ${this.itemName("oil")} (no damage)`,
+            onClick: () => this.doFlee(d, true, onDone),
+          });
         }
       }
     }
 
-    if (s.items.includes("candle") && s.items.includes("oil")) {
-      acts.push({ label: "Candle + Oil — burn them all", onClick: () => this.doCombo("oil", onDone) });
-    }
-    if (s.items.includes("candle") && s.items.includes("gasoline")) {
-      acts.push({ label: "Candle + Gasoline — burn them all", onClick: () => this.doCombo("gasoline", onDone) });
+    for (const fuel of ["oil", "gasoline"]) {
+      if (s.items.includes("candle") && s.items.includes(fuel)) {
+        acts.push({
+          label: `${this.itemName("candle")} + ${this.itemName(fuel)} — burn them all`,
+          onClick: () => this.doCombo(fuel, onDone),
+        });
+      }
     }
 
-    renderActions(acts, `${n} zombies! Your attack is ${E.effectiveAttack(s)}.`);
+    renderActions(acts, `${n} ${foes}! Your attack is ${E.effectiveAttack(s)}.`);
   }
 
   doFight(n, weapon, onDone) {
     const r = E.resolveCombat(this.state, n, { weapon });
-    log(`You fight ${n} — ${weapon ? "with the " + this.itemName(weapon) : "bare-handed"} — and take ${r.damage} damage.`, r.damage >= 3 ? "bad" : "");
+    log(
+      `You fight ${n} ${this.word("monsters")} — ${weapon ? "with the " + this.itemName(weapon) : "bare-handed"} — and take ${r.damage} damage.`,
+      r.damage >= 3 ? "bad" : ""
+    );
     this.refresh();
     if (this.state.status === "lost") return this.gameOver();
     onDone();
@@ -195,7 +228,11 @@ class Game {
     Bd.moveTo(this.board, move.dir);
     E.flee(this.state, { useOil });
     this.fled = true;
-    log(useOil ? "You hurl oil and slip away, unscathed." : "You flee, taking a parting swipe (-1 HP).");
+    log(
+      useOil
+        ? `You hurl the ${this.itemName("oil")} and slip away, unscathed.`
+        : "You flee, taking a parting swipe (-1 HP)."
+    );
     this.refresh();
     if (this.state.status === "lost") return this.gameOver();
     onDone();
@@ -203,7 +240,12 @@ class Game {
 
   doCombo(fuel, onDone) {
     E.useCandleCombo(this.state, fuel);
-    log(fuel === "oil" ? "You torch the room — every zombie drops." : "Whoomph — the room ignites. All clear.", "good");
+    log(
+      fuel === "oil"
+        ? `You torch the room — every one of the ${this.word("monsters")} drops.`
+        : "Whoomph — the room ignites. All clear.",
+      "good"
+    );
     this.refresh();
     onDone();
   }
@@ -216,7 +258,7 @@ class Game {
       const tile = Bd.currentTile(this.board);
       if (ctx.kind === "temple" && !this.fled && tile.def.onResolve === "SECOND_CARD_THEN_GAIN_TOTEM") {
         E.gainTotem(this.state);
-        log("Among the bones, the totem. It is yours.", "good");
+        log(`Among the bones, the ${this.word("relic")}. It is yours.`, "good");
       }
       if (ctx.kind === "graveyard" && !this.fled && this.state.totem) {
         E.buryTotem(this.state);
@@ -252,7 +294,7 @@ class Game {
         },
         { label: "Leave empty-handed", onClick: () => this.deadEndCheck() },
       ],
-      "Storage: worth a rummage?"
+      `The ${this.tileName("storage")} — worth a rummage?`
     );
   }
 
@@ -295,7 +337,7 @@ class Game {
   zombieDoorPhase(onDone) {
     const tile = Bd.currentTile(this.board);
     const walls = ["N", "E", "S", "W"].filter((d) => !Bd.openings(tile).includes(d));
-    log("Dead end. Three zombies claw at the walls…", "bad");
+    log(`Dead end. Three of the ${this.word("monsters")} claw at the walls…`, "bad");
     if (!walls.length) return this.presentCombat(E.RULES.ZOMBIE_DOOR_COUNT, onDone, { allowFlee: true });
     renderActions(
       walls.map((d) => ({
@@ -351,7 +393,11 @@ class Game {
       { label: "Menu", href: "index.html" },
     ];
     if (this.state.status === "won") {
-      showOverlay("You made it to dawn", "The totem is buried. The house falls silent.", again);
+      showOverlay(
+        "You made it to dawn",
+        `The ${this.word("relic")} is buried. The house falls silent.`,
+        again
+      );
     } else {
       const why = {
         combat: "The dead pulled you under.",
@@ -436,7 +482,8 @@ function wireControls() {
 
 async function main() {
   try {
-    data = await loadData();
+    // Icons are decorative, so a failed sprite must not block the game.
+    [data] = await Promise.all([loadData(), loadIcons()]);
     // Start smaller on a phone, where 84px tiles overflow almost immediately.
     if (window.innerWidth < 600) zoomIndex = ZOOM_STEPS.indexOf(56);
     applyZoom();

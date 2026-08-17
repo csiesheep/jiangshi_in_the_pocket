@@ -1,5 +1,5 @@
-/* Zombie in the Pocket — shared styles + theme tokens.
-   Placeholder dark-horror palette; refine during the re-theme (Phase 4). */
+/* Grave Errand — shared styles + theme tokens.
+   Dark-horror palette: sickly green against dried blood, on near-black. */
 
 :root {
   --bg:        #0a0b0d;
@@ -126,6 +126,11 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .hud .stat .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .hud .stat .value { font-size: 1.4rem; font-family: var(--font-head); }
 
+/* Carried items read as icon + name chips rather than a comma list. */
+#hud-items { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 1rem; }
+.itemchip { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.itemicon { width: 18px; height: 18px; color: var(--gold); flex: none; }
+
 /* min-width:0 keeps a wide board from forcing the grid column open. */
 .board-pane { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 
@@ -190,12 +195,27 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   background: #23262d;
   border: 2px solid #333944;
   border-radius: 6px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   text-align: center;
+  overflow: hidden;
 }
 .here .tilebox { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
-.tilename { font-size: .62rem; line-height: 1.15; padding: 0 6px; color: var(--text); }
+.tilename { font-size: .62rem; line-height: 1.15; padding: 0 4px; color: var(--text); }
+
+/* Tile art scales with the zoom, and drops out entirely on the smallest
+   tiles where it would crowd the name off the face. */
+.tileicon {
+  width: calc(var(--tile) * 0.34);
+  height: calc(var(--tile) * 0.34);
+  color: var(--muted);
+  flex: none;
+}
+.here .tileicon { color: var(--accent); }
+@media (max-width: 600px) { .tilename { font-size: .58rem; } }
 .you { position: absolute; bottom: 4px; right: 6px; color: var(--accent); font-size: .9rem; }
 
 .edge { position: absolute; background: transparent; }

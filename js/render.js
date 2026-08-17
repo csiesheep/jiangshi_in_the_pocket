@@ -5,6 +5,40 @@ import { cellKey, openings } from "./board.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 
+// The three yard tiles are all "Lawn" and share one icon.
+const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
+
+// Inject the icon sprite once, then reference symbols with <use href="#id">.
+// External-file <use> references are not dependably supported, so the sprite is
+// inlined instead. Icons are decorative: if the fetch fails, tiles fall back to
+// their text label and nothing else changes.
+export async function loadIcons() {
+  try {
+    const res = await fetch("assets/icons.svg", { cache: "no-cache" });
+    if (!res.ok) return false;
+    const holder = document.createElement("div");
+    holder.hidden = true;
+    holder.innerHTML = await res.text();
+    document.body.appendChild(holder);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function icon(kind, id, cls) {
+  const symbol = `${kind}-${ICON_ALIAS[id] || id}`;
+  if (!document.getElementById(symbol)) return null;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", cls);
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  use.setAttribute("href", `#${symbol}`);
+  svg.appendChild(use);
+  return svg;
+}
+
 export function formatHour(hour) {
   return `${hour - 12} PM`;
 }
@@ -14,12 +48,7 @@ export function renderHud(game) {
   set("hud-health", s.health);
   set("hud-attack", effectiveAttack(s));
   set("hud-hour", formatHour(s.hour));
-  set(
-    "hud-items",
-    s.items.length
-      ? s.items.map((id) => itemName(game, id) + (id === "chainsaw" ? ` (${s.chainsawFuel})` : "")).join(", ")
-      : "—"
-  );
+  renderCarried(game);
   set("hud-totem", s.totem ? "Yes" : "No");
 }
 
@@ -28,6 +57,29 @@ const WORLD_LABEL = { indoor: "Inside the house", outdoor: "Outside" };
 // Both halves of the map are drawn, indoor first, so the rooms you explored
 // before stepping outside stay visible. The half you are not standing in is
 // dimmed rather than hidden.
+// Carried items, as icon + name chips. The chainsaw carries its remaining fuel.
+function renderCarried(game) {
+  const s = game.state;
+  const el = document.getElementById("hud-items");
+  if (!el) return;
+  el.textContent = "";
+  if (!s.items.length) {
+    el.textContent = "—";
+    return;
+  }
+  for (const id of s.items) {
+    const chip = document.createElement("span");
+    chip.className = "itemchip";
+    const art = icon("item", id, "itemicon");
+    if (art) chip.appendChild(art);
+    const label = document.createElement("span");
+    label.textContent =
+      itemName(game, id) + (id === "chainsaw" ? ` (${s.chainsawFuel})` : "");
+    chip.appendChild(label);
+    el.appendChild(chip);
+  }
+}
+
 export function renderBoard(game) {
   const board = game.board;
   const el = document.getElementById("board");
@@ -106,6 +158,9 @@ function tileInner(game, t, here) {
     "aria-label",
     `${name}${here ? ", you are here" : ""}${marks.length ? ". Openings: " + marks.join(", ") : ". No openings"}`
   );
+
+  const art = icon("tile", t.id, "tileicon");
+  if (art) box.appendChild(art);
 
   const nameEl = document.createElement("span");
   nameEl.className = "tilename";

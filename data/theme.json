@@ -1,36 +1,86 @@
 {
-  "_note": "PLACEHOLDER theme. Display names below are the original working labels used in the spec; flavour text is neutral placeholder, NOT the original copyrighted card text. Replace all of this during the clean-room re-theme (Phase 4). Mechanics live in tiles.json / cards.json / items.json and do not change.",
-  "title": "Zombie in the Pocket",
+  "_note": "The skin. Every player-visible string lives here; mechanics live in tiles.json / cards.json / items.json and never change. Swapping this file re-themes the whole game. Written clean-room: these names and lines are our own, not the original's.",
+  "title": "Grave Errand",
+  "tagline": "Find the relic. Bury it in the family plot. Beat the clock to midnight — alone.",
+  "words": {
+    "monsters": "risen",
+    "relic": "relic"
+  },
   "tiles": {
-    "foyer": "Foyer",
-    "bathroom": "Bathroom",
-    "bedroom": "Bedroom",
-    "family-room": "Family Room",
-    "dining-room": "Dining Room",
-    "storage": "Storage",
+    "foyer": "Entry Hall",
+    "bathroom": "Washroom",
+    "bedroom": "Bedchamber",
+    "family-room": "Parlour",
+    "dining-room": "Dining Hall",
+    "storage": "Pantry",
     "kitchen": "Kitchen",
-    "evil-temple": "Evil Temple",
-    "patio": "Patio",
-    "garage": "Garage",
-    "yard-1": "Yard",
-    "yard-2": "Yard",
-    "yard-3": "Yard",
-    "sitting-area": "Sitting Area",
-    "garden": "Garden",
-    "graveyard": "Graveyard"
+    "evil-temple": "Reliquary",
+    "patio": "Veranda",
+    "garage": "Carriage House",
+    "yard-1": "Lawn",
+    "yard-2": "Lawn",
+    "yard-3": "Lawn",
+    "sitting-area": "Arbour",
+    "garden": "Herb Garden",
+    "graveyard": "Family Plot"
   },
   "items": {
-    "board-nails": "Board with Nails",
-    "grisly-femur": "Grisly Femur",
-    "golf-club": "Golf Club",
-    "machete": "Machete",
-    "chainsaw": "Chainsaw",
-    "can-of-soda": "Can of Soda",
-    "oil": "Oil",
-    "gasoline": "Gasoline",
-    "candle": "Candle"
+    "board-nails": "Nailed Plank",
+    "grisly-femur": "Splintered Bone",
+    "golf-club": "Fire Iron",
+    "machete": "Billhook",
+    "chainsaw": "Petrol Saw",
+    "can-of-soda": "Bottled Tonic",
+    "oil": "Lamp Oil",
+    "gasoline": "Petrol Can",
+    "candle": "Tallow Candle"
   },
   "cardFlavour": {
-    "_todo": "One neutral line per card per hour band; write during re-theme."
+    "_note": "One line per card per hour band, keyed by card id then hour. Read alongside the matching entry in cards.json — the line describes what that band's outcome feels like, and carries no mechanics of its own.",
+    "1": {
+      "9": "The floorboards settle. Nothing follows.",
+      "10": "Something glints under a dust sheet.",
+      "11": "Six of them pour in from the dark."
+    },
+    "2": {
+      "9": "Four shapes straighten up in the corners.",
+      "10": "A frame drops off the wall, and the glass finds you.",
+      "11": "A cupboard hangs open, half emptied already."
+    },
+    "3": {
+      "9": "A toolbox sits where someone dropped it.",
+      "10": "Four of them crowd into the doorway.",
+      "11": "You misjudge a step in the dark."
+    },
+    "4": {
+      "9": "Four come in over the windowsill.",
+      "10": "Cold hands brush past before you can turn.",
+      "11": "Six press through the gap at once."
+    },
+    "5": {
+      "9": "Somebody left their kit behind in a hurry.",
+      "10": "Five of them come at the sound of you.",
+      "11": "The air in here bites, and takes your breath with it."
+    },
+    "6": {
+      "9": "No trap here but bad footing. It still hurts.",
+      "10": "Four heads turn toward you together.",
+      "11": "Silence, and the smell of old rain."
+    },
+    "7": {
+      "9": "A door swings open on its own. Nothing behind it.",
+      "10": "Clean water, and a moment long enough to drink it.",
+      "11": "Four step out of the shadow along the wall."
+    },
+    "8": {
+      "9": "You find a chair, and your breath, at the same time.",
+      "10": "A drawer stands open with something still in it.",
+      "11": "Four of them were already waiting."
+    },
+    "9": {
+      "9": "Three come for you, unhurried.",
+      "10": "Dust, and the sound of your own steps.",
+      "11": "Five block the way you came in."
+    }
   }
 }
