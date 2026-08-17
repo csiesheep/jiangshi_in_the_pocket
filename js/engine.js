@@ -283,9 +283,18 @@ export function buryTotem(state) {
 }
 
 // ---- Turn boundary ---------------------------------------------------------
-export function beginTurn(state) {
+// The cower allowance is really per *window*, not per turn. An ordinary turn has
+// one window, after the room's card is resolved. The Reliquary and Family Plot
+// have a second one in the gap between their two cards, which the designer ruled
+// "behaves like an ordinary fresh turn" — so it gets its own allowance rather
+// than competing with the end-of-turn one.
+export function openCowerWindow(state) {
   state.coweredThisTurn = false;
   return state;
+}
+
+export function beginTurn(state) {
+  return openCowerWindow(state);
 }
 
 // ---- Card resolution -------------------------------------------------------

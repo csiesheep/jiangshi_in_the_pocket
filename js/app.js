@@ -275,8 +275,12 @@ class Game {
     if (this.fled) return this.deadEndCheck();
     const onr = Bd.currentTile(this.board).def.onResolve;
     if (onr === "BONUS_ITEM") return this.offerBonusItem();
-    if (onr === "SECOND_CARD_THEN_GAIN_TOTEM") return this.drawSecond("temple", "You search the shrine…");
-    if (onr === "SECOND_CARD_THEN_BURY_TOTEM") return this.drawSecond("graveyard", "You dig, and begin the burial…");
+    if (onr === "SECOND_CARD_THEN_GAIN_TOTEM") {
+      return this.drawSecond("temple", `You start searching the ${this.tileName("evil-temple")}…`);
+    }
+    if (onr === "SECOND_CARD_THEN_BURY_TOTEM") {
+      return this.drawSecond("graveyard", "You break ground, and begin the burial…");
+    }
     return this.deadEndCheck();
   }
 
@@ -298,8 +302,40 @@ class Game {
     );
   }
 
+  // The Reliquary and Family Plot resolve a second card. The designer ruled the
+  // gap between the two "behaves like an ordinary fresh turn", so you may cower
+  // there — and that allowance is its own, separate from the end-of-turn one.
   drawSecond(kind, msg) {
     log(msg);
+    E.openCowerWindow(this.state);
+    this.promptSecondCard(kind);
+  }
+
+  promptSecondCard(kind) {
+    if (this.state.status !== "playing") return this.gameOver();
+    const acts = [
+      {
+        label: kind === "graveyard" ? "Dig on — draw the burial card" : "Search on — draw the second card",
+        primary: true,
+        onClick: () => this.doDrawSecond(kind),
+      },
+    ];
+    if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
+      acts.push({ label: "Cower first — +3 HP, burn a card", onClick: () => this.doCowerBeforeSecond(kind) });
+    }
+    renderActions(acts, "One more card to face. Take a breath first?");
+  }
+
+  doCowerBeforeSecond(kind) {
+    const r = E.cower(this.state);
+    if (r.ok) log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
+    this.refresh();
+    // Burning that card can empty the deck, turn the hour, and even end the run.
+    if (this.state.status !== "playing") return this.gameOver();
+    this.promptSecondCard(kind);
+  }
+
+  doDrawSecond(kind) {
     const c = E.drawCard(this.state);
     if (this.state.status !== "playing" || c == null) return this.gameOver();
     this.refresh();
@@ -361,6 +397,16 @@ class Game {
       log(`You steady yourself here. +1 HP.`, "good");
       this.refresh();
     }
+    // Step 9 gets its own cower allowance, independent of one taken between a
+    // Reliquary / Family Plot pair.
+    E.openCowerWindow(this.state);
+    this.renderEndTurn();
+  }
+
+  // Split out from endTurn so cowering can re-render the choices without
+  // re-running step 8 — which would hand out the Kitchen / Herb Garden heal a
+  // second time.
+  renderEndTurn() {
     const acts = [{ label: "Next turn", primary: true, onClick: () => this.nextTurn() }];
     if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
       acts.unshift({ label: "Cower — +3 HP, burn a card", onClick: () => this.doCower() });
@@ -373,7 +419,7 @@ class Game {
     if (r.ok) log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
     this.refresh();
     if (this.state.status === "lost") return this.gameOver();
-    this.endTurn();
+    this.renderEndTurn();
   }
 
   nextTurn() {

@@ -248,6 +248,22 @@ test("cower: +3, discards a card, once per turn", () => {
   eq(E.cower(s).ok, true, "allowed again next turn");
 });
 
+// The designer ruled the gap between the Reliquary's / Family Plot's two cards
+// "behaves like an ordinary fresh turn", so it carries its own cower allowance
+// rather than competing with the one at end of turn.
+test("cower: a fresh window grants another allowance in the same turn", () => {
+  const s = game({ seed: 1 });
+  eq(E.cower(s).ok, true, "first window");
+  eq(E.cower(s).ok, false, "still one per window");
+  E.openCowerWindow(s);
+  const deck = s.deck.length;
+  const hp = s.health;
+  eq(E.cower(s).ok, true, "second window opens a new allowance");
+  eq(s.health, hp + E.RULES.COWER_HEAL, "heals again");
+  eq(s.deck.length, deck - 1, "and costs another card");
+  eq(E.cower(s).ok, false, "but only once inside that window too");
+});
+
 // ---- Card resolution -------------------------------------------------------
 test("resolveCard EVENT: applies hp for the hour", () => {
   const s = game({ seed: 1 });
