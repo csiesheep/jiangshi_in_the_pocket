@@ -11,6 +11,7 @@ import {
   log,
   clearLog,
   showOverlay,
+  hideOverlay,
   tileName as tName,
   itemName as iName,
 } from "./render.js";
@@ -344,26 +345,103 @@ class Game {
   gameOver() {
     this.refresh();
     renderActions([]);
+    const again = [
+      { label: "Play again", primary: true, onClick: () => startNewGame() },
+      { label: `Replay this seed (${this.seed})`, onClick: () => startNewGame(this.seed) },
+      { label: "Menu", href: "index.html" },
+    ];
     if (this.state.status === "won") {
-      showOverlay("You made it to dawn", "The totem is buried. The house falls silent.");
+      showOverlay("You made it to dawn", "The totem is buried. The house falls silent.", again);
     } else {
       const why = {
         combat: "The dead pulled you under.",
         health: "Your wounds were too deep.",
         midnight: "Midnight came, and with it the end.",
       };
-      showOverlay("You didn't make it", why[this.state.lossReason] || "Game over.");
+      showOverlay("You didn't make it", why[this.state.lossReason] || "Game over.", again);
     }
   }
 }
 
+// ---- Page-level state ------------------------------------------------------
+// `data` is fetched once; every run after the first reuses it, so restarting is
+// synchronous and needs no reload.
+let data = null;
+let game = null;
+
+function startNewGame(seed) {
+  hideOverlay();
+  game = new Game(data, seed != null ? { seed } : {});
+  window.__game = game; // handy for debugging
+  const el = document.getElementById("seed-value");
+  if (el) el.textContent = game.seed;
+  game.start();
+}
+
+function seedFromUrl() {
+  const raw = new URLSearchParams(location.search).get("seed");
+  if (raw == null || raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n >>> 0 : null;
+}
+
+// ---- Zoom ------------------------------------------------------------------
+// The board has no fixed footprint, so tile size is the only practical zoom.
+// 84px is the CSS default and reads as 100%.
+const ZOOM_STEPS = [44, 56, 68, 84, 104, 128];
+const ZOOM_DEFAULT = 84;
+let zoomIndex = ZOOM_STEPS.indexOf(ZOOM_DEFAULT);
+
+function applyZoom() {
+  const px = ZOOM_STEPS[zoomIndex];
+  document.documentElement.style.setProperty("--tile", px + "px");
+  const label = document.getElementById("zoom-label");
+  if (label) label.textContent = Math.round((px / ZOOM_DEFAULT) * 100) + "%";
+  const out = document.getElementById("btn-zoom-out");
+  const inn = document.getElementById("btn-zoom-in");
+  if (out) out.disabled = zoomIndex === 0;
+  if (inn) inn.disabled = zoomIndex === ZOOM_STEPS.length - 1;
+}
+
+function zoom(delta) {
+  zoomIndex = Math.min(ZOOM_STEPS.length - 1, Math.max(0, zoomIndex + delta));
+  applyZoom();
+}
+
+// ---- Run controls ----------------------------------------------------------
+async function copyReplayLink() {
+  const btn = document.getElementById("btn-copy-seed");
+  const url = `${location.origin}${location.pathname}?seed=${game.seed}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    btn.textContent = "Link copied";
+    setTimeout(() => (btn.textContent = "Copy replay link"), 1800);
+  } catch {
+    // Clipboard refused (insecure context or denied permission) — put the link
+    // in the log so it can still be copied by hand.
+    log("Replay link: " + url);
+  }
+}
+
+function wireControls() {
+  document.getElementById("btn-zoom-out").addEventListener("click", () => zoom(-1));
+  document.getElementById("btn-zoom-in").addEventListener("click", () => zoom(1));
+  document.getElementById("btn-copy-seed").addEventListener("click", copyReplayLink);
+  document.getElementById("btn-new-game").addEventListener("click", () => {
+    // Drop ?seed= so a shared link doesn't silently reapply to the fresh run.
+    if (location.search) history.replaceState(null, "", location.pathname);
+    startNewGame();
+  });
+}
+
 async function main() {
   try {
-    const data = await loadData();
-    const seedParam = new URLSearchParams(location.search).get("seed");
-    const game = new Game(data, seedParam ? { seed: Number(seedParam) >>> 0 } : {});
-    window.__game = game; // handy for debugging
-    game.start();
+    data = await loadData();
+    // Start smaller on a phone, where 84px tiles overflow almost immediately.
+    if (window.innerWidth < 600) zoomIndex = ZOOM_STEPS.indexOf(56);
+    applyZoom();
+    wireControls();
+    startNewGame(seedFromUrl());
   } catch (err) {
     console.error(err);
     log("Failed to start the game — see console.", "bad");

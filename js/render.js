@@ -23,20 +23,38 @@ export function renderHud(game) {
   set("hud-totem", s.totem ? "Yes" : "No");
 }
 
+const WORLD_LABEL = { indoor: "Inside the house", outdoor: "Outside" };
+
+// Both halves of the map are drawn, indoor first, so the rooms you explored
+// before stepping outside stay visible. The half you are not standing in is
+// dimmed rather than hidden.
 export function renderBoard(game) {
   const board = game.board;
   const el = document.getElementById("board");
   el.innerHTML = "";
 
-  const world = board.player.world;
-  const map = board.worlds[world];
+  for (const world of ["indoor", "outdoor"]) {
+    const map = board.worlds[world];
+    if (!map || map.size === 0) continue; // outdoor is empty until the seam
+    const active = board.player.world === world;
+
+    const section = document.createElement("div");
+    section.className = "world" + (active ? " world--active" : "");
+
+    const label = document.createElement("div");
+    label.className = "world-label";
+    label.textContent = WORLD_LABEL[world];
+    if (!active) label.textContent += " (explored)";
+    section.appendChild(label);
+
+    section.appendChild(worldGrid(game, map, active));
+    el.appendChild(section);
+  }
+}
+
+function worldGrid(game, map, active) {
+  const board = game.board;
   const tiles = [...map.values()];
-
-  const label = document.createElement("div");
-  label.className = "world-label";
-  label.textContent = world === "indoor" ? "Inside the house" : "Outside";
-  el.appendChild(label);
-
   const xs = tiles.map((t) => t.x);
   const ys = tiles.map((t) => t.y);
   const minX = Math.min(...xs), maxX = Math.max(...xs);
@@ -54,19 +72,21 @@ export function renderBoard(game) {
       const t = map.get(cellKey(x, y));
       if (t) {
         cell.classList.add("tile");
-        if (board.player.x === x && board.player.y === y) cell.classList.add("here");
-        cell.appendChild(tileInner(game, t));
+        const here = active && board.player.x === x && board.player.y === y;
+        if (here) cell.classList.add("here");
+        cell.appendChild(tileInner(game, t, here));
       }
       grid.appendChild(cell);
     }
   }
-  el.appendChild(grid);
+  return grid;
 }
 
-function tileInner(game, t) {
+function tileInner(game, t, here) {
   const box = document.createElement("div");
   box.className = "tilebox";
 
+  const marks = [];
   for (const dir of ["N", "E", "S", "W"]) {
     const edge = document.createElement("span");
     let kind = "wall";
@@ -74,18 +94,30 @@ function tileInner(game, t) {
     else if (t.exits.includes(dir)) kind = "door";
     if (dir === t.exteriorDir) kind = "door exterior";
     edge.className = `edge ${DIR_CLASS[dir]} ${kind}`;
+    edge.setAttribute("aria-hidden", "true"); // described in the tile label
     box.appendChild(edge);
+    if (kind !== "wall") marks.push(`${dir} ${kind.replace("door exterior", "exterior door")}`);
   }
 
-  const name = document.createElement("span");
-  name.className = "tilename";
-  name.textContent = tileName(game, t.id);
-  box.appendChild(name);
+  // One sentence per tile, so the board is navigable without seeing it.
+  const name = tileName(game, t.id);
+  box.setAttribute("role", "img");
+  box.setAttribute(
+    "aria-label",
+    `${name}${here ? ", you are here" : ""}${marks.length ? ". Openings: " + marks.join(", ") : ". No openings"}`
+  );
 
-  if (game.board.player.x === t.x && game.board.player.y === t.y) {
+  const nameEl = document.createElement("span");
+  nameEl.className = "tilename";
+  nameEl.textContent = name;
+  nameEl.setAttribute("aria-hidden", "true");
+  box.appendChild(nameEl);
+
+  if (here) {
     const you = document.createElement("span");
     you.className = "you";
     you.textContent = "☻";
+    you.setAttribute("aria-hidden", "true");
     box.appendChild(you);
   }
   return box;
@@ -105,9 +137,32 @@ export function clearLog() {
   if (el) el.innerHTML = "";
 }
 
+// The first nine actions get a number-key shortcut. One delegated listener,
+// installed on the first render, reads the live button list each keypress.
+let keysBound = false;
+function bindActionKeys() {
+  if (keysBound) return;
+  keysBound = true;
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    const n = Number(e.key);
+    if (!Number.isInteger(n) || n < 1 || n > 9) return;
+    const b = document.querySelectorAll("#actions .action")[n - 1];
+    if (b && !b.disabled) {
+      e.preventDefault();
+      b.click();
+    }
+  });
+}
+
 // Render a set of action buttons. `actions` = [{label, onClick, primary?}].
 export function renderActions(actions, prompt = "") {
   const el = document.getElementById("actions");
+  // Keep the keyboard on the turn loop, but don't yank focus out of the
+  // sidebar controls if that's where the player put it.
+  const hadFocus = el.contains(document.activeElement);
   el.innerHTML = "";
   if (prompt) {
     const p = document.createElement("p");
@@ -115,26 +170,73 @@ export function renderActions(actions, prompt = "") {
     p.textContent = prompt;
     el.appendChild(p);
   }
-  for (const a of actions) {
+  actions.forEach((a, i) => {
     const b = document.createElement("button");
+    b.type = "button";
     b.className = "action" + (a.primary ? " action--primary" : "");
-    b.textContent = a.label;
+    if (i < 9) {
+      const k = document.createElement("kbd");
+      k.textContent = String(i + 1);
+      b.appendChild(k);
+    }
+    b.appendChild(document.createTextNode(a.label));
     b.disabled = !!a.disabled;
     b.addEventListener("click", a.onClick);
     el.appendChild(b);
+  });
+  bindActionKeys();
+  if (hadFocus || document.activeElement === document.body) {
+    const first =
+      el.querySelector(".action--primary:not(:disabled)") ||
+      el.querySelector(".action:not(:disabled)");
+    if (first) first.focus();
   }
 }
 
-export function showOverlay(title, sub) {
+// `actions` = [{label, onClick, primary?} | {label, href, primary?}].
+export function showOverlay(title, sub, actions = []) {
   let ov = document.getElementById("overlay");
   if (!ov) {
     ov = document.createElement("div");
     ov.id = "overlay";
     document.body.appendChild(ov);
   }
-  ov.innerHTML = `<div class="overlay-card"><h2>${title}</h2><p>${sub || ""}</p>
-    <a class="btn btn--primary" href="game.html">Play again</a>
-    <a class="btn" href="index.html">Menu</a></div>`;
+  ov.innerHTML = "";
+
+  const card = document.createElement("div");
+  card.className = "overlay-card";
+  const h = document.createElement("h2");
+  h.textContent = title;
+  card.appendChild(h);
+  const p = document.createElement("p");
+  p.textContent = sub || "";
+  card.appendChild(p);
+
+  for (const a of actions) {
+    const cls = "btn" + (a.primary ? " btn--primary" : "");
+    let el;
+    if (a.href) {
+      el = document.createElement("a");
+      el.href = a.href;
+    } else {
+      el = document.createElement("button");
+      el.type = "button";
+      el.addEventListener("click", a.onClick);
+    }
+    el.className = cls;
+    el.textContent = a.label;
+    card.appendChild(el);
+  }
+
+  ov.appendChild(card);
+  ov.hidden = false;
+  const focusMe = ov.querySelector(".btn--primary") || ov.querySelector(".btn");
+  if (focusMe) focusMe.focus();
+}
+
+export function hideOverlay() {
+  const ov = document.getElementById("overlay");
+  if (ov) ov.hidden = true;
 }
 
 // ---- name helpers ----------------------------------------------------------
