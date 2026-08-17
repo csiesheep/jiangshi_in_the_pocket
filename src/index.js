@@ -52,7 +52,33 @@ export default {
 
     if (url.pathname.startsWith(PREFIX + "/")) {
       url.pathname = url.pathname.slice(PREFIX.length) || "/";
-      return env.ASSETS.fetch(new Request(url, request));
+      const response = await env.ASSETS.fetch(new Request(url, request));
+
+      // The static-asset handler redirects .html requests to their
+      // extensionless equivalent, but it builds Location from the url we just
+      // stripped the prefix off - so /zombie_in_the_pocket/game.html points at
+      // a bare /game, which escapes this Worker and 404s on the hub. Put the
+      // prefix back on any same-origin redirect it hands us.
+      const location = response.headers.get("location");
+      if (location) {
+        const target = new URL(location, url);
+        if (
+          target.origin === url.origin &&
+          target.pathname !== PREFIX &&
+          !target.pathname.startsWith(PREFIX + "/")
+        ) {
+          target.pathname = PREFIX + target.pathname;
+          const headers = new Headers(response.headers);
+          headers.set("location", target.toString());
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+          });
+        }
+      }
+
+      return response;
     }
 
     return new Response("Not found", { status: 404 });
