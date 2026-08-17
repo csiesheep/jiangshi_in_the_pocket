@@ -1,9 +1,12 @@
 // Rendering — reflects game + board state into the DOM. No game logic here.
 
 import { effectiveAttack } from "./engine.js";
-import { cellKey, openings } from "./board.js";
+import { cellKey, currentTile, listMoves } from "./board.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
+const DIRS = ["N", "E", "S", "W"];
+const DELTA = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
+const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
 
 // The three yard tiles are all "Lawn" and share one icon.
 const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
@@ -80,102 +83,308 @@ function renderCarried(game) {
   }
 }
 
+// What each wall of the room you're standing in is currently doing. Passability
+// is taken from listMoves() rather than re-derived, so the picture can never
+// disagree with the buttons.
+//
+// Five states, because this ruleset allows a door to open onto a neighbour's
+// blank wall:
+//   wall     — no opening at all
+//   shut     — an opening with unexplored space beyond; nothing to show behind it
+//   open     — a passage into an explored room; that room is shown, half-seen
+//   blocked  — an opening that leads nowhere (a door facing a wall, or no tiles
+//              left to place). Drawn shut, because you cannot use it.
+//   outside  — the arrow door, before the seam is placed
+function edgeStates(game) {
+  const board = game.board;
+  const tile = currentTile(board);
+  // A seam "cross" move shares its direction with the arrow door, and is pushed
+  // after the per-direction moves, so it legitimately wins here.
+  const byDir = new Map(listMoves(board).map((m) => [m.dir, m]));
+
+  const out = {};
+  for (const dir of DIRS) {
+    const hole = tile.holes.includes(dir);
+    const door = tile.exits.includes(dir);
+    const move = byDir.get(dir);
+    const type = move && move.type;
+
+    // The arrow edge is a passage that is not one of the tile's own doors: the
+    // Veranda joins the house along its seam edge, which is absent from its
+    // exit list. Without this the way home renders as blank wall.
+    const arrow = dir === tile.exteriorDir || dir === tile.seamDir;
+
+    if (!hole && !door && !arrow) {
+      out[dir] = { kind: "wall", state: "wall", neighbour: null };
+      continue;
+    }
+
+    let state = "blocked";
+    let neighbour = null;
+
+    if (type === "move" || type === "cross") {
+      state = "open";
+      const to = move.to;
+      neighbour = board.worlds[to.world].get(cellKey(to.x, to.y)) || null;
+    } else if (type === "outside") {
+      state = "outside";
+    } else if (type === "explore") {
+      state = "shut";
+    } else {
+      // No move offered. Either a door onto an explored neighbour's wall, or an
+      // unexplored edge with an empty tile stack.
+      const [dx, dy] = DELTA[dir];
+      state = board.worlds[tile.world].get(cellKey(tile.x + dx, tile.y + dy)) ? "blocked" : "shut";
+    }
+
+    out[dir] = {
+      kind: hole ? "broken" : "door",
+      arrow,
+      crossesWorld: type === "cross",
+      state,
+      neighbour,
+    };
+  }
+  return out;
+}
+
+// Only the room you're in, centred, with a half-glimpse of each explored room
+// you could step into. Nothing behind a shut door.
 export function renderBoard(game) {
   const board = game.board;
   const el = document.getElementById("board");
   el.innerHTML = "";
 
-  for (const world of ["indoor", "outdoor"]) {
-    const map = board.worlds[world];
-    if (!map || map.size === 0) continue; // outdoor is empty until the seam
-    const active = board.player.world === world;
+  const tile = currentTile(board);
+  const edges = edgeStates(game);
 
-    const section = document.createElement("div");
-    section.className = "world" + (active ? " world--active" : "");
+  const label = document.createElement("div");
+  label.className = "world-label";
+  label.textContent = WORLD_LABEL[board.player.world];
+  el.appendChild(label);
 
-    const label = document.createElement("div");
-    label.className = "world-label";
-    label.textContent = WORLD_LABEL[world];
-    if (!active) label.textContent += " (explored)";
-    section.appendChild(label);
+  const view = document.createElement("div");
+  view.className = "focus";
 
-    section.appendChild(worldGrid(game, map, active));
-    el.appendChild(section);
+  for (const dir of DIRS) {
+    const e = edges[dir];
+    const slot = document.createElement("div");
+    slot.className = `focus-slot focus-slot--${DIR_CLASS[dir]}`;
+    if (e.state === "open" && e.neighbour) slot.appendChild(halfRoom(game, e, dir));
+    view.appendChild(slot);
   }
+
+  const centre = document.createElement("div");
+  centre.className = "focus-centre";
+  centre.appendChild(centreRoom(game, tile, edges));
+  view.appendChild(centre);
+
+  el.appendChild(view);
 }
 
-function worldGrid(game, map, active) {
-  const board = game.board;
-  const tiles = [...map.values()];
-  const xs = tiles.map((t) => t.x);
-  const ys = tiles.map((t) => t.y);
-  const minX = Math.min(...xs), maxX = Math.max(...xs);
-  const minY = Math.min(...ys), maxY = Math.max(...ys);
+// ---- Moving between rooms --------------------------------------------------
+// Three layers, played together after the new room is rendered: the door you
+// came through swings open, footprints track from that doorway to where you're
+// standing, and the whole view slides one room in the direction travelled.
+//
+// Purely decorative — state has already changed and nothing waits on these, so
+// clicking straight through a move can never desync the board.
+const SLIDE_MS = 500;
+const DOOR_MS = 300;
+const FOOT_MS = 360;
+const FOOT_STAGGER = 78;
+const OPPOSITE = { N: "S", E: "W", S: "N", W: "E" };
 
-  const grid = document.createElement("div");
-  grid.className = "grid";
-  grid.style.gridTemplateColumns = `repeat(${maxX - minX + 1}, var(--tile))`;
-  grid.style.gridTemplateRows = `repeat(${maxY - minY + 1}, var(--tile))`;
-
-  for (let y = minY; y <= maxY; y++) {
-    for (let x = minX; x <= maxX; x++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      const t = map.get(cellKey(x, y));
-      if (t) {
-        cell.classList.add("tile");
-        const here = active && board.player.x === x && board.player.y === y;
-        if (here) cell.classList.add("here");
-        cell.appendChild(tileInner(game, t, here));
-      }
-      grid.appendChild(cell);
-    }
-  }
-  return grid;
+function reducedMotion() {
+  return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
 
-function tileInner(game, t, here) {
-  const box = document.createElement("div");
-  box.className = "tilebox";
+// Deferred to the next frame on purpose: resolving the room's card refreshes the
+// board again, and renderBoard rebuilds .focus from scratch, so animating the
+// element that exists right now would animate a node about to be thrown away.
+export function animateEntry(dir) {
+  const [dx, dy] = DELTA[dir] || [0, 0];
+  if ((!dx && !dy) || reducedMotion()) return;
 
-  const marks = [];
-  for (const dir of ["N", "E", "S", "W"]) {
-    const edge = document.createElement("span");
-    let kind = "wall";
-    if (t.holes.includes(dir)) kind = "hole";
-    else if (t.exits.includes(dir)) kind = "door";
-    if (dir === t.exteriorDir) kind = "door exterior";
-    edge.className = `edge ${DIR_CLASS[dir]} ${kind}`;
-    edge.setAttribute("aria-hidden", "true"); // described in the tile label
-    box.appendChild(edge);
-    if (kind !== "wall") marks.push(`${dir} ${kind.replace("door exterior", "exterior door")}`);
-  }
+  requestAnimationFrame(() => {
+    const view = document.querySelector(".focus");
+    if (!view || typeof view.animate !== "function") return;
 
-  // One sentence per tile, so the board is navigable without seeing it.
-  const name = tileName(game, t.id);
-  box.setAttribute("role", "img");
-  box.setAttribute(
-    "aria-label",
-    `${name}${here ? ", you are here" : ""}${marks.length ? ". Openings: " + marks.join(", ") : ". No openings"}`
+    slideView(view, dx, dy);
+
+    const box = view.querySelector(".focus-centre .tilebox");
+    if (!box) return;
+    const back = OPPOSITE[dir]; // the wall you came through, in the new room
+    swingDoor(box, back);
+    trackFootprints(box, back);
+  });
+}
+
+function slideView(view, dx, dy) {
+  const tile = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 170;
+  const gap = parseFloat(getComputedStyle(view).rowGap) || 0;
+  const step = tile + gap;
+  view.animate(
+    [
+      { transform: `translate(${dx * step}px, ${dy * step}px)` },
+      { transform: "translate(0, 0)" },
+    ],
+    { duration: SLIDE_MS, easing: "cubic-bezier(.22,.61,.36,1)" }
   );
+}
 
-  const art = icon("tile", t.id, "tileicon");
+// A leaf hinged in the doorway, swinging inward. Skipped for a broken wall —
+// there is no door there to open.
+function swingDoor(box, back) {
+  const edge = box.querySelector(`.edgemark.${DIR_CLASS[back]}`);
+  if (!edge || edge.classList.contains("edgemark--broken")) return;
+
+  const swing = document.createElement("span");
+  swing.className = `doorswing ${DIR_CLASS[back]}`;
+  swing.setAttribute("aria-hidden", "true");
+  const leaf = document.createElement("span");
+  leaf.className = "leaf";
+  swing.appendChild(leaf);
+  box.appendChild(swing);
+
+  const anim = leaf.animate(
+    [
+      { transform: "rotate(0deg)", opacity: 1 },
+      { transform: "rotate(74deg)", opacity: 1, offset: 0.75 },
+      { transform: "rotate(74deg)", opacity: 0 },
+    ],
+    { duration: DOOR_MS, easing: "cubic-bezier(.3,.7,.4,1)" }
+  );
+  anim.finished.then(() => swing.remove()).catch(() => swing.remove());
+}
+
+// Footprints from the doorway to the middle of the room, alternating left and
+// right of the line of travel, fading in one after another.
+function trackFootprints(box, back) {
+  const track = document.createElement("span");
+  track.className = "steps";
+  track.setAttribute("aria-hidden", "true");
+
+  const along = [88, 76, 64, 52]; // percent from the wall, inward
+  const count = along.length;
+  for (let i = 0; i < count; i++) {
+    const foot = document.createElement("span");
+    foot.className = "step";
+    const side = i % 2 ? 57 : 43; // left/right of the walking line
+    const near = along[i];
+    if (back === "S") { foot.style.top = `${near}%`; foot.style.left = `${side}%`; }
+    else if (back === "N") { foot.style.top = `${100 - near}%`; foot.style.left = `${side}%`; }
+    else if (back === "E") { foot.style.left = `${near}%`; foot.style.top = `${side}%`; }
+    else { foot.style.left = `${100 - near}%`; foot.style.top = `${side}%`; }
+    foot.style.transform = `translate(-50%, -50%) rotate(${back === "N" || back === "S" ? 0 : 90}deg)`;
+    track.appendChild(foot);
+
+    foot.animate(
+      [{ opacity: 0 }, { opacity: 0.9, offset: 0.35 }, { opacity: 0 }],
+      { duration: FOOT_MS, delay: DOOR_MS * 0.5 + i * FOOT_STAGGER, easing: "ease-out" }
+    );
+  }
+  box.appendChild(track);
+  setTimeout(() => track.remove(), DOOR_MS * 0.5 + count * FOOT_STAGGER + FOOT_MS + 60);
+}
+
+function centreRoom(game, tile, edges) {
+  const box = document.createElement("div");
+  box.className = "tilebox tilebox--here";
+  box.setAttribute("role", "img");
+  box.setAttribute("aria-label", describeRoom(game, tile, edges));
+
+  for (const dir of DIRS) {
+    const mark = edgeMark(dir, edges[dir]);
+    if (mark) box.appendChild(mark);
+  }
+
+  const art = icon("tile", tile.id, "tileicon");
   if (art) box.appendChild(art);
 
-  const nameEl = document.createElement("span");
-  nameEl.className = "tilename";
-  nameEl.textContent = name;
-  nameEl.setAttribute("aria-hidden", "true");
-  box.appendChild(nameEl);
+  const name = document.createElement("span");
+  name.className = "tilename";
+  name.textContent = tileName(game, tile.id);
+  name.setAttribute("aria-hidden", "true");
+  box.appendChild(name);
 
-  if (here) {
-    const you = document.createElement("span");
-    you.className = "you";
-    you.textContent = "☻";
-    you.setAttribute("aria-hidden", "true");
-    box.appendChild(you);
-  }
+  const you = document.createElement("span");
+  you.className = "you";
+  you.textContent = "☻";
+  you.setAttribute("aria-hidden", "true");
+  box.appendChild(you);
   return box;
+}
+
+// The far half of a neighbour is masked away, so it reads as a room you can see
+// into rather than a room you are in.
+function halfRoom(game, edge, dir) {
+  const half = document.createElement("div");
+  half.className = `halfroom halfroom--${DIR_CLASS[dir]}`;
+  if (edge.crossesWorld) half.classList.add("halfroom--across");
+  half.setAttribute("aria-hidden", "true"); // already in the centre room's label
+
+  const art = icon("tile", edge.neighbour.id, "tileicon");
+  if (art) half.appendChild(art);
+
+  const name = document.createElement("span");
+  name.className = "tilename";
+  name.textContent = tileName(game, edge.neighbour.id);
+  half.appendChild(name);
+  return half;
+}
+
+function edgeMark(dir, edge) {
+  if (edge.kind === "wall") return null;
+
+  let symbol;
+  let tone;
+  if (edge.kind === "broken") {
+    symbol = "wall-broken";
+    tone = "broken";
+  } else if (edge.arrow && (edge.state === "outside" || edge.crossesWorld)) {
+    symbol = "door-exterior";
+    tone = "exterior";
+  } else if (edge.state === "open") {
+    symbol = "door-open";
+    tone = "open";
+  } else {
+    symbol = "door-closed";
+    tone = edge.state === "blocked" ? "blocked" : "shut";
+  }
+
+  const wrap = document.createElement("span");
+  wrap.className = `edgemark ${DIR_CLASS[dir]} edgemark--${tone}`;
+  wrap.setAttribute("aria-hidden", "true");
+  const art = icon("edge", symbol, "edgeart");
+  if (art) wrap.appendChild(art);
+  return wrap;
+}
+
+// One sentence covering the room and all four walls, so the board is playable
+// without seeing it.
+function describeRoom(game, tile, edges) {
+  const parts = [`${tileName(game, tile.id)}, you are here.`];
+  for (const dir of DIRS) {
+    const e = edges[dir];
+    const where = DIR_WORD[dir];
+    if (e.state === "wall") {
+      parts.push(`To the ${where}, a wall.`);
+    } else if (e.state === "outside") {
+      parts.push(`To the ${where}, the arrow door leading outside.`);
+    } else if (e.state === "open") {
+      const thing = e.kind === "broken" ? "a broken wall" : e.arrow ? "the arrow door" : "an open door";
+      const room = e.neighbour ? tileName(game, e.neighbour.id) : "somewhere explored";
+      parts.push(`To the ${where}, ${thing} into the ${room}${e.crossesWorld ? ", across the threshold" : ""}.`);
+    } else if (e.state === "blocked") {
+      const thing = e.kind === "broken" ? "a broken wall" : "a door";
+      parts.push(`To the ${where}, ${thing} that leads nowhere.`);
+    } else {
+      const thing = e.kind === "broken" ? "a broken wall" : "a shut door";
+      parts.push(`To the ${where}, ${thing}, unexplored beyond.`);
+    }
+  }
+  return parts.join(" ");
 }
 
 export function log(msg, cls = "") {

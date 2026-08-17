@@ -182,4 +182,39 @@
     <path d="M12 10V8"/>
     <path d="M12 3c1.5 1.8 2 2.8 2 3.8a2 2 0 0 1-4 0c0-1 .5-2 2-3.8z"/>
   </symbol>
+
+  <!-- ======================= Edges of a room =======================
+       All drawn for the north wall, on the same 24x24 grid as everything else
+       so they are not letterboxed: the wall runs along y=12, the room is below
+       it, and "outward" is up. render.js rotates these for the other three
+       sides, and the marker is centred on the wall so the two halves fall
+       inside and outside the room. -->
+
+  <!-- Shut: a door slab filling the opening. The room beyond is unexplored. -->
+  <symbol id="edge-door-closed" viewBox="0 0 24 24">
+    <rect x="3" y="7.5" width="18" height="9" rx="1" fill="currentColor" fill-opacity=".22"/>
+    <rect x="3" y="7.5" width="18" height="9" rx="1"/>
+    <circle cx="17.5" cy="12" r="1" fill="currentColor"/>
+  </symbol>
+
+  <!-- Open: the jambs stand, and the leaf has swung back into the room. -->
+  <symbol id="edge-door-open" viewBox="0 0 24 24">
+    <path d="M3 7.5v9M21 7.5v9"/>
+    <path d="M3.8 12L13 21.5" stroke-width="2.4"/>
+  </symbol>
+
+  <!-- A zombie door: the wall itself is broken through, with rubble below. -->
+  <symbol id="edge-wall-broken" viewBox="0 0 24 24">
+    <path d="M0 12h3.2l2-3.6 2.5 5 3-4.6 2.5 5 2.4-4 2.2 3.2H24"/>
+    <circle cx="9" cy="18.5" r=".9" fill="currentColor"/>
+    <circle cx="14.6" cy="20" r=".7" fill="currentColor"/>
+  </symbol>
+
+  <!-- The arrow door: the one way between inside and out. -->
+  <symbol id="edge-door-exterior" viewBox="0 0 24 24">
+    <rect x="3" y="9" width="18" height="7.5" rx="1" fill="currentColor" fill-opacity=".22"/>
+    <rect x="3" y="9" width="18" height="7.5" rx="1"/>
+    <path d="M12 8V4.5"/>
+    <path d="M9.6 6.4L12 4L14.4 6.4"/>
+  </symbol>
 </svg>

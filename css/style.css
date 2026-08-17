@@ -171,10 +171,6 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   padding: 16px;
 }
 
-/* Both halves of the map are drawn; the one you're not in is dimmed. */
-.world + .world { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border); }
-.world:not(.world--active) { opacity: .5; }
-
 .world-label {
   font-family: var(--font-head);
   color: var(--muted);
@@ -184,48 +180,175 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   margin-bottom: 10px;
 }
 
-:root { --tile: 84px; }
-.grid { display: grid; gap: 6px; justify-content: center; }
-.cell { width: var(--tile); height: var(--tile); }
+/* --tile is the room you're standing in; --peek is how much of a neighbour
+   shows through an open door. Both scale with the zoom control. */
+:root { --tile: 170px; --wall: #3a4150; --wall-w: 2px; --room: #23262d; }
+.focus { --peek: calc(var(--tile) * 0.42); }
 
-.tile { position: relative; }
+.focus {
+  display: grid;
+  grid-template-columns: var(--peek) var(--tile) var(--peek);
+  grid-template-rows: var(--peek) var(--tile) var(--peek);
+  grid-template-areas: ". n ." "w c e" ". s .";
+  gap: 10px;
+  justify-content: center;
+  align-content: center;
+  margin: 0 auto;
+  width: max-content;
+}
+.focus-slot--n { grid-area: n; align-items: end; }
+.focus-slot--s { grid-area: s; align-items: start; }
+.focus-slot--w { grid-area: w; justify-items: end; }
+.focus-slot--e { grid-area: e; justify-items: start; }
+.focus-slot { display: grid; }
+.focus-centre { grid-area: c; position: relative; }
+
 .tilebox {
   position: absolute;
   inset: 0;
-  background: #23262d;
-  border: 2px solid #333944;
+  background: var(--room);
+  border: var(--wall-w) solid var(--wall);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 6px;
   text-align: center;
-  overflow: hidden;
 }
-.here .tilebox { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
-.tilename { font-size: .62rem; line-height: 1.15; padding: 0 4px; color: var(--text); }
-
-/* Tile art scales with the zoom, and drops out entirely on the smallest
-   tiles where it would crowd the name off the face. */
+.tilebox--here {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--wall));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.tilename { font-size: .78rem; line-height: 1.15; padding: 0 6px; color: var(--text); }
 .tileicon {
-  width: calc(var(--tile) * 0.34);
-  height: calc(var(--tile) * 0.34);
-  color: var(--muted);
+  width: calc(var(--tile) * 0.24);
+  height: calc(var(--tile) * 0.24);
+  color: var(--accent);
   flex: none;
 }
-.here .tileicon { color: var(--accent); }
-@media (max-width: 600px) { .tilename { font-size: .58rem; } }
-.you { position: absolute; bottom: 4px; right: 6px; color: var(--accent); font-size: .9rem; }
+.you { position: absolute; bottom: 6px; right: 8px; color: var(--accent); font-size: 1rem; }
 
-.edge { position: absolute; background: transparent; }
-.edge.n, .edge.s { left: 30%; width: 40%; height: 5px; }
-.edge.e, .edge.w { top: 30%; height: 40%; width: 5px; }
-.edge.n { top: -3px; } .edge.s { bottom: -3px; }
-.edge.e { right: -3px; } .edge.w { left: -3px; }
-.edge.door { background: var(--accent); border-radius: 3px; }
-.edge.hole { background: var(--danger); border-radius: 3px; }
-.edge.exterior { background: var(--gold); }
+/* A neighbour, seen through the doorway. The far edge fades out, so it reads as
+   a glimpse rather than a room of its own. */
+.halfroom {
+  background: var(--room);
+  border: var(--wall-w) solid var(--wall);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  opacity: .82;
+}
+.halfroom .tilename { font-size: .66rem; color: var(--muted); }
+.halfroom .tileicon {
+  width: calc(var(--tile) * 0.16);
+  height: calc(var(--tile) * 0.16);
+  color: var(--muted);
+}
+.halfroom--n, .halfroom--s { width: var(--tile); height: var(--peek); }
+.halfroom--e, .halfroom--w { width: var(--peek); height: var(--tile); }
+.halfroom--n {
+  border-radius: 6px 6px 0 0; border-bottom: 0;
+  -webkit-mask-image: linear-gradient(to top, #000 45%, transparent);
+          mask-image: linear-gradient(to top, #000 45%, transparent);
+}
+.halfroom--s {
+  border-radius: 0 0 6px 6px; border-top: 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
+          mask-image: linear-gradient(to bottom, #000 45%, transparent);
+}
+.halfroom--w {
+  border-radius: 6px 0 0 6px; border-right: 0;
+  -webkit-mask-image: linear-gradient(to left, #000 45%, transparent);
+          mask-image: linear-gradient(to left, #000 45%, transparent);
+}
+.halfroom--e {
+  border-radius: 0 6px 6px 0; border-left: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 45%, transparent);
+          mask-image: linear-gradient(to right, #000 45%, transparent);
+}
+/* Across the seam — the other side of the house. */
+.halfroom--across { border-color: color-mix(in srgb, var(--gold) 45%, var(--wall)); }
+.halfroom--across .tileicon { color: var(--gold); }
+
+/* Door and broken-wall art, drawn for the north wall and rotated into place.
+   The marker is square and centred on the wall, so the art's own centreline
+   lands exactly on the room's edge and the leaf swings inward. ::before punches
+   the gap in the wall, only as wide as the doorway itself. */
+.edgemark {
+  position: absolute;
+  width: calc(var(--tile) * 0.46);
+  height: calc(var(--tile) * 0.46);
+  pointer-events: none;
+}
+.edgemark::before {
+  content: "";
+  position: absolute;
+  left: 12.5%;
+  right: 12.5%;
+  top: 50%;
+  height: 5px;
+  transform: translateY(-50%);
+  background: var(--bg-2);
+}
+.edgemark .edgeart { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Offset by the wall's own thickness: top/left/right/bottom resolve against the
+   padding box, so 0 would sit just inside the border rather than on it. */
+.edgemark.n { top: calc(-1 * var(--wall-w)); left: 50%; transform: translate(-50%, -50%); }
+.edgemark.s { bottom: calc(-1 * var(--wall-w)); left: 50%; transform: translate(-50%, 50%) rotate(180deg); }
+.edgemark.e { right: calc(-1 * var(--wall-w)); top: 50%; transform: translate(50%, -50%) rotate(90deg); }
+.edgemark.w { left: calc(-1 * var(--wall-w)); top: 50%; transform: translate(-50%, -50%) rotate(270deg); }
+
+/* The door you just came through, swinging inward. Positioned exactly like an
+   .edgemark so the hinge lands in the doorway; the leaf rotates within that
+   frame, so one rule works for all four walls. */
+.doorswing {
+  position: absolute;
+  width: calc(var(--tile) * 0.46);
+  height: calc(var(--tile) * 0.46);
+  pointer-events: none;
+}
+.doorswing.n { top: calc(-1 * var(--wall-w)); left: 50%; transform: translate(-50%, -50%); }
+.doorswing.s { bottom: calc(-1 * var(--wall-w)); left: 50%; transform: translate(-50%, 50%) rotate(180deg); }
+.doorswing.e { right: calc(-1 * var(--wall-w)); top: 50%; transform: translate(50%, -50%) rotate(90deg); }
+.doorswing.w { left: calc(-1 * var(--wall-w)); top: 50%; transform: translate(-50%, -50%) rotate(270deg); }
+.doorswing .leaf {
+  position: absolute;
+  left: 12.5%;
+  top: 50%;
+  width: 75%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform-origin: left center;
+}
+
+/* Footprints tracking in from the doorway. */
+.steps { position: absolute; inset: 0; pointer-events: none; }
+.step {
+  position: absolute;
+  width: 5px;
+  height: 8px;
+  border-radius: 60% 60% 45% 45%;
+  background: var(--accent);
+  opacity: 0;
+}
+
+/* Colour carries the state: green you can walk, grey is shut, red is smashed,
+   gold is the way outside. */
+.edgemark--open { color: var(--accent); }
+.edgemark--shut { color: var(--muted); }
+.edgemark--blocked { color: #5a6070; }
+.edgemark--broken { color: var(--danger); }
+.edgemark--exterior { color: var(--gold); }
+
+@media (max-width: 600px) {
+  .tilename { font-size: .72rem; }
+  .halfroom .tilename { font-size: .6rem; }
+}
 
 /* Action buttons in the sidebar */
 .prompt { margin: 0 0 10px; font-size: .9rem; color: var(--text); }

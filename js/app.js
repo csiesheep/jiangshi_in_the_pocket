@@ -13,6 +13,7 @@ import {
   showOverlay,
   hideOverlay,
   loadIcons,
+  animateEntry,
   tileName as tName,
   itemName as iName,
 } from "./render.js";
@@ -83,7 +84,7 @@ class Game {
         return { label: `Go ${m.dir} — explore`, primary: true, onClick: () => this.chooseRotation(m.dir) };
       }
       if (m.type === "outside") {
-        return { label: "Step outside (the arrow door)", primary: true, onClick: () => this.doOutside() };
+        return { label: "Step outside (the arrow door)", primary: true, onClick: () => this.doOutside(m.dir) };
       }
       const to = this.board.worlds[m.to.world].get(Bd.cellKey(m.to.x, m.to.y));
       return { label: `Go ${m.dir} — ${this.tileName(to.id)}`, onClick: () => this.doMove(m.dir) };
@@ -107,6 +108,7 @@ class Game {
     const r = Bd.explore(this.board, dir, rot);
     log(`You enter the ${this.tileName(r.tile.id)}.`);
     this.refresh();
+    animateEntry(dir);
     this.arriveAndDraw();
   }
 
@@ -114,13 +116,15 @@ class Game {
     Bd.moveTo(this.board, dir);
     log(`You move to the ${this.tileName(Bd.currentTile(this.board).id)}.`);
     this.refresh();
+    animateEntry(dir);
     this.arriveAndDraw();
   }
 
-  doOutside() {
+  doOutside(dir) {
     Bd.goOutside(this.board);
     log(`You step out onto the ${this.tileName("patio")}. Night air, and worse.`);
     this.refresh();
+    if (dir) animateEntry(dir);
     this.arriveAndDraw();
   }
 
@@ -234,6 +238,7 @@ class Game {
         : "You flee, taking a parting swipe (-1 HP)."
     );
     this.refresh();
+    animateEntry(move.dir);
     if (this.state.status === "lost") return this.gameOver();
     onDone();
   }
@@ -478,10 +483,10 @@ function seedFromUrl() {
 }
 
 // ---- Zoom ------------------------------------------------------------------
-// The board has no fixed footprint, so tile size is the only practical zoom.
-// 84px is the CSS default and reads as 100%.
-const ZOOM_STEPS = [44, 56, 68, 84, 104, 128];
-const ZOOM_DEFAULT = 84;
+// The view is one room plus a peek at its neighbours, so zoom is the size of
+// that room. 170px is the CSS default and reads as 100%.
+const ZOOM_STEPS = [110, 140, 170, 210, 250];
+const ZOOM_DEFAULT = 170;
 let zoomIndex = ZOOM_STEPS.indexOf(ZOOM_DEFAULT);
 
 function applyZoom() {
@@ -530,8 +535,8 @@ async function main() {
   try {
     // Icons are decorative, so a failed sprite must not block the game.
     [data] = await Promise.all([loadData(), loadIcons()]);
-    // Start smaller on a phone, where 84px tiles overflow almost immediately.
-    if (window.innerWidth < 600) zoomIndex = ZOOM_STEPS.indexOf(56);
+    // The view spans about 1.84 rooms wide, so start smaller on a phone.
+    if (window.innerWidth < 600) zoomIndex = ZOOM_STEPS.indexOf(140);
     applyZoom();
     wireControls();
     startNewGame(seedFromUrl());
