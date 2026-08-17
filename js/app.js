@@ -1,9 +1,19 @@
-// Game page controller — wires user input -> engine -> render, owns the RNG
-// and save/restore. Currently just loads the data files and confirms the
-// scaffold is wired (Phase 3 fills in the real loop).
+// Game page controller — orchestrates the turn sequence (spec §5), wiring user
+// input -> engine + board -> render. Owns the RNG seed and the interactive
+// flow (rotation, item, combat, flee, cower, zombie-door choices).
 
-import { RULES } from "./engine.js";
-import { log } from "./render.js";
+import * as E from "./engine.js";
+import * as Bd from "./board.js";
+import {
+  renderHud,
+  renderBoard,
+  renderActions,
+  log,
+  clearLog,
+  showOverlay,
+  tileName as tName,
+  itemName as iName,
+} from "./render.js";
 
 async function loadData() {
   const [tiles, cards, items, theme] = await Promise.all([
@@ -15,18 +25,348 @@ async function loadData() {
   return { tiles, cards, items, theme };
 }
 
+class Game {
+  constructor(data, opts = {}) {
+    this.data = data;
+    const seed = opts.seed ?? (Date.now() >>> 0);
+    this.seed = seed;
+    this.state = E.newGame(data, { seed });
+    this.board = Bd.createBoard(data, { seed });
+    this.fled = false;
+  }
+
+  tileName(id) { return tName(this, id); }
+  itemName(id) { return iName(this, id); }
+  refresh() { renderHud(this); renderBoard(this); }
+
+  start() {
+    E.beginTurn(this.state);
+    this.refresh();
+    clearLog();
+    log(`You wake in the ${this.tileName("foyer")}. Find the totem, bury it before midnight.`);
+    this.renderMoves();
+  }
+
+  // ---- Step 1: choose a move (mandatory) -----------------------------------
+  renderMoves() {
+    if (this.state.status !== "playing") return this.gameOver();
+    const moves = Bd.listMoves(this.board);
+    if (!moves.length) {
+      log("Nowhere left to go…", "bad");
+      return this.zombieDoorPhase(() => this.endTurn());
+    }
+    const acts = moves.map((m) => {
+      if (m.type === "explore") {
+        return { label: `Go ${m.dir} — explore`, primary: true, onClick: () => this.chooseRotation(m.dir) };
+      }
+      if (m.type === "outside") {
+        return { label: "Step outside (the arrow door)", primary: true, onClick: () => this.doOutside() };
+      }
+      const to = this.board.worlds[m.to.world].get(Bd.cellKey(m.to.x, m.to.y));
+      return { label: `Go ${m.dir} — ${this.tileName(to.id)}`, onClick: () => this.doMove(m.dir) };
+    });
+    renderActions(acts, "Choose a way out — you must move.");
+  }
+
+  chooseRotation(dir) {
+    const deck = this.board.decks[this.board.player.world];
+    const def = this.board.byId[deck[0]];
+    const rots = Bd.validExploreRotations(this.board, dir);
+    if (rots.length <= 1) return this.doExplore(dir, rots[0] ?? 0);
+    const acts = rots.map((r) => ({
+      label: `Doors: ${Bd.rotatedExits(def.exits, r).join(" ")}`,
+      onClick: () => this.doExplore(dir, r),
+    }));
+    renderActions(acts, `You reveal the ${this.tileName(deck[0])}. Turn it which way?`);
+  }
+
+  doExplore(dir, rot) {
+    const r = Bd.explore(this.board, dir, rot);
+    log(`You enter the ${this.tileName(r.tile.id)}.`);
+    this.refresh();
+    this.arriveAndDraw();
+  }
+
+  doMove(dir) {
+    Bd.moveTo(this.board, dir);
+    log(`You move to the ${this.tileName(Bd.currentTile(this.board).id)}.`);
+    this.refresh();
+    this.arriveAndDraw();
+  }
+
+  doOutside() {
+    Bd.goOutside(this.board);
+    log("You step out onto the patio. Night air, and worse.");
+    this.refresh();
+    this.arriveAndDraw();
+  }
+
+  // ---- Steps 3–4: draw and resolve a development card ----------------------
+  arriveAndDraw() {
+    const c = E.drawCard(this.state);
+    if (this.state.status !== "playing" || c == null) return this.gameOver();
+    this.refresh();
+    this.presentCard(c, { second: false });
+  }
+
+  presentCard(cardId, ctx) {
+    const o = this.state.cardsById[cardId][E.bandKey(this.state)];
+
+    if (o.t === "EVENT") {
+      E.changeHealth(this.state, o.hp || 0);
+      log(o.hp ? `Fate: ${o.hp > 0 ? "+" : ""}${o.hp} HP.` : "A quiet, dreadful moment.");
+      this.refresh();
+      if (this.state.status === "lost") return this.gameOver();
+      return this.proceed(ctx);
+    }
+
+    if (o.t === "ZOMBIES") {
+      return this.presentCombat(o.n, () => this.proceed(ctx), { allowFlee: true });
+    }
+
+    // ITEM
+    renderActions(
+      [
+        {
+          label: "Search for the item",
+          primary: true,
+          onClick: () => {
+            const c = E.drawCard(this.state);
+            if (this.state.status !== "playing" || c == null) return this.gameOver();
+            const item = this.state.cardsById[c].item;
+            this.takeItemFlow(item, () => this.proceed(ctx));
+          },
+        },
+        { label: "Leave it", onClick: () => this.proceed(ctx) },
+      ],
+      "You spot something useful. Take the time to grab it?"
+    );
+  }
+
+  // ---- Combat (shared by card zombies and zombie doors) --------------------
+  presentCombat(n, onDone, opts = {}) {
+    const s = this.state;
+    const usable = E.usableWeapons(s);
+    const acts = [];
+
+    if (usable.length > 1) {
+      for (const w of usable) {
+        acts.push({
+          label: `Fight with ${this.itemName(w)} (atk ${1 + s.itemsById[w].attack})`,
+          primary: true,
+          onClick: () => this.doFight(n, w, onDone),
+        });
+      }
+    } else {
+      acts.push({ label: `Fight ${n} zombies`, primary: true, onClick: () => this.doFight(n, null, onDone) });
+    }
+
+    if (opts.allowFlee !== false) {
+      const dests = Bd.listMoves(this.board).filter((m) => m.type === "move" || m.type === "cross");
+      for (const d of dests) {
+        const to = this.board.worlds[d.to.world].get(Bd.cellKey(d.to.x, d.to.y));
+        acts.push({ label: `Flee ${d.dir} to ${this.tileName(to.id)} (-1 HP)`, onClick: () => this.doFlee(d, false, onDone) });
+        if (s.items.includes("oil")) {
+          acts.push({ label: `Flee ${d.dir} — throw oil (no damage)`, onClick: () => this.doFlee(d, true, onDone) });
+        }
+      }
+    }
+
+    if (s.items.includes("candle") && s.items.includes("oil")) {
+      acts.push({ label: "Candle + Oil — burn them all", onClick: () => this.doCombo("oil", onDone) });
+    }
+    if (s.items.includes("candle") && s.items.includes("gasoline")) {
+      acts.push({ label: "Candle + Gasoline — burn them all", onClick: () => this.doCombo("gasoline", onDone) });
+    }
+
+    renderActions(acts, `${n} zombies! Your attack is ${E.effectiveAttack(s)}.`);
+  }
+
+  doFight(n, weapon, onDone) {
+    const r = E.resolveCombat(this.state, n, { weapon });
+    log(`You fight ${n} — ${weapon ? "with the " + this.itemName(weapon) : "bare-handed"} — and take ${r.damage} damage.`, r.damage >= 3 ? "bad" : "");
+    this.refresh();
+    if (this.state.status === "lost") return this.gameOver();
+    onDone();
+  }
+
+  doFlee(move, useOil, onDone) {
+    Bd.moveTo(this.board, move.dir);
+    E.flee(this.state, { useOil });
+    this.fled = true;
+    log(useOil ? "You hurl oil and slip away, unscathed." : "You flee, taking a parting swipe (-1 HP).");
+    this.refresh();
+    if (this.state.status === "lost") return this.gameOver();
+    onDone();
+  }
+
+  doCombo(fuel, onDone) {
+    E.useCandleCombo(this.state, fuel);
+    log(fuel === "oil" ? "You torch the room — every zombie drops." : "Whoomph — the room ignites. All clear.", "good");
+    this.refresh();
+    onDone();
+  }
+
+  // ---- Step 6: the tile's own instructions --------------------------------
+  proceed(ctx) {
+    if (this.state.status !== "playing") return this.gameOver();
+
+    if (ctx && ctx.second) {
+      const tile = Bd.currentTile(this.board);
+      if (ctx.kind === "temple" && !this.fled && tile.def.onResolve === "SECOND_CARD_THEN_GAIN_TOTEM") {
+        E.gainTotem(this.state);
+        log("Among the bones, the totem. It is yours.", "good");
+      }
+      if (ctx.kind === "graveyard" && !this.fled && this.state.totem) {
+        E.buryTotem(this.state);
+      }
+      this.refresh();
+      if (this.state.status === "won") return this.gameOver();
+      return this.deadEndCheck();
+    }
+
+    return this.afterCardSpecial();
+  }
+
+  afterCardSpecial() {
+    if (this.fled) return this.deadEndCheck();
+    const onr = Bd.currentTile(this.board).def.onResolve;
+    if (onr === "BONUS_ITEM") return this.offerBonusItem();
+    if (onr === "SECOND_CARD_THEN_GAIN_TOTEM") return this.drawSecond("temple", "You search the shrine…");
+    if (onr === "SECOND_CARD_THEN_BURY_TOTEM") return this.drawSecond("graveyard", "You dig, and begin the burial…");
+    return this.deadEndCheck();
+  }
+
+  offerBonusItem() {
+    renderActions(
+      [
+        {
+          label: "Rummage for an item",
+          primary: true,
+          onClick: () => {
+            const c = E.drawCard(this.state);
+            if (this.state.status !== "playing" || c == null) return this.gameOver();
+            this.takeItemFlow(this.state.cardsById[c].item, () => this.deadEndCheck());
+          },
+        },
+        { label: "Leave empty-handed", onClick: () => this.deadEndCheck() },
+      ],
+      "Storage: worth a rummage?"
+    );
+  }
+
+  drawSecond(kind, msg) {
+    log(msg);
+    const c = E.drawCard(this.state);
+    if (this.state.status !== "playing" || c == null) return this.gameOver();
+    this.refresh();
+    this.presentCard(c, { second: true, kind });
+  }
+
+  takeItemFlow(item, done) {
+    if (E.hasItemSpace(this.state)) {
+      E.pickUpItem(this.state, item);
+      log(`You take the ${this.itemName(item)}.`, "good");
+      this.refresh();
+      return done();
+    }
+    const acts = this.state.items.map((held) => ({
+      label: `Drop ${this.itemName(held)}, take ${this.itemName(item)}`,
+      onClick: () => {
+        E.pickUpItem(this.state, item, held);
+        log(`Dropped the ${this.itemName(held)}, took the ${this.itemName(item)}.`);
+        this.refresh();
+        done();
+      },
+    }));
+    acts.push({ label: `Leave the ${this.itemName(item)}`, onClick: done });
+    renderActions(acts, `Your hands are full. Make room for the ${this.itemName(item)}?`);
+  }
+
+  // ---- Step 7: dead-end / zombie door -------------------------------------
+  deadEndCheck() {
+    if (this.state.status !== "playing") return this.gameOver();
+    this.refresh();
+    if (Bd.isDeadEnd(this.board)) return this.zombieDoorPhase(() => this.endTurn());
+    return this.endTurn();
+  }
+
+  zombieDoorPhase(onDone) {
+    const tile = Bd.currentTile(this.board);
+    const walls = ["N", "E", "S", "W"].filter((d) => !Bd.openings(tile).includes(d));
+    log("Dead end. Three zombies claw at the walls…", "bad");
+    if (!walls.length) return this.presentCombat(E.RULES.ZOMBIE_DOOR_COUNT, onDone, { allowFlee: true });
+    renderActions(
+      walls.map((d) => ({
+        label: `Let them break the ${d} wall`,
+        onClick: () => {
+          Bd.openZombieDoor(this.board, d);
+          this.refresh();
+          this.presentCombat(E.RULES.ZOMBIE_DOOR_COUNT, onDone, { allowFlee: true });
+        },
+      })),
+      "Choose the wall they smash through:"
+    );
+  }
+
+  // ---- Steps 8–9: end of turn (heal, cower) -------------------------------
+  endTurn() {
+    if (this.state.status !== "playing") return this.gameOver();
+    const tile = Bd.currentTile(this.board);
+    if (!this.fled && tile.def.onTurnEnd === "HEAL_1") {
+      E.changeHealth(this.state, 1);
+      log(`You steady yourself here. +1 HP.`, "good");
+      this.refresh();
+    }
+    const acts = [{ label: "Next turn", primary: true, onClick: () => this.nextTurn() }];
+    if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
+      acts.unshift({ label: "Cower — +3 HP, burn a card", onClick: () => this.doCower() });
+    }
+    renderActions(acts, "The room is quiet. Rest, or press on?");
+  }
+
+  doCower() {
+    const r = E.cower(this.state);
+    if (r.ok) log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
+    this.refresh();
+    if (this.state.status === "lost") return this.gameOver();
+    this.endTurn();
+  }
+
+  nextTurn() {
+    E.beginTurn(this.state);
+    this.fled = false;
+    this.refresh();
+    this.renderMoves();
+  }
+
+  // ---- End states ----------------------------------------------------------
+  gameOver() {
+    this.refresh();
+    renderActions([]);
+    if (this.state.status === "won") {
+      showOverlay("You made it to dawn", "The totem is buried. The house falls silent.");
+    } else {
+      const why = {
+        combat: "The dead pulled you under.",
+        health: "Your wounds were too deep.",
+        midnight: "Midnight came, and with it the end.",
+      };
+      showOverlay("You didn't make it", why[this.state.lossReason] || "Game over.");
+    }
+  }
+}
+
 async function main() {
   try {
     const data = await loadData();
-    console.log("zitp: data loaded", data);
-    log(
-      `Scaffold ready — ${data.tiles.indoor.length} indoor + ` +
-        `${data.tiles.outdoor.length} outdoor tiles, ${data.cards.length} cards, ` +
-        `${data.items.length} items. Starting Health ${RULES.START_HEALTH}.`
-    );
+    const seedParam = new URLSearchParams(location.search).get("seed");
+    const game = new Game(data, seedParam ? { seed: Number(seedParam) >>> 0 } : {});
+    window.__game = game; // handy for debugging
+    game.start();
   } catch (err) {
     console.error(err);
-    log("Failed to load game data — see console.");
+    log("Failed to start the game — see console.", "bad");
   }
 }
 
