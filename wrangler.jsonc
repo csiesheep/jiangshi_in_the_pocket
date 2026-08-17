@@ -6,6 +6,15 @@
   "observability": {
     "enabled": true
   },
+  // Attached to the shared hostname by path-scoped Routes, NOT a Custom Domain
+  // — the `games` hub Worker holds that. Cloudflare matches the most-specific
+  // route first, so these peel /zombie_in_the_pocket off the hub.
+  // Two patterns: `/*` does not match the bare prefix, and the bare prefix is
+  // what src/index.js redirects to the trailing-slash form.
+  "routes": [
+    { "pattern": "games.csiesheep.com/zombie_in_the_pocket", "zone_name": "csiesheep.com" },
+    { "pattern": "games.csiesheep.com/zombie_in_the_pocket/*", "zone_name": "csiesheep.com" }
+  ],
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
