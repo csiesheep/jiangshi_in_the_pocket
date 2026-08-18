@@ -123,6 +123,27 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 
 .footnote { margin-top: 36px; color: var(--muted); font-size: 0.8rem; max-width: 44ch; }
 
+/* ---- The game is a frame, not a document ----------------------------------
+   game.html only: the menu, rulebook and credits stay ordinary scrolling pages.
+   dvh rather than vh, because the mobile URL bar collapsing is the exact bug
+   100vh causes. */
+body.app {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+body.app .game-layout { min-height: 0; height: 100%; }
+body.app .sidebar { min-height: 0; }
+/* Everything in the column takes its natural height except the log, which
+   absorbs the slack instead of pushing the page taller. */
+body.app .sidebar .panel--log { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.app .sidebar .panel--log .log { flex: 1; min-height: 0; max-height: none; }
+body.app .board-pane { min-height: 0; }
+/* Anchored to the pane so a late fight cannot push past the fold. */
+body.app .actions-pop { max-height: calc(100% - 24px); }
+
 /* ---- Game page ---- */
 .game-layout {
   display: grid;
@@ -230,7 +251,7 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 
 /* --tile is the room you're standing in; --peek is how much of a neighbour
    shows through an open door. */
-:root { --tile: 170px; --wall: #3a4150; --wall-w: 7px; --room: #23262d;
+:root { --tile: clamp(96px, 19vh, 190px); --wall: #3a4150; --wall-w: 7px; --room: #23262d;
         --hedge: #3d5540; }
 .focus { --peek: calc(var(--tile) * 0.42); }
 
@@ -606,7 +627,30 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 #btn-sound[aria-pressed="true"] { border-color: var(--accent); }
 #btn-sound[aria-pressed="true"] .soundicon-svg { color: var(--accent); }
 
-.runline { margin: 0 0 10px; font-size: .82rem; color: var(--muted); }
+.runline { margin: 0 0 8px; font-size: .78rem; color: var(--muted); }
+.utility { display: flex; flex-direction: column; gap: 2px; }
+.utilrow { display: flex; gap: 8px; align-items: stretch; }
+.utilbtn {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text);
+  font: inherit;
+  font-size: .86rem;
+  cursor: pointer;
+}
+.utilbtn:hover { border-color: var(--accent); }
+.utilbtn--wide { flex: 1; }
+.utilbtn--done { border-color: var(--accent); color: var(--accent); }
+#btn-sound[aria-pressed="true"] { border-color: var(--accent); }
+#btn-sound[aria-pressed="true"] .soundicon-svg { color: var(--accent); }
 .runline code { color: var(--text); font-size: .82rem; }
 
 .log .good { color: var(--accent); }
@@ -708,7 +752,8 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 .actions-pop {
   position: absolute;
   left: 50%;
-  bottom: 0;
+  /* Held clear of the pane edge so the window is unambiguously inside it. */
+  bottom: 8px;
   transform: translateX(-50%);
   width: min(430px, 100%);
   padding: 12px 14px;

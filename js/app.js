@@ -579,9 +579,18 @@ async function copyReplayLink(btn) {
   const url = `${location.origin}${location.pathname}?seed=${game.seed}`;
   try {
     await navigator.clipboard.writeText(url);
-    const was = btn.textContent;
-    btn.textContent = "Link copied";
-    setTimeout(() => (btn.textContent = was), 1800);
+    const was = btn.title || btn.textContent;
+    if (btn.title) {
+      btn.title = "Link copied";
+      btn.classList.add("utilbtn--done");
+      setTimeout(() => {
+        btn.title = was;
+        btn.classList.remove("utilbtn--done");
+      }, 1800);
+    } else {
+      btn.textContent = "Link copied";
+      setTimeout(() => (btn.textContent = was), 1800);
+    }
   } catch {
     // Clipboard refused (insecure context or denied permission) — put the link
     // in the log so it can still be copied by hand.
@@ -604,6 +613,13 @@ function paintSoundToggle() {
     const art = uiIcon(on ? "sound-on" : "sound-off", "soundicon-svg");
     if (art) slot.appendChild(art);
   }
+}
+
+function paintCopyIcon() {
+  const slot = document.getElementById("copy-icon");
+  if (!slot || slot.childNodes.length) return;
+  const art = uiIcon("copy", "soundicon-svg");
+  if (art) slot.appendChild(art);
 }
 
 function wireControls() {
@@ -634,6 +650,7 @@ async function main() {
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
     paintSoundToggle();
+    paintCopyIcon();
     startNewGame(seedFromUrl());
   } catch (err) {
     console.error(err);

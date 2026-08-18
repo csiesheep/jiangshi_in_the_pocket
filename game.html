@@ -19,7 +19,7 @@
   <meta property="og:image" content="https://games.csiesheep.com/zombie_in_the_pocket/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
 </head>
-<body>
+<body class="app">
   <header class="topnav">
     <a class="brand" href="index.html">Grave Errand</a>
     <span class="spacer"></span>
@@ -49,21 +49,21 @@
         <h3>Backpack</h3>
         <div class="backpack" id="hud-items"></div>
       </div>
-      <div class="panel">
+      <div class="panel panel--log">
         <h3>Log</h3>
         <div class="log" id="log" role="log" aria-live="polite" aria-label="Game log"></div>
       </div>
-      <div class="panel">
-        <h3>Sound</h3>
-        <button class="action" type="button" id="btn-sound" aria-pressed="false">
-          <span class="soundicon" id="sound-icon"></span><span id="sound-label">Sound off</span>
-        </button>
-      </div>
-      <div class="panel">
-        <h3>This run</h3>
+      <div class="panel utility">
         <p class="runline">Seed <code id="seed-value">&mdash;</code></p>
-        <button class="action" type="button" id="btn-copy-seed">Copy replay link</button>
-        <button class="action" type="button" id="btn-new-game">New game</button>
+        <div class="utilrow">
+          <button class="utilbtn" type="button" id="btn-sound" aria-pressed="false" title="Sound">
+            <span class="soundicon" id="sound-icon"></span><span class="sr-only" id="sound-label">Sound off</span>
+          </button>
+          <button class="utilbtn" type="button" id="btn-copy-seed" title="Copy replay link">
+            <span class="utilicon" id="copy-icon"></span><span class="sr-only">Copy replay link</span>
+          </button>
+          <button class="utilbtn utilbtn--wide" type="button" id="btn-new-game">New game</button>
+        </div>
       </div>
     </aside>
   </main>

@@ -316,6 +316,11 @@
 
   <!-- ========================= Interface ========================== -->
 
+  <symbol id="ui-copy" viewBox="0 0 24 24">
+    <rect x="9" y="9" width="11" height="12" rx="2"/>
+    <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/>
+  </symbol>
+
   <symbol id="ui-sound-on" viewBox="0 0 24 24">
     <path d="M4 9h4l5-4v14l-5-4H4z"/>
     <path d="M16.5 8.5a5 5 0 0 1 0 7"/>
