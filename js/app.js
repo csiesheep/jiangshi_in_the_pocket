@@ -81,7 +81,7 @@ class Game {
     }
     const acts = moves.map((m) => {
       if (m.type === "explore") {
-        return { label: `Go ${m.dir} — explore`, primary: true, onClick: () => this.chooseRotation(m.dir) };
+        return { label: `Go ${m.dir} — explore`, primary: true, onClick: () => this.doExplore(m.dir) };
       }
       if (m.type === "outside") {
         return { label: "Step outside (the arrow door)", primary: true, onClick: () => this.doOutside(m.dir) };
@@ -92,21 +92,16 @@ class Game {
     renderActions(acts, "Choose a way out — you must move.");
   }
 
-  chooseRotation(dir) {
-    const deck = this.board.decks[this.board.player.world];
-    const def = this.board.byId[deck[0]];
-    const rots = Bd.validExploreRotations(this.board, dir);
-    if (rots.length <= 1) return this.doExplore(dir, rots[0] ?? 0);
-    const acts = rots.map((r) => ({
-      label: `Doors: ${Bd.rotatedExits(def.exits, r).join(" ")}`,
-      onClick: () => this.doExplore(dir, r),
-    }));
-    renderActions(acts, `You reveal the ${this.tileName(deck[0])}. Turn it which way?`);
-  }
 
-  doExplore(dir, rot) {
+  // The tile turns itself. board.pickExploreRotation prefers a placement that
+  // keeps a way on into unexplored space, and is deterministic so a shared seed
+  // still replays move for move.
+  doExplore(dir) {
+    const revealed = this.board.decks[this.board.player.world][0];
+    const rot = Bd.pickExploreRotation(this.board, dir);
     const r = Bd.explore(this.board, dir, rot);
-    log(`You enter the ${this.tileName(r.tile.id)}.`);
+    if (!r.ok) return this.renderMoves();
+    log(`You reveal the ${this.tileName(revealed)} and step inside.`);
     this.refresh();
     animateEntry(dir);
     this.arriveAndDraw();

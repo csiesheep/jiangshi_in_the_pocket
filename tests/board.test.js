@@ -56,6 +56,43 @@ test("explore: fails when the deck is empty", () => {
 });
 
 // ---- Dead end + zombie door ------------------------------------------------
+// ---- Auto-placement --------------------------------------------------------
+test("pickExploreRotation: deterministic for the same board and direction", () => {
+  const a = board({ seed: 7 });
+  const b = board({ seed: 7 });
+  eq(B.pickExploreRotation(a, "N"), B.pickExploreRotation(b, "N"), "same seed, same choice");
+  const twice = B.pickExploreRotation(a, "N");
+  eq(B.pickExploreRotation(a, "N"), twice, "and it does not drift when asked again");
+});
+
+test("pickExploreRotation: only ever returns a legal rotation", () => {
+  const b = board({ seed: 3 });
+  const legal = B.validExploreRotations(b, "N");
+  assert(legal.includes(B.pickExploreRotation(b, "N")), "picked a rotation you may actually use");
+});
+
+test("pickExploreRotation: prefers a placement that leaves a way onward", () => {
+  const b = board({ seed: 5 });
+  // Force a tile whose rotations differ in how many exits face open space: one
+  // door back the way we came, one to the side.
+  b.byId.__probe = { id: "__probe", exits: ["N", "E"] };
+  b.decks.indoor.unshift("__probe");
+
+  const dir = "N";
+  const chosen = B.pickExploreRotation(b, dir);
+  const exits = B.rotatedExits(b.byId.__probe.exits, chosen);
+  assert(exits.includes(B.opposite(dir)), "still connects back through the door used");
+
+  const tile = B.currentTile(b);
+  const [nx, ny] = B.inDir(tile.x, tile.y, dir);
+  const onward = exits.filter((d) => d !== B.opposite(dir))
+    .filter((d) => {
+      const [ex, ey] = B.inDir(nx, ny, d);
+      return !B.tileAt(b, tile.world, ex, ey);
+    });
+  assert(onward.length > 0, "and leaves at least one door into unexplored space");
+});
+
 test("dead end: Bathroom above the Foyer, then a zombie door frees it", () => {
   const b = board({ seed: 1 });
   b.decks.indoor = ["bathroom", "bedroom"]; // force the next tile

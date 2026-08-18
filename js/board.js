@@ -117,6 +117,39 @@ export function validExploreRotations(board, moveDir) {
   });
 }
 
+// Choose how to turn a freshly drawn tile, so the player is not asked on every
+// single explore. Prefers the rotation that leaves the most ways on into
+// unexplored space, so a placement does not immediately corner you.
+//
+// Deterministic on purpose: runs are shareable by seed, so this must not draw
+// from the RNG and must pick identically on replay. Highest score wins and ties
+// go to the lowest rotation index, both of which depend only on board state.
+export function pickExploreRotation(board, moveDir) {
+  const rots = validExploreRotations(board, moveDir);
+  if (rots.length <= 1) return rots[0] ?? 0;
+
+  const tile = currentTile(board);
+  const def = board.byId[board.decks[tile.world][0]];
+  const [nx, ny] = inDir(tile.x, tile.y, moveDir);
+  const back = opposite(moveDir);
+
+  let best = rots[0];
+  let bestScore = -1;
+  for (const r of rots) {
+    let score = 0;
+    for (const d of rotatedExits(def.exits, r)) {
+      if (d === back) continue; // that door is the one we just came through
+      const [ex, ey] = inDir(nx, ny, d);
+      if (!tileAt(board, tile.world, ex, ey)) score++;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = r;
+    }
+  }
+  return best;
+}
+
 // Is there any move that reveals a new tile (or crosses outside)? If not, the
 // current tile is a dead end and triggers a zombie door.
 export function isDeadEnd(board) {
