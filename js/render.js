@@ -1,6 +1,6 @@
 // Rendering — reflects game + board state into the DOM. No game logic here.
 
-import { effectiveAttack } from "./engine.js";
+import { RULES, effectiveAttack } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
@@ -46,41 +46,243 @@ export function formatHour(hour) {
   return `${hour - 12} PM`;
 }
 
+// Health has no upper bound in this ruleset — cowering adds 3 with no cap — so
+// there is no "x of y" to draw. Hearts show damage against the starting health
+// while the number stays small, and fall back to a count once it does not.
+const HEART_BASELINE = RULES.START_HEALTH;
+const MAX_HEARTS = 10;
+
 export function renderHud(game) {
-  const s = game.state;
-  set("hud-health", s.health);
-  set("hud-attack", effectiveAttack(s));
-  set("hud-hour", formatHour(s.hour));
-  renderCarried(game);
-  set("hud-totem", s.totem ? "Yes" : "No");
+  renderHealth(game.state);
+  renderAttack(game.state);
+  renderHour(game.state);
+  renderRelic(game.state);
+  renderBackpack(game);
 }
 
-const WORLD_LABEL = { indoor: "Inside the house", outdoor: "Outside" };
+// Icons are decorative; every stat carries its value as text for screen readers.
+function srOnly(text) {
+  const el = document.createElement("span");
+  el.className = "sr-only";
+  el.textContent = text;
+  return el;
+}
 
-// Both halves of the map are drawn, indoor first, so the rooms you explored
-// before stepping outside stay visible. The half you are not standing in is
-// dimmed rather than hidden.
-// Carried items, as icon + name chips. The chainsaw carries its remaining fuel.
-function renderCarried(game) {
+function statBox(id) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = "";
+  return el;
+}
+
+function renderHealth(s) {
+  const el = statBox("hud-health");
+  if (!el) return;
+
+  if (s.health > MAX_HEARTS) {
+    const heart = icon("stat", "heart", "staticon heart heart--full");
+    if (heart) el.appendChild(heart);
+    const n = document.createElement("span");
+    n.className = "statnum";
+    n.textContent = `×${s.health}`;
+    n.setAttribute("aria-hidden", "true");
+    el.appendChild(n);
+  } else {
+    const slots = Math.max(s.health, HEART_BASELINE);
+    for (let i = 0; i < slots; i++) {
+      const full = i < s.health;
+      const heart = icon("stat", "heart", `staticon heart heart--${full ? "full" : "empty"}`);
+      if (heart) el.appendChild(heart);
+    }
+  }
+  el.appendChild(srOnly(String(s.health)));
+}
+
+function renderAttack(s) {
+  const el = statBox("hud-attack");
+  if (!el) return;
+  const attack = effectiveAttack(s);
+  const buffed = attack > RULES.START_ATTACK;
+
+  const sword = icon("stat", "sword", "staticon sword" + (buffed ? " sword--buffed" : ""));
+  if (sword) el.appendChild(sword);
+  const n = document.createElement("span");
+  n.className = "statnum" + (buffed ? " statnum--buffed" : "");
+  n.textContent = String(attack);
+  n.setAttribute("aria-hidden", "true");
+  el.appendChild(n);
+  el.appendChild(srOnly(buffed ? `${attack}, boosted by a weapon` : String(attack)));
+}
+
+// The hand sweeps round when the hour actually turns, which is the only time
+// the clock changes — every other render redraws it in place.
+let lastHour = null;
+
+function renderHour(s) {
+  const el = statBox("hud-hour");
+  if (!el) return;
+  const angle = (s.hour % 12) * 30;
+  const face = clockFace(angle);
+  el.appendChild(face);
+
+  const text = document.createElement("span");
+  text.className = "statnum";
+  text.textContent = formatHour(s.hour);
+  text.setAttribute("aria-hidden", "true");
+  el.appendChild(text);
+  el.appendChild(srOnly(formatHour(s.hour)));
+
+  const turned = lastHour != null && lastHour !== s.hour;
+  lastHour = s.hour;
+  if (!turned || reducedMotion()) return;
+  const hand = face.querySelector(".clock-hand--hour");
+  if (hand && typeof hand.animate === "function") {
+    hand.animate(
+      [{ transform: `rotate(${angle - 30}deg)` }, { transform: `rotate(${angle}deg)` }],
+      { duration: 480, easing: "cubic-bezier(.3,.8,.4,1)" }
+    );
+  }
+}
+
+function clockFace(angle) {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "staticon clock");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+
+  const face = document.createElementNS(NS, "circle");
+  face.setAttribute("cx", "12");
+  face.setAttribute("cy", "12");
+  face.setAttribute("r", "9.5");
+  face.setAttribute("class", "clock-face");
+  svg.appendChild(face);
+
+  for (const a of [0, 90, 180, 270]) {
+    const tick = document.createElementNS(NS, "line");
+    tick.setAttribute("x1", "12");
+    tick.setAttribute("y1", "3.6");
+    tick.setAttribute("x2", "12");
+    tick.setAttribute("y2", "5.6");
+    tick.setAttribute("transform", `rotate(${a} 12 12)`);
+    tick.setAttribute("class", "clock-tick");
+    svg.appendChild(tick);
+  }
+
+  // Always on the hour, so the minute hand points at twelve.
+  const minute = document.createElementNS(NS, "line");
+  minute.setAttribute("x1", "12");
+  minute.setAttribute("y1", "12");
+  minute.setAttribute("x2", "12");
+  minute.setAttribute("y2", "5.8");
+  minute.setAttribute("class", "clock-hand clock-hand--minute");
+  svg.appendChild(minute);
+
+  const hour = document.createElementNS(NS, "line");
+  hour.setAttribute("x1", "12");
+  hour.setAttribute("y1", "12");
+  hour.setAttribute("x2", "12");
+  hour.setAttribute("y2", "8");
+  hour.setAttribute("class", "clock-hand clock-hand--hour");
+  hour.style.transformOrigin = "12px 12px";
+  hour.style.transform = `rotate(${angle}deg)`;
+  svg.appendChild(hour);
+
+  return svg;
+}
+
+function renderRelic(s) {
+  const el = statBox("hud-totem");
+  if (!el) return;
+  if (s.totem) {
+    const art = icon("tile", "graveyard", "staticon relic relic--held");
+    if (art) el.appendChild(art);
+  }
+  const text = document.createElement("span");
+  text.className = "statnum" + (s.totem ? " statnum--buffed" : "");
+  text.textContent = s.totem ? "Held" : "Not yet";
+  text.setAttribute("aria-hidden", "true");
+  el.appendChild(text);
+  el.appendChild(srOnly(s.totem ? "held" : "not found yet"));
+}
+
+// The backpack: one row per carry slot, empty ones included so the two-item
+// limit is visible rather than implied. Effects are derived from items.json, so
+// a re-theme or a stat change needs no edit here.
+function renderBackpack(game) {
   const s = game.state;
   const el = document.getElementById("hud-items");
   if (!el) return;
   el.textContent = "";
-  if (!s.items.length) {
-    el.textContent = "—";
-    return;
-  }
-  for (const id of s.items) {
-    const chip = document.createElement("span");
-    chip.className = "itemchip";
+
+  for (let i = 0; i < RULES.MAX_ITEMS; i++) {
+    const id = s.items[i];
+    const row = document.createElement("div");
+    row.className = "slot" + (id ? "" : " slot--empty");
+
+    if (!id) {
+      const name = document.createElement("span");
+      name.className = "slotname";
+      name.textContent = "Empty slot";
+      row.appendChild(name);
+      el.appendChild(row);
+      continue;
+    }
+
     const art = icon("item", id, "itemicon");
-    if (art) chip.appendChild(art);
-    const label = document.createElement("span");
-    label.textContent =
-      itemName(game, id) + (id === "chainsaw" ? ` (${s.chainsawFuel})` : "");
-    chip.appendChild(label);
-    el.appendChild(chip);
+    if (art) row.appendChild(art);
+
+    const text = document.createElement("span");
+    text.className = "slottext";
+    const name = document.createElement("span");
+    name.className = "slotname";
+    name.textContent = itemName(game, id);
+    text.appendChild(name);
+
+    const effect = itemEffect(game, id);
+    if (effect) {
+      const eff = document.createElement("span");
+      eff.className = "sloteffect";
+      eff.textContent = effect;
+      text.appendChild(eff);
+    }
+    row.appendChild(text);
+    el.appendChild(row);
   }
+
+  // The relic is exempt from the carry limit, so it sits outside the slots.
+  if (s.totem) {
+    const row = document.createElement("div");
+    row.className = "slot slot--relic";
+    const art = icon("tile", "graveyard", "itemicon");
+    if (art) row.appendChild(art);
+    const text = document.createElement("span");
+    text.className = "slottext";
+    const name = document.createElement("span");
+    name.className = "slotname";
+    name.textContent = "The relic";
+    const eff = document.createElement("span");
+    eff.className = "sloteffect";
+    eff.textContent = "takes no slot · bury it to win";
+    text.appendChild(name);
+    text.appendChild(eff);
+    row.appendChild(text);
+    el.appendChild(row);
+  }
+}
+
+function itemEffect(game, id) {
+  const it = game.state.itemsById[id];
+  if (!it) return "";
+  if (it.type === "weapon") {
+    const fuel = it.fuel != null ? ` · ${game.state.chainsawFuel} fight${game.state.chainsawFuel === 1 ? "" : "s"} of fuel` : "";
+    return `+${it.attack} attack${fuel}`;
+  }
+  if (it.type === "heal") return `+${it.health} health`;
+  const bits = [];
+  if (it.fleeNoDamage) bits.push("flee unharmed");
+  if (it.combo) bits.push("pairs with " + Object.keys(it.combo).map((k) => itemName(game, k)).join(" or "));
+  if (it.type === "enabler") bits.push("needs a fuel to use");
+  return bits.join(" · ");
 }
 
 // What each wall of the room you're standing in is currently doing. Passability
@@ -157,11 +359,6 @@ export function renderBoard(game) {
 
   const tile = currentTile(board);
   const edges = edgeStates(game);
-
-  const label = document.createElement("div");
-  label.className = "world-label";
-  label.textContent = WORLD_LABEL[board.player.world];
-  el.appendChild(label);
 
   const view = document.createElement("div");
   view.className = "focus";

@@ -183,6 +183,20 @@
     <path d="M12 3c1.5 1.8 2 2.8 2 3.8a2 2 0 0 1-4 0c0-1 .5-2 2-3.8z"/>
   </symbol>
 
+  <!-- ========================== Status ============================
+       Drawn on the same 24x24 grid as everything else. The heart is filled or
+       hollow from CSS, so one symbol covers both states. -->
+
+  <symbol id="stat-heart" viewBox="0 0 24 24">
+    <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.5 2.8c0 5.8-8.5 11.3-8.5 11.3z"/>
+  </symbol>
+
+  <symbol id="stat-sword" viewBox="0 0 24 24">
+    <path d="M20 3.5v3.2L10.4 16.3 7.7 13.6 17.3 4h3.2z"/>
+    <path d="M7.7 13.6 5 16.3l2.7 2.7 2.7-2.7"/>
+    <path d="M4.2 19.8 6.6 17.4"/>
+  </symbol>
+
   <!-- ======================= Edges of a room =======================
        All drawn for the north wall, on the same 24x24 grid as everything else
        so they are not letterboxed: the wall runs along y=12, the room is below

@@ -102,86 +102,77 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 @media (max-width: 800px) {
   .game-layout { grid-template-columns: 1fr; }
 }
+/* Layout-only overrides. Component tweaks belong in the second 600px block
+   at the end of this file — rules here are declared before the components and
+   would lose on source order. */
 @media (max-width: 600px) {
   .game-layout { padding: 12px; gap: 12px; }
-  .hud { margin: 0 12px 10px; gap: 10px 18px; padding: 10px 12px; }
-  .hud .stat .value { font-size: 1.15rem; }
-  .board { min-height: 44vh; padding: 12px; }
   /* Comfortable thumb targets on the action list. */
   .action { padding: 12px 12px; min-height: 44px; font-size: .92rem; }
-  .board-controls .hint { display: none; }
 }
 
-.hud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  padding: 12px 16px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin: 0 20px 12px;
+/* ---- Status panel ---- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
-.hud .stat { display: flex; flex-direction: column; }
-.hud .stat .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-.hud .stat .value { font-size: 1.4rem; font-family: var(--font-head); }
 
-/* Carried items read as icon + name chips rather than a comma list. */
-#hud-items { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 1rem; }
-.itemchip { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.itemicon { width: 18px; height: 18px; color: var(--gold); flex: none; }
+.statgrid { display: grid; gap: 10px 12px; grid-template-columns: 1fr; }
+.stat { display: flex; align-items: baseline; gap: 10px; }
+.statlabel {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted); width: 4.6em; flex: none;
+}
+.statval { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; min-height: 22px; }
+.statnum { font-family: var(--font-head); font-size: 1.05rem; color: var(--text); margin-left: 3px; }
+.statnum--buffed { color: var(--gold); }
+
+.staticon { width: 17px; height: 17px; flex: none; }
+
+/* One heart symbol, filled or hollow. */
+.heart { color: var(--danger); }
+.heart--full { fill: currentColor; }
+.heart--empty { color: #4a505c; fill: none; }
+
+.sword { color: var(--muted); }
+.sword--buffed { color: var(--gold); }
+.relic--held { color: var(--gold); }
+
+/* Clock: the hour hand is the only part that moves. */
+.clock { width: 19px; height: 19px; color: var(--muted); }
+.clock-face { fill: none; stroke: currentColor; stroke-width: 1.4; }
+.clock-tick { stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; opacity: .55; }
+.clock-hand { stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+.clock-hand--hour { stroke: var(--accent); stroke-width: 2; }
+.clock-hand--minute { opacity: .6; }
+
+/* ---- Backpack ---- */
+.backpack { display: flex; flex-direction: column; gap: 8px; }
+.slot {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-2);
+}
+.slot--empty {
+  border-style: dashed;
+  background: transparent;
+  justify-content: center;
+}
+.slot--empty .slotname { color: var(--muted); font-style: italic; }
+.slot--relic { border-color: color-mix(in srgb, var(--gold) 45%, var(--border)); }
+.slottext { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.slotname { font-size: .86rem; color: var(--text); }
+.sloteffect { font-size: .72rem; color: var(--muted); }
+.itemicon { width: 18px; height: 18px; color: var(--gold); flex: none; margin-top: 2px; }
 
 /* min-width:0 keeps a wide board from forcing the grid column open. */
-.board-pane { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.board-pane { min-width: 0; }
 
-.board-controls { display: flex; align-items: center; gap: 8px; }
-.board-controls .spacer { flex: 1; }
-.board-controls .zoom-label {
-  font-size: .78rem;
-  color: var(--muted);
-  min-width: 4ch;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.board-controls .hint { font-size: .72rem; color: var(--muted); }
-
-.navbtn {
-  min-width: 34px;
-  min-height: 34px;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  color: var(--text);
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-}
-.navbtn:hover:not(:disabled) { border-color: var(--accent); }
-.navbtn:disabled { opacity: .4; cursor: default; }
-
-.board {
-  position: relative;
-  min-height: 60vh;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  display: block;
-  overflow: auto;
-  padding: 16px;
-}
-
-.world-label {
-  font-family: var(--font-head);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: .12em;
-  font-size: .72rem;
-  margin-bottom: 10px;
-}
+.board { position: relative; display: block; padding: 8px 0; }
 
 /* --tile is the room you're standing in; --peek is how much of a neighbour
-   shows through an open door. Both scale with the zoom control. */
+   shows through an open door. */
 :root { --tile: 170px; --wall: #3a4150; --wall-w: 2px; --room: #23262d; }
 .focus { --peek: calc(var(--tile) * 0.42); }
 
@@ -346,6 +337,10 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .edgemark--exterior { color: var(--gold); }
 
 @media (max-width: 600px) {
+  /* Must sit after the :root above; a media query adds no specificity. */
+  :root { --tile: 140px; }
+  /* Sidebar is full width here, so the stats read better two across. */
+  .statgrid { grid-template-columns: 1fr 1fr; }
   .tilename { font-size: .72rem; }
   .halfroom .tilename { font-size: .6rem; }
 }
@@ -384,7 +379,6 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 
 /* Visible focus ring — the turn loop is meant to be playable from the keyboard. */
 .action:focus-visible,
-.navbtn:focus-visible,
 .btn:focus-visible,
 .topnav a:focus-visible {
   outline: 2px solid var(--accent);

@@ -27,30 +27,28 @@
     <a href="index.html">Menu</a>
   </header>
 
-  <section class="hud" aria-label="Status">
-    <div class="stat"><span class="label">Health</span><span class="value" id="hud-health">6</span></div>
-    <div class="stat"><span class="label">Attack</span><span class="value" id="hud-attack">1</span></div>
-    <div class="stat"><span class="label">Hour</span><span class="value" id="hud-hour">9 PM</span></div>
-    <div class="stat"><span class="label">Items</span><span class="value" id="hud-items">—</span></div>
-    <div class="stat"><span class="label">Relic</span><span class="value" id="hud-totem">No</span></div>
-  </section>
 
   <main class="game-layout">
     <section class="board-pane" aria-label="Board">
-      <div class="board-controls">
-        <button class="navbtn" type="button" id="btn-zoom-out" aria-label="Zoom out">&minus;</button>
-        <span class="zoom-label" id="zoom-label">100%</span>
-        <button class="navbtn" type="button" id="btn-zoom-in" aria-label="Zoom in">+</button>
-        <span class="spacer"></span>
-        <span class="hint">Number keys pick an action</span>
-      </div>
       <div class="board" id="board" role="group" aria-label="Game board"></div>
     </section>
 
     <aside class="sidebar">
       <div class="panel">
+        <div class="statgrid">
+          <div class="stat"><span class="statlabel">Health</span><span class="statval" id="hud-health"></span></div>
+          <div class="stat"><span class="statlabel">Attack</span><span class="statval" id="hud-attack"></span></div>
+          <div class="stat"><span class="statlabel">Hour</span><span class="statval" id="hud-hour"></span></div>
+          <div class="stat"><span class="statlabel">Relic</span><span class="statval" id="hud-totem"></span></div>
+        </div>
+      </div>
+      <div class="panel">
         <h3>Actions</h3>
         <div id="actions"></div>
+      </div>
+      <div class="panel">
+        <h3>Backpack</h3>
+        <div class="backpack" id="hud-items"></div>
       </div>
       <div class="panel">
         <h3>Log</h3>

@@ -482,29 +482,6 @@ function seedFromUrl() {
   return Number.isFinite(n) ? n >>> 0 : null;
 }
 
-// ---- Zoom ------------------------------------------------------------------
-// The view is one room plus a peek at its neighbours, so zoom is the size of
-// that room. 170px is the CSS default and reads as 100%.
-const ZOOM_STEPS = [110, 140, 170, 210, 250];
-const ZOOM_DEFAULT = 170;
-let zoomIndex = ZOOM_STEPS.indexOf(ZOOM_DEFAULT);
-
-function applyZoom() {
-  const px = ZOOM_STEPS[zoomIndex];
-  document.documentElement.style.setProperty("--tile", px + "px");
-  const label = document.getElementById("zoom-label");
-  if (label) label.textContent = Math.round((px / ZOOM_DEFAULT) * 100) + "%";
-  const out = document.getElementById("btn-zoom-out");
-  const inn = document.getElementById("btn-zoom-in");
-  if (out) out.disabled = zoomIndex === 0;
-  if (inn) inn.disabled = zoomIndex === ZOOM_STEPS.length - 1;
-}
-
-function zoom(delta) {
-  zoomIndex = Math.min(ZOOM_STEPS.length - 1, Math.max(0, zoomIndex + delta));
-  applyZoom();
-}
-
 // ---- Run controls ----------------------------------------------------------
 async function copyReplayLink() {
   const btn = document.getElementById("btn-copy-seed");
@@ -521,8 +498,6 @@ async function copyReplayLink() {
 }
 
 function wireControls() {
-  document.getElementById("btn-zoom-out").addEventListener("click", () => zoom(-1));
-  document.getElementById("btn-zoom-in").addEventListener("click", () => zoom(1));
   document.getElementById("btn-copy-seed").addEventListener("click", copyReplayLink);
   document.getElementById("btn-new-game").addEventListener("click", () => {
     // Drop ?seed= so a shared link doesn't silently reapply to the fresh run.
@@ -535,9 +510,6 @@ async function main() {
   try {
     // Icons are decorative, so a failed sprite must not block the game.
     [data] = await Promise.all([loadData(), loadIcons()]);
-    // The view spans about 1.84 rooms wide, so start smaller on a phone.
-    if (window.innerWidth < 600) zoomIndex = ZOOM_STEPS.indexOf(140);
-    applyZoom();
     wireControls();
     startNewGame(seedFromUrl());
   } catch (err) {
