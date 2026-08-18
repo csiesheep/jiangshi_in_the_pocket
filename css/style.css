@@ -523,6 +523,34 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 }
 .actions-pop[hidden] { display: none; }
 
+/* ---- On the edge -----------------------------------------------------------
+   At 2 HP or less the room breathes with you: the hearts and the vignette pulse
+   at roughly 70bpm, which is 860ms a beat. */
+body.low-health #hud-health { animation: heartbeat 860ms ease-in-out infinite; transform-origin: left center; }
+body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infinite; }
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  12%      { transform: scale(1.13); }
+  26%      { transform: scale(1); }
+  38%      { transform: scale(1.07); }
+  52%      { transform: scale(1); }
+}
+@keyframes heartdark {
+  0%, 100% { opacity: var(--vignette); }
+  12%      { opacity: calc(var(--vignette) + (1 - var(--vignette)) * .3); }
+  52%      { opacity: var(--vignette); }
+}
+
+/* A persistent pulse is exactly what this setting is for. The state still has
+   to read, so it becomes a static warning tint instead. */
+@media (prefers-reduced-motion: reduce) {
+  body.low-health #hud-health { animation: none; }
+  body.low-health .board-pane::after { animation: none; }
+  body.low-health .statlabel { color: var(--danger); }
+  body.low-health #hud-health .heart--empty { color: color-mix(in srgb, var(--danger) 45%, #4a505c); }
+}
+
 /* The wash when you take a hit. Below the jump scare (50) so a fight that
    deals damage does not stack two full-window overlays. */
 .hitflash {

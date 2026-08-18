@@ -63,11 +63,19 @@ const MAX_HEARTS = 10;
 // places that change them: renderHud sees every state refresh, so one hook
 // catches damage from fights, flee costs and events alike.
 let lastHealth = null;
+const LOW_HEALTH = 2;
 
 export function renderHud(game) {
   const health = game.state.health;
   if (lastHealth != null && health < lastHealth) damageFeedback();
   lastHealth = health;
+
+  // One class; the pulse itself is CSS. Only while alive — the body should not
+  // be beating under the you-died overlay.
+  document.body.classList.toggle(
+    "low-health",
+    health > 0 && health <= LOW_HEALTH && game.state.status === "playing"
+  );
 
   renderHealth(game.state);
   renderAttack(game.state);
