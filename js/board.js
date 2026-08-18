@@ -251,6 +251,32 @@ export function goOutside(board) {
   return { ok: true, tile: patio };
 }
 
+// Choose which wall the risen come through at a dead end. The hole is not
+// cosmetic — it persists, and it is how you leave the dead end — so a wall
+// facing unexplored space is worth more than one facing tiles already placed,
+// which would only ever lead back the way you came.
+//
+// Deterministic, for the same reason as pickExploreRotation: seeds are
+// shareable, so this must not touch the RNG. Ties fall to compass order.
+// Returns null when the tile has no blank wall left to break.
+export function pickZombieDoorWall(board) {
+  const tile = currentTile(board);
+  const walls = DIRS.filter((d) => !openings(tile).includes(d));
+  if (walls.length <= 1) return walls[0] ?? null;
+
+  let best = walls[0];
+  let bestScore = -1;
+  for (const d of walls) {
+    const [nx, ny] = inDir(tile.x, tile.y, d);
+    const score = tileAt(board, tile.world, nx, ny) ? 0 : 1;
+    if (score > bestScore) {
+      bestScore = score;
+      best = d;
+    }
+  }
+  return best;
+}
+
 // Three zombies bash a new hole through a chosen wall of the current tile. The
 // wall must currently be closed; the hole persists and is reusable.
 export function openZombieDoor(board, dir) {

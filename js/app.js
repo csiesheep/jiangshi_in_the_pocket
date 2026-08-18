@@ -19,6 +19,8 @@ import {
   itemName as iName,
 } from "./render.js";
 
+const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
+
 // `no-cache` forces a revalidation rather than a blind cache hit: it still
 // costs only a 304 when nothing changed, but it means a re-theme or a rules fix
 // actually reaches players who already have the old data cached.
@@ -378,21 +380,17 @@ class Game {
   }
 
   zombieDoorPhase(onDone) {
-    const tile = Bd.currentTile(this.board);
-    const walls = ["N", "E", "S", "W"].filter((d) => !Bd.openings(tile).includes(d));
     log(`Dead end. Three of the ${this.word("monsters")} claw at the walls…`, "bad");
-    if (!walls.length) return this.presentCombat(E.RULES.ZOMBIE_DOOR_COUNT, onDone, { allowFlee: true });
-    renderActions(
-      walls.map((d) => ({
-        label: `Let them break the ${d} wall`,
-        onClick: () => {
-          Bd.openZombieDoor(this.board, d);
-          this.refresh();
-          this.presentCombat(E.RULES.ZOMBIE_DOOR_COUNT, onDone, { allowFlee: true });
-        },
-      })),
-      "Choose the wall they smash through:"
-    );
+    // The wall picks itself, favouring one that opens onto unexplored space —
+    // the hole persists and is how you get out of here, so a wall facing tiles
+    // already placed would only lead back the way you came.
+    const wall = Bd.pickZombieDoorWall(this.board);
+    if (wall) {
+      Bd.openZombieDoor(this.board, wall);
+      log(`They come through the ${DIR_WORD[wall]} wall.`, "bad");
+      this.refresh();
+    }
+    this.presentCombat(E.RULES.ZOMBIE_DOOR_COUNT, onDone, { allowFlee: true });
   }
 
   // ---- Steps 8–9: end of turn (heal, cower) -------------------------------

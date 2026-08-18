@@ -109,6 +109,39 @@ test("dead end: Bathroom above the Foyer, then a zombie door frees it", () => {
   assert(B.listMoves(b).some((m) => m.dir === "N" && m.type === "explore"));
 });
 
+test("pickZombieDoorWall: only ever names a wall with no opening", () => {
+  const b = board({ seed: 4 });
+  const t = B.currentTile(b);
+  const wall = B.pickZombieDoorWall(b);
+  assert(wall !== null, "the Entry Hall has blank walls to break");
+  assert(!B.openings(t).includes(wall), "picked a wall, not an existing way out");
+});
+
+test("pickZombieDoorWall: deterministic, and prefers unexplored space", () => {
+  const a = board({ seed: 11 });
+  const b = board({ seed: 11 });
+  eq(B.pickZombieDoorWall(a), B.pickZombieDoorWall(b), "same seed, same wall");
+
+  // Wall off one side with a placed tile; the pick should avoid breaking into it.
+  const t = B.currentTile(a);
+  const blanks = B.DIRS.filter((d) => !B.openings(t).includes(d));
+  const blocked = blanks[0];
+  const [bx, by] = B.inDir(t.x, t.y, blocked);
+  a.worlds[t.world].set(B.cellKey(bx, by), { id: "decoy", world: t.world, x: bx, y: by,
+    rotation: 0, exits: [], holes: [], def: { id: "decoy", exits: [] } });
+
+  const picked = B.pickZombieDoorWall(a);
+  const [px, py] = B.inDir(t.x, t.y, picked);
+  assert(!B.tileAt(a, t.world, px, py), "broke through into unexplored space, not the placed tile");
+});
+
+test("pickZombieDoorWall: null when every wall already has an opening", () => {
+  const b = board({ seed: 2 });
+  const t = B.currentTile(b);
+  t.exits = ["N", "E", "S", "W"];
+  eq(B.pickZombieDoorWall(b), null, "nothing left to break");
+});
+
 test("openZombieDoor: refuses an existing opening", () => {
   const b = board({ seed: 1 });
   eq(B.openZombieDoor(b, "N").ok, false, "N is already the Foyer door");
