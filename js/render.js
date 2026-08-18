@@ -1014,6 +1014,18 @@ export function renderActions(actions, prompt = "") {
       k.textContent = String(i + 1);
       b.appendChild(k);
     }
+    // Weapons and items already have art; a fight is far easier to read as a
+    // row of weapons than as a row of sentences.
+    const cut = a.icon ? a.icon.indexOf("-") : -1;
+    const art = cut > 0 ? icon(a.icon.slice(0, cut), a.icon.slice(cut + 1), "action-icon") : null;
+    if (art) b.appendChild(art);
+    else if (a.dir) {
+      const compass = document.createElement("span");
+      compass.className = "action-compass";
+      compass.setAttribute("aria-hidden", "true");
+      compass.textContent = ARROW[a.dir] || "";
+      b.appendChild(compass);
+    }
     const text = document.createElement("span");
     text.className = "action-text";
     const name = document.createElement("span");
@@ -1036,6 +1048,15 @@ export function renderActions(actions, prompt = "") {
     el.appendChild(b);
   });
   bindActionKeys();
+  if (pop && !reducedMotion() && typeof pop.animate === "function") {
+    pop.animate(
+      [
+        { opacity: 0, transform: "translateX(-50%) translateY(8px) scale(.97)" },
+        { opacity: 1, transform: "translateX(-50%) translateY(0) scale(1)" },
+      ],
+      { duration: 150, easing: "cubic-bezier(.2,.8,.3,1)" }
+    );
+  }
   if (hadFocus || document.activeElement === document.body) {
     const first =
       el.querySelector(".action--primary:not(:disabled)") ||
