@@ -216,7 +216,8 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 
 /* --tile is the room you're standing in; --peek is how much of a neighbour
    shows through an open door. */
-:root { --tile: 170px; --wall: #3a4150; --wall-w: 2px; --room: #23262d; }
+:root { --tile: 170px; --wall: #3a4150; --wall-w: 7px; --room: #23262d;
+        --hedge: #3d5540; }
 .focus { --peek: calc(var(--tile) * 0.42); }
 
 .focus {
@@ -224,7 +225,7 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   grid-template-columns: var(--peek) var(--tile) var(--peek);
   grid-template-rows: var(--peek) var(--tile) var(--peek);
   grid-template-areas: ". n ." "w c e" ". s .";
-  gap: 10px;
+  gap: 4px;
   justify-content: center;
   align-content: center;
   margin: 0 auto;
@@ -298,6 +299,8 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
     repeating-linear-gradient(90deg, transparent 0 47px,
       rgba(255, 255, 255, .03) 47px, rgba(255, 255, 255, .03) 48px);
 }
+.world--outdoor { border-color: var(--hedge);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hedge) 60%, black); }
 .world--outdoor {
   background-image:
     repeating-linear-gradient(72deg, transparent 0 7px,
@@ -306,14 +309,48 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
       rgba(0, 0, 0, .16) 11px, rgba(0, 0, 0, .16) 13px);
 }
 
-.tilename { font-size: .78rem; line-height: 1.15; padding: 0 6px; color: var(--text); }
-.tileicon {
-  width: calc(var(--tile) * 0.24);
-  height: calc(var(--tile) * 0.24);
-  color: var(--accent);
-  flex: none;
+/* The room fills the tile inside its walls; the name moves to a corner banner
+   so nothing sits in the middle, which belongs to the footprints and to you. */
+.roomscene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: color-mix(in srgb, var(--flame) 30%, var(--muted));
+  opacity: .62;
+  pointer-events: none;
 }
-.you { position: absolute; bottom: 6px; right: 8px; color: var(--accent); font-size: 1rem; }
+.tilebox--here .roomscene { opacity: .8; }
+
+.tilename {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  max-width: 100%;
+  padding: 2px 7px;
+  font-size: .72rem;
+  line-height: 1.2;
+  color: var(--text);
+  background: color-mix(in srgb, var(--room) 82%, black);
+  border-top-right-radius: 5px;
+  z-index: 2;
+}
+
+/* You, centre-room, where the candle is anchored. */
+.you {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tile) * .3);
+  height: calc(var(--tile) * .3);
+  margin: calc(var(--tile) * -.15) 0 0 calc(var(--tile) * -.15);
+  color: var(--flame);
+  z-index: 2;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--flame) 45%, transparent));
+}
+
+/* The HUD keeps the small icons; only the board moved to scenes. */
+.tileicon { width: 18px; height: 18px; flex: none; }
 
 /* A neighbour, seen through the doorway. The far edge fades out, so it reads as
    a glimpse rather than a room of its own. */
@@ -332,33 +369,37 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   transition: filter 2s linear;
 }
 .halfroom:hover { filter: brightness(calc(var(--peek-light) + .55)) saturate(.9); }
-.halfroom .tilename { font-size: .66rem; color: var(--muted); }
-.halfroom .tileicon {
-  width: calc(var(--tile) * 0.16);
-  height: calc(var(--tile) * 0.16);
-  color: var(--muted);
-}
+.halfroom .tilename { font-size: .6rem; color: var(--muted); background: transparent; }
+.halfroom .roomscene { opacity: .5; }
 .halfroom--n, .halfroom--s { width: var(--tile); height: var(--peek); }
 .halfroom--e, .halfroom--w { width: var(--peek); height: var(--tile); }
 .halfroom--n {
   border-radius: 6px 6px 0 0; border-bottom: 0;
-  -webkit-mask-image: linear-gradient(to top, #000 45%, transparent);
-          mask-image: linear-gradient(to top, #000 45%, transparent);
+  /* Visibility spreads from the gap in the wall rather than filling the slot,
+     so what is not in line with the doorway falls into the dark. */
+  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 50% 100%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
+          mask-image: radial-gradient(ellipse 125% 135% at 50% 100%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 .halfroom--s {
   border-radius: 0 0 6px 6px; border-top: 0;
-  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
-          mask-image: linear-gradient(to bottom, #000 45%, transparent);
+  /* Visibility spreads from the gap in the wall rather than filling the slot,
+     so what is not in line with the doorway falls into the dark. */
+  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 50% 0%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
+          mask-image: radial-gradient(ellipse 125% 135% at 50% 0%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 .halfroom--w {
   border-radius: 6px 0 0 6px; border-right: 0;
-  -webkit-mask-image: linear-gradient(to left, #000 45%, transparent);
-          mask-image: linear-gradient(to left, #000 45%, transparent);
+  /* Visibility spreads from the gap in the wall rather than filling the slot,
+     so what is not in line with the doorway falls into the dark. */
+  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 100% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
+          mask-image: radial-gradient(ellipse 125% 135% at 100% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 .halfroom--e {
   border-radius: 0 6px 6px 0; border-left: 0;
-  -webkit-mask-image: linear-gradient(to right, #000 45%, transparent);
-          mask-image: linear-gradient(to right, #000 45%, transparent);
+  /* Visibility spreads from the gap in the wall rather than filling the slot,
+     so what is not in line with the doorway falls into the dark. */
+  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 0% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
+          mask-image: radial-gradient(ellipse 125% 135% at 0% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 /* Across the seam — the other side of the house. */
 .halfroom--across { border-color: color-mix(in srgb, var(--gold) 45%, var(--wall)); }
@@ -425,7 +466,7 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   left: 12.5%;
   right: 12.5%;
   top: 50%;
-  height: 5px;
+  height: calc(var(--wall-w) + 2px);
   transform: translateY(-50%);
   background: var(--bg-2);
 }

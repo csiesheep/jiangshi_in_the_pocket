@@ -25,6 +25,10 @@ function currentChoices() {
 
 // The three yard tiles are all "Lawn" and share one icon.
 const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
+const SCENE_ALIAS = ICON_ALIAS;
+const FACING = { N: 0, E: 90, S: 180, W: 270 };
+// Which way you came, so the figure and the footprints agree.
+let lastDir = "N";
 
 // Inject the icon sprite once, then reference symbols with <use href="#id">.
 // External-file <use> references are not dependably supported, so the sprite is
@@ -651,6 +655,42 @@ export function jumpScare(count = 0) {
   });
 }
 
+// The wall going in. Staged so the damage reads: the ragged edges snap in
+// oversized, settle back, and the room takes the knock. The static art is
+// already in place underneath, so under reduced motion the hole is simply
+// there — nothing is lost by skipping this.
+export function animateBreakIn(dir) {
+  if (reducedMotion()) return;
+  requestAnimationFrame(() => {
+    const art = document.querySelector(`.focus-centre .tilebox .edgemark.${DIR_CLASS[dir]} .edgeart`);
+    if (art && typeof art.animate === "function") {
+      art.animate(
+        [
+          { opacity: 0, transform: "scale(.35)" },
+          { opacity: 1, transform: "scale(1.3)", offset: 0.32 },
+          { opacity: 1, transform: "scale(.96)", offset: 0.62 },
+          { opacity: 1, transform: "scale(1)" },
+        ],
+        { duration: 460, easing: "cubic-bezier(.2,.9,.3,1)" }
+      );
+    }
+    const box = document.querySelector(".focus-centre .tilebox");
+    if (box && typeof box.animate === "function") {
+      const [dx, dy] = DELTA[dir] || [0, 0];
+      // knocked away from the wall that just gave
+      box.animate(
+        [
+          { transform: "translate(0,0)" },
+          { transform: `translate(${-dx * 6}px, ${-dy * 6}px)` },
+          { transform: `translate(${dx * 3}px, ${dy * 3}px)` },
+          { transform: "translate(0,0)" },
+        ],
+        { duration: 300, easing: "ease-out" }
+      );
+    }
+  });
+}
+
 // ---- Taking a hit ----------------------------------------------------------
 // A red wash over the board and a short shake. Sits below the jump scare so the
 // two do not fight when a fight is what dealt the damage.
@@ -719,6 +759,7 @@ function reducedMotion() {
 export function animateEntry(dir) {
   const [dx, dy] = DELTA[dir] || [0, 0];
   if (!dx && !dy) return;
+  lastDir = dir;
 
   // Sound is not motion, so the hinge is heard even with animation turned off.
   // Only for a real door — a smashed wall has nothing to swing.
@@ -821,8 +862,8 @@ function centreRoom(game, tile, edges) {
     if (mark) box.appendChild(mark);
   }
 
-  const art = icon("tile", tile.id, "tileicon");
-  if (art) box.appendChild(art);
+  const scene = icon("scene", SCENE_ALIAS[tile.id] || tile.id, "roomscene");
+  if (scene) box.appendChild(scene);
 
   const name = document.createElement("span");
   name.className = "tilename";
@@ -830,11 +871,13 @@ function centreRoom(game, tile, edges) {
   name.setAttribute("aria-hidden", "true");
   box.appendChild(name);
 
-  const you = document.createElement("span");
-  you.className = "you";
-  you.textContent = "☻";
-  you.setAttribute("aria-hidden", "true");
-  box.appendChild(you);
+  // You stand in the middle, where the light is anchored and the footprints
+  // end, facing whichever way you last travelled.
+  const you = icon("ui", "player", "you");
+  if (you) {
+    you.style.transform = `rotate(${FACING[lastDir] ?? 0}deg)`;
+    box.appendChild(you);
+  }
   return box;
 }
 
@@ -846,8 +889,8 @@ function halfRoom(game, edge, dir) {
   if (edge.crossesWorld) half.classList.add("halfroom--across");
   half.setAttribute("aria-hidden", "true"); // already in the centre room's label
 
-  const art = icon("tile", edge.neighbour.id, "tileicon");
-  if (art) half.appendChild(art);
+  const scene = icon("scene", SCENE_ALIAS[edge.neighbour.id] || edge.neighbour.id, "roomscene");
+  if (scene) half.appendChild(scene);
 
   const name = document.createElement("span");
   name.className = "tilename";
@@ -870,9 +913,12 @@ function edgeMark(dir, edge) {
   } else if (edge.state === "open") {
     symbol = "door-open";
     tone = "open";
+  } else if (edge.state === "blocked") {
+    symbol = "door-blocked";
+    tone = "blocked";
   } else {
     symbol = "door-closed";
-    tone = edge.state === "blocked" ? "blocked" : "shut";
+    tone = "shut";
   }
 
   const wrap = document.createElement("span");

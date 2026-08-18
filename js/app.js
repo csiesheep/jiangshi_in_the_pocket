@@ -15,6 +15,7 @@ import {
   hideOverlay,
   loadIcons,
   animateEntry,
+  animateBreakIn,
   jumpScare,
   uiIcon,
   formatHour,
@@ -450,13 +451,14 @@ class Game {
     const wall = Bd.pickZombieDoorWall(this.board);
     if (!wall) return; // nothing blank left to break through
     Bd.openZombieDoor(this.board, wall);
+    this.refresh();
+    animateBreakIn(wall);
     log(
       ran
         ? `They follow you in through the ${DIR_WORD[wall]} wall of the ${this.tileName(here.id)}.`
         : `They come through the ${DIR_WORD[wall]} wall.`,
       "bad"
     );
-    this.refresh();
   }
 
   // ---- Steps 8–9: end of turn (heal, cower) -------------------------------
