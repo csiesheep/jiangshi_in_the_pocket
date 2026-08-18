@@ -384,16 +384,39 @@ class Game {
 
   zombieDoorPhase(onDone) {
     log(`Dead end. Three of the ${this.word("monsters")} claw at the walls…`, "bad");
-    // The wall picks itself, favouring one that opens onto unexplored space —
-    // the hole persists and is how you get out of here, so a wall facing tiles
-    // already placed would only lead back the way you came.
+    // The hole is punched after the fight, not before, because where it lands
+    // depends on how the fight ends: stand your ground and they come through a
+    // wall of this room; run and they follow, and break into the room you
+    // reached instead.
+    const cameFrom = Bd.currentTile(this.board);
+    this.presentCombat(
+      E.RULES.ZOMBIE_DOOR_COUNT,
+      () => {
+        this.breakInWall(cameFrom);
+        onDone();
+      },
+      { allowFlee: true }
+    );
+  }
+
+  breakInWall(cameFrom) {
+    if (this.state.status !== "playing") return;
+    const here = Bd.currentTile(this.board);
+    // Compared by tile rather than this.fled, which may already be set from an
+    // earlier retreat in the same turn.
+    const ran = here !== cameFrom;
+    // Favours a wall opening onto unexplored space: the hole persists and is
+    // how you get out, so one facing tiles already placed would only lead back.
     const wall = Bd.pickZombieDoorWall(this.board);
-    if (wall) {
-      Bd.openZombieDoor(this.board, wall);
-      log(`They come through the ${DIR_WORD[wall]} wall.`, "bad");
-      this.refresh();
-    }
-    this.presentCombat(E.RULES.ZOMBIE_DOOR_COUNT, onDone, { allowFlee: true });
+    if (!wall) return; // nothing blank left to break through
+    Bd.openZombieDoor(this.board, wall);
+    log(
+      ran
+        ? `They follow you in through the ${DIR_WORD[wall]} wall of the ${this.tileName(here.id)}.`
+        : `They come through the ${DIR_WORD[wall]} wall.`,
+      "bad"
+    );
+    this.refresh();
   }
 
   // ---- Steps 8–9: end of turn (heal, cower) -------------------------------
