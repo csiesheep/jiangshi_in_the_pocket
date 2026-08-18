@@ -63,6 +63,7 @@ const MAX_HEARTS = 10;
 // places that change them: renderHud sees every state refresh, so one hook
 // catches damage from fights, flee costs and events alike.
 let lastHealth = null;
+let lastItems = [];
 const LOW_HEALTH = 2;
 
 export function renderHud(game) {
@@ -81,7 +82,41 @@ export function renderHud(game) {
   renderAttack(game.state);
   renderHour(game.state);
   renderRelic(game.state);
+
+  // Which slots are new has to be worked out before the panel is rebuilt.
+  const arrived = game.state.items.filter((id) => !lastItems.includes(id));
+  lastItems = game.state.items.slice();
   renderBackpack(game);
+  if (arrived.length) flourish(arrived);
+}
+
+// A new item announces itself: the slot pops and its icon flares gold. Nothing
+// marks a loss — dropping and spending are quiet on purpose.
+function flourish(arrived) {
+  if (reducedMotion()) return;
+  const rows = [...document.querySelectorAll("#hud-items .slot")];
+  for (const id of arrived) {
+    const row = rows.find((r) => {
+      const use = r.querySelector("use");
+      return use && use.getAttribute("href") === `#item-${id}`;
+    });
+    if (!row || typeof row.animate !== "function") continue;
+    row.animate(
+      [
+        { transform: "scale(.9)", borderColor: "var(--gold)", boxShadow: "0 0 0 rgba(201,162,75,0)" },
+        { transform: "scale(1.06)", borderColor: "var(--gold)", boxShadow: "0 0 18px rgba(201,162,75,.55)", offset: 0.35 },
+        { transform: "scale(1)", borderColor: "var(--border)", boxShadow: "0 0 0 rgba(201,162,75,0)" },
+      ],
+      { duration: 620, easing: "cubic-bezier(.2,.8,.3,1)" }
+    );
+    const icon = row.querySelector(".itemicon");
+    if (icon && typeof icon.animate === "function") {
+      icon.animate(
+        [{ transform: "scale(.8) rotate(-8deg)" }, { transform: "scale(1.18) rotate(4deg)", offset: 0.4 }, { transform: "scale(1) rotate(0)" }],
+        { duration: 620, easing: "cubic-bezier(.2,.8,.3,1)" }
+      );
+    }
+  }
 }
 
 // Icons are decorative; every stat carries its value as text for screen readers.
