@@ -304,6 +304,18 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   transition: color 1s ease;
 }
 
+/* The crossing is the payoff, so it is the one thing here that animates — but a
+   temperature shift sweeping the whole board is exactly what this setting is
+   for, so under it the swap is instant and nothing is lost but the sweep. The
+   1s shift also sits deliberately longer than the 700ms room slide, so it reads
+   as the world changing underneath the move rather than racing it. */
+@media (prefers-reduced-motion: reduce) {
+  .board .tilebox,
+  .board .halfroom,
+  .board .roomscene,
+  .board-pane::before { transition: none; }
+}
+
 /* --tile is the room you're standing in; --peek is how much of a neighbour
    shows through an open door. */
 :root { --tile: clamp(96px, 19vh, 190px); --wall: #3a4150; --wall-w: 7px; --room: #23262d;
@@ -480,7 +492,7 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
           mask-image: radial-gradient(ellipse 125% 135% at 0% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 /* Across the seam — the other side of the house. */
-.halfroom--across { border-color: color-mix(in srgb, var(--gold) 45%, var(--wall)); }
+.board .halfroom--across { border-color: color-mix(in srgb, var(--gold) 55%, var(--wall)); }
 /* A glimpse across the seam looks into the other world, so it takes the other
    cast — moonlight spilling in, or lamplight spilling out. */
 .board--indoor .halfroom--across {
