@@ -14,6 +14,7 @@ import {
   hideOverlay,
   loadIcons,
   animateEntry,
+  jumpScare,
   tileName as tName,
   itemName as iName,
 } from "./render.js";
@@ -209,7 +210,13 @@ class Game {
       }
     }
 
-    renderActions(acts, `${n} ${foes}! Your attack is ${E.effectiveAttack(s)}.`);
+    const prompt = `${n} ${foes}! Your attack is ${E.effectiveAttack(s)}.`;
+
+    // Clear first, then scare, then offer the choices. Emptying the list is what
+    // makes the flash safe: the previous step's buttons are gone, so nothing can
+    // be clicked and the global number keys have nothing to find while it plays.
+    renderActions([]);
+    jumpScare(n).then(() => renderActions(acts, prompt));
   }
 
   doFight(n, weapon, onDone) {

@@ -450,6 +450,23 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 }
 .actions-pop[hidden] { display: none; }
 
+/* The jump scare: covers everything, including the actions pop-out, and eats
+   pointer events for its duration so nothing underneath can be clicked. */
+.scare {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 4, 5, .88);
+}
+.scare-art {
+  width: min(56vmin, 460px);
+  height: min(56vmin, 460px);
+  color: var(--danger);
+  filter: drop-shadow(0 0 26px rgba(224, 82, 63, .35));
+}
+
 /* ---- Article pages (rulebook, credits) ---- */
 .article { max-width: 760px; }
 .article h1 { font-size: 2rem; margin-bottom: 4px; }

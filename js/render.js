@@ -379,6 +379,72 @@ export function renderBoard(game) {
   el.appendChild(view);
 }
 
+// ---- The scare -------------------------------------------------------------
+// A full-window flash of the risen before the combat choices appear. Unlike
+// animateEntry this one is *awaited* — the actions land after the fade — so it
+// has to resolve in every circumstance or the turn would stall: no art, no
+// Web Animations, reduced motion, all resolve immediately.
+//
+// The caller clears the action list before calling this, so during the flash
+// there are no buttons to click and none for the global number keys to find.
+// That is what stops a player mashing 1 from firing whatever appears
+// underneath.
+const SCARE_BASE_MS = 300;
+
+export function jumpScare(count = 0) {
+  return new Promise((resolve) => {
+    if (reducedMotion()) return resolve();
+
+    // A card fight can be followed straight away by a zombie door; never stack.
+    const stale = document.querySelector(".scare");
+    if (stale) stale.remove();
+
+    const art = icon("scare", "zombie", "scare-art");
+    if (!art) return resolve(); // sprite missing — never hold the game up for art
+
+    const el = document.createElement("div");
+    el.className = "scare";
+    el.setAttribute("aria-hidden", "true");
+    el.appendChild(art);
+    document.body.appendChild(el);
+
+    if (typeof el.animate !== "function") {
+      el.remove();
+      return resolve();
+    }
+
+    // Bigger packs hit harder and linger a little longer, so it is not the
+    // identical frame every single fight.
+    const weight = Math.min(count, 6) / 6;
+    const duration = SCARE_BASE_MS + Math.round(weight * 200);
+    const from = 1.16 + weight * 0.12;
+
+    const anim = el.animate(
+      [
+        { opacity: 0, transform: `scale(${from})` },
+        { opacity: 1, transform: "scale(1)", offset: 0.22 },
+        { opacity: 1, transform: "scale(1)", offset: 0.6 },
+        { opacity: 0, transform: "scale(1.04)" },
+      ],
+      { duration, easing: "cubic-bezier(.2,.7,.3,1)" }
+    );
+    // Resolve once, from whichever comes first. Web Animations do not advance
+    // while the document is hidden, so anim.finished hangs for as long as the
+    // player has the tab in the background — and the combat choices are gated
+    // behind this promise, which would leave the turn frozen on their return.
+    // Timers still fire when backgrounded, so one backs the animation up.
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      el.remove();
+      resolve();
+    };
+    anim.finished.then(done).catch(done);
+    setTimeout(done, duration + 250);
+  });
+}
+
 // ---- Moving between rooms --------------------------------------------------
 // Three layers, played together after the new room is rendered: the door you
 // came through swings open, footprints track from that doorway to where you're
