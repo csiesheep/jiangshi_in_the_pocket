@@ -459,6 +459,12 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   font-size: .88rem;
   cursor: pointer;
 }
+.action { display: flex; align-items: baseline; gap: 8px; }
+.action-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; text-align: left; }
+.action-label { line-height: 1.25; }
+.action-sub { font-size: .72rem; color: var(--muted); }
+.action[data-kind="flee"] .action-sub { color: color-mix(in srgb, var(--danger) 80%, var(--muted)); }
+
 .action:hover { border-color: var(--accent); }
 .action--primary { border-color: var(--accent); }
 .action:disabled { opacity: .5; cursor: default; }

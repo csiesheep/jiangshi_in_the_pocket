@@ -89,13 +89,16 @@ class Game {
     }
     const acts = moves.map((m) => {
       if (m.type === "explore") {
-        return { label: `Go ${m.dir} — explore`, primary: true, onClick: () => this.doExplore(m.dir) };
+        return { kind: "move", dir: m.dir, label: `Go ${m.dir} — explore`, sub: "unexplored",
+          primary: true, onClick: () => this.doExplore(m.dir) };
       }
       if (m.type === "outside") {
-        return { label: "Step outside (the arrow door)", primary: true, onClick: () => this.doOutside(m.dir) };
+        return { kind: "move", dir: m.dir, label: "Step outside (the arrow door)", sub: "the way out",
+          primary: true, onClick: () => this.doOutside(m.dir) };
       }
       const to = this.board.worlds[m.to.world].get(Bd.cellKey(m.to.x, m.to.y));
-      return { label: `Go ${m.dir} — ${this.tileName(to.id)}`, onClick: () => this.doMove(m.dir) };
+      return { kind: "move", dir: m.dir, label: `Go ${m.dir} — ${this.tileName(to.id)}`,
+        icon: `tile-${to.id}`, onClick: () => this.doMove(m.dir) };
     });
     renderActions(acts, "Choose a way out — you must move.");
   }
@@ -160,7 +163,9 @@ class Game {
     renderActions(
       [
         {
+          kind: "item",
           label: "Search for the item",
+          sub: "costs the next card",
           primary: true,
           onClick: () => {
             const c = E.drawCard(this.state);
@@ -169,7 +174,7 @@ class Game {
             this.takeItemFlow(item, () => this.proceed(ctx));
           },
         },
-        { label: "Leave it", onClick: () => this.proceed(ctx) },
+        { kind: "item", label: "Leave it", sub: "no cost", onClick: () => this.proceed(ctx) },
       ],
       "Worth the time to grab it?"
     );
@@ -185,23 +190,40 @@ class Game {
     if (usable.length > 1) {
       for (const w of usable) {
         acts.push({
-          label: `Fight with the ${this.itemName(w)} (atk ${1 + s.itemsById[w].attack})`,
+          kind: "fight",
+          icon: `item-${w}`,
+          label: this.itemName(w),
+          sub: `atk ${1 + s.itemsById[w].attack}`,
           primary: true,
           onClick: () => this.doFight(n, w, onDone),
         });
       }
     } else {
-      acts.push({ label: `Fight ${n} ${foes}`, primary: true, onClick: () => this.doFight(n, null, onDone) });
+      const best = E.chooseWeapon(s);
+      acts.push({
+        kind: "fight",
+        icon: best ? `item-${best}` : null,
+        label: `Fight ${n} ${foes}`,
+        sub: best ? `with the ${this.itemName(best)}, atk ${E.effectiveAttack(s)}` : "bare-handed",
+        primary: true,
+        onClick: () => this.doFight(n, null, onDone),
+      });
     }
 
     if (opts.allowFlee !== false) {
       const dests = Bd.listMoves(this.board).filter((m) => m.type === "move" || m.type === "cross");
       for (const d of dests) {
         const to = this.board.worlds[d.to.world].get(Bd.cellKey(d.to.x, d.to.y));
-        acts.push({ label: `Flee ${d.dir} to the ${this.tileName(to.id)} (-1 HP)`, onClick: () => this.doFlee(d, false, onDone) });
+        acts.push({ kind: "flee", dir: d.dir, icon: `tile-${to.id}`,
+          label: `Flee ${d.dir} to the ${this.tileName(to.id)}`, sub: "−1 HP",
+          onClick: () => this.doFlee(d, false, onDone) });
         if (s.items.includes("oil")) {
           acts.push({
-            label: `Flee ${d.dir} — throw the ${this.itemName("oil")} (no damage)`,
+            kind: "flee",
+            dir: d.dir,
+            icon: "item-oil",
+            label: `Flee ${d.dir} — throw the ${this.itemName("oil")}`,
+            sub: "no damage",
             onClick: () => this.doFlee(d, true, onDone),
           });
         }
@@ -211,7 +233,10 @@ class Game {
     for (const fuel of ["oil", "gasoline"]) {
       if (s.items.includes("candle") && s.items.includes(fuel)) {
         acts.push({
-          label: `${this.itemName("candle")} + ${this.itemName(fuel)} — burn them all`,
+          kind: "fight",
+          icon: `item-${fuel}`,
+          label: `${this.itemName("candle")} + ${this.itemName(fuel)}`,
+          sub: "burn them all",
           onClick: () => this.doCombo(fuel, onDone, n),
         });
       }
@@ -305,7 +330,9 @@ class Game {
     renderActions(
       [
         {
+          kind: "item",
           label: "Rummage for an item",
+          sub: "costs the next card",
           primary: true,
           onClick: () => {
             const c = E.drawCard(this.state);
@@ -313,7 +340,7 @@ class Game {
             this.takeItemFlow(this.state.cardsById[c].item, () => this.deadEndCheck());
           },
         },
-        { label: "Leave empty-handed", onClick: () => this.deadEndCheck() },
+        { kind: "item", label: "Leave empty-handed", sub: "no cost", onClick: () => this.deadEndCheck() },
       ],
       `The ${this.tileName("storage")} — worth a rummage?`
     );
@@ -332,13 +359,16 @@ class Game {
     if (this.state.status !== "playing") return this.gameOver();
     const acts = [
       {
+        kind: "draw",
         label: kind === "graveyard" ? "Dig on — draw the burial card" : "Search on — draw the second card",
+        sub: "one more card",
         primary: true,
         onClick: () => this.doDrawSecond(kind),
       },
     ];
     if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
-      acts.push({ label: "Cower first — +3 HP, burn a card", onClick: () => this.doCowerBeforeSecond(kind) });
+      acts.push({ kind: "rest", label: "Cower first", sub: "+3 HP, burn a card",
+        onClick: () => this.doCowerBeforeSecond(kind) });
     }
     renderActions(acts, "One more card to face. Take a breath first?");
   }
@@ -368,6 +398,9 @@ class Game {
       return done();
     }
     const acts = this.state.items.map((held) => ({
+      kind: "item",
+      icon: `item-${item}`,
+      sub: `lose the ${this.itemName(held)}`,
       label: `Drop ${this.itemName(held)}, take ${this.itemName(item)}`,
       onClick: () => {
         E.pickUpItem(this.state, item, held);
@@ -377,7 +410,7 @@ class Game {
         done();
       },
     }));
-    acts.push({ label: `Leave the ${this.itemName(item)}`, onClick: done });
+    acts.push({ kind: "item", label: `Leave the ${this.itemName(item)}`, sub: "keep what you carry", onClick: done });
     renderActions(acts, `Your hands are full. Make room for the ${this.itemName(item)}?`);
   }
 
@@ -445,9 +478,9 @@ class Game {
   // re-running step 8 — which would hand out the Kitchen / Herb Garden heal a
   // second time.
   renderEndTurn() {
-    const acts = [{ label: "Next turn", primary: true, onClick: () => this.nextTurn() }];
+    const acts = [{ kind: "draw", label: "Next turn", sub: "press on", primary: true, onClick: () => this.nextTurn() }];
     if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
-      acts.unshift({ label: "Cower — +3 HP, burn a card", onClick: () => this.doCower() });
+      acts.unshift({ kind: "rest", label: "Cower", sub: "+3 HP, burn a card", onClick: () => this.doCower() });
     }
     renderActions(acts, "The room is quiet. Rest, or press on?");
   }

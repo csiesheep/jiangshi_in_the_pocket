@@ -908,7 +908,23 @@ export function renderActions(actions, prompt = "") {
       k.textContent = String(i + 1);
       b.appendChild(k);
     }
-    b.appendChild(document.createTextNode(a.label));
+    const text = document.createElement("span");
+    text.className = "action-text";
+    const name = document.createElement("span");
+    name.className = "action-label";
+    name.textContent = a.label;
+    text.appendChild(name);
+    // The consequence used to be bolted onto the end of the label. It is its own
+    // field now, so it can be styled — and read out — as the separate thing it is.
+    if (a.sub) {
+      const sub = document.createElement("span");
+      sub.className = "action-sub";
+      sub.textContent = a.sub;
+      text.appendChild(sub);
+    }
+    b.appendChild(text);
+    if (a.kind) b.dataset.kind = a.kind;
+    if (a.dir) b.dataset.dir = a.dir;
     b.disabled = !!a.disabled;
     b.addEventListener("click", a.onClick);
     el.appendChild(b);
