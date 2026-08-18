@@ -391,6 +391,20 @@ export function renderBoard(game) {
 // underneath.
 const SCARE_BASE_MS = 300;
 
+// Where each of the risen stands, in order. One face for the smallest pack, up
+// to six, so a three-zombie dead end and a six-zombie card do not land
+// identically. Fixed rather than random: a seeded run is meant to replay the
+// same, and Math.random here would make the same fight look different twice.
+// [x%, y%, scale, share of the run before it appears]
+const SCARE_SLOTS = [
+  [50, 50, 1.0, 0.0],
+  [21, 38, 0.62, 0.1],
+  [79, 43, 0.66, 0.16],
+  [33, 74, 0.54, 0.22],
+  [69, 76, 0.58, 0.28],
+  [50, 21, 0.5, 0.34],
+];
+
 export function jumpScare(count = 0) {
   return new Promise((resolve) => {
     if (reducedMotion()) return resolve();
@@ -399,13 +413,11 @@ export function jumpScare(count = 0) {
     const stale = document.querySelector(".scare");
     if (stale) stale.remove();
 
-    const art = icon("scare", "zombie", "scare-art");
-    if (!art) return resolve(); // sprite missing — never hold the game up for art
+    if (!document.getElementById("scare-zombie")) return resolve(); // no art, no hold-up
 
     const el = document.createElement("div");
     el.className = "scare";
     el.setAttribute("aria-hidden", "true");
-    el.appendChild(art);
     document.body.appendChild(el);
 
     if (typeof el.animate !== "function") {
@@ -413,20 +425,44 @@ export function jumpScare(count = 0) {
       return resolve();
     }
 
-    // Bigger packs hit harder and linger a little longer, so it is not the
-    // identical frame every single fight.
-    const weight = Math.min(count, 6) / 6;
+    // Encounters run 3 to 6, so weight across that band rather than from zero.
+    const faces = Math.max(1, Math.min(count || 1, SCARE_SLOTS.length));
+    const weight = Math.min(Math.max((faces - 3) / 3, 0), 1);
     const duration = SCARE_BASE_MS + Math.round(weight * 200);
-    const from = 1.16 + weight * 0.12;
+
+    for (let i = 0; i < faces; i++) {
+      const [x, y, scale, at] = SCARE_SLOTS[i];
+      const art = icon("scare", "zombie", "scare-art");
+      if (!art) break;
+      const seat = document.createElement("span");
+      seat.className = "scare-face";
+      seat.style.left = `${x}%`;
+      seat.style.top = `${y}%`;
+      seat.style.setProperty("--face-scale", String(scale));
+      seat.appendChild(art);
+      el.appendChild(seat);
+
+      // The one in front lunges; the pack behind snaps in after it. The size
+      // itself comes from --face-scale on the width, so these keyframes are a
+      // relative nudge around it — multiplying by `scale` here would apply it
+      // twice and leave the back row far smaller than intended.
+      seat.animate(
+        [
+          { opacity: 0, transform: `translate(-50%, -50%) scale(${i ? 0.8 : 1.2})` },
+          { opacity: 1, transform: "translate(-50%, -50%) scale(1)" },
+        ],
+        { duration: Math.round(duration * 0.34), delay: Math.round(duration * at), fill: "backwards", easing: "cubic-bezier(.2,.8,.3,1)" }
+      );
+    }
 
     const anim = el.animate(
       [
-        { opacity: 0, transform: `scale(${from})` },
-        { opacity: 1, transform: "scale(1)", offset: 0.22 },
-        { opacity: 1, transform: "scale(1)", offset: 0.6 },
-        { opacity: 0, transform: "scale(1.04)" },
+        { opacity: 0 },
+        { opacity: 1, offset: 0.16 },
+        { opacity: 1, offset: 0.66 },
+        { opacity: 0 },
       ],
-      { duration, easing: "cubic-bezier(.2,.7,.3,1)" }
+      { duration, easing: "ease-out" }
     );
     // Resolve once, from whichever comes first. Web Animations do not advance
     // while the document is hidden, so anim.finished hangs for as long as the

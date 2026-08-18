@@ -456,13 +456,19 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   position: fixed;
   inset: 0;
   z-index: 50;
-  display: grid;
-  place-items: center;
   background: rgba(8, 4, 5, .88);
+  overflow: hidden;
+}
+/* One seat per zombie faced; render.js places and scales them. */
+.scare-face {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  --face-scale: 1;
 }
 .scare-art {
-  width: min(56vmin, 460px);
-  height: min(56vmin, 460px);
+  display: block;
+  width: calc(min(46vmin, 380px) * var(--face-scale));
+  height: calc(min(46vmin, 380px) * var(--face-scale));
   color: var(--danger);
   filter: drop-shadow(0 0 26px rgba(224, 82, 63, .35));
 }
