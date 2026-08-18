@@ -99,6 +99,9 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   max-width: 1200px;
   margin: 0 auto;
 }
+/* .game-layout is declared above, so overriding it here works. Anything
+   declared LOWER in this file must be overridden in the responsive block at the
+   end instead — a media query adds no specificity, so a later base rule wins. */
 @media (max-width: 800px) {
   .game-layout { grid-template-columns: 1fr; }
 }
@@ -167,7 +170,14 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .itemicon { width: 18px; height: 18px; color: var(--gold); flex: none; margin-top: 2px; }
 
 /* min-width:0 keeps a wide board from forcing the grid column open. */
-.board-pane { min-width: 0; }
+.board-pane {
+  min-width: 0;
+  position: relative;          /* the actions pop-out anchors to this */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 62vh;            /* room for the pop-out to float clear of the board */
+}
 
 .board { position: relative; display: block; padding: 8px 0; }
 
@@ -423,6 +433,23 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .log { font-size: 0.85rem; color: var(--muted); max-height: 40vh; overflow-y: auto; }
 .log p { margin: 0 0 6px; }
 
+/* The actions pop-out: floats over the lower board on desktop, and drops into
+   normal flow under the board once the layout is a single column. */
+.actions-pop {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(430px, 100%);
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  z-index: 5;
+}
+.actions-pop[hidden] { display: none; }
+
 /* ---- Article pages (rulebook, credits) ---- */
 .article { max-width: 760px; }
 .article h1 { font-size: 2rem; margin-bottom: 4px; }
@@ -467,4 +494,19 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .toc a:hover { text-decoration: underline; }
 @media (max-width: 520px) {
   .toc ol { columns: 1; }
+}
+
+/* ---- Responsive overrides for components defined above ------------------
+   Everything here targets rules declared later in the file than the early
+   breakpoints, so it has to live at the end to win on source order. */
+@media (max-width: 800px) {
+  /* One column: no spare height to float in, and covering the board on a
+     narrow screen hides the very thing the choice is about. */
+  .board-pane { min-height: 0; }
+  .actions-pop {
+    position: static;
+    transform: none;
+    width: 100%;
+    box-shadow: none;
+  }
 }

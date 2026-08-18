@@ -31,6 +31,9 @@
   <main class="game-layout">
     <section class="board-pane" aria-label="Board">
       <div class="board" id="board" role="group" aria-label="Game board"></div>
+      <div class="actions-pop" id="actions-pop" role="group" aria-label="Your move" hidden>
+        <div id="actions"></div>
+      </div>
     </section>
 
     <aside class="sidebar">
@@ -41,10 +44,6 @@
           <div class="stat"><span class="statlabel">Hour</span><span class="statval" id="hud-hour"></span></div>
           <div class="stat"><span class="statlabel">Relic</span><span class="statval" id="hud-totem"></span></div>
         </div>
-      </div>
-      <div class="panel">
-        <h3>Actions</h3>
-        <div id="actions"></div>
       </div>
       <div class="panel">
         <h3>Backpack</h3>

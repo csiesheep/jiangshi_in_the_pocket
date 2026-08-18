@@ -619,12 +619,35 @@ function bindActionKeys() {
 }
 
 // Render a set of action buttons. `actions` = [{label, onClick, primary?}].
+//
+// These live in a pop-out over the board rather than a fixed sidebar panel, so
+// the choice sits next to what the player is looking at and takes no room when
+// there is nothing to decide.
+//
+// There is deliberately no way to dismiss it. Every state that renders actions
+// requires one of them to be chosen — moving is mandatory, a fight must be
+// resolved, a zombie door must be given a wall — so a close button or an
+// Escape binding would only ever strand the player with no way to act. It
+// hides when the list is empty, which is the one moment nothing is being asked.
+//
+// It is also deliberately not a modal and traps no focus: with no dismiss, a
+// focus trap would lock a keyboard player away from New game for the rest of
+// the run. Tab reaches the sidebar as normal; the number keys stay bound
+// globally.
 export function renderActions(actions, prompt = "") {
   const el = document.getElementById("actions");
+  const pop = document.getElementById("actions-pop");
   // Keep the keyboard on the turn loop, but don't yank focus out of the
   // sidebar controls if that's where the player put it.
   const hadFocus = el.contains(document.activeElement);
   el.innerHTML = "";
+
+  if (!actions.length) {
+    if (pop) pop.hidden = true;
+    return;
+  }
+  if (pop) pop.hidden = false;
+
   if (prompt) {
     const p = document.createElement("p");
     p.className = "prompt";
