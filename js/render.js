@@ -458,6 +458,13 @@ function edgeStates(game) {
 export function renderBoard(game) {
   const board = game.board;
   const el = document.getElementById("board");
+
+  // Read before the wipe: clearing the board destroys the focused hotspot and
+  // drops focus to <body>, which would strand a keyboard player mid-turn.
+  const active = document.activeElement;
+  const focusedDir =
+    active && active.classList && active.classList.contains("doorway") ? active.dataset.dir : null;
+
   el.innerHTML = "";
 
   const tile = currentTile(board);
@@ -483,7 +490,15 @@ export function renderBoard(game) {
 
   // renderBoard rebuilds .focus from scratch, so hotspots cannot be attached
   // once and kept — they are re-applied from the pending list every rebuild.
-  if (pendingMoves.length) mountDoorways(el);
+  if (pendingMoves.length) {
+    mountDoorways(el);
+    // Put focus back on the same doorway. `focusedDir` was read before the wipe
+    // below cleared the board — by this point activeElement is already <body>.
+    if (focusedDir) {
+      const again = el.querySelector(`.doorway[data-dir="${focusedDir}"]`);
+      if (again) again.focus();
+    }
+  }
 }
 
 // Movement choices, drawn on the doorways they refer to. Real buttons in
