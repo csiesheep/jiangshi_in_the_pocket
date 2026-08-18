@@ -18,6 +18,25 @@
   --font-head: Georgia, "Times New Roman", serif;
 }
 
+/* ---- The light model -------------------------------------------------------
+   One set of dials for the whole atmosphere: how far the candle reaches, how
+   dark it is beyond the doorways, how tight the vignette closes, and how far
+   the fire has turned from warm to bloody. The hour classes below are the only
+   thing that moves them, and every consumer transitions over 2s, so the hour
+   turning is felt as the light dying rather than a snap.
+
+   Custom properties are not animatable without @property, so each consumer
+   transitions an ordinary property (opacity, filter) that reads the dial. */
+:root {
+  --vignette: .5;
+  --glow: .45;
+  --peek-light: .46;
+  --flame: #ffb457;
+}
+body.hour-9  { --vignette: .5;  --glow: .45; --peek-light: .46; --flame: #ffb457; }
+body.hour-10 { --vignette: .68; --glow: .38; --peek-light: .34; --flame: #f59043; }
+body.hour-11 { --vignette: .88; --glow: .30; --peek-light: .22; --flame: #e0603a; }
+
 * { box-sizing: border-box; }
 
 html, body { margin: 0; padding: 0; }
@@ -170,6 +189,20 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .itemicon { width: 18px; height: 18px; color: var(--gold); flex: none; margin-top: 2px; }
 
 /* min-width:0 keeps a wide board from forcing the grid column open. */
+/* Edges falling away into black. Sits above the board and below the actions
+   pop-out (5) and the jump scare (50), and never touches the sidebar. */
+.board-pane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at center,
+    transparent 33%, rgba(3, 2, 4, .55) 70%, rgba(2, 1, 3, .95) 100%);
+  opacity: var(--vignette);
+  transition: opacity 2s linear;
+}
+
 .board-pane {
   min-width: 0;
   position: relative;          /* the actions pop-out anchors to this */
@@ -217,9 +250,38 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   gap: 6px;
   text-align: center;
 }
+/* The one lit room in a dark house, not a selected row in a list. */
 .tilebox--here {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--wall));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--flame) 42%, var(--wall));
+  box-shadow: 0 0 26px color-mix(in srgb, var(--flame) 16%, transparent);
+  z-index: 1;
+  transition: border-color 2s linear, box-shadow 2s linear;
+}
+.focus-centre::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tile) * 2.7);
+  height: calc(var(--tile) * 2.7);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--flame) 46%, transparent) 0%,
+    color-mix(in srgb, var(--flame) 18%, transparent) 34%,
+    transparent 68%);
+  opacity: var(--glow);
+  transition: opacity 2s linear;
+  animation: candle 3.8s ease-in-out infinite;
+}
+@keyframes candle {
+  0%, 100% { opacity: var(--glow); transform: translate(-50%, -50%) scale(1); }
+  42%      { opacity: calc(var(--glow) * .84); transform: translate(-50%, -50%) scale(.975); }
+  71%      { opacity: calc(var(--glow) * 1.09); transform: translate(-50%, -50%) scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-centre::before { animation: none; }
 }
 .tilename { font-size: .78rem; line-height: 1.15; padding: 0 6px; color: var(--text); }
 .tileicon {
@@ -241,8 +303,12 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   justify-content: center;
   gap: 4px;
   text-align: center;
-  opacity: .82;
+  /* A glimpse into an unlit room, not a smaller room. Hovering lifts it back
+     so the name stays gettable. */
+  filter: brightness(var(--peek-light)) saturate(.45);
+  transition: filter 2s linear;
 }
+.halfroom:hover { filter: brightness(calc(var(--peek-light) + .55)) saturate(.9); }
 .halfroom .tilename { font-size: .66rem; color: var(--muted); }
 .halfroom .tileicon {
   width: calc(var(--tile) * 0.16);

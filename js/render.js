@@ -2,7 +2,7 @@
 
 import { RULES, effectiveAttack } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
-import { combatSting, doorCreak } from "./audio.js";
+import { combatSting, doorCreak, tollBell } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -138,9 +138,19 @@ function renderHour(s) {
   el.appendChild(text);
   el.appendChild(srOnly(formatHour(s.hour)));
 
+  // The hour is the only thing that moves the light. timePasses loses at
+  // midnight before it can increment past 23, so 9/10/11 covers every state a
+  // player can be looking at; the clamp is belt and braces.
+  const hour = Math.min(Math.max(s.hour - 12, 9), 11);
+  const body = document.body;
+  for (const h of [9, 10, 11]) body.classList.toggle(`hour-${h}`, h === hour);
+
   const turned = lastHour != null && lastHour !== s.hour;
   lastHour = s.hour;
-  if (!turned || reducedMotion()) return;
+  if (!turned) return;
+
+  if (s.hour === RULES.FINAL_HOUR) strikeEleven(face);
+  if (reducedMotion()) return;
   const hand = face.querySelector(".clock-hand--hour");
   if (hand && typeof hand.animate === "function") {
     hand.animate(
@@ -148,6 +158,24 @@ function renderHour(s) {
       { duration: 480, easing: "cubic-bezier(.3,.8,.4,1)" }
     );
   }
+}
+
+// The last hour, called out. The ambient palette shift is handled by the hour
+// class; this is the punctuation on top of it.
+function strikeEleven(face) {
+  log("Eleven. The last hour — when the deck runs dry, it is midnight.", "bad");
+  tollBell();
+  if (reducedMotion() || typeof face.animate !== "function") return;
+  face.animate(
+    [
+      { transform: "rotate(0deg) scale(1)" },
+      { transform: "rotate(-9deg) scale(1.18)", offset: 0.25 },
+      { transform: "rotate(8deg) scale(1.14)", offset: 0.55 },
+      { transform: "rotate(-3deg) scale(1.06)", offset: 0.8 },
+      { transform: "rotate(0deg) scale(1)" },
+    ],
+    { duration: 900, easing: "ease-in-out" }
+  );
 }
 
 function clockFace(angle) {

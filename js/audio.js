@@ -160,3 +160,25 @@ export function combatHit(count = 3) {
   src.start(t);
   src.stop(t + 0.16);
 }
+
+// The hour striking eleven: one slow, low toll. Deliberately a single strike
+// rather than a running tick — a loop would need starting, stopping and
+// tearing down across restarts and game over, for a sound nobody asked to
+// keep hearing.
+export function tollBell() {
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+  for (const [freq, gain, len] of [[110, 0.15, 1.9], [164.8, 0.07, 1.5], [220, 0.04, 1.1]]) {
+    const osc = c.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    osc.connect(g).connect(master);
+    osc.start(t);
+    osc.stop(t + len + 0.05);
+  }
+}
