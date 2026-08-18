@@ -577,7 +577,7 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 .edgemark--open { color: var(--accent); }
 .edgemark--shut { color: var(--muted); }
 .edgemark--blocked { color: #5a6070; }
-.edgemark--broken { color: var(--danger); }
+.edgemark--broken { color: #ef6449; }
 .edgemark--exterior { color: var(--gold); }
 
 @media (max-width: 600px) {
