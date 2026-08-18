@@ -386,7 +386,7 @@ export function renderBoard(game) {
 //
 // Purely decorative — state has already changed and nothing waits on these, so
 // clicking straight through a move can never desync the board.
-const SLIDE_MS = 500;
+const SLIDE_MS = 700;
 const DOOR_MS = 300;
 const FOOT_MS = 360;
 const FOOT_STAGGER = 78;
