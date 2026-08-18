@@ -238,6 +238,33 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   transition: opacity 2s linear;
 }
 
+/* The pane behind the tiles changes with the world, so crossing the seam is felt
+   before a single tile is read. Deliberately a ::before rather than a second
+   ::after: ::after already carries the vignette, its hour tightening and the
+   low-health pulse, and stacking a rival pseudo-element there would fight all
+   three. This sits below the tiles and takes no pointer events. Static by
+   design — nothing here needs a reduced-motion guard. */
+.board-pane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: background 1s ease;
+}
+.board-pane.pane--indoor::before {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 180, 87, .05), transparent 60%),
+    linear-gradient(180deg, rgba(10, 8, 6, .5), rgba(4, 3, 3, .8));
+}
+.board-pane.pane--outdoor::before {
+  background:
+    /* a low moon, off in one corner, behind everything */
+    radial-gradient(38% 30% at 84% 12%, rgba(190, 226, 232, .17), transparent 70%),
+    radial-gradient(120% 90% at 50% 0%, rgba(111, 211, 208, .05), transparent 62%),
+    linear-gradient(180deg, rgba(4, 8, 12, .62), rgba(1, 3, 6, .9));
+}
+
 .board-pane {
   min-width: 0;
   position: relative;          /* the actions pop-out anchors to this */

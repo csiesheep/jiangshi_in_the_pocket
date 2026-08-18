@@ -475,6 +475,11 @@ export function renderBoard(game) {
   // reaches floors, walls and all fourteen scenes from one place.
   el.classList.toggle("board--indoor", board.player.world === "indoor");
   el.classList.toggle("board--outdoor", board.player.world === "outdoor");
+  const pane = el.closest(".board-pane");
+  if (pane) {
+    pane.classList.toggle("pane--indoor", board.player.world === "indoor");
+    pane.classList.toggle("pane--outdoor", board.player.world === "outdoor");
+  }
 
   const view = document.createElement("div");
   view.className = "focus";
