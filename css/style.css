@@ -523,6 +523,18 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 }
 .actions-pop[hidden] { display: none; }
 
+/* The wash when you take a hit. Below the jump scare (50) so a fight that
+   deals damage does not stack two full-window overlays. */
+.hitflash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center,
+    rgba(224, 82, 63, .16) 0%, rgba(190, 40, 30, .5) 100%);
+}
+
 /* The jump scare: covers everything, including the actions pop-out, and eats
    pointer events for its duration so nothing underneath can be clicked. */
 .scare {

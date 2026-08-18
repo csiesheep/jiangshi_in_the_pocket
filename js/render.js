@@ -59,7 +59,16 @@ export function formatHour(hour) {
 const HEART_BASELINE = RULES.START_HEALTH;
 const MAX_HEARTS = 10;
 
+// Health, items and the hour are all diffed here rather than at the dozens of
+// places that change them: renderHud sees every state refresh, so one hook
+// catches damage from fights, flee costs and events alike.
+let lastHealth = null;
+
 export function renderHud(game) {
+  const health = game.state.health;
+  if (lastHealth != null && health < lastHealth) damageFeedback();
+  lastHealth = health;
+
   renderHealth(game.state);
   renderAttack(game.state);
   renderHour(game.state);
@@ -517,6 +526,51 @@ export function jumpScare(count = 0) {
     anim.finished.then(done).catch(done);
     setTimeout(done, duration + 250);
   });
+}
+
+// ---- Taking a hit ----------------------------------------------------------
+// A red wash over the board and a short shake. Sits below the jump scare so the
+// two do not fight when a fight is what dealt the damage.
+function damageFeedback() {
+  if (reducedMotion()) return;
+
+  const pane = document.querySelector(".board-pane");
+  if (pane && typeof pane.animate === "function") {
+    pane.animate(
+      [
+        { transform: "translate(0, 0)" },
+        { transform: "translate(-5px, 2px)" },
+        { transform: "translate(4px, -2px)" },
+        { transform: "translate(-2px, 1px)" },
+        { transform: "translate(0, 0)" },
+      ],
+      { duration: 160, easing: "ease-out" }
+    );
+  }
+
+  const existing = document.querySelector(".hitflash");
+  if (existing) existing.remove();
+  const flash = document.createElement("div");
+  flash.className = "hitflash";
+  flash.setAttribute("aria-hidden", "true");
+  document.body.appendChild(flash);
+  if (typeof flash.animate !== "function") {
+    flash.remove();
+    return;
+  }
+  const anim = flash.animate(
+    [{ opacity: 0 }, { opacity: 0.5, offset: 0.18 }, { opacity: 0 }],
+    { duration: 380, easing: "ease-out" }
+  );
+  let gone = false;
+  const clear = () => {
+    if (gone) return;
+    gone = true;
+    flash.remove();
+  };
+  anim.finished.then(clear).catch(clear);
+  // Animations stall while the tab is hidden; never leave a red sheet behind.
+  setTimeout(clear, 700);
 }
 
 // ---- Moving between rooms --------------------------------------------------
