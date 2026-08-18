@@ -26,9 +26,6 @@ function currentChoices() {
 // The three yard tiles are all "Lawn" and share one icon.
 const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
 const SCENE_ALIAS = ICON_ALIAS;
-const FACING = { N: 0, E: 90, S: 180, W: 270 };
-// Which way you came, so the figure and the footprints agree.
-let lastDir = "N";
 
 // Inject the icon sprite once, then reference symbols with <use href="#id">.
 // External-file <use> references are not dependably supported, so the sprite is
@@ -759,7 +756,6 @@ function reducedMotion() {
 export function animateEntry(dir) {
   const [dx, dy] = DELTA[dir] || [0, 0];
   if (!dx && !dy) return;
-  lastDir = dir;
 
   // Sound is not motion, so the hinge is heard even with animation turned off.
   // Only for a real door — a smashed wall has nothing to swing.
@@ -870,14 +866,6 @@ function centreRoom(game, tile, edges) {
   name.textContent = tileName(game, tile.id);
   name.setAttribute("aria-hidden", "true");
   box.appendChild(name);
-
-  // You stand in the middle, where the light is anchored and the footprints
-  // end, facing whichever way you last travelled.
-  const you = icon("ui", "player", "you");
-  if (you) {
-    you.style.transform = `rotate(${FACING[lastDir] ?? 0}deg)`;
-    box.appendChild(you);
-  }
   return box;
 }
 

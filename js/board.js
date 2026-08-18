@@ -171,9 +171,14 @@ export function listMoves(board) {
   const moves = [];
 
   for (const dir of openings(tile)) {
-    // First step outside via the arrow door.
-    if (dir === tile.exteriorDir && !board.seamPlaced && tile.world === "indoor") {
-      moves.push({ dir, type: "outside" });
+    // The arrow door is the way between worlds and never an ordinary edge.
+    // Before the seam it puts the Veranda down; after, the crossing is pushed
+    // below. Letting it fall through to the explore branch once the seam was
+    // placed produced a second move on the same direction, and the board can
+    // only draw one hotspot per wall — so the crossing became unreachable and
+    // the run unwinnable, the Family Plot being outdoors.
+    if (dir === tile.exteriorDir && tile.world === "indoor") {
+      if (!board.seamPlaced) moves.push({ dir, type: "outside" });
       continue;
     }
     const [nx, ny] = inDir(tile.x, tile.y, dir);

@@ -235,17 +235,6 @@
     <path d="M6 84h84"/>
   </symbol>
 
-  <!-- You, from above: a lantern-bearer, drawn facing north and rotated to
-       whichever way you last travelled. -->
-  <symbol id="ui-player" viewBox="0 0 96 96">
-    <circle cx="48" cy="40" r="13" fill="currentColor" fill-opacity=".22" stroke-width="3"/>
-    <path d="M30 66c0-11 8-18 18-18s18 7 18 18" stroke-width="3"/>
-    <path d="M66 44l10-6" stroke-width="3"/>
-    <path d="M76 30h10v10H76z" stroke-width="3"/>
-    <path d="M81 30v-5" stroke-width="2.4"/>
-    <path d="M48 27v-6" stroke-width="2.4" stroke-opacity=".7"/>
-  </symbol>
-
   <!-- ============================ Items ============================ -->
 
   <!-- Nailed Plank -->

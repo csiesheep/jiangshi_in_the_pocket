@@ -159,6 +159,31 @@ test("moveTo: can walk back through a matched door", () => {
 });
 
 // ---- The seam --------------------------------------------------------------
+// Both the doorway hotspots and edgeStates key moves by direction, so a second
+// move on one direction silently loses. Nothing enforced that until this.
+test("listMoves: never offers two moves for the same direction", () => {
+  const b = board({ seed: 9 });
+  const seen = () => {
+    const dirs = B.listMoves(b).map((m) => m.dir);
+    return dirs.length === new Set(dirs).size;
+  };
+  assert(seen(), "at the start");
+
+  // walk out through the arrow door, then back in, which is where it broke
+  const dining = [...b.worlds.indoor.values()].find((t) => t.exteriorDir);
+  if (!dining) return; // that tile is not down in this seed
+  b.player = { world: "indoor", x: dining.x, y: dining.y };
+  assert(seen(), "standing on the arrow door before the seam");
+  B.goOutside(b);
+  assert(seen(), "outside on the Veranda");
+  B.moveTo(b, B.currentTile(b).seamDir);
+  assert(seen(), "back inside, with the seam placed");
+  assert(
+    B.listMoves(b).some((m) => m.type === "cross"),
+    "and the crossing is still offered"
+  );
+});
+
 test("seam: stepping through the Dining Room arrow places the Patio", () => {
   const b = board({ seed: 1 });
   b.decks.indoor = ["dining-room"];

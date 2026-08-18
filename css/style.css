@@ -350,19 +350,6 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
   z-index: 2;
 }
 
-/* You, centre-room, where the candle is anchored. */
-.you {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: calc(var(--tile) * .3);
-  height: calc(var(--tile) * .3);
-  margin: calc(var(--tile) * -.15) 0 0 calc(var(--tile) * -.15);
-  color: var(--flame);
-  z-index: 2;
-  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--flame) 45%, transparent));
-}
-
 /* The HUD keeps the small icons; only the board moved to scenes. */
 .tileicon { width: 18px; height: 18px; flex: none; }
 
