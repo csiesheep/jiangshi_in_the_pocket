@@ -526,8 +526,32 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   padding: 12px 14px;
 }
 .panel h3 { margin: 0 0 8px; font-size: 0.95rem; }
-.log { font-size: 0.85rem; color: var(--muted); max-height: 40vh; overflow-y: auto; }
-.log p { margin: 0 0 6px; }
+/* ---- The log reads as narration --------------------------------------------
+   log() prepends, so :first-child is the line that just happened. It gets the
+   story voice — serif, larger, full strength — and everything behind it sinks
+   into scrollback.
+
+   Older lines fade with opacity rather than colour so that "bad" stays red as
+   it recedes; recolouring them would throw away the one bit of meaning the
+   class carries. And the newest line needs its own colour rules: .log p:first-child
+   would otherwise outrank .log .bad on specificity and bleach the worst news in
+   the game the moment it arrives. */
+.log { font-size: .8rem; color: var(--muted); max-height: 40vh; overflow-y: auto; }
+.log p { margin: 0 0 7px; }
+
+.log p:first-child {
+  font-family: var(--font-head);
+  font-size: 1.02rem;
+  line-height: 1.35;
+  color: var(--text);
+  margin-bottom: 11px;
+}
+.log p.bad:first-child { color: var(--danger); }
+.log p.good:first-child { color: var(--accent); }
+
+.log p:nth-child(2) { font-size: .88rem; opacity: .78; }
+.log p:nth-child(3) { font-size: .83rem; opacity: .58; }
+.log p:nth-child(n+4) { opacity: .42; }
 
 /* The actions pop-out: floats over the lower board on desktop, and drops into
    normal flow under the board once the layout is a single column. */
