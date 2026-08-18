@@ -17,6 +17,7 @@ import {
   animateEntry,
   jumpScare,
   uiIcon,
+  formatHour,
   tileName as tName,
   itemName as iName,
 } from "./render.js";
@@ -48,6 +49,8 @@ class Game {
     this.state = E.newGame(data, { seed });
     this.board = Bd.createBoard(data, { seed });
     this.fled = false;
+    // Kept for the end-of-run verdict; the engine has no use for them.
+    this.tally = { putDown: 0, found: 0 };
   }
 
   tileName(id) { return tName(this, id); }
@@ -209,7 +212,7 @@ class Game {
       if (s.items.includes("candle") && s.items.includes(fuel)) {
         acts.push({
           label: `${this.itemName("candle")} + ${this.itemName(fuel)} — burn them all`,
-          onClick: () => this.doCombo(fuel, onDone),
+          onClick: () => this.doCombo(fuel, onDone, n),
         });
       }
     }
@@ -225,6 +228,7 @@ class Game {
 
   doFight(n, weapon, onDone) {
     combatHit(n);
+    this.tally.putDown += n;
     const r = E.resolveCombat(this.state, n, { weapon });
     log(
       `You fight ${n} ${this.word("monsters")} — ${weapon ? "with the " + this.itemName(weapon) : "bare-handed"} — and take ${r.damage} damage.`,
@@ -250,8 +254,9 @@ class Game {
     onDone();
   }
 
-  doCombo(fuel, onDone) {
+  doCombo(fuel, onDone, n = 0) {
     E.useCandleCombo(this.state, fuel);
+    this.tally.putDown += n;
     log(
       fuel === "oil"
         ? `You torch the room — every one of the ${this.word("monsters")} drops.`
@@ -357,6 +362,7 @@ class Game {
   takeItemFlow(item, done) {
     if (E.hasItemSpace(this.state)) {
       E.pickUpItem(this.state, item);
+      this.tally.found += 1;
       log(`You take the ${this.itemName(item)}.`, "good");
       this.refresh();
       return done();
@@ -365,6 +371,7 @@ class Game {
       label: `Drop ${this.itemName(held)}, take ${this.itemName(item)}`,
       onClick: () => {
         E.pickUpItem(this.state, item, held);
+        this.tally.found += 1;
         log(`Dropped the ${this.itemName(held)}, took the ${this.itemName(item)}.`);
         this.refresh();
         done();
@@ -464,25 +471,48 @@ class Game {
   gameOver() {
     this.refresh();
     renderActions([]);
+    const won = this.state.status === "won";
+
     const again = [
       { label: "Play again", primary: true, onClick: () => startNewGame() },
-      { label: `Replay this seed (${this.seed})`, onClick: () => startNewGame(this.seed) },
+      { label: "Replay this seed", onClick: () => startNewGame(this.seed) },
+      // A finished run is exactly when someone wants to hand the seed on.
+      { label: "Copy replay link", onClick: (btn) => copyReplayLink(btn) },
       { label: "Menu", href: "index.html" },
     ];
-    if (this.state.status === "won") {
+
+    const summary = [
+      `Lasted until ${formatHour(this.state.hour)}`,
+      `${this.tally.putDown} of the ${this.word("monsters")} put down`,
+      `${this.tally.found} ${this.tally.found === 1 ? "item" : "items"} found`,
+      won
+        ? `The ${this.word("relic")} is buried`
+        : this.state.totem
+          ? `The ${this.word("relic")} was on you, unburied`
+          : `The ${this.word("relic")} was never found`,
+      `Seed ${this.seed}`,
+    ];
+
+    if (won) {
       showOverlay(
         "You made it to dawn",
         `The ${this.word("relic")} is buried. The house falls silent.`,
-        again
+        again,
+        { tone: "won", summary }
       );
-    } else {
-      const why = {
-        combat: "The dead pulled you under.",
-        health: "Your wounds were too deep.",
-        midnight: "Midnight came, and with it the end.",
-      };
-      showOverlay("You didn't make it", why[this.state.lossReason] || "Game over.", again);
+      return;
     }
+    const why = {
+      combat: "The dead pulled you under.",
+      health: "Your wounds were too deep.",
+      midnight: "The bell tolls midnight, and the house keeps you.",
+    };
+    showOverlay(
+      this.state.lossReason === "midnight" ? "Midnight" : "You are one of them now",
+      why[this.state.lossReason] || "Game over.",
+      again,
+      { tone: "lost", summary }
+    );
   }
 }
 
@@ -509,13 +539,14 @@ function seedFromUrl() {
 }
 
 // ---- Run controls ----------------------------------------------------------
-async function copyReplayLink() {
-  const btn = document.getElementById("btn-copy-seed");
+async function copyReplayLink(btn) {
+  btn = btn || document.getElementById("btn-copy-seed");
   const url = `${location.origin}${location.pathname}?seed=${game.seed}`;
   try {
     await navigator.clipboard.writeText(url);
+    const was = btn.textContent;
     btn.textContent = "Link copied";
-    setTimeout(() => (btn.textContent = "Copy replay link"), 1800);
+    setTimeout(() => (btn.textContent = was), 1800);
   } catch {
     // Clipboard refused (insecure context or denied permission) — put the link
     // in the log so it can still be copied by hand.
@@ -541,7 +572,7 @@ function paintSoundToggle() {
 }
 
 function wireControls() {
-  document.getElementById("btn-copy-seed").addEventListener("click", copyReplayLink);
+  document.getElementById("btn-copy-seed").addEventListener("click", () => copyReplayLink());
   document.getElementById("btn-sound").addEventListener("click", () => {
     setMuted(!isMuted());
     paintSoundToggle();

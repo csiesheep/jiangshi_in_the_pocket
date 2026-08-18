@@ -497,7 +497,41 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .log .good { color: var(--accent); }
 .log .bad { color: var(--danger); }
 
+/* ---- The verdict -----------------------------------------------------------
+   The veil closes first, then the card arrives. Win and loss differ in palette:
+   the dawn comes up grey and warm, the loss stays black-red. */
 #overlay[hidden] { display: none; } /* beats the display:grid below */
+#overlay { animation: veil 1.5s ease forwards; }
+#overlay .overlay-card { animation: verdict .8s cubic-bezier(.2,.8,.3,1) 1.15s backwards; }
+#overlay.overlay--still,
+#overlay.overlay--still .overlay-card { animation: none; }
+
+@keyframes veil {
+  from { background: rgba(4, 4, 6, 0); }
+  to   { background: rgba(4, 4, 6, .96); }
+}
+@keyframes verdict {
+  from { opacity: 0; transform: translateY(14px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+#overlay.overlay--lost { --verdict: var(--danger); }
+#overlay.overlay--won  { --verdict: #cfd6d0; }
+#overlay .overlay-card h2 { color: var(--verdict, var(--text)); letter-spacing: .01em; }
+#overlay.overlay--lost .overlay-card { border-color: color-mix(in srgb, var(--danger) 34%, var(--border)); }
+#overlay.overlay--won .overlay-card { border-color: color-mix(in srgb, #cfd6d0 28%, var(--border)); }
+
+.verdict-summary {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 5px;
+  text-align: left;
+}
+.verdict-summary li { font-size: .84rem; color: var(--muted); }
+
 #overlay {
   position: fixed;
   inset: 0;

@@ -923,7 +923,12 @@ export function renderActions(actions, prompt = "") {
 }
 
 // `actions` = [{label, onClick, primary?} | {label, href, primary?}].
-export function showOverlay(title, sub, actions = []) {
+// `opts` = { tone: "won" | "lost", summary: [string] }.
+//
+// The end of a run gets a beat before the verdict: the veil closes over about a
+// second and a half, then the card arrives. Under reduced motion both land at
+// once — the ceremony is the first thing to go, the information is not.
+export function showOverlay(title, sub, actions = [], opts = {}) {
   let ov = document.getElementById("overlay");
   if (!ov) {
     ov = document.createElement("div");
@@ -931,6 +936,8 @@ export function showOverlay(title, sub, actions = []) {
     document.body.appendChild(ov);
   }
   ov.innerHTML = "";
+  ov.className = opts.tone ? `overlay--${opts.tone}` : "";
+  ov.classList.toggle("overlay--still", reducedMotion());
 
   const card = document.createElement("div");
   card.className = "overlay-card";
@@ -941,6 +948,17 @@ export function showOverlay(title, sub, actions = []) {
   p.textContent = sub || "";
   card.appendChild(p);
 
+  if (opts.summary && opts.summary.length) {
+    const list = document.createElement("ul");
+    list.className = "verdict-summary";
+    for (const line of opts.summary) {
+      const li = document.createElement("li");
+      li.textContent = line;
+      list.appendChild(li);
+    }
+    card.appendChild(list);
+  }
+
   for (const a of actions) {
     const cls = "btn" + (a.primary ? " btn--primary" : "");
     let el;
@@ -950,7 +968,7 @@ export function showOverlay(title, sub, actions = []) {
     } else {
       el = document.createElement("button");
       el.type = "button";
-      el.addEventListener("click", a.onClick);
+      el.addEventListener("click", (e) => a.onClick(e.currentTarget));
     }
     el.className = cls;
     el.textContent = a.label;
