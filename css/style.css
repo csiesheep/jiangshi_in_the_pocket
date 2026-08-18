@@ -395,6 +395,13 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
   outline-offset: 2px;
 }
 
+/* Sound toggle: icon carries the state alongside the label. */
+#btn-sound { display: flex; align-items: center; gap: 9px; }
+.soundicon { display: inline-flex; flex: none; }
+.soundicon-svg { width: 18px; height: 18px; color: var(--muted); }
+#btn-sound[aria-pressed="true"] { border-color: var(--accent); }
+#btn-sound[aria-pressed="true"] .soundicon-svg { color: var(--accent); }
+
 .runline { margin: 0 0 10px; font-size: .82rem; color: var(--muted); }
 .runline code { color: var(--text); font-size: .82rem; }
 

@@ -197,6 +197,19 @@
     <path d="M4.2 19.8 6.6 17.4"/>
   </symbol>
 
+  <!-- ========================= Interface ========================== -->
+
+  <symbol id="ui-sound-on" viewBox="0 0 24 24">
+    <path d="M4 9h4l5-4v14l-5-4H4z"/>
+    <path d="M16.5 8.5a5 5 0 0 1 0 7"/>
+    <path d="M19 6a8.5 8.5 0 0 1 0 12"/>
+  </symbol>
+
+  <symbol id="ui-sound-off" viewBox="0 0 24 24">
+    <path d="M4 9h4l5-4v14l-5-4H4z"/>
+    <path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>
+  </symbol>
+
   <!-- ========================== The risen ==========================
        Drawn on its own 120-unit grid rather than the shared 24, because this
        one is shown full-window and needs the detail. Square to square, so it

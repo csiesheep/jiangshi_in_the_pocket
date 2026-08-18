@@ -2,6 +2,7 @@
 
 import { RULES, effectiveAttack } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
+import { combatSting, doorCreak } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -40,6 +41,12 @@ function icon(kind, id, cls) {
   use.setAttribute("href", `#${symbol}`);
   svg.appendChild(use);
   return svg;
+}
+
+// Interface icons for anything outside the board — the sprite builder itself
+// stays private.
+export function uiIcon(name, cls) {
+  return icon("ui", name, cls);
 }
 
 export function formatHour(hour) {
@@ -407,6 +414,9 @@ const SCARE_SLOTS = [
 
 export function jumpScare(count = 0) {
   return new Promise((resolve) => {
+    // Same rule as the door: the cue is sound, not motion, so it plays whether
+    // or not the picture does.
+    combatSting(count);
     if (reducedMotion()) return resolve();
 
     // A card fight can be followed straight away by a zombie door; never stack.
@@ -503,7 +513,15 @@ function reducedMotion() {
 // element that exists right now would animate a node about to be thrown away.
 export function animateEntry(dir) {
   const [dx, dy] = DELTA[dir] || [0, 0];
-  if ((!dx && !dy) || reducedMotion()) return;
+  if (!dx && !dy) return;
+
+  // Sound is not motion, so the hinge is heard even with animation turned off.
+  // Only for a real door — a smashed wall has nothing to swing.
+  const back = OPPOSITE[dir];
+  const backEdge = document.querySelector(`.focus-centre .tilebox .edgemark.${DIR_CLASS[back]}`);
+  if (backEdge && !backEdge.classList.contains("edgemark--broken")) doorCreak();
+
+  if (reducedMotion()) return;
 
   requestAnimationFrame(() => {
     const view = document.querySelector(".focus");

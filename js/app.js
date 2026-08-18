@@ -4,6 +4,7 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
+import { combatHit, isMuted, setMuted } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -15,6 +16,7 @@ import {
   loadIcons,
   animateEntry,
   jumpScare,
+  uiIcon,
   tileName as tName,
   itemName as iName,
 } from "./render.js";
@@ -222,6 +224,7 @@ class Game {
   }
 
   doFight(n, weapon, onDone) {
+    combatHit(n);
     const r = E.resolveCombat(this.state, n, { weapon });
     log(
       `You fight ${n} ${this.word("monsters")} — ${weapon ? "with the " + this.itemName(weapon) : "bare-handed"} — and take ${r.damage} damage.`,
@@ -497,8 +500,38 @@ async function copyReplayLink() {
   }
 }
 
+// The toggle carries the state, not just a label: a button reading "Mute" tells
+// you nothing about whether sound is currently on.
+function paintSoundToggle() {
+  const btn = document.getElementById("btn-sound");
+  if (!btn) return;
+  const on = !isMuted();
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+  const label = document.getElementById("sound-label");
+  if (label) label.textContent = on ? "Sound on" : "Sound off";
+  const slot = document.getElementById("sound-icon");
+  if (slot) {
+    slot.textContent = "";
+    const art = uiIcon(on ? "sound-on" : "sound-off", "soundicon-svg");
+    if (art) slot.appendChild(art);
+  }
+}
+
 function wireControls() {
   document.getElementById("btn-copy-seed").addEventListener("click", copyReplayLink);
+  document.getElementById("btn-sound").addEventListener("click", () => {
+    setMuted(!isMuted());
+    paintSoundToggle();
+  });
+  // M is off the 1-9 action path on purpose, and ignored while typing.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "m" && e.key !== "M") return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    setMuted(!isMuted());
+    paintSoundToggle();
+  });
   document.getElementById("btn-new-game").addEventListener("click", () => {
     // Drop ?seed= so a shared link doesn't silently reapply to the fresh run.
     if (location.search) history.replaceState(null, "", location.pathname);
@@ -511,6 +544,7 @@ async function main() {
     // Icons are decorative, so a failed sprite must not block the game.
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
+    paintSoundToggle();
     startNewGame(seedFromUrl());
   } catch (err) {
     console.error(err);
