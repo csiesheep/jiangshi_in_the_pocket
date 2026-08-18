@@ -471,6 +471,11 @@ export function renderBoard(game) {
   const tile = currentTile(board);
   const edges = edgeStates(game);
 
+  // Which half of the map you are standing in, carried on the board so the cast
+  // reaches floors, walls and all fourteen scenes from one place.
+  el.classList.toggle("board--indoor", board.player.world === "indoor");
+  el.classList.toggle("board--outdoor", board.player.world === "outdoor");
+
   const view = document.createElement("div");
   view.className = "focus";
 

@@ -249,6 +249,34 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 
 .board { position: relative; display: block; padding: 8px 0; }
 
+/* ---- Two worlds, told apart by temperature ---------------------------------
+   Indoors is lamplit and warm; outdoors is moonlit and cool. One cast colour,
+   mixed into the floor, the walls and the scene stroke, so all fourteen scenes
+   inherit it without being touched — they stay currentColor and the container
+   decides what that means.
+
+   The hour dimming multiplies on top of this rather than competing with it, and
+   the crossing is animated over a second, which is the one moment the two
+   palettes are seen side by side. */
+.board {
+  --world-cast: #ffb457;
+  --cast: 14%;
+  --cast-wall: 18%;
+}
+.board--indoor  { --world-cast: #ffb457; --cast: 13%; --cast-wall: 16%; }
+.board--outdoor { --world-cast: #6fd3d0; --cast: 16%; --cast-wall: 22%; }
+
+.board .tilebox,
+.board .halfroom {
+  background-color: color-mix(in srgb, var(--world-cast) var(--cast), var(--room));
+  border-color: color-mix(in srgb, var(--world-cast) var(--cast-wall), var(--wall));
+  transition: background-color 1s ease, border-color 1s ease;
+}
+.board .roomscene {
+  color: color-mix(in srgb, var(--world-cast) 55%, var(--muted));
+  transition: color 1s ease;
+}
+
 /* --tile is the room you're standing in; --peek is how much of a neighbour
    shows through an open door. */
 :root { --tile: clamp(96px, 19vh, 190px); --wall: #3a4150; --wall-w: 7px; --room: #23262d;
@@ -425,6 +453,15 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 }
 /* Across the seam — the other side of the house. */
 .halfroom--across { border-color: color-mix(in srgb, var(--gold) 45%, var(--wall)); }
+/* A glimpse across the seam looks into the other world, so it takes the other
+   cast — moonlight spilling in, or lamplight spilling out. */
+.board--indoor .halfroom--across {
+  background-color: color-mix(in srgb, #6fd3d0 16%, var(--room));
+}
+.board--outdoor .halfroom--across {
+  background-color: color-mix(in srgb, #ffb457 13%, var(--room));
+}
+.halfroom--across .roomscene { color: color-mix(in srgb, var(--gold) 55%, var(--muted)); }
 .halfroom--across .tileicon { color: var(--gold); }
 
 /* ---- Doorways as buttons ---------------------------------------------------
