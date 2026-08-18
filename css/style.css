@@ -240,7 +240,7 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .tilebox {
   position: absolute;
   inset: 0;
-  background: var(--room);
+  background-color: var(--room);
   border: var(--wall-w) solid var(--wall);
   border-radius: 6px;
   display: flex;
@@ -283,6 +283,29 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 @media (prefers-reduced-motion: reduce) {
   .focus-centre::before { animation: none; }
 }
+/* ---- Floors ----------------------------------------------------------------
+   Boards indoors, turf out the back. Kept near-monochrome and low-alpha on
+   purpose: the name, the icon and the candlelight all sit on top of this, and
+   anything with real contrast fights all three.
+
+   Built from gradients rather than an SVG <pattern> in the sprite: CSS cannot
+   reference a pattern by fragment from another document, so a sprite pattern
+   would need inlining into every tile. Same result, no new files either way. */
+.world--indoor {
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 21px,
+      rgba(0, 0, 0, .22) 21px, rgba(0, 0, 0, .22) 22px),
+    repeating-linear-gradient(90deg, transparent 0 47px,
+      rgba(255, 255, 255, .03) 47px, rgba(255, 255, 255, .03) 48px);
+}
+.world--outdoor {
+  background-image:
+    repeating-linear-gradient(72deg, transparent 0 7px,
+      rgba(255, 255, 255, .028) 7px, rgba(255, 255, 255, .028) 9px),
+    repeating-linear-gradient(-64deg, transparent 0 11px,
+      rgba(0, 0, 0, .16) 11px, rgba(0, 0, 0, .16) 13px);
+}
+
 .tilename { font-size: .78rem; line-height: 1.15; padding: 0 6px; color: var(--text); }
 .tileicon {
   width: calc(var(--tile) * 0.24);
@@ -295,7 +318,7 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 /* A neighbour, seen through the doorway. The far edge fades out, so it reads as
    a glimpse rather than a room of its own. */
 .halfroom {
-  background: var(--room);
+  background-color: var(--room);
   border: var(--wall-w) solid var(--wall);
   display: flex;
   flex-direction: column;

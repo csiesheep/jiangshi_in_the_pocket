@@ -732,7 +732,7 @@ function trackFootprints(box, back) {
 
 function centreRoom(game, tile, edges) {
   const box = document.createElement("div");
-  box.className = "tilebox tilebox--here";
+  box.className = `tilebox tilebox--here world--${tile.world}`;
   box.setAttribute("role", "img");
   box.setAttribute("aria-label", describeRoom(game, tile, edges));
 
@@ -762,7 +762,7 @@ function centreRoom(game, tile, edges) {
 // into rather than a room you are in.
 function halfRoom(game, edge, dir) {
   const half = document.createElement("div");
-  half.className = `halfroom halfroom--${DIR_CLASS[dir]}`;
+  half.className = `halfroom halfroom--${DIR_CLASS[dir]} world--${edge.neighbour.world}`;
   if (edge.crossesWorld) half.classList.add("halfroom--across");
   half.setAttribute("aria-hidden", "true"); // already in the centre room's label
 
