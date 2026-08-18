@@ -432,6 +432,7 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 /* A neighbour, seen through the doorway. The far edge fades out, so it reads as
    a glimpse rather than a room of its own. */
 .halfroom {
+  position: relative;
   background-color: var(--room);
   border: var(--wall-w) solid var(--wall);
   display: flex;
@@ -490,6 +491,37 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 }
 .halfroom--across .roomscene { color: color-mix(in srgb, var(--gold) 55%, var(--muted)); }
 .halfroom--across .tileicon { color: var(--gold); }
+
+/* ---- Hedges, not walls painted green ---------------------------------------
+   Outdoor structure should not read as architecture with the lights off. The
+   7px --wall-w box model is untouched — only the visual edge changes — so the
+   doorway gaps, the swing animation, the footprints and the #29 hotspots all
+   stay aligned on exactly the geometry they were.
+
+   Four bumpy strips, one per edge, painted from repeating gradients rather than
+   a clip-path: clipping the tile would cut off the doorway markers and hotspots
+   that deliberately overhang its edge. */
+.board .world--outdoor { border-radius: 2px; }
+.board .world--outdoor::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--wall-w));
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    repeating-radial-gradient(circle at 5px 7px, var(--hedge) 0 4.4px, transparent 4.6px 9px),
+    repeating-radial-gradient(circle at 5px 2px, var(--hedge) 0 4.4px, transparent 4.6px 9px),
+    repeating-radial-gradient(circle at 7px 5px, var(--hedge) 0 4.4px, transparent 4.6px 9px),
+    repeating-radial-gradient(circle at 2px 5px, var(--hedge) 0 4.4px, transparent 4.6px 9px);
+  background-size: 100% 9px, 100% 9px, 9px 100%, 9px 100%;
+  background-position: top left, bottom left, right top, left top;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  opacity: .85;
+}
+/* The hedge sits under the doorway art and the break-through, so the risen
+   tearing through a hedge still reads. */
+.board .world--outdoor .edgemark,
+.board .world--outdoor .doorways { z-index: 3; }
 
 /* ---- Doorways as buttons ---------------------------------------------------
    Movement is mandatory every turn, so putting it in a panel meant the panel
