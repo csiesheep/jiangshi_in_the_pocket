@@ -8,6 +8,20 @@ const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
 const DELTA = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
 const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
+const ARROW = { N: "↑", E: "→", S: "↓", W: "←" };
+const ARROW_KEY = { ArrowUp: "N", ArrowRight: "E", ArrowDown: "S", ArrowLeft: "W" };
+
+// The live choice set, whichever surface it is on. Board moves and window cards
+// never coexist — renderActions routes to one or the other — and this asserts
+// it rather than trusting it.
+function currentChoices() {
+  const doorways = [...document.querySelectorAll(".doorway")];
+  const cards = [...document.querySelectorAll("#actions .action")];
+  if (doorways.length && cards.length) {
+    console.warn("Grave Errand: doorways and action cards on screen together");
+  }
+  return doorways.length ? doorways : cards;
+}
 
 // The three yard tiles are all "Lawn" and share one icon.
 const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
@@ -62,6 +76,8 @@ const MAX_HEARTS = 10;
 // Health, items and the hour are all diffed here rather than at the dozens of
 // places that change them: renderHud sees every state refresh, so one hook
 // catches damage from fights, flee costs and events alike.
+let pendingMoves = [];
+let movePrompt = "";
 let lastHealth = null;
 let lastItems = [];
 const LOW_HEALTH = 2;
@@ -464,6 +480,55 @@ export function renderBoard(game) {
   view.appendChild(centre);
 
   el.appendChild(view);
+
+  // renderBoard rebuilds .focus from scratch, so hotspots cannot be attached
+  // once and kept — they are re-applied from the pending list every rebuild.
+  if (pendingMoves.length) mountDoorways(el);
+}
+
+// Movement choices, drawn on the doorways they refer to. Real buttons in
+// N/E/S/W order inside a labelled group, so the spoken experience matches what
+// the panel used to give.
+function clearDoorways() {
+  for (const g of document.querySelectorAll(".doorways")) g.remove();
+}
+
+function mountDoorways(boardEl) {
+  const box = boardEl.querySelector(".focus-centre .tilebox");
+  if (!box) return;
+
+  const group = document.createElement("div");
+  group.className = "doorways";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", movePrompt || "Choose a way out");
+
+  for (const dir of DIRS) {
+    const move = pendingMoves.find((m) => m.dir === dir);
+    if (!move) continue;
+    const hot = document.createElement("button");
+    hot.type = "button";
+    hot.className = `doorway ${DIR_CLASS[dir]}` + (move.primary ? " doorway--explore" : "");
+    hot.dataset.dir = dir;
+    hot.dataset.kind = "move";
+    // The accessible name stays the full old label, so nothing regressed for a
+    // screen reader when this moved off the panel.
+    hot.setAttribute("aria-label", move.label);
+    const n = pendingMoves.indexOf(move);
+    if (n < 9) {
+      const k = document.createElement("kbd");
+      k.textContent = String(n + 1);
+      k.setAttribute("aria-hidden", "true");
+      hot.appendChild(k);
+    }
+    const face = document.createElement("span");
+    face.className = "doorway-face";
+    face.setAttribute("aria-hidden", "true");
+    face.textContent = move.primary ? "?" : ARROW[dir];
+    hot.appendChild(face);
+    hot.addEventListener("click", move.onClick);
+    group.appendChild(hot);
+  }
+  box.appendChild(group);
 }
 
 // ---- The scare -------------------------------------------------------------
@@ -855,11 +920,25 @@ function bindActionKeys() {
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     const n = Number(e.key);
     if (!Number.isInteger(n) || n < 1 || n > 9) return;
-    const b = document.querySelectorAll("#actions .action")[n - 1];
+    const b = currentChoices()[n - 1];
     if (b && !b.disabled) {
       e.preventDefault();
       b.click();
     }
+  });
+
+  // Arrows drive the doorways, and flee cards by the same dir metadata. Only
+  // swallowed when something actually matches, so the page still scrolls
+  // otherwise.
+  document.addEventListener("keydown", (e) => {
+    const dir = ARROW_KEY[e.key];
+    if (!dir || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    const target = currentChoices().find((b) => b.dataset.dir === dir && !b.disabled);
+    if (!target) return;
+    e.preventDefault();
+    target.click();
   });
 }
 
@@ -883,14 +962,41 @@ export function renderActions(actions, prompt = "") {
   const el = document.getElementById("actions");
   const pop = document.getElementById("actions-pop");
   // Keep the keyboard on the turn loop, but don't yank focus out of the
-  // sidebar controls if that's where the player put it.
-  const hadFocus = el.contains(document.activeElement);
+  // sidebar controls if that's where the player put it. Focus may be on a
+  // doorway from the previous render, which counts as being in the turn loop.
+  const hadFocus =
+    el.contains(document.activeElement) ||
+    (document.activeElement && document.activeElement.classList.contains("doorway"));
   el.innerHTML = "";
+  clearDoorways();
+  pendingMoves = [];
+  movePrompt = "";
 
   if (!actions.length) {
     if (pop) pop.hidden = true;
     return;
   }
+
+  // Moving is the one thing the board can say better than a list. When every
+  // choice is a move, the doorways become the buttons and the panel stays shut.
+  if (actions.every((a) => a.kind === "move" && a.dir)) {
+    pendingMoves = actions;
+    movePrompt = prompt;
+    if (pop) pop.hidden = true;
+    const board = document.getElementById("board");
+    if (board) mountDoorways(board);
+    bindActionKeys();
+    if (hadFocus || document.activeElement === document.body) {
+      const first =
+        document.querySelector(".doorway--explore:not(:disabled)") ||
+        document.querySelector(".doorway:not(:disabled)");
+      if (first) first.focus();
+    }
+    // The prompt lived in the panel; with no panel it has to be said somewhere.
+    if (prompt) log(prompt);
+    return;
+  }
+
   if (pop) pop.hidden = false;
 
   if (prompt) {

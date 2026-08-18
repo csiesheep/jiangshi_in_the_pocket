@@ -364,6 +364,51 @@ h1, h2, h3 { font-family: var(--font-head); line-height: 1.2; }
 .halfroom--across { border-color: color-mix(in srgb, var(--gold) 45%, var(--wall)); }
 .halfroom--across .tileicon { color: var(--gold); }
 
+/* ---- Doorways as buttons ---------------------------------------------------
+   Movement is mandatory every turn, so putting it in a panel meant the panel
+   was always up. The board already draws every one of these choices; now they
+   are the choices. Sized to clear 44px at the smallest tile. */
+.doorways { position: absolute; inset: 0; pointer-events: none; }
+.doorway {
+  position: absolute;
+  min-width: 46px;
+  min-height: 46px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  gap: 0;
+  border: 2px solid color-mix(in srgb, var(--flame) 45%, var(--wall));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--room) 88%, black);
+  color: var(--flame);
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 3;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--flame) 22%, transparent);
+}
+.doorway:hover { background: color-mix(in srgb, var(--flame) 22%, var(--room)); }
+.doorway:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* An unexplored door reads differently from one you have already been through. */
+.doorway--explore { border-style: dashed; color: var(--text); }
+.doorway-face { font-size: 1.1rem; line-height: 1; }
+.doorway kbd {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  min-width: 1.4em;
+  padding: 0 3px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: .66rem;
+}
+.doorway.n { top: calc(-1 * var(--wall-w)); left: 50%; transform: translate(-50%, -50%); }
+.doorway.s { bottom: calc(-1 * var(--wall-w)); left: 50%; transform: translate(-50%, 50%); }
+.doorway.e { right: calc(-1 * var(--wall-w)); top: 50%; transform: translate(50%, -50%); }
+.doorway.w { left: calc(-1 * var(--wall-w)); top: 50%; transform: translate(-50%, -50%); }
+
 /* Door and broken-wall art, drawn for the north wall and rotated into place.
    The marker is square and centred on the wall, so the art's own centreline
    lands exactly on the room's edge and the leaf swings inward. ::before punches
