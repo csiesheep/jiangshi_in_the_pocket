@@ -177,24 +177,27 @@ function envelope(c, peak, attack, decay) {
 
 // A dry hinge giving way: narrow band of noise sliding up and back down.
 export function doorCreak() {
-  if (sample("door")) return;
+  if (sample("door", weight(0.85, 1))) return;
   const c = live();
   if (!c) return;
   const t = c.currentTime;
 
+  // A frightened door takes longer to give up: the sweep stretches with dread,
+  // so the same hinge sounds more reluctant late in a bad run.
+  const slow = weight(1, 1.45);
   const src = c.createBufferSource();
   src.buffer = noise(c);
   const band = c.createBiquadFilter();
   band.type = "bandpass";
   band.Q.value = 9;
   band.frequency.setValueAtTime(430, t);
-  band.frequency.exponentialRampToValueAtTime(1350, t + 0.17);
-  band.frequency.exponentialRampToValueAtTime(620, t + 0.32);
+  band.frequency.exponentialRampToValueAtTime(1350, t + 0.17 * slow);
+  band.frequency.exponentialRampToValueAtTime(620, t + 0.32 * slow);
 
-  const g = envelope(c, 0.13, 0.05, 0.29);
+  const g = envelope(c, 0.13, 0.05, 0.29 * slow);
   src.connect(band).connect(g).connect(master);
   src.start(t);
-  src.stop(t + 0.42);
+  src.stop(t + 0.42 * slow);
 }
 
 // The scare's sting: two detuned saws hauled upward. Bigger packs go higher and
@@ -520,8 +523,9 @@ export function verdictSting(won) {
 // bad one is worse than silence.
 export function footsteps(world = "indoor") {
   const cue = world === "outdoor" ? "step-grass" : "step-wood";
-  sample(cue, 0.55);
-  sample(cue, 0.45, 0.19);
+  // Heavier and slower as dread rises: the same walk, taken worse.
+  sample(cue, weight(0.5, 0.72));
+  sample(cue, weight(0.4, 0.6), weight(0.19, 0.25));
 }
 
 // The event window arriving: a card turned over. Short and papery, well under
@@ -620,8 +624,16 @@ function bedLevel() {
   return 0.012 + dread * 0.03;
 }
 
-// The night closing in, driven from the same dusk value that dims the board —
-// so the wind and the light are the same statement made twice.
+// How much heavier a one-shot plays when the game is frightened. Deliberately
+// mild — this should be felt across a run rather than noticed in a moment, and
+// a cue that doubles in volume is a bug report, not atmosphere.
+function weight(lo, hi) {
+  return lo + (hi - lo) * dread;
+}
+
+// The tension director's number, from engine dread(). Everything atmospheric
+// reads this rather than inventing its own sense of intensity, which is what
+// keeps the wind, the dark and the cues agreeing about the same moment.
 export function setDread(x) {
   dread = Math.min(Math.max(Number(x) || 0, 0), 1);
   if (!bed) return;

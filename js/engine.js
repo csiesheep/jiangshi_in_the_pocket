@@ -74,6 +74,7 @@ export function newGame(data, opts = {}) {
     status: "playing", // playing | won | lost
     lossReason: null,
     coweredThisTurn: false,
+    foughtThisHour: 0, // risen put down since the hour turned; feeds dread()
     healthCap: opts.healthCap ?? RULES.HEALTH_CAP,
     deck: [],
     burned: [],
@@ -85,6 +86,7 @@ export function newGame(data, opts = {}) {
 
 // (Re)build the full 9-card deck, shuffle, burn 2. Used at setup and each hour.
 function startHour(state) {
+  state.foughtThisHour = 0;
   const deck = shuffle(state.allCardIds, state.rng);
   state.burned = deck.splice(0, RULES.SETUP_BURN);
   state.deck = deck;
@@ -156,6 +158,55 @@ export function clockTime(state) {
   };
 }
 
+// ---- The tension director ---------------------------------------------------
+// One number for how frightened the game should be right now, so that a 9 PM
+// stroll and a 1 HP crawl at 11:40 do not play at the same pressure. Everything
+// atmospheric reads this instead of inventing its own idea of intensity.
+//
+// Pure function of state: no rng, no storage, no clock. A seeded replay is as
+// afraid at the same moments, and it can be tested headless like the rest of
+// the engine.
+//
+// The weights are a judgement, not a measurement, and they are written out
+// rather than folded together so they can be argued with:
+export const DREAD_WEIGHTS = {
+  night: 0.34, // how late it is — the one pressure that never goes down
+  hurt: 0.32, // how close to dead
+  fought: 0.16, // how violent this hour has already been
+  running: 0.1, // how little deck is left before the hour turns
+  carrying: 0.08, // the relic makes you worth following
+};
+
+// Risen in an hour before that term saturates. Seven draws an hour and packs
+// of three to six, so a dozen is already a bad hour.
+const FOUGHT_FULL = 12;
+
+export function dread(state) {
+  if (!state) return 0;
+  const c = clockTime(state);
+
+  const night = c.span > 0 ? c.elapsed / c.span : 0;
+  // Health drives this hardest at the bottom of the range, which is where it
+  // actually feels different: 6 to 5 is nothing, 2 to 1 is everything. Note it
+  // squares the damage taken, not the health left — squaring the health gives
+  // the opposite curve, steep at the top and flat where the fear is.
+  const hp = Math.min(1, Math.max(0, state.health) / RULES.START_HEALTH);
+  const hurt = (1 - hp) ** 2;
+  const fought = Math.min(1, (state.foughtThisHour || 0) / FOUGHT_FULL);
+  const running = c.perHour > 0 ? 1 - c.left / c.perHour : 0;
+  const carrying = state.totem ? 1 : 0;
+
+  const w = DREAD_WEIGHTS;
+  const score =
+    night * w.night +
+    hurt * w.hurt +
+    fought * w.fought +
+    running * w.running +
+    carrying * w.carrying;
+
+  return Math.min(1, Math.max(0, score));
+}
+
 // ---- Health ----------------------------------------------------------------
 // For events, heals, cower, kitchen/garden. Respects the (optional) cap and
 // triggers a loss at 0. NOT used for combat (see combatDamage/resolveCombat).
@@ -213,6 +264,7 @@ export function resolveCombat(state, zombies, choices = {}) {
   const attack = RULES.START_ATTACK + bonus;
   if (weaponId === "chainsaw") state.chainsawFuel -= 1;
   const damage = combatDamage(zombies, attack);
+  state.foughtThisHour += zombies;
   state.health -= damage;
   if (state.health <= 0) {
     state.health = 0;

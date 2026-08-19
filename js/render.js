@@ -1,6 +1,6 @@
 // Rendering — reflects game + board state into the DOM. No game logic here.
 
-import { RULES, effectiveAttack, clockTime } from "./engine.js";
+import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick } from "./audio.js";
@@ -254,9 +254,14 @@ function renderHour(s) {
   const body = document.body;
   const dusk = c.elapsed / c.span;
   body.style.setProperty("--dusk", dusk.toFixed(4));
-  // The wind takes the same number the light does, so the night closing in is
-  // one statement made twice rather than two effects that happen to coincide.
-  setDread(dusk);
+
+  // Dusk is only the clock. Dread is the whole situation — how late, how hurt,
+  // how bloody the hour has been, how little deck is left, whether you are
+  // carrying the thing they want. Published alongside --dusk so CSS consumers
+  // come free, and handed to the audio bed so wind and picture agree.
+  const fear = dread(s);
+  body.style.setProperty("--dread", fear.toFixed(4));
+  setDread(fear);
 
   // The hour class stays for the jobs a gradient cannot do — the last hour's
   // change of register, and strikeEleven keying off the turn. timePasses loses

@@ -46,6 +46,9 @@
    the 2s duration turns a draw into the light sagging rather than flickering. */
 :root {
   --dusk: 0;
+  /* How frightened the game is, 0..1, written by renderHour from engine
+     dread(). Distinct from --dusk: the clock only goes one way, this does not. */
+  --dread: 0;
   --flame-early: #ffb457;
   /* Where the fire is heading. body.hour-11 moves the destination, not the
      journey — see the register change below. */
@@ -305,6 +308,21 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
     transparent 33%, rgba(3, 2, 4, .55) 70%, rgba(2, 1, 3, .95) 100%);
   opacity: var(--vignette);
   transition: opacity 2s linear;
+  /* The dark closes and opens very slightly, and only really at the end. The
+     amplitude is --dread, so at nine o'clock in one piece this is invisible and
+     at 1 HP near midnight the room is breathing. Slower than a resting pulse on
+     purpose — faster reads as a heartbeat, which the low-health pulse already
+     owns.
+
+     And when both apply, low-health wins: it is declared later and sets the
+     same property, so at 2 HP the room stops breathing slowly and starts
+     beating. That is the right way round — the more urgent signal should not
+     have to share. */
+  animation: dreadbreath 7s ease-in-out infinite;
+}
+@keyframes dreadbreath {
+  0%, 100% { opacity: var(--vignette); }
+  50% { opacity: calc(var(--vignette) + (1 - var(--vignette)) * var(--dread) * 0.34); }
 }
 
 /* The pane behind the tiles changes with the world, so crossing the seam is felt
@@ -389,6 +407,8 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   .board .halfroom,
   .board .roomscene,
   .board-pane::before { transition: none; }
+  /* The dark still sits where dread put it; it just stops moving. */
+  .board-pane::after { animation: none; }
 }
 
 /* --tile is the room you're standing in; --peek is how much of a neighbour

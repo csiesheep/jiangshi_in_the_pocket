@@ -125,6 +125,80 @@ test("clockTime: cowering costs minutes like any other card", () => {
   assert(after.elapsed > before.elapsed, "rest is not free");
 });
 
+// ---- The tension director ---------------------------------------------------
+test("dread: a fresh nine o'clock is calm, and it is the floor", () => {
+  const s = game({ seed: 1 });
+  const d = E.dread(s);
+  assert(d >= 0 && d < 0.1, `a fresh start should be near zero, got ${d}`);
+});
+
+test("dread: every term pushes it up, and none of them pull it down", () => {
+  const base = () => game({ seed: 1 });
+  const start = E.dread(base());
+
+  const hurt = base();
+  hurt.health = 1;
+  const late = base();
+  late.hour = 23;
+  const bloody = base();
+  bloody.foughtThisHour = 12;
+  const thin = base();
+  thin.deck = [];
+  const carrying = base();
+  carrying.totem = true;
+
+  for (const [name, s] of [["hurt", hurt], ["late", late], ["bloody", bloody],
+                           ["thin deck", thin], ["carrying the relic", carrying]]) {
+    assert(E.dread(s) > start, `${name} should raise dread`);
+  }
+});
+
+test("dread: the worst the game gets is worse than any single thing", () => {
+  const s = game({ seed: 1 });
+  s.hour = 23;
+  s.health = 1;
+  s.foughtThisHour = 12;
+  s.deck = [];
+  s.totem = true;
+  const worst = E.dread(s);
+  assert(worst > 0.85, `a 1 HP relic-carrying midnight should be near the top, got ${worst}`);
+  eq(worst <= 1, true, "and never above 1");
+  // and worse than any one term on its own, which is the point of a dial
+  const onlyLate = game({ seed: 1 });
+  onlyLate.hour = 23;
+  assert(worst > E.dread(onlyLate) * 1.5, "the whole should beat any single part");
+});
+
+test("dread: health matters most at the bottom, which is where it is felt", () => {
+  const at = (hp) => { const s = game({ seed: 1 }); s.health = hp; return E.dread(s); };
+  const sixToFive = at(5) - at(6);
+  const twoToOne = at(1) - at(2);
+  assert(twoToOne > sixToFive * 2, "losing your last heart should count for more than your first");
+});
+
+test("dread: pure, and deterministic under a seed", () => {
+  const a = game({ seed: 77 });
+  const b = game({ seed: 77 });
+  for (let i = 0; i < 4; i++) { E.drawCard(a); E.drawCard(b); }
+  eq(E.dread(a), E.dread(b), "same seed, same fear");
+  const before = JSON.stringify({ h: a.health, d: a.deck, f: a.foughtThisHour });
+  E.dread(a);
+  eq(JSON.stringify({ h: a.health, d: a.deck, f: a.foughtThisHour }), before,
+     "reading the dial changes nothing");
+});
+
+test("foughtThisHour: counts the risen, and resets when the hour turns", () => {
+  const s = game({ seed: 1 });
+  eq(s.foughtThisHour, 0);
+  E.resolveCombat(s, 3, {});
+  E.resolveCombat(s, 2, {});
+  eq(s.foughtThisHour, 5, "five risen put down this hour");
+  s.deck = [];
+  E.drawCard(s); // tolls the hour
+  eq(s.hour, 22, "the hour turned");
+  eq(s.foughtThisHour, 0, "and the count went with it");
+});
+
 test("clockTime: pure and deterministic under a seed", () => {
   const a = game({ seed: 42 });
   const b = game({ seed: 42 });
