@@ -967,6 +967,34 @@ export function clearLog() {
   if (el) el.innerHTML = "";
 }
 
+// The window's fixed header. Created once and emptied per render, so the pack
+// and prompt can sit outside the scrolling card list.
+function windowHead(pop, actionsEl) {
+  if (!pop) return null;
+  let head = pop.querySelector(".window-head");
+  if (!head) {
+    head = document.createElement("div");
+    head.className = "window-head";
+    pop.insertBefore(head, actionsEl);
+  }
+  head.textContent = "";
+  return head;
+}
+
+// The pack, present for the whole fight rather than a flash and a digit. The
+// scare deposited them; this is what it left behind.
+function packRow(count) {
+  const row = document.createElement("div");
+  row.className = "packrow";
+  row.setAttribute("aria-hidden", "true"); // the prompt already says how many
+  for (let i = 0; i < count; i++) {
+    const fig = icon("scare", "zombie", "packfig");
+    if (!fig) break;
+    row.appendChild(fig);
+  }
+  return row;
+}
+
 // The first nine actions get a number-key shortcut. One delegated listener,
 // installed on the first render, reads the live button list each keypress.
 let keysBound = false;
@@ -1017,7 +1045,7 @@ function bindActionKeys() {
 // focus trap would lock a keyboard player away from New game for the rest of
 // the run. Tab reaches the sidebar as normal; the number keys stay bound
 // globally.
-export function renderActions(actions, prompt = "") {
+export function renderActions(actions, prompt = "", opts = {}) {
   const el = document.getElementById("actions");
   const pop = document.getElementById("actions-pop");
   // Keep the keyboard on the turn loop, but don't yank focus out of the
@@ -1058,12 +1086,24 @@ export function renderActions(actions, prompt = "") {
 
   if (pop) pop.hidden = false;
 
-  if (prompt) {
+  // The prompt and the pack live in a header that never scrolls, so a six-zombie
+  // fight with eight cards scrolls the cards and keeps the enemy in view.
+  const head = windowHead(pop, el);
+  if (head) {
+    if (opts.pack) head.appendChild(packRow(opts.pack));
+    if (prompt) {
+      const p = document.createElement("p");
+      p.className = "prompt";
+      p.textContent = prompt;
+      head.appendChild(p);
+    }
+  } else if (prompt) {
     const p = document.createElement("p");
     p.className = "prompt";
     p.textContent = prompt;
     el.appendChild(p);
   }
+
   actions.forEach((a, i) => {
     const b = document.createElement("button");
     b.type = "button";

@@ -249,7 +249,7 @@ class Game {
     // makes the flash safe: the previous step's buttons are gone, so nothing can
     // be clicked and the global number keys have nothing to find while it plays.
     renderActions([]);
-    jumpScare(n).then(() => renderActions(acts, prompt));
+    jumpScare(n).then(() => renderActions(acts, prompt, { pack: n }));
   }
 
   doFight(n, weapon, onDone) {

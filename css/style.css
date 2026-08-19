@@ -685,7 +685,32 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 #actions .prompt { grid-column: 1 / -1; margin-bottom: 2px; }
 /* A late fight can offer two weapons, four flees and a combo; the window
    scrolls rather than swallowing the board. */
-.actions-pop { max-height: min(58vh, 460px); overflow-y: auto; }
+.actions-pop {
+  max-height: min(58vh, 460px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.window-head { flex: none; }
+#actions { overflow-y: auto; min-height: 0; }
+
+/* The pack, standing in the window for the whole fight. Sized so six still fit
+   the window's width. */
+.packrow {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+.packfig {
+  width: clamp(28px, 15%, 46px);
+  height: clamp(28px, 15%, 46px);
+  flex: none;
+  color: var(--danger);
+  opacity: .9;
+}
 
 .action { display: flex; align-items: center; gap: 8px; margin-bottom: 0; }
 .action--primary { grid-column: 1 / -1; }
