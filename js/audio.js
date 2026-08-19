@@ -528,6 +528,51 @@ export function footsteps(world = "indoor") {
   sample(cue, weight(0.4, 0.6), weight(0.19, 0.25));
 }
 
+// Something heavy hitting a wall from the other side. Panned, because hearing
+// WHICH wall is the entire point — a thump with no direction is just a noise,
+// and the player already knows something is wrong.
+//
+// pan is -1 at the west wall, +1 at the east; north and south sit centre, which
+// is honest rather than a shortcoming. Stereo cannot place front from back, and
+// faking it with volume would only make a north thump sound quieter.
+export function wallThump(pan = 0) {
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+
+  // StereoPannerNode is not everywhere. Without one the thump still lands, it
+  // just lands in the middle.
+  let out = master;
+  if (typeof c.createStereoPanner === "function") {
+    const p = c.createStereoPanner();
+    p.pan.value = Math.max(-1, Math.min(1, pan));
+    p.connect(master);
+    out = p;
+  }
+
+  // The knock: low, almost no attack, so it reads as coming through a wall
+  // rather than happening in the room.
+  const osc = c.createOscillator();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(96, t);
+  osc.frequency.exponentialRampToValueAtTime(38, t + 0.3);
+  const body = envelope(c, weight(0.2, 0.3), 0.012, 0.32);
+  osc.connect(body).connect(out);
+  osc.start(t);
+  osc.stop(t + 0.4);
+
+  // Plaster and grit shaken loose with it.
+  const src = c.createBufferSource();
+  src.buffer = noise(c);
+  const lp = c.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 900;
+  const grit = envelope(c, 0.07, 0.008, 0.22);
+  src.connect(lp).connect(grit).connect(out);
+  src.start(t);
+  src.stop(t + 0.3);
+}
+
 // The event window arriving: a card turned over. Short and papery, well under
 // the cues it introduces — this is punctuation, not an announcement.
 export function cardTurn() {

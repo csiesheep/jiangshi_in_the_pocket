@@ -3,7 +3,7 @@
 import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
-         cardTurn, doorwayTick, duckForScare } from "./audio.js";
+         cardTurn, doorwayTick, duckForScare, wallThump } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -974,6 +974,51 @@ function swingArt(row, iconId) {
   if (!art) return null;
   row.appendChild(art);
   return art;
+}
+
+// ---- Telegraphing the zombie door ------------------------------------------
+// The wall they are about to come through knocks once, while the card is still
+// being read. It is the difference between a stat event and a horror beat: you
+// hear where it will happen one beat before it does.
+//
+// The direction is knowable in advance because isDeadEnd and pickZombieDoorWall
+// are pure reads — no state moves here, this only says out loud what the board
+// already decided.
+const PAN_OF = { W: -0.8, E: 0.8, N: 0, S: 0 };
+
+export function telegraphWall(dir) {
+  wallThump(PAN_OF[dir] ?? 0);
+  if (reducedMotion()) return; // the knock stays; the dust is the motion part
+
+  const box = document.querySelector(".focus-centre .tilebox");
+  if (!box || typeof box.animate !== "function") return;
+
+  const dust = document.createElement("span");
+  dust.className = `wallshake wallshake--${DIR_CLASS[dir] || "n"}`;
+  dust.setAttribute("aria-hidden", "true");
+  // Fixed offsets rather than random ones: the same warning should look the
+  // same twice, the house rule everywhere else here follows.
+  for (const [along, delay] of [[22, 0], [40, 90], [58, 40], [76, 140], [88, 200]]) {
+    const mote = document.createElement("i");
+    mote.style.setProperty("--along", `${along}%`);
+    mote.style.animationDelay = `${delay}ms`;
+    dust.appendChild(mote);
+  }
+  box.appendChild(dust);
+  setTimeout(() => dust.remove(), 1400);
+
+  // And the wall itself takes the knock, once.
+  const edge = box.querySelector(`.edgemark.${DIR_CLASS[dir]}`) || box;
+  const [ax, ay] = dir === "N" || dir === "S" ? [0, dir === "N" ? 2 : -2] : [dir === "W" ? 2 : -2, 0];
+  edge.animate(
+    [
+      { transform: "translate(0, 0)" },
+      { transform: `translate(${ax}px, ${ay}px)` },
+      { transform: `translate(${-ax * 0.5}px, ${-ay * 0.5}px)` },
+      { transform: "translate(0, 0)" },
+    ],
+    { duration: 260, easing: "ease-out" }
+  );
 }
 
 // ---- The door onto darkness --------------------------------------------------

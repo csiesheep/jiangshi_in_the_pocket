@@ -13,6 +13,7 @@ import {
   caption,
   clearChoices,
   darkDoorBeat,
+  telegraphWall,
   resolveBeat,
   log,
   clearLog,
@@ -168,6 +169,16 @@ class Game {
     // Promoted rather than dropped: this is the only writing in the game, and
     // nothing else on screen carries it.
     if (flavour) { log(flavour); caption(flavour); }
+
+    // If this room has no way on, the risen are already at a particular wall,
+    // and the board knows which — isDeadEnd and pickZombieDoorWall are pure
+    // reads, so the answer exists before the fight does. Say it now, while the
+    // card is still being read, so the break-in is heard coming rather than
+    // merely happening. Nothing here changes state.
+    if (Bd.isDeadEnd(this.board)) {
+      const wall = Bd.pickZombieDoorWall(this.board);
+      if (wall) telegraphWall(wall);
+    }
 
     if (o.t === "EVENT") {
       E.changeHealth(this.state, o.hp || 0);

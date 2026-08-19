@@ -1675,3 +1675,33 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   18%  { opacity: 1; }
   100% { opacity: 1; }
 }
+
+/* ---- Dust off the wall that is about to give ---------------------------------
+   One shake, from the wall the risen will come through, while the card is still
+   being read. Motes fall a short way and fade; the knock that goes with them is
+   audio and survives reduced motion on its own. */
+.wallshake {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+}
+.wallshake--n { top: 0; left: 0; right: 0; height: 26%; }
+.wallshake--s { bottom: 0; left: 0; right: 0; height: 26%; }
+.wallshake--w { left: 0; top: 0; bottom: 0; width: 26%; }
+.wallshake--e { right: 0; top: 0; bottom: 0; width: 26%; }
+.wallshake i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #cbb894;
+  opacity: 0;
+  animation: mote 900ms ease-in forwards;
+}
+.wallshake--n i, .wallshake--s i { left: var(--along); top: 10%; }
+.wallshake--w i, .wallshake--e i { top: var(--along); left: 10%; }
+@keyframes mote {
+  0%   { opacity: 0; transform: translateY(0); }
+  18%  { opacity: .7; }
+  100% { opacity: 0; transform: translateY(14px); }
+}
