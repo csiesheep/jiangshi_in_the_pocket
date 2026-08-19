@@ -1640,3 +1640,29 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 @media (prefers-reduced-motion: reduce) {
   .caption { animation: none; opacity: 1; transform: translateX(-50%); }
 }
+
+/* ---- The door onto darkness -------------------------------------------------
+   A held beat before an unknown room resolves: the doorway opens onto black,
+   and the light arrives after. Drawn over the board rather than inside a tile,
+   because at this moment the room on the far side does not exist yet.
+
+   Below the action window (5) and the scare (50); above the vignette (1). */
+.darkdoor {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--from, 50% 50%),
+    rgba(0, 0, 0, .92) 0%, rgba(0, 0, 0, .82) 26%, rgba(0, 0, 0, 0) 62%);
+  animation: darkdoor 620ms ease-out forwards;
+}
+/* The dark comes from the wall you opened, so the direction reads. */
+.darkdoor--n { --from: 50% 22%; }
+.darkdoor--s { --from: 50% 78%; }
+.darkdoor--w { --from: 22% 50%; }
+.darkdoor--e { --from: 78% 50%; }
+@keyframes darkdoor {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  100% { opacity: 1; }
+}

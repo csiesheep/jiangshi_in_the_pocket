@@ -976,6 +976,48 @@ function swingArt(row, iconId) {
   return art;
 }
 
+// ---- The door onto darkness --------------------------------------------------
+// Opening a door on a room nobody has seen is the scare surface of the whole
+// game, and it used to cost nothing: click, tile, slide. One beat goes in
+// between. The door swings onto black, the hinge sounds, nothing happens for a
+// moment, and only then does the light reach in and the room resolve.
+//
+// Only for the unknown. Walking back into a room you have already stood in
+// stays instant — dread is for what you have not seen.
+const DARK_HOLD_MS = 600;
+
+export function darkDoorBeat(dir, fear = 0) {
+  return new Promise((resolve) => {
+    const pane = document.querySelector(".board-pane");
+    // The hinge is a cue, not a picture: it plays even when the beat does not.
+    doorCreak();
+    if (!pane || reducedMotion() || typeof pane.animate !== "function") return resolve();
+
+    const stale = pane.querySelector(".darkdoor");
+    if (stale) stale.remove();
+
+    const dark = document.createElement("div");
+    dark.className = `darkdoor darkdoor--${DIR_CLASS[dir] || "n"}`;
+    dark.setAttribute("aria-hidden", "true");
+    pane.appendChild(dark);
+
+    // A frightened door holds longer. Not enough to notice as a delay, enough
+    // that a 9 PM door and an 11:40 door are not the same door.
+    const hold = Math.round(DARK_HOLD_MS * (1 + fear * 0.55));
+
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      dark.remove();
+      resolve();
+    };
+    // Timer-backed for the same reason every awaited beat here is: animations
+    // do not advance in a hidden tab, and a turn must never hang on one.
+    setTimeout(done, hold);
+  });
+}
+
 // The wall going in. Staged so the damage reads: the ragged edges snap in
 // oversized, settle back, and the room takes the knock. The static art is
 // already in place underneath, so under reduced motion the hole is simply

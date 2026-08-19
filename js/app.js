@@ -12,6 +12,7 @@ import {
   renderActions,
   caption,
   clearChoices,
+  darkDoorBeat,
   resolveBeat,
   log,
   clearLog,
@@ -119,9 +120,17 @@ class Game {
     const r = Bd.explore(this.board, dir, rot);
     if (!r.ok) return this.renderMoves();
     log(`You reveal the ${this.tileName(revealed)} and step inside.`);
-    this.refresh();
-    animateEntry(dir);
-    this.arriveAndDraw();
+
+    // The engine has already placed the room. What waits is the sight of it:
+    // the door opens onto black, holds, and only then does the light get there.
+    // Choices go first, so a mashed key during the beat finds nothing — the
+    // same rule the scare and the resolution beat follow.
+    clearChoices();
+    darkDoorBeat(dir, E.dread(this.state)).then(() => {
+      this.refresh();
+      animateEntry(dir);
+      this.arriveAndDraw();
+    });
   }
 
   doMove(dir) {
