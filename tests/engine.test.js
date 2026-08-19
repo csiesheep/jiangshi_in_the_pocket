@@ -68,6 +68,76 @@ test("drawCard: empty deck advances the hour", () => {
   eq(s.deck.length, 6, "one drawn from the fresh 7");
 });
 
+test("clockTime: minutes track the deck, 7 draws to the hour", () => {
+  const s = game({ seed: 1 });
+  eq(s.deck.length, 7, "the hour starts with 7 resolvable draws");
+  eq(E.clockTime(s).label, "9:00", "untouched deck reads the top of the hour");
+  eq(E.clockTime(s).draws, 0);
+
+  const seen = [];
+  for (let i = 0; i < 7; i++) {
+    s.deck.pop();
+    const c = E.clockTime(s);
+    seen.push(c.label);
+    eq(c.draws, i + 1, `draws after ${i + 1} cards`);
+  }
+  eq(seen, ["9:09", "9:17", "9:26", "9:34", "9:43", "9:51", "10:00"], "the walk down the deck");
+});
+
+// The one that looks like a bug and is not.
+test("clockTime: an empty deck stands at the next hour before it turns", () => {
+  const s = game({ seed: 1 });
+  s.deck = [];
+  const c = E.clockTime(s);
+  eq(s.hour, 21, "the hour itself has NOT turned");
+  eq(E.bandKey(s), "9", "cards are still read at the 9 PM band");
+  eq(c.label, "10:00", "but the face shows the top of the next hour");
+  eq(c.hour, 21, "the band hour");
+  eq(c.hour24, 22, "the face hour, one ahead");
+  eq(c.minutes, 0, "carried, not left at 60");
+  assert(c.atTheTurn, "flagged so the UI can say the next card tolls the hour");
+});
+
+test("clockTime: the last deck of the night reads midnight", () => {
+  const s = game({ seed: 1 });
+  s.hour = 23;
+  s.deck = [];
+  eq(E.clockTime(s).label, "12:00", "11 PM exhausted is midnight on the face");
+  eq(E.clockTime(s).elapsed, 3, "the whole night spent");
+});
+
+test("clockTime: the hour turning snaps the hand back to :00", () => {
+  const s = game({ seed: 1 });
+  s.deck = [];
+  eq(E.clockTime(s).label, "10:00", "standing at the turn");
+  E.drawCard(s); // tolls the hour, reshuffles, and spends one of the new deck
+  eq(s.hour, 22, "hour turned");
+  eq(s.deck.length, 6, "one drawn from the fresh 7");
+  eq(E.clockTime(s).label, "10:09", "one card into the new hour");
+});
+
+test("clockTime: cowering costs minutes like any other card", () => {
+  const s = game({ seed: 1 });
+  const before = E.clockTime(s);
+  E.cower(s);
+  const after = E.clockTime(s);
+  eq(after.draws, before.draws + 1, "the discard spent clock");
+  assert(after.elapsed > before.elapsed, "rest is not free");
+});
+
+test("clockTime: pure and deterministic under a seed", () => {
+  const a = game({ seed: 42 });
+  const b = game({ seed: 42 });
+  for (let i = 0; i < 5; i++) {
+    E.drawCard(a);
+    E.drawCard(b);
+    eq(E.clockTime(a).label, E.clockTime(b).label, `same seed, same clock at draw ${i}`);
+  }
+  const snapshot = JSON.stringify(a.deck);
+  E.clockTime(a);
+  eq(JSON.stringify(a.deck), snapshot, "reading the clock does not spend anything");
+});
+
 test("drawCard: empty deck at 11 PM loses (returns null)", () => {
   const s = game({ seed: 1 });
   s.hour = 23;

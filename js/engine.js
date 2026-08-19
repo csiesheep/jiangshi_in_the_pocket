@@ -118,6 +118,44 @@ export function drawCard(state) {
   return state.deck.shift();
 }
 
+// Display-only. The clock in the rules *is* the deck: seven resolvable draws
+// stand for an hour, so every card spent — room card, second card, item search,
+// and yes, cowering — moves the hand roughly 8.6 minutes. Nothing has to report
+// its own time cost, because it all funnels through drawCard.
+//
+// Pure function of state, no storage, no rng: a shared seed replays the same
+// clock to the minute.
+export function clockTime(state) {
+  const perHour = RULES.DEV_DECK_SIZE - RULES.SETUP_BURN; // 7
+  const left = Math.max(0, Math.min(perHour, state.deck ? state.deck.length : 0));
+  const draws = perHour - left;
+  const minutes = Math.round((draws / perHour) * 60);
+
+  // An empty deck reads 60, and that is deliberate — NOT an off-by-one. The
+  // hour has not turned (nothing has been drawn against the empty deck yet), so
+  // state.hour is still 9 while the hand stands at 10:00. That is exactly the
+  // truth of the position: the next card tolls the hour.
+  const carry = minutes >= 60 ? 1 : 0;
+  const hour24 = state.hour + carry;
+  const mins = minutes % 60;
+
+  return {
+    hour: state.hour, // the band the cards are still being read at
+    hour24, // what the face shows, which may be an hour ahead
+    minutes: mins,
+    draws, // cards spent this hour, 0..7
+    left, // cards still standing between the player and the next hour
+    perHour,
+    atTheTurn: carry === 1,
+    // 0..1 through the hour, for a minute hand.
+    fraction: minutes / 60,
+    // 0..3 hours since nine, for anything that fades across the whole night.
+    elapsed: state.hour - RULES.START_HOUR + minutes / 60,
+    span: RULES.FINAL_HOUR + 1 - RULES.START_HOUR,
+    label: `${((hour24 + 11) % 12) + 1}:${String(mins).padStart(2, "0")}`,
+  };
+}
+
 // ---- Health ----------------------------------------------------------------
 // For events, heals, cower, kitchen/garden. Respects the (optional) cap and
 // triggers a loss at 0. NOT used for combat (see combatDamage/resolveCombat).
