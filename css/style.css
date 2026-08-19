@@ -173,8 +173,6 @@ body.app .game-layout { min-height: 0; height: 100%; }
 body.app .sidebar { min-height: 0; }
 /* Everything in the column takes its natural height except the log, which
    absorbs the slack instead of pushing the page taller. */
-body.app .sidebar .panel--log { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-body.app .sidebar .panel--log .log { flex: 1; min-height: 0; max-height: none; }
 body.app .board-pane { min-height: 0; }
 /* Anchored to the pane so a late fight cannot push past the fold. */
 body.app .actions-pop { max-height: calc(100% - 24px); }
@@ -1025,8 +1023,6 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 #btn-sound[aria-pressed="true"] .soundicon-svg { color: var(--accent); }
 .runline code { color: var(--text); font-size: .82rem; }
 
-.log .good { color: var(--accent); }
-.log .bad { color: var(--danger); }
 
 /* ---- The verdict -----------------------------------------------------------
    The veil closes first, then the card arrives. Win and loss differ in palette:
@@ -1306,32 +1302,7 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   padding: 12px 14px;
 }
 .panel h3 { margin: 0 0 8px; font-size: 0.95rem; }
-/* ---- The log reads as narration --------------------------------------------
-   log() prepends, so :first-child is the line that just happened. It gets the
-   story voice — serif, larger, full strength — and everything behind it sinks
-   into scrollback.
 
-   Older lines fade with opacity rather than colour so that "bad" stays red as
-   it recedes; recolouring them would throw away the one bit of meaning the
-   class carries. And the newest line needs its own colour rules: .log p:first-child
-   would otherwise outrank .log .bad on specificity and bleach the worst news in
-   the game the moment it arrives. */
-.log { font-size: .8rem; color: var(--muted); max-height: 40vh; overflow-y: auto; }
-.log p { margin: 0 0 7px; }
-
-.log p:first-child {
-  font-family: var(--font-head);
-  font-size: 1.02rem;
-  line-height: 1.35;
-  color: var(--text);
-  margin-bottom: 11px;
-}
-.log p.bad:first-child { color: var(--danger); }
-.log p.good:first-child { color: var(--accent); }
-
-.log p:nth-child(2) { font-size: .88rem; opacity: .78; }
-.log p:nth-child(3) { font-size: .83rem; opacity: .58; }
-.log p:nth-child(n+4) { opacity: .42; }
 
 /* The actions pop-out: floats over the lower board on desktop, and drops into
    normal flow under the board once the layout is a single column. */
@@ -1606,4 +1577,46 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 
 @media (prefers-reduced-motion: reduce) {
   .tilebadge--relic .tilebadge-art { animation: none; opacity: 1; }
+}
+
+/* ---- Captions ---------------------------------------------------------------
+   What survived the log panel. Sits at the foot of the board rather than in the
+   sidebar, because it belongs to the moment rather than to a history, and it
+   leaves on its own. Below the action window (5) so a fight always reads over
+   it, above the vignette (1) so the dark does not eat it. */
+.caption {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 4;
+  margin: 0;
+  max-width: min(46ch, 88%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 88%, black);
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: .92rem;
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+  animation: captionlife 4.2s ease forwards;
+}
+.caption--toll {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+  color: #f3d9c7;
+  animation-duration: 5.2s;
+}
+@keyframes captionlife {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  9%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  78%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* Reduced motion keeps the caption and drops the travel; it is still removed
+   on the timer, so nothing accumulates. */
+@media (prefers-reduced-motion: reduce) {
+  .caption { animation: none; opacity: 1; transform: translateX(-50%); }
 }

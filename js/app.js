@@ -9,6 +9,7 @@ import {
   renderHud,
   renderBoard,
   renderActions,
+  caption,
   clearChoices,
   resolveBeat,
   log,
@@ -154,7 +155,9 @@ class Game {
   presentCard(cardId, ctx) {
     const o = this.state.cardsById[cardId][E.bandKey(this.state)];
     const flavour = this.flavour(cardId);
-    if (flavour) log(flavour);
+    // Promoted rather than dropped: this is the only writing in the game, and
+    // nothing else on screen carries it.
+    if (flavour) { log(flavour); caption(flavour); }
 
     if (o.t === "EVENT") {
       E.changeHealth(this.state, o.hp || 0);

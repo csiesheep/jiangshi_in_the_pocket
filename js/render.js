@@ -313,7 +313,11 @@ function cardsLeftPhrase(c) {
 // The last hour, called out. The ambient palette shift is handled by the hour
 // class; this is the punctuation on top of it.
 function strikeEleven(face) {
-  log("Eleven. The last hour — when the deck runs dry, it is midnight.", "bad");
+  const line = "Eleven. The last hour — when the deck runs dry, it is midnight.";
+  log(line, "bad");
+  // The one line the issue insists must stay visible, and rightly: it is the
+  // moment the game tells you how it ends.
+  caption(line, "toll");
   tollBell();
   if (reducedMotion() || typeof face.animate !== "function") return;
   face.animate(
@@ -1314,6 +1318,33 @@ export function log(msg, cls = "") {
 export function clearLog() {
   const el = document.getElementById("log");
   if (el) el.innerHTML = "";
+}
+
+// A line over the board that fades. Most of what the log used to say is now
+// shown rather than told — damage flashes, hearts price the choices, the pack
+// falls over, the clock moves. What is left are the moments with no other
+// picture: the writing on a card, and the hour striking.
+//
+// aria-hidden, because log() has already announced it to the live region and
+// saying it twice is worse than not seeing it once.
+let captionTimer = null;
+export function caption(msg, tone = "") {
+  const pane = document.querySelector(".board-pane");
+  if (!pane || !msg) return;
+  const old = pane.querySelector(".caption");
+  if (old) old.remove();
+  clearTimeout(captionTimer);
+
+  const el = document.createElement("p");
+  el.className = `caption${tone ? " caption--" + tone : ""}`;
+  el.setAttribute("aria-hidden", "true");
+  el.textContent = msg;
+  pane.appendChild(el);
+
+  // Timer rather than animationend: animations do not advance in a hidden tab,
+  // and a caption that never left would sit over the board forever.
+  const life = tone === "toll" ? 5200 : 4200;
+  captionTimer = setTimeout(() => el.remove(), life);
 }
 
 // Hearts, using the same symbol the status panel does. Zero reads as safe

@@ -49,10 +49,6 @@
         <h3>Backpack</h3>
         <div class="backpack" id="hud-items"></div>
       </div>
-      <div class="panel panel--log">
-        <h3>Log</h3>
-        <div class="log" id="log" role="log" aria-live="polite" aria-label="Game log"></div>
-      </div>
       <div class="panel utility">
         <p class="runline">Seed <code id="seed-value">&mdash;</code></p>
         <div class="utilrow">
@@ -67,6 +63,11 @@
       </div>
     </aside>
   </main>
+
+  <!-- The log panel is gone (it repeated what the board, the hearts and the
+       clock already say), but it was also the only spoken narration of events.
+       This is where log() writes now: unseen, still announced. -->
+  <div class="sr-only" id="log" role="log" aria-live="polite" aria-label="Game narration"></div>
 
   <script type="module" src="js/app.js"></script>
 </body>
