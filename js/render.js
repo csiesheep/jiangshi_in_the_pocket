@@ -230,11 +230,16 @@ function renderHour(s) {
   // announce as a shape.
   el.appendChild(srOnly(`${reading}, ${cardsLeftPhrase(c)}`));
 
-  // The hour is the only thing that moves the light. timePasses loses at
-  // midnight before it can increment past 23, so 9/10/11 covers every state a
-  // player can be looking at; the clamp is belt and braces.
-  const hour = Math.min(Math.max(s.hour - 12, 9), 11);
+  // The light now follows the minute hand, not the hour: one number out to CSS
+  // and every dial in the light model moves with it, a sliver per card drawn.
   const body = document.body;
+  body.style.setProperty("--dusk", (c.elapsed / c.span).toFixed(4));
+
+  // The hour class stays for the jobs a gradient cannot do — the last hour's
+  // change of register, and strikeEleven keying off the turn. timePasses loses
+  // at midnight before it can increment past 23, so 9/10/11 covers every state
+  // a player can be looking at; the clamp is belt and braces.
+  const hour = Math.min(Math.max(s.hour - 12, 9), 11);
   for (const h of [9, 10, 11]) body.classList.toggle(`hour-${h}`, h === hour);
 
   const turned = lastHour != null && lastHour !== s.hour;

@@ -25,21 +25,51 @@
 /* ---- The light model -------------------------------------------------------
    One set of dials for the whole atmosphere: how far the candle reaches, how
    dark it is beyond the doorways, how tight the vignette closes, and how far
-   the fire has turned from warm to bloody. The hour classes below are the only
-   thing that moves them, and every consumer transitions over 2s, so the hour
-   turning is felt as the light dying rather than a snap.
+   the fire has turned from warm to bloody.
+
+   All four are driven by --dusk, which renderHour writes from clockTime: 0 at
+   nine o'clock, 1 at midnight on the face. The light dies continuously, a
+   sliver per card drawn, rather than in three steps at the hour turns — which
+   is both scarier and truer to the rule that the deck is the clock. Cowering
+   visibly costs light, because it costs a card.
+
+   The slopes are set so the old hand-picked hour values still fall on the line:
+   9/10/11 PM land within .01 of the .5/.68/.88 vignette they used to have.
 
    Custom properties are not animatable without @property, so each consumer
-   transitions an ordinary property (opacity, filter) that reads the dial. */
+   transitions an ordinary property (opacity, filter) that reads the dial, and
+   the 2s duration turns a draw into the light sagging rather than flickering. */
 :root {
-  --vignette: .5;
-  --glow: .45;
-  --peek-light: .46;
-  --flame: #ffb457;
+  --dusk: 0;
+  --flame-early: #ffb457;
+  /* Where the fire is heading. body.hour-11 moves the destination, not the
+     journey — see the register change below. */
+  --flame-late: #d94a34;
 }
-body.hour-9  { --vignette: .5;  --glow: .45; --peek-light: .46; --flame: #ffb457; }
-body.hour-10 { --vignette: .68; --glow: .38; --peek-light: .34; --flame: #f59043; }
-body.hour-11 { --vignette: .88; --glow: .30; --peek-light: .22; --flame: #e0603a; }
+
+/* The derived dials must be declared on the same element that carries the
+   inputs, not on :root. A custom property is substituted where it is DECLARED
+   and inherits as the resolved value, so leaving these on :root would freeze
+   them at :root's --dusk of 0 no matter what renderHour writes to the body. */
+body {
+  /* Capped at 1: past midnight-on-the-face the sum would exceed a legal
+     opacity, and the low-health pulse reads (1 - --vignette) as its headroom. */
+  --vignette: min(1, calc(.5 + .57 * var(--dusk)));
+  --glow: calc(.45 - .225 * var(--dusk));
+  /* Floored at .26, the brightness the 11 PM peek already had. Below that the
+     maths runs out: a half-room's floor is effectively black, so at brightness
+     k the best contrast any text can reach is (k + .05) / .05 — 4.2:1 at .16,
+     under the 4.5 a room name needs even if it were pure white. So the peek
+     stops darkening at the old floor while the vignette, glow and flame carry
+     on to midnight. */
+  --peek-light: max(.26, calc(.46 - .3 * var(--dusk)));
+  --flame: color-mix(in srgb, var(--flame-late) calc(var(--dusk) * 100%), var(--flame-early));
+}
+
+/* Continuous dusk underneath, discrete class on top. The last hour is a change
+   of register, not another notch of the same gradient: the firelight itself
+   turns, which says something "slightly dimmer than 10:59" cannot. */
+body.hour-11 { --flame-late: #c93826; }
 
 /* Self-hosted: the site makes no external requests, for fonts or anything else.
    Licence sits beside the file in assets/fonts/OFL.txt. */
@@ -491,7 +521,10 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   transition: filter 2s linear;
 }
 .halfroom:hover { filter: brightness(calc(var(--peek-light) + .55)) saturate(.9); }
-.halfroom .tilename { font-size: .6rem; color: var(--muted); background: transparent; }
+/* Brighter than --muted, which the dimming filter was dragging to 2.8:1 even
+   before dusk went continuous. The half-room is a glimpse, but the name in it
+   is information — 6.2:1 at the darkest peek, 10.2:1 at nine o'clock. */
+.halfroom .tilename { font-size: .6rem; color: #dfe3ea; background: transparent; }
 .halfroom .roomscene { opacity: .5; }
 .halfroom--n, .halfroom--s { width: var(--tile); height: var(--peek); }
 .halfroom--e, .halfroom--w { width: var(--peek); height: var(--tile); }
