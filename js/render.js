@@ -991,6 +991,18 @@ function costRow(hp) {
   return row;
 }
 
+// A count of hearts you do not have is not information. Past the point where
+// the arithmetic stops mattering, say the only thing that does.
+function lethalRow() {
+  const row = document.createElement("span");
+  row.className = "action-cost action-cost--lethal";
+  row.setAttribute("aria-hidden", "true");
+  const sk = icon("ui", "skull", "action-skull");
+  if (sk) row.appendChild(sk);
+  row.appendChild(document.createTextNode("this kills you"));
+  return row;
+}
+
 function costSentence(hp) {
   if (hp === 0) return "you take no damage";
   if (hp > 0) return `you gain ${hp} health`;
@@ -1134,10 +1146,21 @@ export function renderActions(actions, prompt = "", opts = {}) {
     el.appendChild(p);
   }
 
+  // Lethal is judged against the health the player has right now, not the health
+  // they had when the choice was assembled — cower can move it mid-window.
+  const kills = (a) =>
+    typeof opts.health === "number" &&
+    a.cost &&
+    typeof a.cost.hp === "number" &&
+    a.cost.hp < 0 &&
+    -a.cost.hp >= opts.health;
+
   actions.forEach((a, i) => {
+    const fatal = kills(a);
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "action" + (a.primary ? " action--primary" : "");
+    b.className =
+      "action" + (a.primary ? " action--primary" : "") + (fatal ? " action--lethal" : "");
     if (i < 9) {
       const k = document.createElement("kbd");
       k.textContent = String(i + 1);
@@ -1172,8 +1195,14 @@ export function renderActions(actions, prompt = "", opts = {}) {
     // The price, in hearts. Combat is fully deterministic, so there is nothing
     // to hide and no reason to make the player do the arithmetic.
     if (a.cost && typeof a.cost.hp === "number") {
-      text.appendChild(costRow(a.cost.hp));
-      b.appendChild(srOnly(costSentence(a.cost.hp)));
+      text.appendChild(fatal ? lethalRow() : costRow(a.cost.hp));
+      b.appendChild(
+        srOnly(
+          fatal
+            ? `${costSentence(a.cost.hp)} — this would kill you`
+            : costSentence(a.cost.hp)
+        )
+      );
     }
     b.appendChild(text);
     if (a.kind) b.dataset.kind = a.kind;

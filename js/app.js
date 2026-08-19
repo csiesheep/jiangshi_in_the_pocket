@@ -255,7 +255,18 @@ class Game {
     // makes the flash safe: the previous step's buttons are gone, so nothing can
     // be clicked and the global number keys have nothing to find while it plays.
     renderActions([]);
-    jumpScare(n).then(() => renderActions(acts, prompt, { pack: n }));
+    jumpScare(n).then(() => {
+      // Never leave the keyboard's default resting on a choice that kills while
+      // a survivable one is on the table. The lethal card stays clickable — it
+      // just stops being the thing you hit by reflex.
+      const fatal = (a) => a.cost && a.cost.hp < 0 && -a.cost.hp >= s.health;
+      const survivable = acts.find((a) => !fatal(a));
+      if (survivable && acts.some((a) => a.primary && fatal(a))) {
+        for (const a of acts) a.primary = false;
+        survivable.primary = true;
+      }
+      renderActions(acts, prompt, { pack: n, health: s.health });
+    });
   }
 
   doFight(n, weapon, onDone) {
