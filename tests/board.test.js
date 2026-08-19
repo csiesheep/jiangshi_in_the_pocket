@@ -288,3 +288,86 @@ test("seam: stepping through the Dining Room arrow places the Patio", () => {
   B.moveTo(b, cross.dir);
   eq(b.player.world, "indoor");
 });
+
+// ---- Is every run actually winnable? ---------------------------------------
+// The win needs the Reliquary, which sits at a random depth in the indoor deck,
+// and only exploring places tiles — so a run is winnable only while exploration
+// can continue. This sweeps seeds with a policy that plays the way the rules
+// allow and asserts both decks always empty out, which means the Reliquary and
+// the Family Plot were both placed. Placement is the same event as arrival:
+// explore() moves the player onto the tile it lays down, so "placed" is
+// "stood on".
+//
+// The policy matters as much as the assertion. A naive explorer stalls on
+// perfectly winnable boards — standing outdoors on an exhausted deck it will
+// call the position hopeless, when the actual play is to walk back inside and
+// end a turn somewhere the risen have a wall to break. That is the escape
+// valve the ruleset already has, so the policy has to use it or the sweep
+// measures the policy rather than the game.
+function playOut(makeBoard, seed, maxSteps = 600) {
+  const b = makeBoard({ seed });
+  const at = (t, fn) => {
+    const save = { ...b.player };
+    b.player = { world: t.world, x: t.x, y: t.y };
+    const v = fn();
+    b.player = save;
+    return v;
+  };
+  // Nearest reachable tile satisfying `want`, as a list of directions to walk.
+  const routeTo = (want) => {
+    const here = B.currentTile(b);
+    const queue = [[here, []]];
+    const seen = new Set([`${here.world}:${here.x},${here.y}`]);
+    while (queue.length) {
+      const [t, path] = queue.shift();
+      if (at(t, want)) return path;
+      for (const m of at(t, () => B.listMoves(b))) {
+        if (m.type !== "move" && m.type !== "cross") continue;
+        const k = `${m.to.world}:${m.to.x},${m.to.y}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        const next = b.worlds[m.to.world].get(B.cellKey(m.to.x, m.to.y));
+        if (next) queue.push([next, [...path, m.dir]]);
+      }
+    }
+    return null;
+  };
+  const canOpenUp = () => B.listMoves(b).some((m) => m.type === "explore" || m.type === "outside");
+
+  for (let step = 0; step < maxSteps; step++) {
+    const moves = B.listMoves(b);
+    const go = moves.find((m) => m.type === "explore") || moves.find((m) => m.type === "outside");
+    if (go) {
+      if (go.type === "explore") B.explore(b, go.dir, B.pickExploreRotation(b, go.dir));
+      else B.goOutside(b);
+      if (!b.decks.indoor.length && !b.decks.outdoor.length) return { b, reason: "placed everything" };
+      continue;
+    }
+    const toExplore = routeTo(canOpenUp);
+    if (toExplore && toExplore.length) { B.moveTo(b, toExplore[0]); continue; }
+
+    const toBreach = routeTo(() => B.isDeadEnd(b) && B.pickZombieDoorWall(b) != null);
+    if (toBreach == null) return { b, reason: "no way on, and no wall the risen can break" };
+    if (toBreach.length) { B.moveTo(b, toBreach[0]); continue; }
+    B.openZombieDoor(b, B.pickZombieDoorWall(b));
+  }
+  return { b, reason: "hit the step cap" };
+}
+
+test("every seed can place the whole house and garden, Reliquary included", () => {
+  const bad = [];
+  for (let seed = 1; seed <= 1000; seed++) {
+    const { b, reason } = playOut(board, seed);
+    const placed = new Set();
+    for (const world of ["indoor", "outdoor"]) {
+      for (const t of b.worlds[world].values()) placed.add(t.id);
+    }
+    if (!placed.has("evil-temple")) bad.push(`seed ${seed}: no Reliquary (${reason})`);
+    else if (!placed.has("graveyard")) bad.push(`seed ${seed}: no Family Plot (${reason})`);
+    else if (b.decks.indoor.length || b.decks.outdoor.length) {
+      bad.push(`seed ${seed}: ${b.decks.indoor.length}+${b.decks.outdoor.length} tiles stranded (${reason})`);
+    }
+    if (bad.length >= 3) break;
+  }
+  eq(bad, [], "no seed strands the tiles the win depends on");
+});
