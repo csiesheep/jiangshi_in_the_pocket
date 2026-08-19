@@ -493,28 +493,43 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   .doorway--explore .doorway-chev { animation: none; opacity: 1; }
 }
 /* ---- Floors ----------------------------------------------------------------
-   Boards indoors, turf out the back. Kept near-monochrome and low-alpha on
-   purpose: the name, the icon and the candlelight all sit on top of this, and
-   anything with real contrast fights all three.
+   Boards indoors, grass out the back — and they are meant to be told apart at
+   a glance now. These used to be near-monochrome and almost invisible, on the
+   grounds that the name, the icon and the candlelight all sit on top of them.
+   That reasoning held while both worlds looked alike anyway; it stopped being
+   worth the cost once telling inside from outside became the point. They are
+   still tinted rather than saturated, and the tile name is still checked
+   against them, but you can now see what you are standing on.
 
    Built from gradients rather than an SVG <pattern> in the sprite: CSS cannot
    reference a pattern by fragment from another document, so a sprite pattern
    would need inlining into every tile. Same result, no new files either way. */
 .world--indoor {
   background-image:
-    repeating-linear-gradient(0deg, transparent 0 21px,
-      rgba(0, 0, 0, .22) 21px, rgba(0, 0, 0, .22) 22px),
-    repeating-linear-gradient(90deg, transparent 0 47px,
-      rgba(255, 255, 255, .03) 47px, rgba(255, 255, 255, .03) 48px);
+    /* butt joints — short seams where one plank ends and the next starts, so
+       the floor reads as boards laid end to end rather than as stripes */
+    repeating-linear-gradient(90deg, transparent 0 44px,
+      rgba(0, 0, 0, .34) 44px, rgba(0, 0, 0, .34) 46px),
+    /* the gap between planks */
+    repeating-linear-gradient(0deg,
+      rgba(0, 0, 0, .34) 0 1.6px, transparent 1.6px 19px),
+    /* every other board a shade off, the way a real floor wears unevenly */
+    repeating-linear-gradient(0deg,
+      rgba(146, 98, 52, .11) 0 19px, rgba(74, 48, 26, .13) 19px 38px);
 }
 .world--outdoor { border-color: var(--hedge);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hedge) 60%, black); }
 .world--outdoor {
   background-image:
-    repeating-linear-gradient(72deg, transparent 0 7px,
-      rgba(255, 255, 255, .028) 7px, rgba(255, 255, 255, .028) 9px),
-    repeating-linear-gradient(-64deg, transparent 0 11px,
-      rgba(0, 0, 0, .16) 11px, rgba(0, 0, 0, .16) 13px);
+    /* blades, fine and leaning two ways so it does not read as hatching */
+    repeating-linear-gradient(84deg, transparent 0 3px,
+      rgba(164, 214, 132, .085) 3px, rgba(164, 214, 132, .085) 4px),
+    repeating-linear-gradient(-73deg, transparent 0 5px,
+      rgba(14, 32, 12, .26) 5px, rgba(14, 32, 12, .26) 6.5px),
+    /* clumps, so the field is not evenly mown */
+    radial-gradient(58% 38% at 22% 28%, rgba(96, 148, 84, .13), transparent 72%),
+    radial-gradient(48% 34% at 76% 72%, rgba(96, 148, 84, .10), transparent 72%),
+    radial-gradient(40% 30% at 60% 12%, rgba(10, 24, 10, .16), transparent 70%);
 }
 
 /* The room fills the tile inside its walls; the name moves to a corner banner
