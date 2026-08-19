@@ -226,6 +226,11 @@ export function explore(board, moveDir, rotation) {
 
   const id = deck.shift();
   const placed = makeTile(board.byId, id, tile.world, nx, ny, rotation);
+  // A breach has two sides. Exploring through one puts a room on the far side
+  // of it, and that room has to carry the matching hole — otherwise the way
+  // back the rules promise would not exist, and the new room could dead-end on
+  // a wall that is actually open.
+  if (tile.holes.includes(moveDir)) placed.holes.push(opposite(moveDir));
   board.worlds[tile.world].set(cellKey(nx, ny), placed);
   board.player = { world: tile.world, x: nx, y: ny };
   return { ok: true, tile: placed };
@@ -288,5 +293,13 @@ export function openZombieDoor(board, dir) {
   const tile = currentTile(board);
   if (openings(tile).includes(dir)) return { ok: false, reason: "not-a-wall" };
   tile.holes.push(dir);
+  // Same wall, two sides. If a room is already standing on the other side it
+  // gains the mirror hole now; if the space is still empty, explore() puts the
+  // mirror on whatever gets placed there. Either way the breach is symmetric in
+  // the model, so nothing downstream has to special-case which side asked.
+  const [nx, ny] = inDir(tile.x, tile.y, dir);
+  const neighbour = tileAt(board, tile.world, nx, ny);
+  const back = opposite(dir);
+  if (neighbour && !neighbour.holes.includes(back)) neighbour.holes.push(back);
   return { ok: true };
 }

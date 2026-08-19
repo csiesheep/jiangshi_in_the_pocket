@@ -142,6 +142,89 @@ test("pickZombieDoorWall: null when every wall already has an opening", () => {
   eq(B.pickZombieDoorWall(b), null, "nothing left to break");
 });
 
+// The rulebook promises the hole "persists, and you can use it again later".
+// It only does if both sides of the wall know about it.
+test("holes are two-way: exploring through one leaves a way back", () => {
+  const b = board({ seed: 3 });
+  b.decks.indoor = ["bathroom"]; // one door only
+  const rots = B.validExploreRotations(b, "N");
+  B.explore(b, "N", rots[0]);
+  assert(B.isDeadEnd(b), "the bathroom dead-ends");
+
+  const wall = B.pickZombieDoorWall(b);
+  assert(wall !== null, "there is a wall to break");
+  b.decks.indoor = ["storage"];
+  B.openZombieDoor(b, wall);
+
+  const from = B.currentTile(b);
+  const out = B.explore(b, wall, B.pickExploreRotation(b, wall));
+  assert(out.ok, "explored through the breach");
+
+  // The way back is the whole point.
+  const back = B.opposite(wall);
+  assert(out.tile.holes.includes(back), "the placed tile carries the mirror hole");
+  assert(B.openings(out.tile).includes(back), "so it counts as a way out");
+  const home = B.listMoves(b).find((m) => m.dir === back && m.type === "move");
+  assert(home, "a move back through the breach is offered");
+  eq(home.to.x, from.x, "and it leads to the room we came from (x)");
+  eq(home.to.y, from.y, "and it leads to the room we came from (y)");
+});
+
+test("holes are two-way: breaking into a room already standing", () => {
+  const b = board({ seed: 3 });
+  b.decks.indoor = ["bathroom"];
+  const rots = B.validExploreRotations(b, "N");
+  B.explore(b, "N", rots[0]); // bathroom to the north, its only door facing back
+
+  // Punch from the bathroom into the Entry Hall's cell, which is already placed.
+  const here = B.currentTile(b);
+  const foyer = B.tileAt(b, "indoor", here.x, here.y + 1);
+  assert(foyer, "the Entry Hall is south of us");
+  const before = foyer.holes.slice();
+  // S is the bathroom's own door, so pick a wall that is blank but occupied:
+  // force the situation by clearing the door and re-breaching it.
+  here.exits = [];
+  const zd = B.openZombieDoor(b, "S");
+  assert(zd.ok, "breached south into the placed room");
+  assert(here.holes.includes("S"), "this side has the hole");
+  assert(foyer.holes.includes("N"), "and so does the room on the other side");
+  assert(!before.includes("N"), "which it did not have before");
+});
+
+// The invariant, stated once: no hole may point at a placed tile that does not
+// mirror it. Swept over real play rather than a hand-built board.
+test("holes stay symmetric across a played-out board", () => {
+  const offenders = [];
+  for (let seed = 1; seed <= 60; seed++) {
+    const b = board({ seed });
+    for (let step = 0; step < 40; step++) {
+      if (B.isDeadEnd(b)) {
+        const wall = B.pickZombieDoorWall(b);
+        if (wall == null) break;
+        B.openZombieDoor(b, wall);
+      }
+      const moves = B.listMoves(b);
+      const go = moves.find((m) => m.type === "explore") || moves[0];
+      if (!go) break;
+      if (go.type === "explore") B.explore(b, go.dir, B.pickExploreRotation(b, go.dir));
+      else if (go.type === "outside") B.goOutside(b);
+      else B.moveTo(b, go.dir);
+    }
+    for (const world of ["indoor", "outdoor"]) {
+      for (const tile of b.worlds[world].values()) {
+        for (const dir of tile.holes) {
+          const [nx, ny] = B.inDir(tile.x, tile.y, dir);
+          const far = B.tileAt(b, world, nx, ny);
+          if (far && !far.holes.includes(B.opposite(dir))) {
+            offenders.push(`seed ${seed}: ${tile.id} ${dir} -> ${far.id} has no mirror`);
+          }
+        }
+      }
+    }
+  }
+  eq(offenders.slice(0, 3), [], "every hole is mirrored by the tile it opens into");
+});
+
 test("openZombieDoor: refuses an existing opening", () => {
   const b = board({ seed: 1 });
   eq(B.openZombieDoor(b, "N").ok, false, "N is already the Foyer door");
