@@ -45,7 +45,8 @@ export async function loadIcons() {
   }
 }
 
-function icon(kind, id, cls) {
+// Exported for the tile gallery, which needs the same sprite handling.
+export function icon(kind, id, cls) {
   const symbol = `${kind}-${ICON_ALIAS[id] || id}`;
   if (!document.getElementById(symbol)) return null;
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");

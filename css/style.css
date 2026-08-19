@@ -1226,3 +1226,58 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   /* Two classes, so this beats the 1fr 1fr set in the earlier 600px block. */
   .panel--status .statgrid { grid-template-columns: 1fr; flex: 1; min-width: 0; gap: 7px 12px; }
 }
+
+/* ---- The tile gallery -------------------------------------------------------
+   Article page, but the cards borrow the board's world cast so the gallery
+   teaches the same warm-indoors / cool-outdoors language the game speaks. */
+.tilegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  margin: 14px 0 8px;
+}
+.tilecard {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: color-mix(in srgb, var(--world-cast) var(--cast), var(--room));
+}
+.tilecard-art { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: none; }
+.tilecard-scene { width: 62px; height: 62px; color: var(--text); opacity: .92; }
+.tilecard-body { min-width: 0; }
+.tilecard h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.tilecard-count {
+  font-family: var(--font-body);
+  font-size: .68rem;
+  color: #dfc077;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--border));
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+/* The cast card is lighter than a panel, so --muted lands at 4.35:1 here and
+   --gold at 4.41 — both under the 4.5 these need as text. Lifted on this page
+   only, rather than moving tokens the rest of the game is tuned against. */
+.tilecard-doors { margin: 0 0 6px; font-size: .78rem; color: #bcc1cb; }
+.tilecard-note { margin: 0 0 6px; font-size: .82rem; line-height: 1.4; }
+.tilecard-note:last-child { margin-bottom: 0; }
+
+/* The door plan: the room's four walls, with the ones you can pass through
+   punched out in the flame colour. */
+.doorplan { width: 46px; height: 46px; flex: none; }
+.doorplan-room { fill: color-mix(in srgb, var(--world-cast) 8%, transparent); stroke: none; }
+.doorplan-wall { stroke: var(--wall); stroke-width: 7; stroke-linecap: square; }
+.doorplan-door { stroke: var(--flame); stroke-width: 7; stroke-linecap: butt; }
+.doorplan-door--seam { stroke: var(--gold); }
+
+@media (max-width: 480px) {
+  .tilegrid { grid-template-columns: 1fr; }
+}
