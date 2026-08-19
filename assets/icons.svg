@@ -145,11 +145,53 @@
     <path d="M56 62h30v22H56z"/><path d="M62 62v22M70 62v22M78 62v22"/>
   </symbol>
 
+  <!-- Parlour. Proof tile for the rendered treatment (#62): painted, not drawn.
+       Furniture hugs the walls and the centre stays clear — the footprints and
+       the hotspots own that ground. The last rect is the cast veil: it is the
+       only currentColor left, so the world tint and the dusk dial still reach
+       the scene without the art being monochrome. -->
   <symbol id="scene-family-room" viewBox="0 0 96 96">
-    <path d="M8 22h20v34H8z"/><path d="M8 34h20"/>
-    <path d="M68 22h20v34H68z"/><path d="M68 34h20"/>
-    <path d="M34 70h28v16H34z"/><path d="M34 78h28"/>
-    <path d="M40 14h16v8H40z"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <rect x="26" y="30" width="44" height="38" rx="2" fill="#3a231f"/>
+      <rect x="30" y="34" width="36" height="30" rx="1" fill="#26160f"/>
+      <rect x="30" y="34" width="36" height="2" fill="#6d4430" opacity=".55"/>
+      <g fill="#2f251c">
+        <rect x="5" y="21" width="22" height="34" rx="3"/>
+        <rect x="69" y="21" width="22" height="34" rx="3"/>
+      </g>
+      <g fill="#8a6a3e">
+        <rect x="5" y="21" width="22" height="3" rx="1.5"/>
+        <rect x="69" y="21" width="22" height="3" rx="1.5"/>
+      </g>
+      <g fill="#5c452a">
+        <rect x="9" y="26" width="14" height="11" rx="2"/>
+        <rect x="73" y="26" width="14" height="11" rx="2"/>
+      </g>
+      <g fill="#070604">
+        <rect x="5" y="52" width="22" height="5" rx="2.5"/>
+        <rect x="69" y="52" width="22" height="5" rx="2.5"/>
+      </g>
+      <g transform="rotate(-63 28 79)">
+        <rect x="19" y="70" width="18" height="19" rx="2" fill="#33271d"/>
+        <rect x="19" y="70" width="18" height="3.4" rx="1.5" fill="#9a7746"/>
+        <rect x="19" y="86" width="18" height="3" rx="1.5" fill="#080604"/>
+      </g>
+      <ellipse cx="41" cy="83" rx="15" ry="6" fill="#180806"/>
+      <ellipse cx="49" cy="86" rx="6" ry="2.6" fill="#240b07" opacity=".8"/>
+      <rect x="36" y="4" width="24" height="7" rx="1" fill="#2c2219"/>
+      <rect x="36" y="4" width="24" height="2.4" fill="#b08a52"/>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
   <symbol id="scene-dining-room" viewBox="0 0 96 96">
@@ -225,14 +267,44 @@
     <path d="M60 66h26l-3 16H63z"/>
   </symbol>
 
+  <!-- Family Plot. Proof tile 2 of 2 (#62), and the goal tile, so it takes the
+       strongest treatment: dead turf, headstones with mass, and the grave open
+       and waiting. Moonlight catches top edges only — the cool cast does the
+       rest. Same cast veil as the Parlour. -->
   <symbol id="scene-graveyard" viewBox="0 0 96 96">
-    <path d="M12 76V50a10 10 0 0 1 20 0v26z" stroke-width="2.4"/>
-    <path d="M22 56v12M16 61h12"/>
-    <path d="M64 76V56a8 8 0 0 1 16 0v20" stroke-width="2.4"/>
-    <path d="M72 61v9M67 65h10"/>
-    <path d="M38 18h22v26H38z" stroke-width="2.4" stroke-dasharray="5 4"/>
-    <path d="M42 22h14v18H42z" stroke-opacity=".5"/>
-    <path d="M6 84h84"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#141810"/>
+      <g fill="#212a19">
+        <ellipse cx="18" cy="30" rx="20" ry="13"/><ellipse cx="78" cy="24" rx="17" ry="11"/>
+        <ellipse cx="72" cy="82" rx="22" ry="12"/><ellipse cx="14" cy="72" rx="15" ry="9"/>
+      </g>
+      <g fill="#090c07" opacity=".75">
+        <ellipse cx="46" cy="14" rx="26" ry="8"/>
+      </g>
+      <g fill="#5c4a2c" opacity=".8">
+        <ellipse cx="9" cy="47" rx="3" ry="1.6"/><ellipse cx="88" cy="52" rx="2.6" ry="1.4"/>
+        <ellipse cx="24" cy="88" rx="3.2" ry="1.5"/><ellipse cx="63" cy="9" rx="2.4" ry="1.3"/>
+      </g>
+      <ellipse cx="48" cy="52" rx="21" ry="14" fill="#2a2115"/>
+      <ellipse cx="48" cy="47" rx="21" ry="9" fill="#4a3a22" opacity=".55"/>
+      <rect x="36" y="40" width="24" height="26" rx="2" fill="#030405"/>
+      <rect x="36" y="40" width="24" height="3" fill="#6b573a"/>
+      <rect x="36" y="63" width="24" height="3" rx="1" fill="#1b160e"/>
+      <g>
+        <path d="M10 74V52a9 9 0 0 1 18 0v22z" fill="#2b3034"/>
+        <path d="M10 74V52a9 9 0 0 1 18 0v2.5H10z" fill="#8e9aa2"/>
+        <rect x="18" y="58" width="2.2" height="11" fill="#121516"/>
+        <rect x="14" y="62" width="10" height="2.2" fill="#121516"/>
+        <rect x="10" y="71" width="18" height="3" fill="#0a0c0d"/>
+      </g>
+      <g transform="rotate(9 74 74)">
+        <path d="M65 76V58a8 8 0 0 1 16 0v18z" fill="#252a2d"/>
+        <path d="M65 76V58a8 8 0 0 1 16 0v2.4H65z" fill="#78848c"/>
+        <rect x="72" y="63" width="2" height="9" fill="#101314"/>
+      </g>
+      <path d="M0 0h96v26C70 16 26 16 0 26z" fill="#cfeef5" opacity=".07"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
   <!-- ============================ Items ============================ -->
@@ -357,7 +429,7 @@
   <symbol id="scare-zombie" viewBox="0 0 120 120">
     <!-- Built for poster size, not for the 24x24 grid. Depth comes from layered
          fill-opacity of currentColor rather than its own palette, so the scare
-         still tints with --danger and the hour's flame. On the dark overlay,
+         still tints with the danger colour and the hour's flame. On the dark overlay,
          high opacity reads as lit and low as sunk, so the sockets are punched
          clean through with evenodd and the ridges are the bright parts. -->
 

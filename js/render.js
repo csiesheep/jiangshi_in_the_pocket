@@ -26,6 +26,11 @@ function currentChoices() {
 // The three yard tiles are all "Lawn" and share one icon.
 const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
 const SCENE_ALIAS = ICON_ALIAS;
+// Scenes that paint themselves rather than being drawn in currentColor (#62).
+// They carry their own fills and end with a currentColor veil, so the world
+// cast and the dusk dial still reach them — but they must not be dimmed like
+// line art, hence the separate class. Grows as rooms are reworked.
+const SCENE_RICH = new Set(["family-room", "graveyard"]);
 
 // Inject the icon sprite once, then reference symbols with <use href="#id">.
 // External-file <use> references are not dependably supported, so the sprite is
@@ -1160,7 +1165,8 @@ function centreRoom(game, tile, edges) {
     if (mark) box.appendChild(mark);
   }
 
-  const scene = icon("scene", SCENE_ALIAS[tile.id] || tile.id, "roomscene");
+  const sceneId = SCENE_ALIAS[tile.id] || tile.id;
+  const scene = icon("scene", sceneId, `roomscene${SCENE_RICH.has(sceneId) ? " roomscene--rich" : ""}`);
   if (scene) box.appendChild(scene);
 
   const name = document.createElement("span");
@@ -1179,7 +1185,8 @@ function halfRoom(game, edge, dir) {
   if (edge.crossesWorld) half.classList.add("halfroom--across");
   half.setAttribute("aria-hidden", "true"); // already in the centre room's label
 
-  const scene = icon("scene", SCENE_ALIAS[edge.neighbour.id] || edge.neighbour.id, "roomscene");
+  const glimpseId = SCENE_ALIAS[edge.neighbour.id] || edge.neighbour.id;
+  const scene = icon("scene", glimpseId, `roomscene${SCENE_RICH.has(glimpseId) ? " roomscene--rich" : ""}`);
   if (scene) half.appendChild(scene);
 
   const name = document.createElement("span");

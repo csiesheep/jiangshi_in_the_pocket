@@ -1281,3 +1281,16 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 @media (max-width: 480px) {
   .tilegrid { grid-template-columns: 1fr; }
 }
+
+/* Painted scenes (#62). Line art is drawn faint on purpose — it is a diagram
+   over a floor. A rendered scene IS the floor, so dimming it just makes it
+   muddy. The veil inside the symbol is the only currentColor left, so the cast
+   reaches it undiluted rather than mixed toward grey.
+
+   Declared here, at the end, because .halfroom .roomscene and
+   .tilebox--here .roomscene match at exactly this specificity — source order
+   is the whole reason these win. */
+.board .roomscene--rich { color: var(--world-cast); }
+.roomscene--rich { opacity: .88; }
+.board .tilebox--here .roomscene--rich { opacity: 1; }
+.board .halfroom .roomscene--rich { opacity: .8; }
