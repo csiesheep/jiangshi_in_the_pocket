@@ -9,6 +9,13 @@
       symbol { fill: none; stroke: currentColor; stroke-width: 1.5;
                stroke-linecap: round; stroke-linejoin: round; }
     </style>
+    <!-- The one sky in the game that is not night. Only the won verdict uses it. -->
+    <linearGradient id="vg-dawnsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2440"/>
+      <stop offset=".55" stop-color="#503a56"/>
+      <stop offset=".8" stop-color="#b06a3a"/>
+      <stop offset="1" stop-color="#e8b25c"/>
+    </linearGradient>
   </defs>
 
   <!-- ============================ Tiles ============================ -->
@@ -118,31 +125,99 @@
     <path d="M3 20h18"/>
   </symbol>
 
-  <!-- ====================== Rooms, from above ======================
-       Drawn on a 96 grid rather than the 24 the HUD icons use: at 170px a tile
-       these are scenes, not symbols, and the small icons were visibly stretched.
-       The 24x24 set stays for the backpack and the status panel.
-
-       Furniture hugs the walls. The middle of every tile is left clear on both
-       axes because footprints track through it, the player stands in it, and
-       the doorway hotspots land on the edges. -->
-
+  <!-- Entry Hall. Where the night starts: a hall cabinet, a stand by the door, and the stairs you are not going up. -->
   <symbol id="scene-foyer" viewBox="0 0 96 96">
-    <path d="M8 30h13v22H8z"/><path d="M8 41h13"/>
-    <path d="M75 20v20M69 24h12M75 40v14"/>
-    <path d="M30 74h36v10H30z"/><path d="M36 74v10M48 74v10M60 74v10"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <rect x="5" y="28" width="17" height="26" rx="1" fill="#2f251c"/>
+      <rect x="5" y="28" width="17" height="2.6" fill="#8a6a3e"/>
+      <rect x="8" y="33" width="11" height="7" rx="1" fill="#191309"/>
+      <rect x="8" y="43" width="11" height="7" rx="1" fill="#191309"/>
+      <rect x="5" y="52" width="17" height="3" rx="1.5" fill="#070604"/>
+      <rect x="73" y="18" width="3.4" height="36" fill="#2f251c"/>
+      <rect x="73" y="18" width="3.4" height="2.4" fill="#b08a52"/>
+      <rect x="68" y="24" width="14" height="2.4" fill="#3a2d20"/>
+      <ellipse cx="74.7" cy="55" rx="8" ry="2.6" fill="#070604"/>
+      <g fill="#2a2118">
+        <rect x="30" y="74" width="36" height="4.5"/><rect x="30" y="80" width="36" height="4.5"/>
+        <rect x="30" y="86" width="36" height="4.5"/>
+      </g>
+      <g fill="#7d6039">
+        <rect x="30" y="74" width="36" height="1.4"/><rect x="30" y="80" width="36" height="1.4"/>
+        <rect x="30" y="86" width="36" height="1.4"/>
+      </g>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Washroom. Basin, tub, and a cabinet whose mirror you would rather not check. -->
   <symbol id="scene-bathroom" viewBox="0 0 96 96">
-    <path d="M10 16h26v16a13 8 0 0 1-26 0z"/><path d="M23 16v-6h8"/>
-    <path d="M62 58h26v22a6 6 0 0 1-6 6H68a6 6 0 0 1-6-6z"/><path d="M60 58h30"/>
-    <path d="M14 74h16v12H14z"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <rect x="10" y="16" width="26" height="15" rx="2" fill="#343a3e"/>
+      <rect x="10" y="16" width="26" height="2.6" rx="1.3" fill="#8b939a"/>
+      <ellipse cx="23" cy="30" rx="12" ry="6" fill="#1b2023"/>
+      <rect x="21" y="9" width="3" height="7" fill="#3c4046"/>
+      <rect x="21" y="9" width="3" height="1.6" fill="#8b939a"/>
+      <rect x="62" y="56" width="27" height="26" rx="5" fill="#31373a"/>
+      <rect x="62" y="56" width="27" height="3" rx="1.5" fill="#8b939a"/>
+      <rect x="65" y="61" width="21" height="18" rx="3" fill="#12171a"/>
+      <ellipse cx="75" cy="70" rx="7" ry="4" fill="#080b0d"/>
+      <rect x="12" y="70" width="17" height="17" rx="1" fill="#2f251c"/>
+      <rect x="12" y="70" width="17" height="2.4" fill="#8a6a3e"/>
+      <rect x="15" y="74" width="11" height="9" rx="1" fill="#5b6166"/>
+      <rect x="15" y="74" width="11" height="2" rx="1" fill="#98a1a7" opacity=".7"/>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Bedchamber. The bed is made. Nobody has slept in it for a while. -->
   <symbol id="scene-bedroom" viewBox="0 0 96 96">
-    <path d="M10 14h34v40H10z"/><path d="M10 28h34"/><path d="M14 18h12v8H14z"/>
-    <path d="M58 16h18v14H58z"/><path d="M67 30v6"/>
-    <path d="M56 62h30v22H56z"/><path d="M62 62v22M70 62v22M78 62v22"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <rect x="9" y="13" width="35" height="42" rx="2" fill="#2c2119"/>
+      <rect x="9" y="13" width="35" height="3" rx="1.5" fill="#8a6a3e"/>
+      <rect x="12" y="17" width="29" height="34" rx="2" fill="#3a2a26"/>
+      <rect x="13" y="18" width="12" height="9" rx="2" fill="#7d6b60"/>
+      <rect x="12" y="33" width="29" height="18" fill="#241a18"/>
+      <rect x="9" y="52" width="35" height="3.5" rx="1.5" fill="#070604"/>
+      <rect x="57" y="15" width="19" height="16" rx="1" fill="#2f251c"/>
+      <rect x="59" y="17" width="15" height="12" rx="1" fill="#4d565c"/>
+      <rect x="59" y="17" width="15" height="4" fill="#98a1a7" opacity=".55"/>
+      <rect x="65" y="31" width="3" height="6" fill="#2f251c"/>
+      <rect x="56" y="61" width="31" height="23" rx="1" fill="#2f251c"/>
+      <rect x="56" y="61" width="31" height="2.6" fill="#b08a52"/>
+      <g fill="#191309"><rect x="59" y="66" width="25" height="6" rx="1"/><rect x="59" y="75" width="25" height="6" rx="1"/></g>
+      <g fill="#6d5533"><rect x="69" y="68" width="5" height="1.8" rx=".9"/><rect x="69" y="77" width="5" height="1.8" rx=".9"/></g>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
   <!-- Parlour. Proof tile for the rendered treatment (#62): painted, not drawn.
@@ -194,77 +269,296 @@
     </g>
   </symbol>
 
+  <!-- Dining Hall. A long table still laid, and the chair at the head pushed back. -->
   <symbol id="scene-dining-room" viewBox="0 0 96 96">
-    <path d="M22 34h52v28H22z"/>
-    <path d="M10 38h10v20H10zM76 38h10v20H76z"/>
-    <path d="M34 22h12v10H34zM50 22h12v10H50z"/>
-    <path d="M34 64h12v10H34zM50 64h12v10H50z"/>
-    <circle cx="48" cy="48" r="6"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <rect x="9" y="37" width="12" height="21" rx="1" fill="#2f251c"/>
+      <rect x="9" y="37" width="12" height="2.4" fill="#8a6a3e"/>
+      <rect x="75" y="37" width="12" height="21" rx="1" fill="#2f251c"/>
+      <rect x="75" y="37" width="12" height="2.4" fill="#8a6a3e"/>
+      <g fill="#241b13">
+        <rect x="34" y="20" width="12" height="11" rx="1"/><rect x="50" y="20" width="12" height="11" rx="1"/>
+        <rect x="34" y="65" width="12" height="11" rx="1"/>
+      </g>
+      <g fill="#6d5433">
+        <rect x="34" y="20" width="12" height="2" rx="1"/><rect x="50" y="20" width="12" height="2" rx="1"/>
+        <rect x="34" y="65" width="12" height="2" rx="1"/>
+      </g>
+      <g transform="rotate(-24 56 72)">
+        <rect x="50" y="65" width="12" height="11" rx="1" fill="#241b13"/>
+        <rect x="50" y="65" width="12" height="2" rx="1" fill="#6d5433"/>
+      </g>
+      <rect x="22" y="34" width="52" height="28" rx="2" fill="#33261b"/>
+      <rect x="22" y="34" width="52" height="3" rx="1.5" fill="#a5814c"/>
+      <rect x="22" y="59" width="52" height="3" fill="#0a0806"/>
+      <ellipse cx="34" cy="49" rx="6" ry="4" fill="#8b939a" opacity=".45"/>
+      <ellipse cx="62" cy="47" rx="5.5" ry="3.6" fill="#8b939a" opacity=".4"/>
+      <rect x="46.6" y="40" width="2.8" height="9" rx="1" fill="#6f6547"/>
+      <rect x="45" y="48" width="6" height="2" rx="1" fill="#8c8368"/>
+      <rect x="47" y="33" width="2" height="7" rx="1" fill="#e8d3a0"/>
+      <ellipse cx="48" cy="31.6" rx="2.2" ry="3.2" fill="#ffcf7a"/>
+      <circle cx="48" cy="33" r="10" fill="#ffcf7a" opacity=".14"/>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Pantry. Shelves worth rummaging, and a crate somebody already went through. -->
   <symbol id="scene-storage" viewBox="0 0 96 96">
-    <path d="M6 12h22v72H6z"/><path d="M6 36h22M6 60h22"/>
-    <path d="M11 18h5v10h-5zM19 18h5v10h-5zM11 42h5v10h-5zM19 42h5v10h-5z"/>
-    <path d="M68 14h22v72H68z"/><path d="M68 38h22M68 62h22"/>
-    <path d="M74 20h5v10h-5zM82 44h5v10h-5z"/>
-    <path d="M40 72h18v14H40z"/><path d="M40 79h18"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <g fill="#2b2119">
+        <rect x="5" y="11" width="23" height="73" rx="1"/><rect x="67" y="13" width="23" height="73" rx="1"/>
+      </g>
+      <g fill="#7d6039">
+        <rect x="5" y="34" width="23" height="2.2"/><rect x="5" y="58" width="23" height="2.2"/>
+        <rect x="67" y="36" width="23" height="2.2"/><rect x="67" y="60" width="23" height="2.2"/>
+      </g>
+      <g fill="#141009"><rect x="5" y="11" width="23" height="21"/><rect x="67" y="13" width="23" height="21"/></g>
+      <g fill="#4f6a4a"><rect x="9" y="17" width="6" height="13" rx="2"/><rect x="18" y="19" width="6" height="11" rx="2"/></g>
+      <g fill="#6b5a34"><rect x="10" y="41" width="6" height="13" rx="2"/><rect x="19" y="43" width="5" height="11" rx="2"/></g>
+      <g fill="#4a5a63"><rect x="72" y="19" width="6" height="13" rx="2"/><rect x="81" y="42" width="6" height="14" rx="2"/></g>
+      <rect x="38" y="70" width="21" height="17" rx="1" fill="#33271d"/>
+      <rect x="38" y="70" width="21" height="2.4" fill="#96753f"/>
+      <rect x="38" y="77" width="21" height="1.8" fill="#0f0b07"/>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Kitchen. Something is still warm on the range, which is its own kind of wrong. -->
   <symbol id="scene-kitchen" viewBox="0 0 96 96">
-    <path d="M28 8h40v20H28z"/><path d="M36 8v20M60 8v20"/>
-    <path d="M40 32h16v10H40z"/><path d="M38 32h20"/>
-    <path d="M6 40h16v40H6z"/><path d="M6 56h16"/>
-    <path d="M74 44h16v34H74z"/><path d="M82 44v34"/>
-    <path d="M42 20c0-4 4-4 4-8M52 20c0-4 4-4 4-8"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <rect x="27" y="7" width="42" height="21" rx="2" fill="#2a2f33"/>
+      <rect x="27" y="7" width="42" height="2.8" rx="1.4" fill="#8b939a"/>
+      <g fill="#0e1113"><rect x="31" y="12" width="14" height="12" rx="1"/><rect x="51" y="12" width="14" height="12" rx="1"/></g>
+      <rect x="31" y="21" width="14" height="3" fill="#c25a1e" opacity=".6"/>
+      <rect x="39" y="31" width="18" height="10" rx="2" fill="#3c4046"/>
+      <rect x="39" y="31" width="18" height="2.2" rx="1.1" fill="#98a1a7"/>
+      <ellipse cx="48" cy="31" rx="9" ry="2.4" fill="#0e1113"/>
+      <g fill="#e0d3bc" opacity=".22">
+        <rect x="43" y="12" width="1.6" height="8" rx=".8"/><rect x="53" y="12" width="1.6" height="8" rx=".8"/>
+      </g>
+      <rect x="5" y="39" width="18" height="41" rx="1" fill="#2f251c"/>
+      <rect x="5" y="39" width="18" height="2.6" fill="#b08a52"/>
+      <rect x="5" y="55" width="18" height="1.8" fill="#0a0806"/>
+      <rect x="73" y="43" width="18" height="35" rx="1" fill="#2f251c"/>
+      <rect x="73" y="43" width="18" height="2.6" fill="#b08a52"/>
+      <rect x="81.5" y="45" width="1.6" height="33" fill="#0a0806"/>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Reliquary. A goal tile, so it takes the strongest treatment: a shrine, candles still burning, and the relic waiting in the alcove. -->
   <symbol id="scene-evil-temple" viewBox="0 0 96 96">
-    <path d="M24 30h48v40H24z" stroke-width="2.4"/>
-    <path d="M24 30l10-12h28l10 12" stroke-width="2.4"/>
-    <path d="M48 42v18M39 51h18" stroke-width="2.4"/>
-    <path d="M30 74v10M66 74v10"/>
-    <path d="M14 40v22M82 40v22"/>
-    <path d="M14 40c0-5 3-8 3-8M82 40c0-5-3-8-3-8"/>
-    <path d="M36 78h24" stroke-opacity=".6"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#17120e"/>
+      <g fill="#221a14">
+        <rect y="6" width="96" height="13"/><rect y="32" width="96" height="13"/>
+        <rect y="58" width="96" height="13"/><rect y="84" width="96" height="12"/>
+      </g>
+      <g fill="#0a0806" opacity=".7">
+        <rect y="19" width="96" height="1.4"/><rect y="45" width="96" height="1.4"/>
+        <rect y="71" width="96" height="1.4"/>
+      </g>
+      <path d="M22 30l12-14h28l12 14z" fill="#262b2f"/>
+      <rect x="30" y="16" width="36" height="4" fill="#7f8b93"/>
+      <rect x="23" y="30" width="50" height="41" rx="1" fill="#22262a"/>
+      <rect x="23" y="30" width="50" height="3" fill="#79848c"/>
+      <rect x="34" y="38" width="28" height="27" rx="1" fill="#07080a"/>
+      <rect x="41" y="44" width="14" height="17" rx="6" fill="#3a2f14"/>
+      <ellipse cx="48" cy="50" rx="7" ry="8" fill="#c9a24b" opacity=".55"/>
+      <ellipse cx="48" cy="50" rx="3.4" ry="4" fill="#f0d79a" opacity=".7"/>
+      <rect x="23" y="68" width="50" height="3.4" fill="#0a0c0e"/>
+      <g fill="#2b3034">
+        <rect x="12" y="40" width="7" height="24" rx="1"/><rect x="77" y="40" width="7" height="24" rx="1"/>
+      </g>
+      <g fill="#7f8b93"><rect x="12" y="40" width="7" height="2" rx="1"/><rect x="77" y="40" width="7" height="2" rx="1"/></g>
+      <g fill="#e8d3a0"><rect x="14.4" y="33" width="2.2" height="7" rx="1"/><rect x="79.4" y="33" width="2.2" height="7" rx="1"/></g>
+      <g fill="#ffcf7a"><ellipse cx="15.5" cy="31.5" rx="2.4" ry="3.4"/><ellipse cx="80.5" cy="31.5" rx="2.4" ry="3.4"/></g>
+      <g fill="#ffcf7a" opacity=".16"><circle cx="15.5" cy="33" r="11"/><circle cx="80.5" cy="33" r="11"/></g>
+      <rect x="28" y="74" width="40" height="3" rx="1.5" fill="#1a1d20"/>
+      <path d="M0 96h96V70C70 84 26 84 0 70z" fill="#f0bd7c" opacity=".08"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Veranda. The way out of the house, and the last boards under your feet before the grass starts. -->
   <symbol id="scene-patio" viewBox="0 0 96 96">
-    <path d="M6 20h84"/><path d="M14 20v14M30 20v14M46 20v14M62 20v14M78 20v14"/>
-    <path d="M6 34h84"/>
-    <path d="M12 60h26v18H12z"/><path d="M12 68h26"/>
-    <path d="M64 58h18v22H64z"/><path d="M68 58c0-6 5-9 5-9s5 3 5 9"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#141810"/>
+      <g fill="#212a19">
+        <ellipse cx="18" cy="28" rx="21" ry="13"/><ellipse cx="79" cy="22" rx="17" ry="11"/>
+        <ellipse cx="74" cy="84" rx="22" ry="12"/><ellipse cx="13" cy="74" rx="16" ry="10"/>
+      </g>
+      <g fill="#090c07" opacity=".6"><ellipse cx="48" cy="10" rx="30" ry="8"/></g>
+      <g fill="#2c2a22">
+        <rect x="4" y="18" width="88" height="4" rx="1"/>
+        <rect x="13" y="20" width="3.4" height="15"/><rect x="29" y="20" width="3.4" height="15"/>
+        <rect x="61" y="20" width="3.4" height="15"/><rect x="77" y="20" width="3.4" height="15"/>
+      </g>
+      <rect x="4" y="18" width="88" height="1.6" rx=".8" fill="#8c8368"/>
+      <rect x="4" y="34" width="88" height="3" rx="1" fill="#20201a"/>
+      <rect x="11" y="58" width="28" height="20" rx="2" fill="#2c2a22"/>
+      <rect x="11" y="58" width="28" height="2.6" rx="1.3" fill="#8c8368"/>
+      <rect x="11" y="66" width="28" height="1.8" fill="#101208"/>
+      <ellipse cx="25" cy="80" rx="15" ry="3.4" fill="#090c07" opacity=".8"/>
+      <path d="M64 80V60h18v20z" fill="#332f22"/>
+      <rect x="64" y="60" width="18" height="2.4" fill="#7d7355"/>
+      <path d="M67 60c0-8 6-11 6-11s6 3 6 11z" fill="#24351f"/>
+      <path d="M69 56c1-4 4-6 4-6s3 2 4 6z" fill="#46603a"/>
+      <path d="M0 0h96v26C70 16 26 16 0 26z" fill="#cfeef5" opacity=".07"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Carriage House. A wheel off its axle, a bench of tools, and one of them missing. -->
   <symbol id="scene-garage" viewBox="0 0 96 96">
-    <circle cx="26" cy="30" r="16"/><circle cx="26" cy="30" r="4"/>
-    <path d="M26 14v32M10 30h32M15 19l22 22M37 19L15 41" stroke-opacity=".6"/>
-    <path d="M60 60h30v20H60z"/><path d="M60 68h30"/>
-    <path d="M66 20v18M74 20l6 8-6 8"/>
-    <path d="M12 70h26v14H12z"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#141810"/>
+      <g fill="#212a19">
+        <ellipse cx="18" cy="28" rx="21" ry="13"/><ellipse cx="79" cy="22" rx="17" ry="11"/>
+        <ellipse cx="74" cy="84" rx="22" ry="12"/><ellipse cx="13" cy="74" rx="16" ry="10"/>
+      </g>
+      <g fill="#090c07" opacity=".6"><ellipse cx="48" cy="10" rx="30" ry="8"/></g>
+      <circle cx="25" cy="30" r="16" fill="#2c2a22"/>
+      <circle cx="25" cy="30" r="16" fill="none" stroke="#6f6547" stroke-width="2.2"/>
+      <circle cx="25" cy="30" r="4.5" fill="#4a4433"/>
+      <g stroke="#5d5540" stroke-width="1.6" opacity=".85">
+        <path d="M25 14v32M9 30h32M14 19l22 22M36 19L14 41"/>
+      </g>
+      <ellipse cx="25" cy="47" rx="16" ry="3" fill="#090c07" opacity=".75"/>
+      <rect x="58" y="58" width="33" height="22" rx="1" fill="#2c2a22"/>
+      <rect x="58" y="58" width="33" height="2.6" fill="#8c8368"/>
+      <rect x="58" y="66" width="33" height="1.8" fill="#101208"/>
+      <rect x="61" y="80" width="3" height="10" fill="#20201a"/><rect x="85" y="80" width="3" height="10" fill="#20201a"/>
+      <g fill="#7c848a"><rect x="63" y="18" width="2.6" height="20" rx="1"/><rect x="60" y="16" width="9" height="3" rx="1"/></g>
+      <path d="M74 18l8 9-8 9z" fill="#3c4046"/>
+      <path d="M74 18l8 9-8 3z" fill="#8b939a" opacity=".7"/>
+      <path d="M0 0h96v26C70 16 26 16 0 26z" fill="#cfeef5" opacity=".07"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Lawn. Long grass, a stump, and a stone that has sunk into the turf. Three of these in the deck. -->
   <symbol id="scene-yard" viewBox="0 0 96 96">
-    <path d="M10 84c0-14-3-20-6-24 7 0 13 7 13 24"/>
-    <path d="M84 84c0-14 3-20 6-24-7 0-13 7-13 24"/>
-    <path d="M22 24c0-9-2-13-4-16 5 0 9 5 9 16"/>
-    <path d="M74 26c0-9 2-13 4-16-5 0-9 5-9 16"/>
-    <path d="M60 68a10 7 0 1 0 20 0 10 7 0 1 0-20 0"/>
-    <path d="M18 46v14M18 46l-6-4M18 52l7-5"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#141810"/>
+      <g fill="#212a19">
+        <ellipse cx="18" cy="28" rx="21" ry="13"/><ellipse cx="79" cy="22" rx="17" ry="11"/>
+        <ellipse cx="74" cy="84" rx="22" ry="12"/><ellipse cx="13" cy="74" rx="16" ry="10"/>
+      </g>
+      <g fill="#090c07" opacity=".6"><ellipse cx="48" cy="10" rx="30" ry="8"/></g>
+      <path d="M9 86c0-15-3-21-6-25 8 0 14 8 14 25z" fill="#24351f"/>
+      <path d="M87 86c0-15 3-21 6-25-8 0-14 8-14 25z" fill="#24351f"/>
+      <path d="M9 86c0-15-3-21-6-25 5 3 8 10 9 25z" fill="#46603a"/>
+      <path d="M22 26c0-10-2-14-4-17 6 0 10 6 10 17z" fill="#24351f"/>
+      <path d="M76 28c0-10 2-14 4-17-6 0-10 6-10 17z" fill="#24351f"/>
+      <ellipse cx="70" cy="70" rx="12" ry="8" fill="#2b2a20"/>
+      <ellipse cx="70" cy="68" rx="12" ry="8" fill="#3f3b2a"/>
+      <ellipse cx="70" cy="68" rx="7" ry="4.6" fill="#57503a"/>
+      <g stroke="#2b2a20" stroke-width="1" opacity=".8" fill="none">
+        <ellipse cx="70" cy="68" rx="4" ry="2.6"/><ellipse cx="70" cy="68" rx="9.5" ry="6.2"/>
+      </g>
+      <path d="M15 62c-2-9-1-14 1-17 3 4 4 10 3 17z" fill="#3a3f42"/>
+      <path d="M16 45c2 3 3 9 2 17l-1-1c1-8 0-13-1-16z" fill="#828b90" opacity=".7"/>
+      <ellipse cx="16" cy="63" rx="7" ry="2.4" fill="#090c07" opacity=".7"/>
+      <path d="M0 0h96v26C70 16 26 16 0 26z" fill="#cfeef5" opacity=".07"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Arbour. An arch gone to bramble over a bench nobody has sat on in a long time. -->
   <symbol id="scene-sitting-area" viewBox="0 0 96 96">
-    <path d="M18 46a30 30 0 0 1 60 0" stroke-width="2.4"/>
-    <path d="M22 56h52v10H22z"/><path d="M28 66v14M68 66v14"/><path d="M22 74h52"/>
-    <path d="M12 78c0-10 4-14 4-14s4 4 4 14"/>
-    <path d="M76 78c0-10 4-14 4-14s4 4 4 14"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#141810"/>
+      <g fill="#212a19">
+        <ellipse cx="18" cy="28" rx="21" ry="13"/><ellipse cx="79" cy="22" rx="17" ry="11"/>
+        <ellipse cx="74" cy="84" rx="22" ry="12"/><ellipse cx="13" cy="74" rx="16" ry="10"/>
+      </g>
+      <g fill="#090c07" opacity=".6"><ellipse cx="48" cy="10" rx="30" ry="8"/></g>
+      <path d="M18 46a30 30 0 0 1 60 0h-5a25 25 0 0 0-50 0z" fill="#2c2a22"/>
+      <path d="M18 46a30 30 0 0 1 60 0h-2.5A27.5 27.5 0 0 0 20.5 46z" fill="#7d7355" opacity=".8"/>
+      <g fill="#24351f">
+        <ellipse cx="30" cy="30" rx="8" ry="5"/><ellipse cx="66" cy="30" rx="8" ry="5"/>
+        <ellipse cx="48" cy="20" rx="10" ry="5"/>
+      </g>
+      <g fill="#46603a" opacity=".8">
+        <ellipse cx="30" cy="29" rx="5" ry="2.6"/><ellipse cx="48" cy="19" rx="6" ry="2.6"/>
+      </g>
+      <rect x="21" y="54" width="54" height="12" rx="2" fill="#332f22"/>
+      <rect x="21" y="54" width="54" height="2.6" rx="1.3" fill="#8c8368"/>
+      <rect x="21" y="61" width="54" height="1.6" fill="#101208"/>
+      <g fill="#26241c"><rect x="26" y="66" width="4" height="15"/><rect x="66" y="66" width="4" height="15"/></g>
+      <ellipse cx="48" cy="82" rx="30" ry="4" fill="#090c07" opacity=".7"/>
+      <g fill="#24351f"><ellipse cx="12" cy="76" rx="7" ry="9"/><ellipse cx="84" cy="76" rx="7" ry="9"/></g>
+      <path d="M0 0h96v26C70 16 26 16 0 26z" fill="#cfeef5" opacity=".07"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
+  <!-- Herb Garden. Beds still worth something, if you can tell which of it is medicine in the dark. -->
   <symbol id="scene-garden" viewBox="0 0 96 96">
-    <path d="M8 16h32v16H8zM8 40h32v16H8zM8 64h32v16H8z"/>
-    <path d="M14 16v16M22 16v16M30 16v16M14 40v16M22 40v16M30 40v16"/>
-    <path d="M62 30h20l-3 20H65z"/><path d="M72 30V16"/>
-    <path d="M72 22c-5 0-8-3-8-8 5 0 8 3 8 8M72 26c5 0 8-3 8-8-5 0-8 3-8 8"/>
-    <path d="M60 66h26l-3 16H63z"/>
+    <g stroke="none">
+      <rect width="96" height="96" fill="#141810"/>
+      <g fill="#212a19">
+        <ellipse cx="18" cy="28" rx="21" ry="13"/><ellipse cx="79" cy="22" rx="17" ry="11"/>
+        <ellipse cx="74" cy="84" rx="22" ry="12"/><ellipse cx="13" cy="74" rx="16" ry="10"/>
+      </g>
+      <g fill="#090c07" opacity=".6"><ellipse cx="48" cy="10" rx="30" ry="8"/></g>
+      <g fill="#2b2a20">
+        <rect x="7" y="15" width="33" height="17" rx="1"/><rect x="7" y="39" width="33" height="17" rx="1"/>
+        <rect x="7" y="63" width="33" height="17" rx="1"/>
+      </g>
+      <g fill="#7d7355" opacity=".75">
+        <rect x="7" y="15" width="33" height="2"/><rect x="7" y="39" width="33" height="2"/>
+        <rect x="7" y="63" width="33" height="2"/>
+      </g>
+      <g fill="#1a1a12">
+        <rect x="9" y="19" width="29" height="11"/><rect x="9" y="43" width="29" height="11"/>
+        <rect x="9" y="67" width="29" height="11"/>
+      </g>
+      <g fill="#3f5a33">
+        <ellipse cx="15" cy="24" rx="4" ry="3"/><ellipse cx="24" cy="25" rx="4.5" ry="3.2"/><ellipse cx="33" cy="24" rx="3.6" ry="2.8"/>
+        <ellipse cx="16" cy="48" rx="4" ry="3"/><ellipse cx="26" cy="49" rx="4.2" ry="3"/>
+        <ellipse cx="14" cy="72" rx="3.4" ry="2.6"/><ellipse cx="30" cy="72" rx="4" ry="3"/>
+      </g>
+      <path d="M62 32h21l-3 20H65z" fill="#332f22"/>
+      <path d="M62 32h21l-.6 4H62.6z" fill="#8c8368"/>
+      <rect x="71" y="14" width="2.6" height="18" fill="#3f5a33"/>
+      <path d="M72 22c-5 0-8-3-8-8 5 0 8 3 8 8zM72 26c5 0 8-3 8-8-5 0-8 3-8 8z" fill="#46603a"/>
+      <path d="M60 68h27l-3 17H63z" fill="#2b2a20"/>
+      <path d="M60 68h27l-.5 3H60.5z" fill="#6f6547"/>
+      <path d="M0 0h96v26C70 16 26 16 0 26z" fill="#cfeef5" opacity=".07"/>
+      <rect width="96" height="96" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
   <!-- Family Plot. Proof tile 2 of 2 (#62), and the goal tile, so it takes the
@@ -537,5 +831,59 @@
     <path d="M7.6 19.6l2 1.2-.6 1.8-2.2-.8z" fill="currentColor" fill-opacity=".5" stroke-width=".9"/>
     <path d="M15 20.2l2.2.6-.4 1.8-2.2-.4z" fill="currentColor" fill-opacity=".5" stroke-width=".9"/>
     <circle cx="11.8" cy="22.2" r=".8" fill="currentColor"/>
+  </symbol>
+
+  <!-- ========================= The verdicts =========================
+       Self-lit like the rich scenes: these carry their own colour because the
+       end of a run steps outside the night palette entirely — the win is the
+       game's only sunrise, the loss its only spilled blood. -->
+
+  <!-- Dawn over the Family Plot: the sun up at last, the fresh grave beside a
+       figure who stayed to see it. Drawn wide, a film frame rather than a tile. -->
+  <symbol id="verdict-dawn" viewBox="0 0 240 120">
+    <rect x="0" y="0" width="240" height="120" fill="url(#vg-dawnsky)" stroke="none"/>
+    <circle cx="120" cy="86" r="26" fill="#e8c47a" stroke="none" opacity=".95"/>
+    <circle cx="120" cy="86" r="40" fill="#e8c47a" stroke="none" opacity=".22"/>
+    <circle cx="120" cy="86" r="58" fill="#e8b25c" stroke="none" opacity=".1"/>
+    <g stroke="#e8c47a" stroke-width="1.6" opacity=".55">
+      <path d="M120 40V22"/><path d="M84 50L70 36"/><path d="M156 50l14-14"/>
+      <path d="M66 74H44"/><path d="M174 74h22"/>
+      <path d="M96 34l-6-16" opacity=".5"/><path d="M144 34l6-16" opacity=".5"/>
+    </g>
+    <path d="M0 92c30-4 44-6 62-6 14 0 20 3 34 3s22-3 38-3c20 0 40 3 106 6v28H0z"
+          fill="#101217" stroke="none"/>
+    <g fill="#101217" stroke="none">
+      <path d="M30 92V72a7 7 0 0 1 14 0v20z"/>
+      <path d="M196 96V78a6 6 0 0 1 12 0v18z"/>
+      <rect x="62" y="80" width="12" height="14" rx="2"/>
+    </g>
+    <!-- the fresh grave, mounded -->
+    <path d="M170 93c4-7 16-7 20 0z" fill="#0a0b0d" stroke="none"/>
+    <!-- the one who buried it, shovel planted, facing the light -->
+    <g fill="#0a0b0d" stroke="none">
+      <circle cx="150" cy="60" r="6"/>
+      <path d="M144 67h12l-2 27h-8z"/>
+    </g>
+    <g stroke="#0a0b0d" stroke-width="3">
+      <path d="M163 63v31"/>
+      <path d="M156 61l7 3"/>
+    </g>
+    <path d="M158 94h10" stroke="#0a0b0d" stroke-width="4"/>
+  </symbol>
+
+  <!-- A handprint, dragged. Faint set-dressing behind the lost card; colour
+       comes from CSS so it stays a stain, never a graphic. -->
+  <symbol id="verdict-hand" viewBox="0 0 90 130">
+    <g fill="currentColor" stroke="none">
+      <ellipse cx="45" cy="52" rx="22" ry="26"/>
+      <path d="M20 34c-3-10-8-16-6-18s8 3 11 13z"/>
+      <path d="M32 26c-2-12-5-20-2-21s7 7 8 19z"/>
+      <path d="M45 24c0-13 2-21 5-20s4 9 3 21z"/>
+      <path d="M58 27c2-11 6-18 9-16s0 10-3 19z"/>
+      <path d="M68 42c5-7 10-10 12-8s-2 8-8 13z"/>
+      <path d="M30 74c-2 14-1 26 1 38 2-1 4-1 5-3-1-12-1-23 1-34z" opacity=".7"/>
+      <path d="M48 78c-1 12 0 22 1 32 2 0 4-1 5-2-1-10-1-19 0-29z" opacity=".55"/>
+      <path d="M62 72c0 9 1 16 3 24 1-1 3-2 3-3-1-8-2-14-2-21z" opacity=".4"/>
+    </g>
   </symbol>
 </svg>

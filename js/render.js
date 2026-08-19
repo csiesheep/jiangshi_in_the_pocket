@@ -26,11 +26,20 @@ function currentChoices() {
 // The three yard tiles are all "Lawn" and share one icon.
 const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
 const SCENE_ALIAS = ICON_ALIAS;
-// Scenes that paint themselves rather than being drawn in currentColor (#62).
-// They carry their own fills and end with a currentColor veil, so the world
-// cast and the dusk dial still reach them — but they must not be dimmed like
-// line art, hence the separate class. Grows as rooms are reworked.
-const SCENE_RICH = new Set(["family-room", "graveyard"]);
+// Scenes paint themselves rather than being drawn in currentColor (#62): they
+// carry their own fills and end with a currentColor veil, so the world cast and
+// the dusk dial still reach them. They must not be dimmed the way line art is,
+// which is what the class is for.
+//
+// All fourteen are painted now. The check stays rather than being deleted: it
+// is what a scene added later falls through, and falling through to the line-art
+// treatment is the safe direction — a new drawing rendered faint is a smaller
+// problem than a line drawing rendered at full opacity over the floor.
+const SCENE_RICH = new Set([
+  "foyer", "bathroom", "bedroom", "family-room", "dining-room", "storage",
+  "kitchen", "evil-temple",
+  "patio", "garage", "yard", "sitting-area", "garden", "graveyard",
+]);
 
 // Inject the icon sprite once, then reference symbols with <use href="#id">.
 // External-file <use> references are not dependably supported, so the sprite is
@@ -1547,8 +1556,46 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
   ov.className = opts.tone ? `overlay--${opts.tone}` : "";
   ov.classList.toggle("overlay--still", reducedMotion());
 
+  // The two endings dress the stage differently before the card arrives. The
+  // win gets the game's only sunrise; the loss bleeds down the veil. Fixed drip
+  // positions rather than random ones, per the house rule — the same ending
+  // should look the same twice.
+  if (opts.tone === "lost") {
+    const blood = document.createElement("div");
+    blood.className = "blood";
+    blood.setAttribute("aria-hidden", "true");
+    // [left %, length px, fall seconds, delay seconds]
+    const DRIPS = [
+      [6, 300, 8, 1.3], [17, 180, 6.5, 2.2], [29, 380, 9.5, 1.1],
+      [43, 220, 7, 3], [58, 330, 8.5, 1.7], [72, 190, 6, 2.6],
+      [86, 280, 7.5, 2], [95, 150, 5.5, 3.3],
+    ];
+    for (const [x, len, dur, delay] of DRIPS) {
+      const d = document.createElement("span");
+      d.className = "drip";
+      d.style.left = `${x}%`;
+      d.style.setProperty("--len", `${len}px`);
+      d.style.setProperty("--dur", `${dur}s`);
+      d.style.setProperty("--delay", `${delay}s`);
+      blood.appendChild(d);
+    }
+    ov.appendChild(blood);
+    const hand = icon("verdict", "hand", "verdict-hand");
+    if (hand) {
+      hand.setAttribute("viewBox", "0 0 90 130"); // not on the 24 grid
+      ov.appendChild(hand);
+    }
+  }
+
   const card = document.createElement("div");
   card.className = "overlay-card";
+  if (opts.tone === "won") {
+    const scene = icon("verdict", "dawn", "verdict-scene");
+    if (scene) {
+      scene.setAttribute("viewBox", "0 0 240 120"); // a film frame, not the 24 grid
+      card.appendChild(scene);
+    }
+  }
   const h = document.createElement("h2");
   h.textContent = title;
   card.appendChild(h);
