@@ -16,6 +16,7 @@ import {
   showOverlay,
   hideOverlay,
   loadIcons,
+  watchBoardSize,
   animateEntry,
   animateBreakIn,
   jumpScare,
@@ -692,6 +693,9 @@ async function main() {
     wireControls();
     paintSoundToggle();
     paintCopyIcon();
+    // Size the board off its pane before the first render, and keep it sized as
+    // the pane changes — the sidebar growing counts, not just the window.
+    watchBoardSize();
     startNewGame(seedFromUrl());
   } catch (err) {
     console.error(err);

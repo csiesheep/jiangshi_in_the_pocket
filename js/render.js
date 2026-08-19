@@ -563,6 +563,12 @@ export function renderBoard(game) {
   const board = game.board;
   const el = document.getElementById("board");
 
+  // Belt and braces alongside the ResizeObserver: a pane can change size for
+  // reasons no observer notification reliably lands for, and a board rendered
+  // at a stale tile size is very visible. fitBoard early-returns when nothing
+  // moved, so this costs one clientWidth read per render.
+  fitBoard();
+
   // Read before the wipe: clearing the board destroys the focused hotspot and
   // drops focus to <body>, which would strand a keyboard player mid-turn.
   const active = document.activeElement;
@@ -763,6 +769,62 @@ export function jumpScare(count = 0) {
     anim.finished.then(done).catch(done);
     setTimeout(done, duration + 250);
   });
+}
+
+// ---- Sizing the board off the pane, not the viewport ------------------------
+// --tile keyed on 19vh, which never saw how wide the column actually was: the
+// map stayed the same size whether it had 300px of room or 900px. These
+// constants mirror the CSS geometry — the focus is peek + tile + peek across
+// with a gap either side — so the tile can be solved from the space available.
+const FOCUS_SPAN = 1.84; // peek(.42) + tile(1) + peek(.42), in tiles
+const GAP_RATIO = 0.13; // --tile-gap once it is off its floor
+const GAP_FLOOR = 18; // px, the floor itself
+const BOARD_FILL = 0.88; // how much of the pane's short side the focus claims
+const TILE_MIN = 96;
+const TILE_MAX = 320;
+// Below this the layout is one column and the pane's height comes from its own
+// content — measuring it there would feed the tile back into its own budget.
+const TWO_COLUMN = "(min-width: 801px)";
+
+export function fitBoard() {
+  const pane = document.querySelector(".board-pane");
+  if (!pane) return;
+
+  const root = document.documentElement;
+  if (!window.matchMedia || !window.matchMedia(TWO_COLUMN).matches) {
+    // Stacked, there is nothing safe to measure: the pane's height comes from
+    // its own content, so reading it would feed the tile back into its own
+    // budget. And it would not help anyway — with the board above the sidebar
+    // it is the sidebar that runs out of room first, not the board. Hand the
+    // size back to the CSS clamp, which is what this layout has always used.
+    root.style.removeProperty("--tile");
+    return;
+  }
+
+  // Two columns: both axes are safe. The column is minmax(0, 1fr) so it bounds
+  // the board rather than the board setting it, and the row is stretched to a
+  // definite height.
+  const budget = BOARD_FILL * Math.min(pane.clientWidth, pane.clientHeight);
+  if (!(budget > 0)) return;
+
+  // Two regimes, because the gap scales with the tile until it hits its floor.
+  let tile = budget / (FOCUS_SPAN + 2 * GAP_RATIO);
+  if (tile * GAP_RATIO < GAP_FLOOR) tile = (budget - 2 * GAP_FLOOR) / FOCUS_SPAN;
+  tile = Math.max(TILE_MIN, Math.min(TILE_MAX, Math.round(tile)));
+
+  if (root.style.getPropertyValue("--tile") === `${tile}px`) return; // no-op writes churn layout
+  root.style.setProperty("--tile", `${tile}px`);
+}
+
+export function watchBoardSize() {
+  fitBoard();
+  const pane = document.querySelector(".board-pane");
+  if (pane && typeof ResizeObserver === "function") {
+    // The pane changes size for reasons the window does not see — the sidebar
+    // growing, the layout switching columns — so observe it rather than resize.
+    new ResizeObserver(() => fitBoard()).observe(pane);
+  }
+  window.addEventListener("resize", fitBoard);
 }
 
 // Take the choices away without taking the window with them. renderActions([])
