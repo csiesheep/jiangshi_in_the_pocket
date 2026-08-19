@@ -1,6 +1,6 @@
 // Rendering — reflects game + board state into the DOM. No game logic here.
 
-import { RULES, effectiveAttack } from "./engine.js";
+import { RULES, effectiveAttack, clockTime } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell } from "./audio.js";
 
@@ -66,6 +66,13 @@ export function uiIcon(name, cls) {
 
 export function formatHour(hour) {
   return `${hour - 12} PM`;
+}
+
+// Same wording as formatHour, with the minutes the deck has spent. Midnight is
+// the one that would read wrong as PM — and midnight is where this game ends,
+// so it is worth getting right.
+export function formatClock(c) {
+  return `${c.label} ${c.hour24 >= 24 ? "AM" : "PM"}`;
 }
 
 // Health has no upper bound in this ruleset — cowering adds 3 with no cap — so
@@ -192,20 +199,28 @@ function renderAttack(s) {
 // The hand sweeps round when the hour actually turns, which is the only time
 // the clock changes — every other render redraws it in place.
 let lastHour = null;
+let lastReading = null;
+let lastAngles = null;
 
 function renderHour(s) {
   const el = statBox("hud-hour");
   if (!el) return;
-  const angle = (s.hour % 12) * 30;
-  const face = clockFace(angle);
+  const c = clockTime(s);
+  // The hour hand creeps between the marks rather than snapping, because the
+  // hour really is draining the whole time — one card at a time.
+  const hourAngle = ((c.hour24 % 12) + c.minutes / 60) * 30;
+  const minuteAngle = c.minutes * 6;
+  const face = clockFace(hourAngle, minuteAngle);
   el.appendChild(face);
 
+  const reading = formatClock(c);
   const text = document.createElement("span");
   text.className = "statnum";
-  text.textContent = formatHour(s.hour);
+  text.textContent = reading;
   text.setAttribute("aria-hidden", "true");
   el.appendChild(text);
-  el.appendChild(srOnly(formatHour(s.hour)));
+  // Built from the same reading as the visible text, so the two cannot drift.
+  el.appendChild(srOnly(reading));
 
   // The hour is the only thing that moves the light. timePasses loses at
   // midnight before it can increment past 23, so 9/10/11 covers every state a
@@ -216,17 +231,30 @@ function renderHour(s) {
 
   const turned = lastHour != null && lastHour !== s.hour;
   lastHour = s.hour;
-  if (!turned) return;
+  if (turned && s.hour === RULES.FINAL_HOUR) strikeEleven(face);
 
-  if (s.hour === RULES.FINAL_HOUR) strikeEleven(face);
-  if (reducedMotion()) return;
-  const hand = face.querySelector(".clock-hand--hour");
-  if (hand && typeof hand.animate === "function") {
-    hand.animate(
-      [{ transform: `rotate(${angle - 30}deg)` }, { transform: `rotate(${angle}deg)` }],
-      { duration: 480, easing: "cubic-bezier(.3,.8,.4,1)" }
-    );
-  }
+  // The clock's heartbeat is now the draw, not the hour: every card that leaves
+  // the deck sweeps the hands. Diffing on the reading means a refresh that
+  // changed nothing else does not re-animate.
+  const moved = lastReading != null && lastReading !== c.label;
+  const from = lastAngles;
+  lastReading = c.label;
+  lastAngles = { hour: hourAngle, minute: minuteAngle };
+  if (!moved || !from || reducedMotion()) return;
+
+  sweep(face.querySelector(".clock-hand--minute"), from.minute, minuteAngle);
+  sweep(face.querySelector(".clock-hand--hour"), from.hour, hourAngle);
+}
+
+// Hands only ever go forwards. Crossing the top takes the minute hand from 306°
+// to 0°, which as a plain interpolation would rewind the whole face.
+function sweep(hand, from, to) {
+  if (!hand || typeof hand.animate !== "function") return;
+  const target = to < from ? to + 360 : to;
+  hand.animate(
+    [{ transform: `rotate(${from}deg)` }, { transform: `rotate(${target}deg)` }],
+    { duration: 400, easing: "cubic-bezier(.3,.8,.4,1)" }
+  );
 }
 
 // The last hour, called out. The ambient palette shift is handled by the hour
@@ -247,7 +275,7 @@ function strikeEleven(face) {
   );
 }
 
-function clockFace(angle) {
+function clockFace(hourAngle, minuteAngle = 0) {
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("class", "staticon clock");
@@ -272,13 +300,15 @@ function clockFace(angle) {
     svg.appendChild(tick);
   }
 
-  // Always on the hour, so the minute hand points at twelve.
+  // Roughly 8.6 minutes of sweep per card spent.
   const minute = document.createElementNS(NS, "line");
   minute.setAttribute("x1", "12");
   minute.setAttribute("y1", "12");
   minute.setAttribute("x2", "12");
   minute.setAttribute("y2", "5.8");
   minute.setAttribute("class", "clock-hand clock-hand--minute");
+  minute.style.transformOrigin = "12px 12px";
+  minute.style.transform = `rotate(${minuteAngle}deg)`;
   svg.appendChild(minute);
 
   const hour = document.createElementNS(NS, "line");
@@ -288,7 +318,7 @@ function clockFace(angle) {
   hour.setAttribute("y2", "8");
   hour.setAttribute("class", "clock-hand clock-hand--hour");
   hour.style.transformOrigin = "12px 12px";
-  hour.style.transform = `rotate(${angle}deg)`;
+  hour.style.transform = `rotate(${hourAngle}deg)`;
   svg.appendChild(hour);
 
   return svg;
