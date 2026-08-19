@@ -102,16 +102,24 @@ async function loadManifest(c) {
     const res = await fetch("assets/audio/manifest.json");
     if (!res.ok) throw new Error(`no manifest (${res.status})`);
     const manifest = await res.json();
-    // Each cue loads independently: one missing file must not cost the others.
+    // A cue is one file, or a list of takes to choose between — footsteps want
+    // variation or the third one in a row starts sounding like a machine.
     await Promise.all(
-      Object.entries(manifest).map(async ([name, file]) => {
-        try {
-          const r = await fetch(`assets/audio/${file}`);
-          if (!r.ok) return;
-          samples.set(name, await c.decodeAudioData(await r.arrayBuffer()));
-        } catch {
-          /* this cue stays synthesised */
-        }
+      Object.entries(manifest).map(async ([name, entry]) => {
+        const files = Array.isArray(entry) ? entry : [entry];
+        const takes = await Promise.all(
+          files.map(async (file) => {
+            try {
+              const r = await fetch(`assets/audio/${file}`);
+              if (!r.ok) return null;
+              return await c.decodeAudioData(await r.arrayBuffer());
+            } catch {
+              return null; // this take stays out; the others may still land
+            }
+          })
+        );
+        const usable = takes.filter(Boolean);
+        if (usable.length) samples.set(name, usable);
       })
     );
   } catch {
@@ -122,15 +130,18 @@ async function loadManifest(c) {
 
 // Play a recorded cue if one is loaded. Returns false when there is nothing to
 // play, which is the signal for the caller to synthesise instead.
-function sample(name, gain = 1) {
+function sample(name, gain = 1, delay = 0) {
   const c = live();
   if (!c || !samples.has(name)) return false;
+  const takes = samples.get(name);
   const src = c.createBufferSource();
-  src.buffer = samples.get(name);
+  // Math.random is fine here for the same reason it is fine in noise(): this
+  // picks a take, never a game outcome, and never touches the seeded run.
+  src.buffer = takes[takes.length === 1 ? 0 : Math.floor(Math.random() * takes.length)];
   const g = c.createGain();
   g.gain.value = gain;
   src.connect(g).connect(master);
-  src.start(c.currentTime);
+  src.start(c.currentTime + delay);
   return true;
 }
 
@@ -431,4 +442,16 @@ export function verdictSting(won) {
     osc.start(t + i * 0.06);
     osc.stop(t + len + 0.05);
   });
+}
+
+// Walking into the next room. Two steps, because one reads as a stumble and
+// three as a corridor, and the surface follows the world — boards inside,
+// grass out the back. That is the same distinction the floors draw, heard
+// rather than seen, and it is why these are the one cue with no synthesised
+// fallback: a convincing footstep is not something two oscillators do, and a
+// bad one is worse than silence.
+export function footsteps(world = "indoor") {
+  const cue = world === "outdoor" ? "step-grass" : "step-wood";
+  sample(cue, 0.55);
+  sample(cue, 0.45, 0.19);
 }

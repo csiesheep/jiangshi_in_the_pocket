@@ -1,0 +1,18 @@
+{
+  "door": "door-open.ogg",
+  "break": "wall-break.ogg",
+  "hit": "hit.ogg",
+  "item-metal": "item-metal.ogg",
+  "item-wood": "item-wood.ogg",
+  "item-small": "item-small.ogg",
+  "step-wood": [
+    "step-wood-1.ogg",
+    "step-wood-2.ogg",
+    "step-wood-3.ogg"
+  ],
+  "step-grass": [
+    "step-grass-1.ogg",
+    "step-grass-2.ogg",
+    "step-grass-3.ogg"
+  ]
+}

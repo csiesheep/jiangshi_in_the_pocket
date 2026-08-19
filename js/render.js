@@ -2,7 +2,7 @@
 
 import { RULES, effectiveAttack, clockTime } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
-import { combatSting, doorCreak, tollBell, breakThrough, itemPickup } from "./audio.js";
+import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -1069,6 +1069,8 @@ export function animateEntry(dir) {
   const back = OPPOSITE[dir];
   const backEdge = document.querySelector(`.focus-centre .tilebox .edgemark.${DIR_CLASS[back]}`);
   if (backEdge && !backEdge.classList.contains("edgemark--broken")) doorCreak();
+  // And the walk in, on whatever the floor is here — boards or grass.
+  footsteps(document.getElementById("board")?.classList.contains("board--outdoor") ? "outdoor" : "indoor");
 
   if (reducedMotion()) return;
 

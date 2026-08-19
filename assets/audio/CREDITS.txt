@@ -1,8 +1,9 @@
 Audio provenance for Grave Errand
 =================================
 
-There are currently NO audio files in this directory. Every cue in the game is
-synthesised in js/audio.js from oscillators and a noise buffer.
+Twelve files, all CC0, listed in full below. Every cue NOT listed here is still
+synthesised in js/audio.js from oscillators and a noise buffer — see the cue
+table at the bottom for which is which.
 
 If recorded cues are added, each one MUST be listed below before it ships, and
 this list must stay complete — including for public-domain and CC0 files, where
@@ -25,6 +26,39 @@ Format, one block per file:
   licence:  <CC0 / CC-BY-4.0 / Pixabay / ...>
   changes:  <trimmed, normalised, converted, or "none">
   added:    <YYYY-MM-DD>
+
+Files in this directory
+-----------------------
+Both packs are Kenney's, both CC0, both stating "You may use these assets in
+personal and commercial projects. Credit would be nice but is not mandatory."
+Credited here anyway, and on credits.html, because it costs nothing and CC0
+without provenance is just an unsourced file.
+
+  source:   https://kenney.nl/assets/rpg-audio  (kenney_rpg-audio.zip)
+  author:   Kenney Vleugels (kenney.nl)
+  licence:  CC0 1.0 — http://creativecommons.org/publicdomain/zero/1.0/
+  changes:  none; extracted from the pack unmodified
+  added:    2026-08-19
+    door-open.ogg    <- Audio/doorOpen_2.ogg
+    item-metal.ogg   <- Audio/drawKnife1.ogg
+    item-small.ogg   <- Audio/handleSmallLeather.ogg
+
+  source:   https://kenney.nl/assets/impact-sounds  (kenney_impact-sounds.zip)
+  author:   Kenney Vleugels (kenney.nl)
+  licence:  CC0 1.0 — http://creativecommons.org/publicdomain/zero/1.0/
+  changes:  none; extracted from the pack unmodified
+  added:    2026-08-19
+    wall-break.ogg   <- Audio/impactMining_000.ogg
+    hit.ogg          <- Audio/impactPunch_heavy_000.ogg
+    item-wood.ogg    <- Audio/impactWood_medium_000.ogg
+    step-wood-1.ogg  <- Audio/footstep_wood_000.ogg
+    step-wood-2.ogg  <- Audio/footstep_wood_002.ogg
+    step-wood-3.ogg  <- Audio/footstep_wood_004.ogg
+    step-grass-1.ogg <- Audio/footstep_grass_000.ogg
+    step-grass-2.ogg <- Audio/footstep_grass_002.ogg
+    step-grass-3.ogg <- Audio/footstep_grass_004.ogg
+
+Total 121 KB. Largest single cue 30 KB, against the 50 KB budget.
 
 How the manifest works
 ----------------------
@@ -50,3 +84,18 @@ Cue keys the code already understands:
   item-engine picking up the chainsaw
   item-liquid picking up oil / gasoline / soda
   item-small  picking up the candle
+  step-wood   walking in, on boards  (a list of takes, chosen between)
+  step-grass  walking in, on grass   (a list of takes, chosen between)
+
+Which cues are recorded, and which are still synthesised
+-------------------------------------------------------
+recorded:     door, break, hit, item-metal, item-wood, item-small,
+              step-wood, step-grass
+synthesised:  sting, bell, cower, relic, seam, win, death,
+              item-engine, item-liquid
+
+The synthesised ones are not an oversight. The bell is deliberate — the issue
+called it good as it is. The rest are sounds these two packs cannot serve
+honestly: a zombie snarl, a held breath, a relic found, a world changing
+temperature, an engine failing to catch. Something close-ish would be worse
+than the synth, which at least was written for the moment it plays in.
