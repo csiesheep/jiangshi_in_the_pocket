@@ -489,6 +489,8 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .focus-centre::before { animation: none; }
+  /* The arrow still points; it just stops moving. */
+  .doorway--explore .doorway-chev { animation: none; opacity: 1; }
 }
 /* ---- Floors ----------------------------------------------------------------
    Boards indoors, turf out the back. Kept near-monochrome and low-alpha on
@@ -655,9 +657,15 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
      hotspot that reaches onto the neighbour would be covering the very glimpse
      the player is deciding about. Along the wall it keeps the full 46px. */
   padding: 0;
-  display: grid;
-  place-items: center;
-  gap: 0;
+  /* The arrow is the first child and takes the outward end; the number and the
+     "?" follow, toward the room. Each direction just reverses or turns the
+     axis, so one set of children serves all four. */
+  display: flex;
+  align-items: center;
+  /* Pushed apart rather than centred: the arrow wants the outward end of the
+     button, the number the end facing the room you are standing in. */
+  justify-content: space-between;
+  gap: 1px;
   border: 2px solid color-mix(in srgb, var(--flame) 45%, var(--wall));
   border-radius: 10px;
   background: color-mix(in srgb, var(--room) 88%, black);
@@ -672,6 +680,15 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 /* An unexplored door reads differently from one you have already been through. */
 .doorway--explore { border-style: dashed; color: var(--text); }
 .doorway-face { font-size: 1.1rem; line-height: 1; }
+/* The number chip hangs off the button's corner, which means it escapes the
+   button's own box — and a corner pinned outward puts it on the neighbour, 4px
+   over for the north and west doors. It escapes getBoundingClientRect too, so
+   the #56 collision checks could not see it. Each direction pins the chip to
+   the corner facing the room instead. */
+.doorway.n kbd { top: auto; bottom: -8px; }
+.doorway.s kbd { bottom: auto; top: -8px; }
+.doorway.w kbd { left: auto; right: -8px; }
+.doorway.e kbd { right: auto; left: -8px; }
 .doorway kbd {
   position: absolute;
   top: -8px;
@@ -691,6 +708,38 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 .doorway.w { left: calc(-1 * var(--wall-w)); top: 50%; transform: translate(-50%, -50%); }
 .doorway.n, .doorway.s { min-height: 0; height: var(--edge); }
 .doorway.e, .doorway.w { min-width: 0; width: var(--edge); }
+.doorway.n, .doorway.s { flex-direction: column; padding: 3px 0; }
+.doorway.s { flex-direction: column-reverse; }
+.doorway.w, .doorway.e { flex-direction: row; padding: 0 3px; }
+.doorway.e { flex-direction: row-reverse; }
+
+/* ---- Direction arrows -------------------------------------------------------
+   The hotspots made doors clickable but nothing pointed: a glow and a number
+   chip do not say which way a choice takes you, nor that the arrow keys are
+   bound to them. The wrapper carries the rotation, so the chevron inside can
+   nudge along its own -Y and have that read as "outward" in all four
+   directions without four sets of keyframes. */
+.doorway-arrow { display: flex; flex: none; line-height: 0; color: var(--flame); }
+.doorway.s .doorway-arrow { transform: rotate(180deg); }
+.doorway.e .doorway-arrow { transform: rotate(90deg); }
+.doorway.w .doorway-arrow { transform: rotate(270deg); }
+.doorway-chev {
+  width: clamp(12px, calc(var(--edge) * .42), 22px);
+  height: clamp(12px, calc(var(--edge) * .42), 22px);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* The unexplored way is the one to lean on, the same emphasis the old action
+   list gave with action--primary. 1px of travel, because the button already
+   sits 1.4px off the neighbour and the arrow must not cross into it. */
+.doorway--explore .doorway-chev { animation: wayout 1.9s ease-in-out infinite; }
+@keyframes wayout {
+  0%, 100% { transform: translateY(0); opacity: .85; }
+  50%      { transform: translateY(-1px); opacity: 1; }
+}
 
 /* Door and broken-wall art, drawn for the north wall and rotated into place.
    The marker is square and centred on the wall, so the art's own centreline

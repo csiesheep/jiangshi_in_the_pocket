@@ -648,6 +648,8 @@ function mountDoorways(boardEl) {
     // The accessible name stays the full old label, so nothing regressed for a
     // screen reader when this moved off the panel.
     hot.setAttribute("aria-label", move.label);
+    // The number chip is absolutely positioned into the button's corner, so it
+    // stays a direct child and out of the flex flow.
     const n = pendingMoves.indexOf(move);
     if (n < 9) {
       const k = document.createElement("kbd");
@@ -655,11 +657,26 @@ function mountDoorways(boardEl) {
       k.setAttribute("aria-hidden", "true");
       hot.appendChild(k);
     }
-    const face = document.createElement("span");
-    face.className = "doorway-face";
-    face.setAttribute("aria-hidden", "true");
-    face.textContent = move.primary ? "?" : ARROW[dir];
-    hot.appendChild(face);
+    if (move.primary) {
+      const face = document.createElement("span");
+      face.className = "doorway-face";
+      face.setAttribute("aria-hidden", "true");
+      face.textContent = "?";
+      hot.appendChild(face);
+    }
+
+    // The arrow points the way out. Explored neighbours get it on its own —
+    // the glimpse through the door already says which room is there. Unexplored
+    // ways keep the "?" beside it: an arrow into the dark.
+    const arrow = document.createElement("span");
+    arrow.className = "doorway-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    const chev = icon("ui", "chevron", "doorway-chev");
+    if (chev) arrow.appendChild(chev);
+    else arrow.textContent = ARROW[dir]; // no sprite: the text arrow still points
+    // First child, so the flex direction can put it on the outward side.
+    hot.insertBefore(arrow, hot.firstChild);
+
     hot.addEventListener("click", move.onClick);
     group.appendChild(hot);
   }
