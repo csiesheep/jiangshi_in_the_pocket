@@ -474,25 +474,6 @@ function renderBackpack(game) {
     el.appendChild(row);
   }
 
-  // The relic is exempt from the carry limit, so it sits outside the slots.
-  if (s.totem) {
-    const row = document.createElement("div");
-    row.className = "slot slot--relic";
-    const art = icon("tile", "graveyard", "itemicon");
-    if (art) row.appendChild(art);
-    const text = document.createElement("span");
-    text.className = "slottext";
-    const name = document.createElement("span");
-    name.className = "slotname";
-    name.textContent = "The relic";
-    const eff = document.createElement("span");
-    eff.className = "sloteffect";
-    eff.textContent = "takes no slot · bury it to win";
-    text.appendChild(name);
-    text.appendChild(eff);
-    row.appendChild(text);
-    el.appendChild(row);
-  }
 }
 
 function itemEffect(game, id) {

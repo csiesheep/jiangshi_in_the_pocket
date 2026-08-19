@@ -289,7 +289,6 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   justify-content: center;
 }
 .slot--empty .slotname { color: var(--muted); font-style: italic; }
-.slot--relic { border-color: color-mix(in srgb, var(--gold) 45%, var(--border)); }
 .slottext { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .slotname { font-size: .86rem; color: var(--text); }
 .sloteffect { font-size: .72rem; color: var(--muted); }
