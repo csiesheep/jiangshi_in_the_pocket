@@ -1705,3 +1705,26 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   18%  { opacity: .7; }
   100% { opacity: 0; transform: translateY(14px); }
 }
+
+/* ---- Something crossing a room you are half looking at -----------------------
+   A slow shadow over a glimpse. Soft-edged and low-contrast: a shape you would
+   report seeing is a monster, and a shape you are not sure about is worse. It
+   rides inside the half-room, so the crop and the far-edge mask already frame
+   it. */
+.passing {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(0, 0, 0, .62) 38%, rgba(0, 0, 0, .62) 62%, transparent 100%);
+  width: 55%;
+  left: -60%;
+  animation: passing 2.4s ease-in-out forwards;
+}
+@keyframes passing {
+  0%   { left: -60%; opacity: 0; }
+  22%  { opacity: 1; }
+  78%  { opacity: 1; }
+  100% { left: 105%; opacity: 0; }
+}

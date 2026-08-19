@@ -3,7 +3,7 @@
 import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
-         cardTurn, doorwayTick, duckForScare, wallThump } from "./audio.js";
+         cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -974,6 +974,28 @@ function swingArt(row, iconId) {
   if (!art) return null;
   row.appendChild(art);
   return art;
+}
+
+// ---- The unseen --------------------------------------------------------------
+// A sound from a direction with nothing behind it, and sometimes something
+// crossing a room you are only half looking at.
+//
+// Deliberately NOT narrated: log() is not called here and the elements are
+// aria-hidden. A screen-reader player gets an honest game, because a live
+// region that cries wolf is not atmosphere, it is a lie in the only channel
+// they have.
+export function phantom(dir) {
+  phantomScratch(PAN_OF[dir] ?? 0);
+  if (reducedMotion()) return;
+
+  // If a neighbour happens to lie that way, something passes through it.
+  const half = document.querySelector(`.halfroom--${DIR_CLASS[dir]}`);
+  if (!half || half.querySelector(".passing")) return;
+  const shade = document.createElement("span");
+  shade.className = "passing";
+  shade.setAttribute("aria-hidden", "true");
+  half.appendChild(shade);
+  setTimeout(() => shade.remove(), 2600);
 }
 
 // ---- Telegraphing the zombie door ------------------------------------------

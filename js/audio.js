@@ -573,6 +573,37 @@ export function wallThump(pan = 0) {
   src.stop(t + 0.3);
 }
 
+// A phantom: something dragging along a wall that has nothing behind it. Drier
+// and thinner than the real thump so it does not read as a break-in about to
+// happen — it is meant to be doubted, not acted on.
+export function phantomScratch(pan = 0) {
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+
+  let out = master;
+  if (typeof c.createStereoPanner === "function") {
+    const p = c.createStereoPanner();
+    p.pan.value = Math.max(-1, Math.min(1, pan));
+    p.connect(master);
+    out = p;
+  }
+
+  const src = c.createBufferSource();
+  src.buffer = noise(c);
+  const band = c.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 6;
+  band.frequency.setValueAtTime(1500, t);
+  band.frequency.exponentialRampToValueAtTime(760, t + 0.42);
+  // Quiet on purpose. A phantom you cannot quite dismiss is worth more than one
+  // that makes you look.
+  const g = envelope(c, 0.05, 0.09, 0.4);
+  src.connect(band).connect(g).connect(out);
+  src.start(t);
+  src.stop(t + 0.55);
+}
+
 // The event window arriving: a card turned over. Short and papery, well under
 // the cues it introduces — this is punctuation, not an announcement.
 export function cardTurn() {

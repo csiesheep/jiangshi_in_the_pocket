@@ -14,6 +14,7 @@ import {
   clearChoices,
   darkDoorBeat,
   telegraphWall,
+  phantom,
   resolveBeat,
   log,
   clearLog,
@@ -503,6 +504,13 @@ class Game {
     if (this.state.status !== "playing") return this.gameOver();
     this.refresh();
     if (Bd.isDeadEnd(this.board)) return this.zombieDoorPhase(() => this.endTurn());
+    // The one place a phantom can fire: the card is done, no fight is coming,
+    // and the turn is about to hand back. Rolled at a fixed point in the turn
+    // rather than on a timer, because a shared seed has to hear the same house
+    // — and never while something real is happening, because a false cue is
+    // only worth anything when the honest ones are unambiguous.
+    const dir = E.rollPhantom(this.state, E.dread(this.state));
+    if (dir) phantom(dir);
     return this.endTurn();
   }
 

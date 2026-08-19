@@ -62,6 +62,12 @@ export function newGame(data, opts = {}) {
 
   const state = {
     rng: makeRng(seed),
+    // A stream of its own for the phantoms (#71). Split from the same seed so a
+    // shared run hears the same things in the same places — and kept separate
+    // because drawing a single number from `rng` for a sound effect would
+    // reshuffle every deck after it and desync every shared seed in existence.
+    phantomRng: makeRng((seed ^ 0x9e3779b9) >>> 0),
+    lastPhantom: false,
     seed,
     cardsById,
     itemsById,
@@ -205,6 +211,39 @@ export function dread(state) {
     carrying * w.carrying;
 
   return Math.min(1, Math.max(0, score));
+}
+
+// ---- The unseen -------------------------------------------------------------
+// Every cue in this game is honest — a sound means a thing happened. That is
+// what makes an alarm cheap: you can trust it completely. A few phantoms buy
+// the honest cues their weight back.
+//
+// Rolled from the phantom stream, never the game's, and consulted at a fixed
+// point in the turn rather than on a timer — a wall clock is not deterministic
+// and a shared seed has to hear the same house.
+//
+// Tuned for roughly one per run: eligible only in the last two hours, scaled by
+// dread, and never twice running.
+const PHANTOM_CHANCE = 0.18;
+// Spelled out here rather than imported: board.js imports this module, so
+// reaching the other way would close the circle.
+const PHANTOM_DIRS = ["N", "E", "S", "W"];
+
+export function rollPhantom(state, fear = 0) {
+  if (!state || !state.phantomRng) return null;
+  if (state.status !== "playing") return null;
+  // The first hour is spent earning the trust this later spends.
+  if (state.hour <= RULES.START_HOUR) return null;
+  // Never twice running: one quiet turn is owed after every phantom, and it
+  // costs no draw so the stream stays aligned.
+  if (state.lastPhantom) {
+    state.lastPhantom = false;
+    return null;
+  }
+  if (state.phantomRng() > PHANTOM_CHANCE * Math.min(1, Math.max(0, fear))) return null;
+
+  state.lastPhantom = true;
+  return PHANTOM_DIRS[Math.floor(state.phantomRng() * PHANTOM_DIRS.length) % PHANTOM_DIRS.length];
 }
 
 // ---- Health ----------------------------------------------------------------

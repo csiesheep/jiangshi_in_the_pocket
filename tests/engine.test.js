@@ -187,6 +187,63 @@ test("dread: pure, and deterministic under a seed", () => {
      "reading the dial changes nothing");
 });
 
+// ---- The unseen -------------------------------------------------------------
+test("phantoms: silent in the first hour, however frightened", () => {
+  const s = game({ seed: 5 });
+  eq(s.hour, 21);
+  for (let i = 0; i < 60; i++) eq(E.rollPhantom(s, 1), null, "nothing in hour one");
+});
+
+test("phantoms: never two turns running", () => {
+  const s = game({ seed: 5 });
+  s.hour = 23;
+  let last = null;
+  let backToBack = 0;
+  for (let i = 0; i < 300; i++) {
+    const p = E.rollPhantom(s, 1);
+    if (p && last) backToBack++;
+    last = p;
+  }
+  eq(backToBack, 0, "a quiet turn is owed after every phantom");
+});
+
+test("phantoms: calm nights are empty, frightened ones are not", () => {
+  const count = (fear) => {
+    const s = game({ seed: 9 });
+    s.hour = 23;
+    let n = 0;
+    for (let i = 0; i < 400; i++) if (E.rollPhantom(s, fear)) n++;
+    return n;
+  };
+  eq(count(0), 0, "nothing at all when the game is calm");
+  assert(count(1) > 0, "and something when it is not");
+});
+
+test("phantoms: same seed, same house", () => {
+  const run = (seed) => {
+    const s = game({ seed });
+    s.hour = 22;
+    return Array.from({ length: 120 }, () => E.rollPhantom(s, 0.8)).join(",");
+  };
+  eq(run(42), run(42), "a shared seed hears the same things in the same order");
+  assert(run(42) !== run(43), "and different seeds do not");
+});
+
+// The reason for a second stream at all.
+test("phantoms: rolling them does not disturb the game's own rng", () => {
+  const withPhantoms = game({ seed: 11 });
+  const without = game({ seed: 11 });
+  withPhantoms.hour = 23;
+  for (let i = 0; i < 50; i++) E.rollPhantom(withPhantoms, 1);
+  withPhantoms.hour = 21;
+
+  // Same deck order afterwards means the gameplay stream never moved.
+  eq(withPhantoms.deck, without.deck, "the deck is untouched");
+  E.timePasses(withPhantoms);
+  E.timePasses(without);
+  eq(withPhantoms.deck, without.deck, "and reshuffles identically");
+});
+
 test("foughtThisHour: counts the risen, and resets when the hour turns", () => {
   const s = game({ seed: 1 });
   eq(s.foughtThisHour, 0);
