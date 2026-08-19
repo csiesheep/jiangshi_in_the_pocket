@@ -225,7 +225,11 @@ export function combatSting(count = 3) {
 }
 
 // The blow landing: a low body dropping away under a short burst of grit.
-export function combatHit(count = 3) {
+// The blow, plus what it was struck with. The impact itself is the recorded
+// cue; the weapon is a short layer over the top of it, so the same file serves
+// every weapon and a billhook still does not sound like a plank.
+export function combatHit(count = 3, weapon = null) {
+  weaponLayer(weapon);
   if (sample("hit")) return;
   const c = live();
   if (!c) return;
@@ -250,6 +254,49 @@ export function combatHit(count = 3) {
   src.connect(lp).connect(grit).connect(master);
   src.start(t);
   src.stop(t + 0.16);
+}
+
+// Metal rings after the hit, wood cracks with it, the saw tears through. Bare
+// hands add nothing — that is the point of being bare-handed.
+const WEAPON_TONE = {
+  machete: "metal", "golf-club": "metal",
+  "board-nails": "wood", "grisly-femur": "wood",
+  chainsaw: "saw",
+};
+
+function weaponLayer(weapon) {
+  const tone = WEAPON_TONE[weapon];
+  if (!tone) return;
+  if (sample(`swing-${tone}`)) return;
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+
+  if (tone === "saw") {
+    const osc = c.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(240, t);
+    osc.frequency.exponentialRampToValueAtTime(90, t + 0.34);
+    const bp = c.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.Q.value = 3.5;
+    bp.frequency.value = 1500;
+    const g = envelope(c, 0.13, 0.02, 0.34);
+    osc.connect(bp).connect(g).connect(master);
+    osc.start(t);
+    osc.stop(t + 0.4);
+    return;
+  }
+
+  const metal = tone === "metal";
+  const osc = c.createOscillator();
+  osc.type = metal ? "triangle" : "square";
+  osc.frequency.setValueAtTime(metal ? 2100 : 420, t);
+  if (!metal) osc.frequency.exponentialRampToValueAtTime(160, t + 0.09);
+  const g = envelope(c, metal ? 0.07 : 0.1, 0.004, metal ? 0.38 : 0.1);
+  osc.connect(g).connect(master);
+  osc.start(t);
+  osc.stop(t + (metal ? 0.45 : 0.15));
 }
 
 // The hour striking eleven: one slow, low toll. Deliberately a single strike
@@ -475,6 +522,44 @@ export function footsteps(world = "indoor") {
   const cue = world === "outdoor" ? "step-grass" : "step-wood";
   sample(cue, 0.55);
   sample(cue, 0.45, 0.19);
+}
+
+// The event window arriving: a card turned over. Short and papery, well under
+// the cues it introduces — this is punctuation, not an announcement.
+export function cardTurn() {
+  if (sample("card")) return;
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+  const src = c.createBufferSource();
+  src.buffer = noise(c);
+  const band = c.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 1.4;
+  band.frequency.setValueAtTime(2600, t);
+  band.frequency.exponentialRampToValueAtTime(900, t + 0.13);
+  const g = envelope(c, 0.05, 0.004, 0.13);
+  src.connect(band).connect(g).connect(master);
+  src.start(t);
+  src.stop(t + 0.18);
+}
+
+// Landing on a doorway with the keyboard. Deliberately tied to focus and not to
+// hover: a tick that fires every time the pointer crosses a door is not an
+// affordance, it is a fly in the room.
+export function doorwayTick() {
+  if (sample("tick")) return;
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+  const osc = c.createOscillator();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(1180, t);
+  osc.frequency.exponentialRampToValueAtTime(760, t + 0.05);
+  const g = envelope(c, 0.035, 0.003, 0.05);
+  osc.connect(g).connect(master);
+  osc.start(t);
+  osc.stop(t + 0.09);
 }
 
 // ---- Beds: the two sounds that run instead of firing -------------------------

@@ -86,6 +86,11 @@ Cue keys the code already understands:
   item-small  picking up the candle
   step-wood   walking in, on boards  (a list of takes, chosen between)
   step-grass  walking in, on grass   (a list of takes, chosen between)
+  card        the event window arriving
+  tick        landing on a doorway with the keyboard
+  swing-metal a billhook or a club landing   (layered over `hit`)
+  swing-wood  a plank or a femur landing     (layered over `hit`)
+  swing-saw   the petrol saw landing         (layered over `hit`)
 
 The two held sounds — the wind bed and the pack murmur — take no cue key and
 cannot be replaced by a file. They are generated, they loop by construction,
@@ -97,7 +102,8 @@ Which cues are recorded, and which are still synthesised
 recorded:     door, break, hit, item-metal, item-wood, item-small,
               step-wood, step-grass
 synthesised:  sting, bell, cower, relic, seam, win, death,
-              item-engine, item-liquid, and both beds (wind, pack murmur)
+              item-engine, item-liquid, card, tick, the three swing layers,
+              and both beds (wind, pack murmur)
 
 The synthesised ones are not an oversight. The bell is deliberate — the issue
 called it good as it is. The rest are sounds these two packs cannot serve

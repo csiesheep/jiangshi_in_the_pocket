@@ -2,7 +2,8 @@
 
 import { RULES, effectiveAttack, clockTime } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
-import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread } from "./audio.js";
+import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
+         cardTurn, doorwayTick } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -685,6 +686,9 @@ function mountDoorways(boardEl) {
     hot.insertBefore(arrow, hot.firstChild);
 
     hot.addEventListener("click", move.onClick);
+    // Focus, not hover: a tick every time the pointer crosses a door would be
+    // a fly in the room rather than an affordance.
+    hot.addEventListener("focus", doorwayTick);
     group.appendChild(hot);
   }
   box.appendChild(group);
@@ -1599,6 +1603,9 @@ export function renderActions(actions, prompt = "", opts = {}) {
     el.appendChild(b);
   });
   bindActionKeys();
+  // The window arriving is a card being turned over. Sound is not motion, so it
+  // plays whether or not the pop-out animates.
+  cardTurn();
   if (pop && !reducedMotion() && typeof pop.animate === "function") {
     pop.animate(
       [

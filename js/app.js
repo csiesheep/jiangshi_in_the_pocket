@@ -283,12 +283,12 @@ class Game {
   }
 
   doFight(n, weapon, onDone) {
-    combatHit(n);
-    this.tally.putDown += n;
     // Which weapon actually swings, asked of the same picker resolveCombat uses
     // — and asked before it runs, since a chainsaw spends a use on the way
     // through. The auto-fight card passes null; it still has a weapon in hand.
     const swung = E.chooseWeapon(this.state, weapon);
+    combatHit(n, swung);
+    this.tally.putDown += n;
     const r = E.resolveCombat(this.state, n, { weapon });
     log(
       `You fight ${n} ${this.word("monsters")} — ${swung ? "with the " + this.itemName(swung) : "bare-handed"} — and take ${r.damage} damage.`,
