@@ -726,6 +726,14 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 .action-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; text-align: left; }
 .action-label { line-height: 1.25; }
 .action-sub { font-size: .72rem; color: var(--muted); }
+.action-cost { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; font-size: .74rem; }
+.action-cost-num { font-variant-numeric: tabular-nums; }
+.costheart { width: 11px; height: 11px; flex: none; fill: currentColor; }
+.action-cost--cost { color: var(--danger); }
+.action-cost--gain { color: var(--accent); }
+/* No damage is a reward, not a price — it should not read in the cost colour. */
+.action-cost--safe { color: var(--accent); font-style: italic; opacity: .95; }
+
 .action[data-kind="flee"] .action-sub { color: color-mix(in srgb, var(--danger) 80%, var(--muted)); }
 
 .action:hover { border-color: var(--accent); }

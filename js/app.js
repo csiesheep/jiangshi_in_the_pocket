@@ -194,7 +194,10 @@ class Game {
           kind: "fight",
           icon: `item-${w}`,
           label: this.itemName(w),
-          sub: `atk ${1 + s.itemsById[w].attack}`,
+          sub: `atk ${E.RULES.START_ATTACK + s.itemsById[w].attack}`,
+          // combatDamage is what resolveCombat will call, clamp and all — never
+          // a second copy of the formula sitting in the UI.
+          cost: { hp: -E.combatDamage(n, E.RULES.START_ATTACK + s.itemsById[w].attack) },
           primary: true,
           onClick: () => this.doFight(n, w, onDone),
         });
@@ -206,6 +209,7 @@ class Game {
         icon: best ? `item-${best}` : null,
         label: `Fight ${n} ${foes}`,
         sub: best ? `with the ${this.itemName(best)}, atk ${E.effectiveAttack(s)}` : "bare-handed",
+        cost: { hp: -E.combatDamage(n, E.effectiveAttack(s)) },
         primary: true,
         onClick: () => this.doFight(n, null, onDone),
       });
@@ -216,7 +220,8 @@ class Game {
       for (const d of dests) {
         const to = this.board.worlds[d.to.world].get(Bd.cellKey(d.to.x, d.to.y));
         acts.push({ kind: "flee", dir: d.dir, icon: `tile-${to.id}`,
-          label: `Flee ${d.dir} to the ${this.tileName(to.id)}`, sub: "−1 HP",
+          label: `Flee ${d.dir} to the ${this.tileName(to.id)}`,
+          cost: { hp: -E.RULES.RUN_AWAY_DAMAGE },
           onClick: () => this.doFlee(d, false, onDone) });
         if (s.items.includes("oil")) {
           acts.push({
@@ -224,7 +229,7 @@ class Game {
             dir: d.dir,
             icon: "item-oil",
             label: `Flee ${d.dir} — throw the ${this.itemName("oil")}`,
-            sub: "no damage",
+            cost: { hp: 0 },
             onClick: () => this.doFlee(d, true, onDone),
           });
         }
@@ -238,6 +243,7 @@ class Game {
           icon: `item-${fuel}`,
           label: `${this.itemName("candle")} + ${this.itemName(fuel)}`,
           sub: "burn them all",
+          cost: { hp: 0 },
           onClick: () => this.doCombo(fuel, onDone, n),
         });
       }
@@ -368,7 +374,8 @@ class Game {
       },
     ];
     if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
-      acts.push({ kind: "rest", label: "Cower first", sub: "+3 HP, burn a card",
+      acts.push({ kind: "rest", label: "Cower first", sub: "burns a card",
+        cost: { hp: E.RULES.COWER_HEAL },
         onClick: () => this.doCowerBeforeSecond(kind) });
     }
     renderActions(acts, "One more card to face. Take a breath first?");
@@ -482,7 +489,8 @@ class Game {
   renderEndTurn() {
     const acts = [{ kind: "draw", label: "Next turn", sub: "press on", primary: true, onClick: () => this.nextTurn() }];
     if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
-      acts.unshift({ kind: "rest", label: "Cower", sub: "+3 HP, burn a card", onClick: () => this.doCower() });
+      acts.unshift({ kind: "rest", label: "Cower", sub: "burns a card",
+        cost: { hp: E.RULES.COWER_HEAL }, onClick: () => this.doCower() });
     }
     renderActions(acts, "The room is quiet. Rest, or press on?");
   }

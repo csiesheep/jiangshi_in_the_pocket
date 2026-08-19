@@ -967,6 +967,36 @@ export function clearLog() {
   if (el) el.innerHTML = "";
 }
 
+// Hearts, using the same symbol the status panel does. Zero reads as safe
+// rather than as a cost — out-levelling a pack is this ruleset's reward and
+// should look like one.
+function costRow(hp) {
+  const row = document.createElement("span");
+  const kind = hp > 0 ? "gain" : hp < 0 ? "cost" : "safe";
+  row.className = `action-cost action-cost--${kind}`;
+  row.setAttribute("aria-hidden", "true");
+
+  if (hp === 0) {
+    row.textContent = "unharmed";
+    return row;
+  }
+  const n = document.createElement("span");
+  n.className = "action-cost-num";
+  n.textContent = `${hp > 0 ? "+" : "−"}${Math.abs(hp)}`;
+  row.appendChild(n);
+  for (let i = 0; i < Math.min(Math.abs(hp), 4); i++) {
+    const h = icon("stat", "heart", `costheart costheart--${kind}`);
+    if (h) row.appendChild(h);
+  }
+  return row;
+}
+
+function costSentence(hp) {
+  if (hp === 0) return "you take no damage";
+  if (hp > 0) return `you gain ${hp} health`;
+  return `you will take ${Math.abs(hp)} damage`;
+}
+
 // The window's fixed header. Created once and emptied per render, so the pack
 // and prompt can sit outside the scrolling card list.
 function windowHead(pop, actionsEl) {
@@ -1138,6 +1168,12 @@ export function renderActions(actions, prompt = "", opts = {}) {
       sub.className = "action-sub";
       sub.textContent = a.sub;
       text.appendChild(sub);
+    }
+    // The price, in hearts. Combat is fully deterministic, so there is nothing
+    // to hide and no reason to make the player do the arithmetic.
+    if (a.cost && typeof a.cost.hp === "number") {
+      text.appendChild(costRow(a.cost.hp));
+      b.appendChild(srOnly(costSentence(a.cost.hp)));
     }
     b.appendChild(text);
     if (a.kind) b.dataset.kind = a.kind;
