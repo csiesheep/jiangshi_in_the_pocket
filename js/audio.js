@@ -612,8 +612,10 @@ export function startAmbience() {
   src.start();
   lfo.start();
   // Fade in. Sound arriving at full strength announces itself as a sound
-  // effect; weather is just suddenly noticed.
-  gain.gain.exponentialRampToValueAtTime(bedLevel(), c.currentTime + 3.5);
+  // effect; weather is just suddenly noticed. Unless the room is currently
+  // being held quiet for a scare, in which case it stays down and unduck()
+  // brings it back with everything else.
+  if (!ducked) gain.gain.exponentialRampToValueAtTime(bedLevel(), c.currentTime + 3.5);
 
   bed = { src, gain, filter, lfo };
 }
@@ -675,6 +677,56 @@ export function stopAmbience() {
   }, 1700);
 }
 
+// ---- The quiet before ---------------------------------------------------------
+// Cinema's oldest tell: the room goes quiet, and then the thing happens. The
+// bed drops out, a beat of true silence holds, and the sting lands into it.
+//
+// Returns how long the caller should wait before firing — 0 when there is
+// nothing to duck, so a muted player waits for nothing and the turn never
+// stalls on audio that is not playing.
+const DUCK_MS = 150;
+const HOLD_MS = 560;
+let ducked = false;
+
+export function duckForScare() {
+  const c = live();
+  // Nothing audible means nothing to take away, and a silence nobody can hear
+  // is just a delay.
+  if (!c || (!bed && !murmur)) return 0;
+
+  ducked = true;
+  const t = c.currentTime;
+  const fall = DUCK_MS / 1000;
+  for (const node of [bed, murmur]) {
+    if (!node) continue;
+    const g = node.gain.gain;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(Math.max(g.value, 0.0001), t);
+    g.exponentialRampToValueAtTime(0.0001, t + fall);
+  }
+  return DUCK_MS + HOLD_MS;
+}
+
+// Put the room back. Called when the fight is over rather than when the window
+// opens: the quiet is meant to hold while the pack stands there.
+export function unduck() {
+  if (!ducked) return;
+  ducked = false;
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+  if (bed) {
+    bed.gain.gain.cancelScheduledValues(t);
+    bed.gain.gain.setValueAtTime(Math.max(bed.gain.gain.value, 0.0001), t);
+    bed.gain.gain.exponentialRampToValueAtTime(bedLevel(), t + 1.6);
+  }
+  if (murmur) {
+    murmur.gain.gain.cancelScheduledValues(t);
+    murmur.gain.gain.setValueAtTime(Math.max(murmur.gain.gain.value, 0.0001), t);
+    murmur.gain.gain.exponentialRampToValueAtTime(0.02, t + 0.8);
+  }
+}
+
 // The pack, breathing, for as long as it is on screen. Pitched under the cues
 // so it never competes with the fight it belongs to.
 let murmur = null;
@@ -711,7 +763,7 @@ export function startMurmur(count = 3) {
   src.connect(filter);
   filter.connect(gain).connect(master);
   src.start();
-  gain.gain.exponentialRampToValueAtTime(0.02 + weight * 0.014, c.currentTime + 1.1);
+  if (!ducked) gain.gain.exponentialRampToValueAtTime(0.02 + weight * 0.014, c.currentTime + 1.1);
 
   murmur = { src, gain, filter, voices };
 }

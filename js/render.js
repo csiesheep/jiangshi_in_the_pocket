@@ -3,7 +3,7 @@
 import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
-         cardTurn, doorwayTick } from "./audio.js";
+         cardTurn, doorwayTick, duckForScare } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -726,6 +726,19 @@ const SCARE_SLOTS = [
 ];
 
 export function jumpScare(count = 0) {
+  // The room goes quiet first. duckForScare returns how long to wait — and
+  // returns 0 when there is nothing audible to take away, so a muted player
+  // waits for nothing at all. A silence nobody can hear is just a delay.
+  const quiet = duckForScare();
+  if (quiet > 0) {
+    return new Promise((resolve) => {
+      setTimeout(() => scareNow(count).then(resolve), quiet);
+    });
+  }
+  return scareNow(count);
+}
+
+function scareNow(count) {
   return new Promise((resolve) => {
     // Same rule as the door: the cue is sound, not motion, so it plays whether
     // or not the picture does.

@@ -5,7 +5,7 @@
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
 import { combatHit, isMuted, setMuted, cowerBreath, relicFound, seamCross, verdictSting,
-         startAmbience, stopAmbience, startMurmur, stopMurmur } from "./audio.js";
+         startAmbience, stopAmbience, startMurmur, stopMurmur, unduck } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -298,6 +298,7 @@ class Game {
     // the pack visibly goes down before the window moves on. Clearing the cards
     // first is what makes the pause safe: mashed number keys find nothing.
     stopMurmur();
+    unduck();
     clearChoices();
     resolveBeat({ icon: swung ? `item-${swung}` : null }).then(() => {
       // refresh drives the hit flash, so the damage lands after the swing
@@ -320,6 +321,7 @@ class Game {
     // Fleeing gets a lunge, not the full sequence — you did not kill anything,
     // and the walk into the next room is the beat that matters here.
     stopMurmur();
+    unduck();
     clearChoices();
     resolveBeat({ mode: "flee" }).then(() => {
       this.refresh();
@@ -339,6 +341,7 @@ class Game {
       "good"
     );
     stopMurmur();
+    unduck();
     clearChoices();
     resolveBeat({ icon: `item-${fuel}` }).then(() => {
       this.refresh();
@@ -571,6 +574,7 @@ class Game {
     // The house stops breathing when the run does. Both beds go before the
     // verdict sting, so the ending has the room to itself.
     stopMurmur();
+    unduck();
     stopAmbience();
     const won = this.state.status === "won";
     verdictSting(won);
