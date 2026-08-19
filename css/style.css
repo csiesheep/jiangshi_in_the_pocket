@@ -1554,3 +1554,56 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 .roomscene--rich { opacity: .88; }
 .board .tilebox--here .roomscene--rich { opacity: 1; }
 .board .halfroom .roomscene--rich { opacity: .8; }
+
+/* ---- Rooms that say what they are ------------------------------------------
+   Corner chips on the tile: the relic where it waits (and, once carried, the
+   ground it goes into), a heart where resting helps. Top-right, because the
+   name owns the bottom-left and the centre belongs to the footprints. */
+.tilebadges {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  z-index: 2;
+  pointer-events: none;
+}
+.tilebadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--room) 78%, black);
+  border: 1px solid var(--border);
+  line-height: 1;
+}
+.tilebadge-art { width: 13px; height: 13px; flex: none; }
+.tilebadge-num { font-size: .62rem; font-variant-numeric: tabular-nums; }
+.tilebadge--relic {
+  border-color: color-mix(in srgb, var(--gold) 65%, var(--border));
+  color: var(--gold);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+.tilebadge--hearth { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); color: var(--accent); }
+/* The relic breathes, so the eye finds it. It is the win condition sitting on
+   the board; a static chip would read as decoration. */
+.tilebadge--relic .tilebadge-art { animation: relicpulse 2.8s ease-in-out infinite; }
+@keyframes relicpulse { 0%, 100% { opacity: .78; } 50% { opacity: 1; } }
+
+/* The two choices the run is actually for. Above primary, which "Next turn"
+   also gets — declared after .action--primary and .action--lethal so it wins
+   the border at equal specificity. */
+.action--pivotal {
+  border-color: var(--gold);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--gold) 26%, transparent);
+  background: color-mix(in srgb, var(--gold) 9%, var(--bg-2));
+}
+.action--pivotal .action-icon { color: var(--gold); }
+.action--pivotal .action-label { color: #f0dcae; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tilebadge--relic .tilebadge-art { animation: none; opacity: 1; }
+}

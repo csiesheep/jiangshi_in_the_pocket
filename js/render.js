@@ -1166,7 +1166,57 @@ function centreRoom(game, tile, edges) {
   name.textContent = tileName(game, tile.id);
   name.setAttribute("aria-hidden", "true");
   box.appendChild(name);
+
+  const badges = badgeRow(tileBadges(game, tile));
+  if (badges) box.appendChild(badges);
   return box;
+}
+
+// What a room does, said on the room. Read off the tile's own definition
+// rather than a list of room ids, so a data change carries the badge with it —
+// move HEAL_1 to another room and the heart follows.
+//
+// The two goal badges are stateful, and that is most of their value: the relic
+// marker is on the Reliquary only while the relic is still in it, and moves to
+// the Family Plot the moment you are carrying it. The board answers "where am
+// I going" without being asked.
+function tileBadges(game, tile) {
+  const def = (tile && tile.def) || {};
+  const held = game.state.totem;
+  const out = [];
+  if (def.onResolve === "SECOND_CARD_THEN_GAIN_TOTEM" && !held) {
+    out.push({ kind: "relic", kindName: "ui", id: "relic", say: "The relic rests here." });
+  }
+  if (def.onResolve === "SECOND_CARD_THEN_BURY_TOTEM" && held) {
+    out.push({ kind: "relic", kindName: "ui", id: "relic", say: "Bury the relic here." });
+  }
+  if (def.onTurnEnd === "HEAL_1") {
+    out.push({ kind: "hearth", kindName: "stat", id: "heart", say: "Resting here heals you." });
+  }
+  return out;
+}
+
+// Corners only. The centre of a tile belongs to the footprints and the
+// hotspots, and the bottom-left is the name's.
+function badgeRow(badges) {
+  if (!badges.length) return null;
+  const row = document.createElement("span");
+  row.className = "tilebadges";
+  row.setAttribute("aria-hidden", "true"); // describeRoom says it in words
+  for (const b of badges) {
+    const chip = document.createElement("span");
+    chip.className = `tilebadge tilebadge--${b.kind}`;
+    const art = icon(b.kindName, b.id, "tilebadge-art");
+    if (art) chip.appendChild(art);
+    if (b.kind === "hearth") {
+      const plus = document.createElement("span");
+      plus.className = "tilebadge-num";
+      plus.textContent = "+1";
+      chip.appendChild(plus);
+    }
+    row.appendChild(chip);
+  }
+  return row;
 }
 
 // The far half of a neighbour is masked away, so it reads as a room you can see
@@ -1185,6 +1235,12 @@ function halfRoom(game, edge, dir) {
   name.className = "tilename";
   name.textContent = tileName(game, edge.neighbour.id);
   half.appendChild(name);
+
+  // Worth more here than on the room you are standing in: this is the board
+  // telling you the relic is through that door before you commit the turn.
+  // Pinned to the strip rather than to the scene, so the crop cannot eat it.
+  const badges = badgeRow(tileBadges(game, edge.neighbour));
+  if (badges) half.appendChild(badges);
   return half;
 }
 
@@ -1222,6 +1278,8 @@ function edgeMark(dir, edge) {
 // without seeing it.
 function describeRoom(game, tile, edges) {
   const parts = [`${tileName(game, tile.id)}, you are here.`];
+  // The badges are aria-hidden pictures; this is where they are actually said.
+  for (const b of tileBadges(game, tile)) parts.push(b.say);
   for (const dir of DIRS) {
     const e = edges[dir];
     const where = DIR_WORD[dir];
@@ -1451,7 +1509,10 @@ export function renderActions(actions, prompt = "", opts = {}) {
     const b = document.createElement("button");
     b.type = "button";
     b.className =
-      "action" + (a.primary ? " action--primary" : "") + (fatal ? " action--lethal" : "");
+      "action" +
+      (a.primary ? " action--primary" : "") +
+      (a.pivotal ? " action--pivotal" : "") +
+      (fatal ? " action--lethal" : "");
     if (i < 9) {
       const k = document.createElement("kbd");
       k.textContent = String(i + 1);
@@ -1537,11 +1598,16 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
   ov.className = opts.tone ? `overlay--${opts.tone}` : "";
   ov.classList.toggle("overlay--still", reducedMotion());
 
-  // The two endings dress the stage differently before the card arrives. The
-  // win gets the game's only sunrise; the loss bleeds down the veil. Fixed drip
-  // positions rather than random ones, per the house rule — the same ending
-  // should look the same twice.
-  if (opts.tone === "lost") {
+  // The endings dress the stage differently before the card arrives. The win
+  // gets the game's only sunrise; each loss dies its own death — combat is
+  // violent (blood down the veil, a dragged handprint), health is quiet (a
+  // pool rising while the vision closes), midnight is cold (no blood at all —
+  // a cracked clock and the toll). Fixed drip positions rather than random
+  // ones, per the house rule — the same ending should look the same twice.
+  const reason = opts.tone === "lost" ? opts.reason || "combat" : null;
+  if (reason) ov.classList.add(`overlay--lost-${reason}`);
+
+  if (reason === "combat") {
     const blood = document.createElement("div");
     blood.className = "blood";
     blood.setAttribute("aria-hidden", "true");
@@ -1566,6 +1632,12 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
       hand.setAttribute("viewBox", "0 0 90 130"); // not on the 24 grid
       ov.appendChild(hand);
     }
+  } else if (reason === "health") {
+    // No violence — the wounds were already taken. The dark just rises.
+    const pool = document.createElement("div");
+    pool.className = "pool";
+    pool.setAttribute("aria-hidden", "true");
+    ov.appendChild(pool);
   }
 
   const card = document.createElement("div");
@@ -1575,6 +1647,18 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
     if (scene) {
       scene.setAttribute("viewBox", "0 0 240 120"); // a film frame, not the 24 grid
       card.appendChild(scene);
+    }
+  }
+  if (reason === "midnight") {
+    // The clock that killed you, stopped where it caught you, still tolling.
+    const wrap = document.createElement("div");
+    wrap.className = "tollwrap";
+    wrap.setAttribute("aria-hidden", "true");
+    const clock = icon("verdict", "midnight", "verdict-midnight");
+    if (clock) {
+      clock.setAttribute("viewBox", "0 0 96 96");
+      wrap.appendChild(clock);
+      card.appendChild(wrap);
     }
   }
   const h = document.createElement("h2");

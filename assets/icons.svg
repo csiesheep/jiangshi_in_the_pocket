@@ -682,6 +682,14 @@
 
   <!-- ========================= Interface ========================== -->
 
+  <!-- The relic itself: a reliquary casket. Used as the board marker for the
+       room that holds it and, once it is yours, the ground it goes into. -->
+  <symbol id="ui-relic" viewBox="0 0 24 24">
+    <path d="M4.5 10.5h15v8.5a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z"/>
+    <path d="M4.5 10.5 12 4l7.5 6.5"/>
+    <path d="M12 13.5v4M10 15.5h4"/>
+  </symbol>
+
   <!-- Way out. Drawn pointing north; the doorway rotates it per direction, the
        same trick the edge markers use. -->
   <symbol id="ui-chevron" viewBox="0 0 24 24">
@@ -885,5 +893,29 @@
       <path d="M48 78c-1 12 0 22 1 32 2 0 4-1 5-2-1-10-1-19 0-29z" opacity=".55"/>
       <path d="M62 72c0 9 1 16 3 24 1-1 3-2 3-3-1-8-2-14-2-21z" opacity=".4"/>
     </g>
+  </symbol>
+
+  <!-- The clock at the moment it caught you: both hands on twelve, the face
+       cracked from the last toll. Line art on currentColor so the midnight
+       verdict can colour it cold. -->
+  <symbol id="verdict-midnight" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="38" stroke-width="2.5"/>
+    <circle cx="48" cy="48" r="33" stroke-width="1" stroke-opacity=".4"/>
+    <!-- hour ticks -->
+    <g stroke-width="2">
+      <path d="M48 13v6"/><path d="M48 77v6"/><path d="M13 48h6"/><path d="M77 48h6"/>
+    </g>
+    <g stroke-width="1.3" stroke-opacity=".6">
+      <path d="M65.5 17.7l-3 5.2"/><path d="M78.3 30.5l-5.2 3"/>
+      <path d="M78.3 65.5l-5.2-3"/><path d="M65.5 78.3l-3-5.2"/>
+      <path d="M30.5 78.3l3-5.2"/><path d="M17.7 65.5l5.2-3"/>
+      <path d="M17.7 30.5l5.2 3"/><path d="M30.5 17.7l3 5.2"/>
+    </g>
+    <!-- both hands on twelve -->
+    <path d="M48 48V26" stroke-width="3.4"/>
+    <path d="M48 48V19.5" stroke-width="2"/>
+    <circle cx="48" cy="48" r="2.6" fill="currentColor" stroke="none"/>
+    <!-- the crack from the last toll -->
+    <path d="M48 10l-3 8 5 6-4 7" stroke-width="1.6" stroke-opacity=".85"/>
   </symbol>
 </svg>

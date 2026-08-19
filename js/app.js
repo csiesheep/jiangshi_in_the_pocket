@@ -407,8 +407,12 @@ class Game {
     const acts = [
       {
         kind: "draw",
+        // The two choices the whole run is for. A tier above primary, because
+        // primary is also what "Next turn" gets.
+        pivotal: true,
+        icon: "ui-relic",
         label: kind === "graveyard" ? "Dig on — draw the burial card" : "Search on — draw the second card",
-        sub: "one more card",
+        sub: kind === "graveyard" ? "the burial itself" : "the search itself",
         primary: true,
         onClick: () => this.doDrawSecond(kind),
       },
@@ -597,7 +601,7 @@ class Game {
       this.state.lossReason === "midnight" ? "Midnight" : "You are one of them now",
       why[this.state.lossReason] || "Game over.",
       again,
-      { tone: "lost", summary }
+      { tone: "lost", reason: this.state.lossReason, summary }
     );
   }
 }
