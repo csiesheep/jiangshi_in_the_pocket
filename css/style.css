@@ -384,14 +384,32 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
    shows through an open door. */
 :root { --tile: clamp(96px, 19vh, 190px); --wall: #3a4150; --wall-w: 7px; --room: #23262d;
         --hedge: #3d5540; }
-.focus { --peek: calc(var(--tile) * 0.42); }
+.focus {
+  --peek: calc(var(--tile) * 0.42);
+  /* The threshold between two rooms. It has to clear both walls that face into
+     it — 7px each — with daylight left over, or the rooms read as interleaved
+     rather than adjacent. Scales with the tile so it survives #55. */
+  --tile-gap: max(18px, calc(var(--tile) * .13));
+  /* Door art is centred on the wall line, which sits at the near edge of the
+     gap — so half of it hangs outward. Tying the size to twice the gap is what
+     makes "never paints on the neighbour" true by construction rather than by
+     a number that happens to work at one tile size.
+
+     The 4px comes off for device-pixel rounding, and it is not a fudge: the
+     markers are offset by the DECLARED --wall-w, while the browser floors the
+     rendered border to whole device pixels — 7px becomes 6.4px at a 1.25 ratio
+     — so the marker's centre can sit up to a pixel past the border box. The
+     error is bounded below 1px at any ratio >= 1, so 2px of outward clearance
+     covers it, and leaves daylight in the threshold besides. */
+  --edge: calc(var(--tile-gap) * 2 - 4px);
+}
 
 .focus {
   display: grid;
   grid-template-columns: var(--peek) var(--tile) var(--peek);
   grid-template-rows: var(--peek) var(--tile) var(--peek);
   grid-template-areas: ". n ." "w c e" ". s .";
-  gap: 4px;
+  gap: var(--tile-gap);
   justify-content: center;
   align-content: center;
   margin: 0 auto;
@@ -402,7 +420,15 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 .focus-slot--w { grid-area: w; justify-items: end; }
 .focus-slot--e { grid-area: e; justify-items: start; }
 .focus-slot { display: grid; }
-.focus-centre { grid-area: c; position: relative; }
+/* ---- Board layering, stated once --------------------------------------------
+   Inside the centre room:  tilebox 0 · lit room 1 · name 2 · door art 3 ·
+   hotspot 4. The centre takes a stacking context of its own so those stay
+   local, and the neighbour slots sit above the lot — anything that reaches
+   into a neighbour's space gets covered by it rather than painting over the
+   glimpse. Nothing should actually reach that far now; this is what keeps it
+   true if something later does. */
+.focus-centre { grid-area: c; position: relative; z-index: 1; }
+.focus-slot { position: relative; z-index: 5; }
 
 .tilebox {
   position: absolute;
@@ -611,6 +637,9 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   position: absolute;
   min-width: 46px;
   min-height: 46px;
+  /* Sized across the wall so the outward half stays inside the threshold. A
+     hotspot that reaches onto the neighbour would be covering the very glimpse
+     the player is deciding about. Along the wall it keeps the full 46px. */
   padding: 0;
   display: grid;
   place-items: center;
@@ -621,7 +650,7 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   color: var(--flame);
   cursor: pointer;
   pointer-events: auto;
-  z-index: 3;
+  z-index: 4;
   box-shadow: 0 0 14px color-mix(in srgb, var(--flame) 22%, transparent);
 }
 .doorway:hover { background: color-mix(in srgb, var(--flame) 22%, var(--room)); }
@@ -646,6 +675,8 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 .doorway.s { bottom: calc(-1 * var(--wall-w)); left: 50%; transform: translate(-50%, 50%); }
 .doorway.e { right: calc(-1 * var(--wall-w)); top: 50%; transform: translate(50%, -50%); }
 .doorway.w { left: calc(-1 * var(--wall-w)); top: 50%; transform: translate(-50%, -50%); }
+.doorway.n, .doorway.s { min-height: 0; height: var(--edge); }
+.doorway.e, .doorway.w { min-width: 0; width: var(--edge); }
 
 /* Door and broken-wall art, drawn for the north wall and rotated into place.
    The marker is square and centred on the wall, so the art's own centreline
@@ -653,9 +684,10 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
    the gap in the wall, only as wide as the doorway itself. */
 .edgemark {
   position: absolute;
-  width: calc(var(--tile) * 0.46);
-  height: calc(var(--tile) * 0.46);
+  width: var(--edge);
+  height: var(--edge);
   pointer-events: none;
+  z-index: 3;
 }
 .edgemark::before {
   content: "";
