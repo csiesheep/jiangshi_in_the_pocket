@@ -47,16 +47,19 @@ export function report() {
 
   document.title = failed === 0 ? `PASS (${passed})` : `FAIL (${failed})`;
 
+  // The test page loads no stylesheet — it is deliberately standalone — so these
+  // mirror the palette tokens by hand: --accent, --danger, --muted. Keep them in
+  // step with :root in css/style.css if those move.
   const root = document.getElementById("out") || document.body;
   const h = document.createElement("h1");
   h.textContent = summary;
-  h.style.color = failed === 0 ? "#7fb539" : "#e0523f";
+  h.style.color = failed === 0 ? "#7fb539" : "#ef6449";
   root.appendChild(h);
   const ul = document.createElement("ul");
   for (const r of results) {
     const li = document.createElement("li");
     li.textContent = (r.ok ? "✓ " : "✗ ") + r.name + (r.ok ? "" : " — " + r.err.message);
-    li.style.color = r.ok ? "#9aa0aa" : "#e0523f";
+    li.style.color = r.ok ? "#9aa0aa" : "#ef6449";
     ul.appendChild(li);
   }
   root.appendChild(ul);
