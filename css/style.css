@@ -703,6 +703,21 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   gap: 4px;
   padding: 2px 0 6px;
   border-bottom: 1px solid var(--border);
+  /* The swing is absolutely positioned against this row. */
+  position: relative;
+  overflow: hidden;
+}
+/* The weapon crossing the pack. Above the figures, and never able to change
+   the row's height mid-beat. */
+.swingart {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: clamp(30px, 17%, 52px);
+  height: clamp(30px, 17%, 52px);
+  color: var(--gold);
+  pointer-events: none;
+  z-index: 2;
 }
 .packfig {
   width: clamp(28px, 15%, 46px);

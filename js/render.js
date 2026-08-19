@@ -662,6 +662,109 @@ export function jumpScare(count = 0) {
   });
 }
 
+// Take the choices away without taking the window with them. renderActions([])
+// hides the whole pop, which would take the pack row down with it — and the
+// pack row is the stage the resolution beat plays on.
+export function clearChoices() {
+  const el = document.getElementById("actions");
+  if (el) el.innerHTML = "";
+  pendingMoves = [];
+  movePrompt = "";
+  clearDoorways();
+}
+
+const BEAT_MS = 600;
+const FLEE_BEAT_MS = 240;
+
+// Cause, then effect: the weapon crosses the row, and the pack goes down behind
+// it. The engine has already resolved by the time this runs — this only holds
+// the next render back long enough for the player to see why the number moved.
+export function resolveBeat(opts = {}) {
+  return new Promise((resolve) => {
+    const row = document.querySelector(".packrow");
+    const figs = row ? [...row.querySelectorAll(".packfig")] : [];
+    // No art, no Web Animations, no motion budget — every one of these skips
+    // straight to the outcome rather than stranding the turn.
+    if (reducedMotion() || !figs.length || typeof figs[0].animate !== "function") {
+      return resolve();
+    }
+
+    const flee = opts.mode === "flee";
+    const duration = flee ? FLEE_BEAT_MS : BEAT_MS;
+    let swing = null;
+
+    if (flee) {
+      // They lunge and miss. That is the whole story, and it is 240ms long.
+      figs.forEach((f, i) => {
+        f.animate(
+          [
+            { transform: "translateY(0) scale(1)", opacity: 0.9 },
+            { transform: "translateY(-6px) scale(1.16)", opacity: 1, offset: 0.45 },
+            { transform: "translateY(0) scale(1)", opacity: 0.9 },
+          ],
+          { duration, delay: i * 14, easing: "ease-out" }
+        );
+      });
+    } else {
+      swing = opts.icon ? swingArt(row, opts.icon) : null;
+      if (swing) {
+        swing.animate(
+          [
+            { transform: "translate(-40%, -50%) rotate(-46deg)", opacity: 0 },
+            { transform: "translate(20%, -50%) rotate(-12deg)", opacity: 1, offset: 0.3 },
+            { transform: "translate(120%, -50%) rotate(38deg)", opacity: 1, offset: 0.8 },
+            { transform: "translate(150%, -50%) rotate(52deg)", opacity: 0 },
+          ],
+          { duration: Math.round(duration * 0.62), easing: "cubic-bezier(.3,.1,.2,1)" }
+        );
+      }
+      // Staggered left to right so the blade appears to be what fells them.
+      // No per-zombie HP fiction here: the ruleset clears the pack outright, so
+      // the row simply empties.
+      figs.forEach((f, i) => {
+        const lead = figs.length > 1 ? i / (figs.length - 1) : 0;
+        f.animate(
+          [
+            { transform: "translateY(0) rotate(0)", opacity: 0.9 },
+            { transform: "translateY(3px) rotate(6deg)", opacity: 0.9, offset: 0.25 },
+            { transform: "translateY(26px) rotate(74deg)", opacity: 0 },
+          ],
+          {
+            duration: Math.round(duration * 0.5),
+            delay: Math.round(duration * 0.24 + lead * duration * 0.24),
+            fill: "forwards",
+            easing: "cubic-bezier(.4,0,.7,.4)",
+          }
+        );
+      });
+    }
+
+    // Same gate as the jump scare, and for the same reason: animations do not
+    // advance while the tab is hidden, so a timer has to be able to finish the
+    // beat on its own or the turn never resumes.
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      // The swing has no forwards fill, so leaving it mounted would snap the
+      // weapon back to full opacity and park it over the row until the next
+      // render replaces the head.
+      if (swing) swing.remove();
+      resolve();
+    };
+    setTimeout(done, duration + 60);
+  });
+}
+
+function swingArt(row, iconId) {
+  const cut = iconId.indexOf("-");
+  if (cut <= 0) return null;
+  const art = icon(iconId.slice(0, cut), iconId.slice(cut + 1), "swingart");
+  if (!art) return null;
+  row.appendChild(art);
+  return art;
+}
+
 // The wall going in. Staged so the damage reads: the ragged edges snap in
 // oversized, settle back, and the room takes the knock. The static art is
 // already in place underneath, so under reduced motion the hole is simply

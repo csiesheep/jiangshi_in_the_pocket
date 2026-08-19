@@ -9,6 +9,8 @@ import {
   renderHud,
   renderBoard,
   renderActions,
+  clearChoices,
+  resolveBeat,
   log,
   clearLog,
   showOverlay,
@@ -272,14 +274,26 @@ class Game {
   doFight(n, weapon, onDone) {
     combatHit(n);
     this.tally.putDown += n;
+    // Which weapon actually swings, asked of the same picker resolveCombat uses
+    // — and asked before it runs, since a chainsaw spends a use on the way
+    // through. The auto-fight card passes null; it still has a weapon in hand.
+    const swung = E.chooseWeapon(this.state, weapon);
     const r = E.resolveCombat(this.state, n, { weapon });
     log(
-      `You fight ${n} ${this.word("monsters")} — ${weapon ? "with the " + this.itemName(weapon) : "bare-handed"} — and take ${r.damage} damage.`,
+      `You fight ${n} ${this.word("monsters")} — ${swung ? "with the " + this.itemName(swung) : "bare-handed"} — and take ${r.damage} damage.`,
       r.damage >= 3 ? "bad" : ""
     );
-    this.refresh();
-    if (this.state.status === "lost") return this.gameOver();
-    onDone();
+    // The engine is already done. What follows only delays the next render, so
+    // the pack visibly goes down before the window moves on. Clearing the cards
+    // first is what makes the pause safe: mashed number keys find nothing.
+    clearChoices();
+    resolveBeat({ icon: swung ? `item-${swung}` : null }).then(() => {
+      // refresh drives the hit flash, so the damage lands after the swing
+      // rather than alongside it — and after the beat, never racing the veil.
+      this.refresh();
+      if (this.state.status === "lost") return this.gameOver();
+      onDone();
+    });
   }
 
   doFlee(move, useOil, onDone) {
@@ -291,10 +305,15 @@ class Game {
         ? `You hurl the ${this.itemName("oil")} and slip away, unscathed.`
         : "You flee, taking a parting swipe (-1 HP)."
     );
-    this.refresh();
-    animateEntry(move.dir);
-    if (this.state.status === "lost") return this.gameOver();
-    onDone();
+    // Fleeing gets a lunge, not the full sequence — you did not kill anything,
+    // and the walk into the next room is the beat that matters here.
+    clearChoices();
+    resolveBeat({ mode: "flee" }).then(() => {
+      this.refresh();
+      animateEntry(move.dir);
+      if (this.state.status === "lost") return this.gameOver();
+      onDone();
+    });
   }
 
   doCombo(fuel, onDone, n = 0) {
@@ -306,8 +325,11 @@ class Game {
         : "Whoomph — the room ignites. All clear.",
       "good"
     );
-    this.refresh();
-    onDone();
+    clearChoices();
+    resolveBeat({ icon: `item-${fuel}` }).then(() => {
+      this.refresh();
+      onDone();
+    });
   }
 
   // ---- Step 6: the tile's own instructions --------------------------------
