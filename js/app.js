@@ -4,7 +4,7 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
-import { combatHit, isMuted, setMuted } from "./audio.js";
+import { combatHit, isMuted, setMuted, cowerBreath, relicFound, seamCross, verdictSting } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -123,7 +123,11 @@ class Game {
   }
 
   doMove(dir) {
+    // Crossing the seam is a move like any other to the board, but it is the
+    // one that changes world — worth hearing, in both directions.
+    const from = Bd.currentTile(this.board).world;
     Bd.moveTo(this.board, dir);
+    if (Bd.currentTile(this.board).world !== from) seamCross();
     log(`You move to the ${this.tileName(Bd.currentTile(this.board).id)}.`);
     this.refresh();
     animateEntry(dir);
@@ -132,6 +136,7 @@ class Game {
 
   doOutside(dir) {
     Bd.goOutside(this.board);
+    seamCross();
     log(`You step out onto the ${this.tileName("patio")}. Night air, and worse.`);
     this.refresh();
     if (dir) animateEntry(dir);
@@ -341,6 +346,7 @@ class Game {
       const tile = Bd.currentTile(this.board);
       if (ctx.kind === "temple" && !this.fled && tile.def.onResolve === "SECOND_CARD_THEN_GAIN_TOTEM") {
         E.gainTotem(this.state);
+        relicFound();
         log(`Among the bones, the ${this.word("relic")}. It is yours.`, "good");
       }
       if (ctx.kind === "graveyard" && !this.fled && this.state.totem) {
@@ -417,6 +423,7 @@ class Game {
 
   doCowerBeforeSecond(kind) {
     const r = E.cower(this.state);
+    if (r.ok) cowerBreath();
     if (r.ok) log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
     this.refresh();
     // Burning that card can empty the deck, turn the hour, and even end the run.
@@ -531,6 +538,7 @@ class Game {
 
   doCower() {
     const r = E.cower(this.state);
+    if (r.ok) cowerBreath();
     if (r.ok) log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
     this.refresh();
     if (this.state.status === "lost") return this.gameOver();
@@ -549,6 +557,7 @@ class Game {
     this.refresh();
     renderActions([]);
     const won = this.state.status === "won";
+    verdictSting(won);
 
     const again = [
       { label: "Play again", primary: true, onClick: () => startNewGame() },

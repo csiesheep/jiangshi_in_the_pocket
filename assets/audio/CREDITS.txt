@@ -1,0 +1,52 @@
+Audio provenance for Grave Errand
+=================================
+
+There are currently NO audio files in this directory. Every cue in the game is
+synthesised in js/audio.js from oscillators and a noise buffer.
+
+If recorded cues are added, each one MUST be listed below before it ships, and
+this list must stay complete — including for public-domain and CC0 files, where
+no attribution is legally required. The point is provenance: a future
+contributor has to be able to verify where every file came from without
+trusting anyone's memory.
+
+Licence rules for this repo (it is public):
+  - CC0 / public domain preferred.
+  - CC-BY is acceptable ONLY if credits.html also names author, licence and any
+    changes made.
+  - "Free for personal use" and similar non-commercial terms are NOT acceptable.
+
+Format, one block per file:
+
+  file:     <name in this directory>
+  cue:      <the manifest key it answers to>
+  source:   <URL the file came from>
+  author:   <name as the source gives it>
+  licence:  <CC0 / CC-BY-4.0 / Pixabay / ...>
+  changes:  <trimmed, normalised, converted, or "none">
+  added:    <YYYY-MM-DD>
+
+How the manifest works
+----------------------
+js/audio.js fetches assets/audio/manifest.json and, for each "cue": "file"
+entry, decodes the file and plays it in place of the synthesised version. No
+manifest, a missing file, or a decode failure all fall back to synthesis, so
+the game never waits on audio and never goes silent.
+
+Cue keys the code already understands:
+
+  door        a hinge giving way, on entering a room
+  sting       the jump scare
+  hit         a blow landing in combat
+  bell        the hour striking eleven
+  break       the risen coming through a wall
+  cower       a held breath let go
+  relic       the relic found
+  seam        crossing between the house and the garden
+  win         the burial done
+  death       the run lost
+  item-metal  picking up machete / golf club
+  item-wood   picking up plank / femur
+  item-engine picking up the chainsaw
+  item-liquid picking up oil / gasoline / soda
+  item-small  picking up the candle

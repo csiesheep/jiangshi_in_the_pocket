@@ -2,7 +2,7 @@
 
 import { RULES, effectiveAttack, clockTime } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
-import { combatSting, doorCreak, tollBell } from "./audio.js";
+import { combatSting, doorCreak, tollBell, breakThrough, itemPickup } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -112,6 +112,9 @@ export function renderHud(game) {
   const arrived = game.state.items.filter((id) => !lastItems.includes(id));
   lastItems = game.state.items.slice();
   renderBackpack(game);
+  // The sound goes with the pickup, not with the animation — reduced motion
+  // skips the flare, and a player who turned sound on still hears the find.
+  for (const id of arrived) itemPickup(id);
   if (arrived.length) flourish(arrived);
 }
 
@@ -953,6 +956,9 @@ function swingArt(row, iconId) {
 // already in place underneath, so under reduced motion the hole is simply
 // there — nothing is lost by skipping this.
 export function animateBreakIn(dir) {
+  // Sound first and unconditionally, the same rule the door follows: the cue is
+  // the wall coming in, and that happened whether or not the picture plays.
+  breakThrough();
   if (reducedMotion()) return;
   requestAnimationFrame(() => {
     const art = document.querySelector(`.focus-centre .tilebox .edgemark.${DIR_CLASS[dir]} .edgeart`);
