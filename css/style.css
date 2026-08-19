@@ -582,10 +582,42 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 /* Brighter than --muted, which the dimming filter was dragging to 2.8:1 even
    before dusk went continuous. The half-room is a glimpse, but the name in it
    is information — 6.2:1 at the darkest peek, 10.2:1 at nine o'clock. */
-.halfroom .tilename { font-size: .6rem; color: #dfe3ea; background: transparent; }
+/* The scrim comes back: this used to sit over letterbox padding, and now sits
+   over a room. */
+.halfroom .tilename {
+  font-size: .6rem;
+  color: #dfe3ea;
+  background: color-mix(in srgb, var(--room) 72%, black);
+}
 .halfroom .roomscene { opacity: .5; }
 .halfroom--n, .halfroom--s { width: var(--tile); height: var(--peek); }
 .halfroom--e, .halfroom--w { width: var(--peek); height: var(--tile); }
+
+/* ---- A glimpse is a crop, not a thumbnail ----------------------------------
+   The scene used to be stretched to fill the peek strip, and since the strip is
+   about 2.4:1 and the drawing is square, SVG letterboxed it — the neighbour
+   arrived as a tiny picture of the whole room floating in a band. That reads as
+   a thumbnail, not as seeing part of the next room through a door.
+
+   So it renders at the size the centre room's scene renders at — the tile less
+   its two walls, which is what inset:0 resolves to inside a bordered tilebox —
+   and the strip clips the rest. One scale across the doorway, the footprints
+   and both floors, which is the whole point: walking in continues a room you
+   have already half seen.
+
+   Anchoring falls out of the geometry. Each half-room already drops the border
+   on the side it shares with you, so that zero-border edge IS the doorway wall,
+   and it is the edge the neighbour's scene is pinned to. */
+.halfroom { overflow: hidden; }
+.halfroom .roomscene {
+  inset: auto;
+  width: calc(var(--tile) - var(--wall-w) * 2);
+  height: calc(var(--tile) - var(--wall-w) * 2);
+}
+.halfroom--n .roomscene { bottom: 0; left: 50%; transform: translateX(-50%); }
+.halfroom--s .roomscene { top: 0;    left: 50%; transform: translateX(-50%); }
+.halfroom--w .roomscene { right: 0;  top: 50%;  transform: translateY(-50%); }
+.halfroom--e .roomscene { left: 0;   top: 50%;  transform: translateY(-50%); }
 .halfroom--n {
   border-radius: 6px 6px 0 0; border-bottom: 0;
   /* Visibility spreads from the gap in the wall rather than filling the slot,
@@ -1179,10 +1211,92 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   margin-bottom: 6px;
 }
 
+/* ---- Each loss dies its own death -------------------------------------------
+   The blood staging above is combat's — the dead pulled you under, and the
+   render layer only builds drips and the handprint for that reason. The other
+   two losses restyle the same bones.
+
+   Health: no violence, the wounds were already taken. The dark pools up from
+   the floor of the screen while the rim closes in; the title does not gutter,
+   it just stands there, dimmed. Sadness is stillness.
+
+   Midnight: the one bloodless death. Everything goes cold blue-grey, the card
+   carries the clock stopped at twelve with the crack of the last toll, and
+   two ripples ring out from it like the bell heard through the floor. */
+
+/* Health — the pool and the closing rim. */
+.pool {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36vh;
+  background: linear-gradient(to top, rgba(52, 9, 7, .9), rgba(52, 9, 7, 0));
+  transform: translateY(100%);
+  animation: poolrise 5s ease-out 1.2s forwards;
+  pointer-events: none;
+}
+@keyframes poolrise { to { transform: none; } }
+#overlay.overlay--lost-health::before {
+  background: radial-gradient(120% 90% at 50% 42%, transparent 42%, rgba(46, 7, 5, .62));
+}
+#overlay.overlay--lost-health .overlay-card { border-top-color: #571512; }
+#overlay.overlay--lost-health .overlay-card h2 { animation: none; opacity: .92; }
+#overlay.overlay--lost-health .verdict-summary::before { content: "You lay down at last"; }
+
+/* Midnight — cold, bloodless, and rung. */
+#overlay.overlay--lost-midnight { --verdict: #aebbd6; }
+#overlay.overlay--lost-midnight::before {
+  background: radial-gradient(130% 95% at 50% 45%, transparent 38%, rgba(9, 13, 24, .85));
+}
+#overlay.overlay--lost-midnight .overlay-card {
+  border-color: color-mix(in srgb, #4a5878 55%, var(--border));
+  border-top: 4px solid #2c3550;
+  box-shadow: 0 0 60px rgba(24, 34, 64, .35), 0 12px 40px rgba(0, 0, 0, .6);
+}
+#overlay.overlay--lost-midnight .overlay-card h2 { animation: none; }
+#overlay.overlay--lost-midnight .verdict-summary::before {
+  content: "The house keeps its own";
+  color: #8794b8;
+}
+#overlay.overlay--lost-midnight .verdict-summary {
+  border-top-color: color-mix(in srgb, #4a5878 45%, var(--border));
+}
+.tollwrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 16px;
+}
+.verdict-midnight {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: #aebbd6;
+}
+.tollwrap::before,
+.tollwrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(174, 187, 214, .45);
+  border-radius: 50%;
+  animation: toll 2.8s ease-out 1.4s infinite;
+}
+.tollwrap::after { animation-delay: 2.8s; }
+@keyframes toll {
+  from { transform: scale(.92); opacity: .7; }
+  to { transform: scale(1.75); opacity: 0; }
+}
+
 /* Stillness: the stage arrives set — lit, fallen, steady — with no journey. */
 #overlay.overlay--still::before { animation: none; opacity: 1; }
 #overlay.overlay--still .blood .drip { animation: none; transform: none; }
 #overlay.overlay--still .overlay-card h2 { animation: none; }
+#overlay.overlay--still .pool { animation: none; transform: none; }
+#overlay.overlay--still .tollwrap::before,
+#overlay.overlay--still .tollwrap::after { animation: none; opacity: 0; }
 
 .sidebar { display: flex; flex-direction: column; gap: 12px; }
 .panel {
