@@ -1587,7 +1587,7 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 .caption {
   position: absolute;
   left: 50%;
-  bottom: 12px;
+  top: 10px;
   transform: translateX(-50%);
   z-index: 4;
   margin: 0;
@@ -1610,7 +1610,7 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   animation-duration: 5.2s;
 }
 @keyframes captionlife {
-  0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
   9%   { opacity: 1; transform: translateX(-50%) translateY(0); }
   78%  { opacity: 1; }
   100% { opacity: 0; }
