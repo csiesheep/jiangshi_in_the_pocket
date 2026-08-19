@@ -179,6 +179,15 @@ body.app .sidebar { min-height: 0; }
 body.app .board-pane { min-height: 0; }
 /* Anchored to the pane so a late fight cannot push past the fold. */
 body.app .actions-pop { max-height: calc(100% - 24px); }
+/* Stacked, the window is a flex item in the pane, and flex items shrink by
+   default — so when the board and the window together wanted more room than the
+   pane had, the WINDOW gave way. It collapsed to 26px with two 44px buttons
+   inside it: both invisible, neither clickable, the turn unplayable. The pane's
+   overflow:hidden made that silent rather than merely ugly.
+   The controls do not yield. The board does — losing the edge of a glimpse
+   beats losing the ability to take your turn. */
+body.app .actions-pop { flex: none; }
+body.app .board-pane > .board { min-height: 0; }
 
 /* ---- Game page ---- */
 .game-layout {
