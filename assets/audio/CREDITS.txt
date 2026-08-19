@@ -87,12 +87,17 @@ Cue keys the code already understands:
   step-wood   walking in, on boards  (a list of takes, chosen between)
   step-grass  walking in, on grass   (a list of takes, chosen between)
 
+The two held sounds — the wind bed and the pack murmur — take no cue key and
+cannot be replaced by a file. They are generated, they loop by construction,
+and the bed follows the clock: it thickens as the night draws on, which a
+recording of wind cannot do.
+
 Which cues are recorded, and which are still synthesised
 -------------------------------------------------------
 recorded:     door, break, hit, item-metal, item-wood, item-small,
               step-wood, step-grass
 synthesised:  sting, bell, cower, relic, seam, win, death,
-              item-engine, item-liquid
+              item-engine, item-liquid, and both beds (wind, pack murmur)
 
 The synthesised ones are not an oversight. The bell is deliberate — the issue
 called it good as it is. The rest are sounds these two packs cannot serve

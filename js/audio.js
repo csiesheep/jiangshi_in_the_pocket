@@ -16,6 +16,7 @@ const KEY = "zitp:muted";
 let ctx = null;
 let master = null;
 let noiseBuffer = null;
+let bedNoise = null;
 let muted = readMuted();
 
 function readMuted() {
@@ -41,7 +42,16 @@ export function setMuted(next) {
   if (master) master.gain.value = muted ? 0 : 1;
   // Un-muting is itself a click, which is exactly the gesture a browser wants
   // before it will let a page make noise — so open the context here.
-  if (!muted) audio();
+  if (!muted) {
+    audio();
+    // Nothing is built while muted, so anything that was supposed to be
+    // running has to be built now rather than waiting for the next event.
+    if (bedWanted) startAmbience();
+    if (murmurWanted) startMurmur(murmurWanted);
+  } else {
+    tearDownBed();
+    tearDownMurmur();
+  }
   return muted;
 }
 
@@ -84,6 +94,17 @@ function noise(c) {
   const data = noiseBuffer.getChannelData(0);
   for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
   return noiseBuffer;
+}
+
+// Held sounds need a longer buffer than struck ones: half a second of noise is
+// fine for a burst and audibly ticks once you loop it. Eight seconds does not.
+function longNoise(c) {
+  if (bedNoise && bedNoise.sampleRate === c.sampleRate) return bedNoise;
+  const frames = Math.floor(c.sampleRate * 8);
+  bedNoise = c.createBuffer(1, frames, c.sampleRate);
+  const data = bedNoise.getChannelData(0);
+  for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+  return bedNoise;
 }
 
 // ---- Recorded cues, when there are any --------------------------------------
@@ -454,4 +475,176 @@ export function footsteps(world = "indoor") {
   const cue = world === "outdoor" ? "step-grass" : "step-wood";
   sample(cue, 0.55);
   sample(cue, 0.45, 0.19);
+}
+
+// ---- Beds: the two sounds that run instead of firing -------------------------
+// Everything above is struck and forgotten. These are held, which makes them a
+// different problem: they have to survive a mute, a new game and a game over
+// without stacking, leaking, or outliving the run they belong to.
+//
+// The rule is that *wanted* and *running* are separate. The flags say what the
+// game wants; the nodes say what the context is currently doing. Muting tears
+// the nodes down but leaves the wanting intact, so switching sound back on
+// mid-run restores exactly what should be there.
+
+let bed = null; // { src, gain, filter, lfo }
+let bedWanted = false;
+let dread = 0; // 0 at nine o'clock, 1 at midnight
+
+// Wind, synthesised rather than sourced — and not for want of a file. Noise
+// through a moving filter loops seamlessly by construction, weighs nothing, and
+// can follow the clock: a recording is the same wind at nine as at midnight.
+export function startAmbience() {
+  bedWanted = true;
+  const c = live();
+  if (!c || bed) return;
+
+  const src = c.createBufferSource();
+  src.buffer = longNoise(c);
+  src.loop = true;
+
+  const filter = c.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.Q.value = 0.7;
+  filter.frequency.value = 320;
+
+  const gain = c.createGain();
+  gain.gain.value = 0.0001;
+
+  // The wind breathes. Without this it is a hiss; with it, it is weather.
+  const lfo = c.createOscillator();
+  lfo.type = "sine";
+  lfo.frequency.value = 0.055;
+  const lfoDepth = c.createGain();
+  lfoDepth.gain.value = 150;
+  lfo.connect(lfoDepth).connect(filter.frequency);
+
+  src.connect(filter).connect(gain).connect(master);
+  src.start();
+  lfo.start();
+  // Fade in. Sound arriving at full strength announces itself as a sound
+  // effect; weather is just suddenly noticed.
+  gain.gain.exponentialRampToValueAtTime(bedLevel(), c.currentTime + 3.5);
+
+  bed = { src, gain, filter, lfo };
+}
+
+function bedLevel() {
+  // Quiet, and quietest early: this has to sit under everything else or it
+  // stops being a bed and starts being a noise.
+  return 0.012 + dread * 0.03;
+}
+
+// The night closing in, driven from the same dusk value that dims the board —
+// so the wind and the light are the same statement made twice.
+export function setDread(x) {
+  dread = Math.min(Math.max(Number(x) || 0, 0), 1);
+  if (!bed) return;
+  const c = live();
+  if (!c) return;
+  bed.gain.gain.linearRampToValueAtTime(bedLevel(), c.currentTime + 2);
+  bed.filter.frequency.linearRampToValueAtTime(320 + dread * 210, c.currentTime + 2);
+}
+
+function tearDownBed() {
+  if (!bed) return;
+  try {
+    bed.src.stop();
+    bed.lfo.stop();
+  } catch {
+    /* already stopped */
+  }
+  bed = null;
+}
+
+export function stopAmbience() {
+  bedWanted = false;
+  const c = live();
+  if (!c || !bed) return tearDownBed();
+  // Let it fall away rather than cutting: a hard stop on a held sound is a
+  // click, and the end of a run has enough going on.
+  const dying = bed;
+  bed = null;
+  dying.gain.gain.cancelScheduledValues(c.currentTime);
+  dying.gain.gain.setValueAtTime(dying.gain.gain.value, c.currentTime);
+  dying.gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 1.4);
+  setTimeout(() => {
+    try {
+      dying.src.stop();
+      dying.lfo.stop();
+    } catch {
+      /* fine */
+    }
+  }, 1700);
+}
+
+// The pack, breathing, for as long as it is on screen. Pitched under the cues
+// so it never competes with the fight it belongs to.
+let murmur = null;
+let murmurWanted = 0;
+
+export function startMurmur(count = 3) {
+  murmurWanted = count || 3;
+  const c = live();
+  if (!c || murmur) return;
+
+  const gain = c.createGain();
+  gain.gain.value = 0.0001;
+  const filter = c.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 340;
+
+  const src = c.createBufferSource();
+  src.buffer = longNoise(c);
+  src.loop = true;
+
+  // Two detuned voices under the noise: a crowd, not a machine. Bigger packs
+  // sit slightly lower and louder, the same information the scare carries.
+  const weight = Math.min(Math.max((murmurWanted - 3) / 3, 0), 1);
+  const voices = [];
+  for (const [freq, detune] of [[62, -7], [77, 9]]) {
+    const osc = c.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = freq - weight * 8;
+    osc.detune.value = detune;
+    osc.connect(filter);
+    osc.start();
+    voices.push(osc);
+  }
+  src.connect(filter);
+  filter.connect(gain).connect(master);
+  src.start();
+  gain.gain.exponentialRampToValueAtTime(0.02 + weight * 0.014, c.currentTime + 1.1);
+
+  murmur = { src, gain, filter, voices };
+}
+
+function tearDownMurmur() {
+  if (!murmur) return;
+  try {
+    murmur.src.stop();
+    for (const v of murmur.voices) v.stop();
+  } catch {
+    /* already stopped */
+  }
+  murmur = null;
+}
+
+export function stopMurmur() {
+  murmurWanted = 0;
+  const c = live();
+  if (!c || !murmur) return tearDownMurmur();
+  const dying = murmur;
+  murmur = null;
+  dying.gain.gain.cancelScheduledValues(c.currentTime);
+  dying.gain.gain.setValueAtTime(dying.gain.gain.value, c.currentTime);
+  dying.gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.35);
+  setTimeout(() => {
+    try {
+      dying.src.stop();
+      for (const v of dying.voices) v.stop();
+    } catch {
+      /* fine */
+    }
+  }, 600);
 }

@@ -4,7 +4,8 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
-import { combatHit, isMuted, setMuted, cowerBreath, relicFound, seamCross, verdictSting } from "./audio.js";
+import { combatHit, isMuted, setMuted, cowerBreath, relicFound, seamCross, verdictSting,
+         startAmbience, stopAmbience, startMurmur, stopMurmur } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -276,6 +277,7 @@ class Game {
         for (const a of acts) a.primary = false;
         survivable.primary = true;
       }
+      startMurmur(n);
       renderActions(acts, prompt, { pack: n, health: s.health });
     });
   }
@@ -295,6 +297,7 @@ class Game {
     // The engine is already done. What follows only delays the next render, so
     // the pack visibly goes down before the window moves on. Clearing the cards
     // first is what makes the pause safe: mashed number keys find nothing.
+    stopMurmur();
     clearChoices();
     resolveBeat({ icon: swung ? `item-${swung}` : null }).then(() => {
       // refresh drives the hit flash, so the damage lands after the swing
@@ -316,6 +319,7 @@ class Game {
     );
     // Fleeing gets a lunge, not the full sequence — you did not kill anything,
     // and the walk into the next room is the beat that matters here.
+    stopMurmur();
     clearChoices();
     resolveBeat({ mode: "flee" }).then(() => {
       this.refresh();
@@ -334,6 +338,7 @@ class Game {
         : "Whoomph — the room ignites. All clear.",
       "good"
     );
+    stopMurmur();
     clearChoices();
     resolveBeat({ icon: `item-${fuel}` }).then(() => {
       this.refresh();
@@ -563,6 +568,10 @@ class Game {
   gameOver() {
     this.refresh();
     renderActions([]);
+    // The house stops breathing when the run does. Both beds go before the
+    // verdict sting, so the ending has the room to itself.
+    stopMurmur();
+    stopAmbience();
     const won = this.state.status === "won";
     verdictSting(won);
 
@@ -617,6 +626,10 @@ let game = null;
 
 function startNewGame(seed) {
   hideOverlay();
+  // A new run gets the wind back, and never a second copy of it — startAmbience
+  // is idempotent, so restarting mid-run is safe.
+  stopMurmur();
+  startAmbience();
   game = new Game(data, seed != null ? { seed } : {});
   window.__game = game; // handy for debugging
   const el = document.getElementById("seed-value");

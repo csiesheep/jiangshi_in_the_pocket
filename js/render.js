@@ -2,7 +2,7 @@
 
 import { RULES, effectiveAttack, clockTime } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
-import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps } from "./audio.js";
+import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -251,7 +251,11 @@ function renderHour(s) {
   // The light now follows the minute hand, not the hour: one number out to CSS
   // and every dial in the light model moves with it, a sliver per card drawn.
   const body = document.body;
-  body.style.setProperty("--dusk", (c.elapsed / c.span).toFixed(4));
+  const dusk = c.elapsed / c.span;
+  body.style.setProperty("--dusk", dusk.toFixed(4));
+  // The wind takes the same number the light does, so the night closing in is
+  // one statement made twice rather than two effects that happen to coincide.
+  setDread(dusk);
 
   // The hour class stays for the jobs a gradient cannot do — the last hour's
   // change of register, and strikeEleven keying off the turn. timePasses loses
