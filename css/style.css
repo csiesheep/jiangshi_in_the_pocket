@@ -10,7 +10,12 @@
   --muted:     #9aa0aa;
   --accent:    #7fb539;   /* sickly green */
   --accent-2:  #b5392f;   /* blood red */
-  --danger:    #e0523f;
+  /* Lifted from #e0523f, which measured 4.33:1 on the panel — under the 4.5
+     that text needs, and it colours the log's worst news. Three separate call
+     sites had already been lifted past it one at a time; this is the token
+     catching up with them. Measured: 5.24:1 on the panel, 5.68:1 on an action
+     card, 3.60:1 on the indoor floor and 3.31:1 on the outdoor one. */
+  --danger:    #ef6449;
   --gold:      #c9a24b;
   --radius:    10px;
   --maxw:      960px;
@@ -247,10 +252,7 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
   stroke: none;
   opacity: .8;
 }
-/* --danger itself lands at 4.33:1 on the panel, just under the 4.5 a numeral
-   needs as text. Lifted here only, rather than shifting the global token that
-   everything else is already tuned against. */
-.clock-numeral--midnight { fill: #ef6449; opacity: 1; }
+.clock-numeral--midnight { fill: var(--danger); opacity: 1; }
 .clock-hand { stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 .clock-hand--hour { stroke: var(--accent); stroke-width: 3.4; }
 .clock-hand--minute { opacity: .75; }
@@ -713,7 +715,7 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 .edgemark--open { color: var(--accent); }
 .edgemark--shut { color: var(--muted); }
 .edgemark--blocked { color: #5a6070; }
-.edgemark--broken { color: #ef6449; }
+.edgemark--broken { color: var(--danger); }
 .edgemark--exterior { color: var(--gold); }
 
 @media (max-width: 600px) {
@@ -796,6 +798,8 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 .action--primary { grid-column: 1 / -1; }
 .action-icon { width: 22px; height: 22px; color: var(--gold); flex: none; }
 .action-compass { color: var(--muted); font-size: 1rem; flex: none; }
+/* Only reachable if the sprite fetch fails: with icons loaded a flee card
+   always has tile art, and the compass is the no-art fallback. */
 .action[data-kind="flee"] .action-compass { color: color-mix(in srgb, var(--danger) 70%, var(--muted)); }
 
 @media (max-width: 800px) {
@@ -814,7 +818,6 @@ body.app .actions-pop { max-height: calc(100% - 24px); }
 /* No damage is a reward, not a price — it should not read in the cost colour. */
 .action-cost--safe { color: var(--accent); font-style: italic; opacity: .95; }
 
-.action[data-kind="flee"] .action-sub { color: color-mix(in srgb, var(--danger) 80%, var(--muted)); }
 
 .action:hover { border-color: var(--accent); }
 .action--primary { border-color: var(--accent); }
@@ -1053,7 +1056,7 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   width: calc(min(46vmin, 380px) * var(--face-scale));
   height: calc(min(46vmin, 380px) * var(--face-scale));
   color: var(--danger);
-  filter: drop-shadow(0 0 26px rgba(224, 82, 63, .35));
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--danger) 35%, transparent));
 }
 
 /* ---- Article pages (rulebook, credits) ---- */
