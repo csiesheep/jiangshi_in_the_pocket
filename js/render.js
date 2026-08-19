@@ -214,13 +214,21 @@ function renderHour(s) {
   el.appendChild(face);
 
   const reading = formatClock(c);
+  const side = document.createElement("div");
+  side.className = "clockread";
+  side.setAttribute("aria-hidden", "true");
+
   const text = document.createElement("span");
-  text.className = "statnum";
+  text.className = "statnum clocknum";
   text.textContent = reading;
-  text.setAttribute("aria-hidden", "true");
-  el.appendChild(text);
-  // Built from the same reading as the visible text, so the two cannot drift.
-  el.appendChild(srOnly(reading));
+  side.appendChild(text);
+  side.appendChild(drawPips(c));
+  el.appendChild(side);
+
+  // Built from the same reading as the visible text, so the two cannot drift,
+  // and carrying what the pips show — a hand position is not something to
+  // announce as a shape.
+  el.appendChild(srOnly(`${reading}, ${cardsLeftPhrase(c)}`));
 
   // The hour is the only thing that moves the light. timePasses loses at
   // midnight before it can increment past 23, so 9/10/11 covers every state a
@@ -257,6 +265,28 @@ function sweep(hand, from, to) {
   );
 }
 
+// The deck as a fuel gauge: seven pips, one going out per card spent. The issue
+// asked for these around the current hour's arc; measured at the face size it
+// specifies, seven pips across 30 degrees is 17px of arc end to end, which is
+// not a gauge anyone can read. A row beside the reading shows the same fact at
+// a size that survives.
+function drawPips(c) {
+  const row = document.createElement("span");
+  row.className = "pips";
+  for (let i = 0; i < c.perHour; i++) {
+    const pip = document.createElement("span");
+    // Pips stand for draws still available, so they go out left to right.
+    pip.className = `pip${i < c.left ? "" : " pip--spent"}`;
+    row.appendChild(pip);
+  }
+  return row;
+}
+
+function cardsLeftPhrase(c) {
+  if (c.left === 0) return "the next card turns the hour";
+  return `${c.left} card${c.left === 1 ? "" : "s"} until the hour turns`;
+}
+
 // The last hour, called out. The ambient palette shift is handled by the hour
 // class; this is the punctuation on top of it.
 function strikeEleven(face) {
@@ -275,53 +305,91 @@ function strikeEleven(face) {
   );
 }
 
+// Drawn on a 100-unit face rather than 24: at a readable size the old viewBox
+// put stroke widths and numerals on a grid too coarse to place them well.
+//
+// Only the 9-to-12 quadrant is ever played, so it is marked like a gauge:
+// numerals on the hours that exist, and the last hour's arc in --danger.
+const CLOCK_R = 40;
+const NUMERAL_R = 23;
+const PLAYED_HOURS = [9, 10, 11, 12];
+
+function polar(deg, r) {
+  const rad = (deg * Math.PI) / 180;
+  return [50 + r * Math.sin(rad), 50 - r * Math.cos(rad)];
+}
+
 function clockFace(hourAngle, minuteAngle = 0) {
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("class", "staticon clock");
-  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "clock");
+  svg.setAttribute("viewBox", "0 0 100 100");
   svg.setAttribute("aria-hidden", "true");
 
   const face = document.createElementNS(NS, "circle");
-  face.setAttribute("cx", "12");
-  face.setAttribute("cy", "12");
-  face.setAttribute("r", "9.5");
+  face.setAttribute("cx", "50");
+  face.setAttribute("cy", "50");
+  face.setAttribute("r", String(CLOCK_R));
   face.setAttribute("class", "clock-face");
   svg.appendChild(face);
 
-  for (const a of [0, 90, 180, 270]) {
+  // The red zone: eleven to midnight, the hour the game ends in.
+  const [ax, ay] = polar(330, CLOCK_R);
+  const [bx, by] = polar(360, CLOCK_R);
+  const arc = document.createElementNS(NS, "path");
+  arc.setAttribute("d", `M${ax.toFixed(2)} ${ay.toFixed(2)} A${CLOCK_R} ${CLOCK_R} 0 0 1 ${bx.toFixed(2)} ${by.toFixed(2)}`);
+  arc.setAttribute("class", "clock-danger");
+  svg.appendChild(arc);
+
+  for (let h = 0; h < 12; h++) {
+    const deg = h * 30;
+    const played = PLAYED_HOURS.includes(h === 0 ? 12 : h);
+    const [x1, y1] = polar(deg, CLOCK_R);
+    const [x2, y2] = polar(deg, played ? CLOCK_R - 5 : CLOCK_R - 3);
     const tick = document.createElementNS(NS, "line");
-    tick.setAttribute("x1", "12");
-    tick.setAttribute("y1", "3.6");
-    tick.setAttribute("x2", "12");
-    tick.setAttribute("y2", "5.6");
-    tick.setAttribute("transform", `rotate(${a} 12 12)`);
-    tick.setAttribute("class", "clock-tick");
+    tick.setAttribute("x1", x1.toFixed(2));
+    tick.setAttribute("y1", y1.toFixed(2));
+    tick.setAttribute("x2", x2.toFixed(2));
+    tick.setAttribute("y2", y2.toFixed(2));
+    tick.setAttribute("class", `clock-tick${played ? " clock-tick--played" : ""}`);
     svg.appendChild(tick);
   }
 
-  // Roughly 8.6 minutes of sweep per card spent.
-  const minute = document.createElementNS(NS, "line");
-  minute.setAttribute("x1", "12");
-  minute.setAttribute("y1", "12");
-  minute.setAttribute("x2", "12");
-  minute.setAttribute("y2", "5.8");
-  minute.setAttribute("class", "clock-hand clock-hand--minute");
-  minute.style.transformOrigin = "12px 12px";
-  minute.style.transform = `rotate(${minuteAngle}deg)`;
-  svg.appendChild(minute);
+  for (const h of PLAYED_HOURS) {
+    const [x, y] = polar((h % 12) * 30, NUMERAL_R);
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", x.toFixed(2));
+    t.setAttribute("y", y.toFixed(2));
+    t.setAttribute("text-anchor", "middle");
+    t.setAttribute("dominant-baseline", "central");
+    t.setAttribute("class", `clock-numeral${h === 12 ? " clock-numeral--midnight" : ""}`);
+    t.textContent = String(h);
+    svg.appendChild(t);
+  }
 
-  const hour = document.createElementNS(NS, "line");
-  hour.setAttribute("x1", "12");
-  hour.setAttribute("y1", "12");
-  hour.setAttribute("x2", "12");
-  hour.setAttribute("y2", "8");
-  hour.setAttribute("class", "clock-hand clock-hand--hour");
-  hour.style.transformOrigin = "12px 12px";
-  hour.style.transform = `rotate(${hourAngle}deg)`;
-  svg.appendChild(hour);
+  svg.appendChild(hand(NS, "minute", 27, minuteAngle));
+  svg.appendChild(hand(NS, "hour", 18, hourAngle));
+
+  const pin = document.createElementNS(NS, "circle");
+  pin.setAttribute("cx", "50");
+  pin.setAttribute("cy", "50");
+  pin.setAttribute("r", "2");
+  pin.setAttribute("class", "clock-pin");
+  svg.appendChild(pin);
 
   return svg;
+}
+
+function hand(NS, kind, length, angle) {
+  const line = document.createElementNS(NS, "line");
+  line.setAttribute("x1", "50");
+  line.setAttribute("y1", "50");
+  line.setAttribute("x2", "50");
+  line.setAttribute("y2", String(50 - length));
+  line.setAttribute("class", `clock-hand clock-hand--${kind}`);
+  line.style.transformOrigin = "50px 50px";
+  line.style.transform = `rotate(${angle}deg)`;
+  return line;
 }
 
 function renderRelic(s) {
