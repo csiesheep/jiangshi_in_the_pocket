@@ -1845,57 +1845,40 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 .breach--w { left: 0; top: 0; bottom: 0; width: 22%; }
 .breach--e { right: 0; top: 0; bottom: 0; width: 22%; }
 
-/* One crack: a hairline, not a drawing. Light, not dark — which took a look at
-   it to get right. A crack is a dark line in daylight, and the first version
-   drew it that way: near-black on a near-black wall, which is nothing at all.
-   What you actually see in a room this dark is the broken plaster catching the
-   candle, so the line is bone with a dark edge behind it. */
-.breach i {
-  position: absolute;
-  width: 1.6px;
-  height: var(--len, 60%);
-  background: linear-gradient(180deg, rgba(196, 180, 148, .7), rgba(196, 180, 148, .58) 62%,
-                                      transparent);
-  box-shadow: -1px 0 1px rgba(4, 4, 6, .8);
-  transform-origin: top center;
-  opacity: 0;
-}
-.breach--n i, .breach--s i { left: var(--along); top: 4%; transform: rotate(var(--tilt)); }
-.breach--w i, .breach--e i { top: var(--along); left: 4%; transform: rotate(calc(90deg + var(--tilt))); }
+/* The wall art while it is failing. Bone rather than the danger red the finished
+   hole uses: a crack is plaster, and the red is for the thing that is already
+   through. Not a colour anything else on the board owns, so a wall in this state
+   is unmistakable without being loud. */
+.edgemark--breach { color: #c4b494; z-index: 4; }
 
-/* Reduced motion: the cracks are simply there. They are information — this wall
-   is going — and information is not motion. */
-.breach--still i { opacity: .9; }
-
-/* They spread. Staggered by index so the wall fails in four places at slightly
-   different moments rather than all at once, which is the difference between a
-   crack web and a stencil. */
-.breach--spreading i { animation: crackopen 420ms ease-out forwards; }
-.breach--spreading i:nth-child(2) { animation-delay: 90ms; }
-.breach--spreading i:nth-child(3) { animation-delay: 40ms; }
-.breach--spreading i:nth-child(4) { animation-delay: 150ms; }
+/* The cracks arriving, once. Scaled from the wall line rather than faded in, so
+   they look like they are spreading rather than appearing. */
+.edgemark--cracking .edgeart { animation: crackopen 420ms ease-out both; }
 @keyframes crackopen {
-  from { opacity: 0; transform: rotate(var(--tilt)) scaleY(.15); }
-  to   { opacity: .9; transform: rotate(var(--tilt)) scaleY(1); }
+  from { opacity: 0; transform: scale(.7); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
-/* And then they are pounded on while you choose. Slow, shallow, and the same
-   period as nothing else on screen: this is a thing happening behind the wall,
-   not a UI pulse. */
-.breach--pounding i { animation: crackpound 1.6s ease-in-out infinite; }
-.breach--pounding i:nth-child(2) { animation-delay: 120ms; }
-.breach--pounding i:nth-child(3) { animation-delay: 60ms; }
-.breach--pounding i:nth-child(4) { animation-delay: 200ms; }
-@keyframes crackpound {
-  0%, 100% { opacity: .78; transform: rotate(var(--tilt)) scaleY(1); }
-  46%      { opacity: 1;   transform: rotate(var(--tilt)) scaleY(1.1); }
+/* And then the arms, reaching, for as long as the fight lasts. Transform only —
+   no layout, no paint beyond the composite — because this runs for as long as
+   the player takes to choose a weapon, which might be a while.
+
+   Two seconds is deliberately slower than any pulse in the interface. Nothing
+   here is asking to be clicked. */
+.edgemark--grasping .edgeart { animation: grasping 2s ease-in-out infinite; transform-origin: 50% 34%; }
+@keyframes grasping {
+  0%, 100% { transform: translateY(0) scale(1); }
+  38%      { transform: translateY(.9px) scale(1.045); }
+  64%      { transform: translateY(.2px) scale(1.01); }
 }
 
-/* Failing: the cracks widen and brighten as the section goes. */
-.breach--failing i { animation: crackfail 300ms ease-in forwards; }
-@keyframes crackfail {
-  from { opacity: 1; width: 1.5px; }
-  to   { opacity: 1; width: 4px; }
+/* Withdrawn, an instant before the section falls. They pull it down — the wall
+   does not simply fail on its own, which is a different and much duller
+   sentence. */
+.edgemark--pulling .edgeart { animation: pullback 260ms ease-in forwards; }
+@keyframes pullback {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-3px) scale(.86); }
 }
 
 /* The section itself, in two pieces falling inward at different rates. One
@@ -2377,7 +2360,7 @@ body.asleep #hud-health,
 body.asleep .tilebadge--relic .tilebadge-art,
 body.asleep .grain,
 body.asleep .motes i,
-body.asleep .breach--pounding i,
+body.asleep .edgemark--grasping .edgeart,
 body.asleep .fog {
   animation-play-state: paused;
 }

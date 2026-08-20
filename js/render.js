@@ -642,6 +642,10 @@ export function renderBoard(game) {
 
   // renderBoard rebuilds .focus from scratch, so hotspots cannot be attached
   // once and kept — they are re-applied from the pending list every rebuild.
+  // A wall that is mid-failure has no board state to be rebuilt from, so the
+  // sequence puts its art back rather than losing it to a refresh.
+  restoreBreachWall();
+
   if (pendingMoves.length) {
     mountDoorways(el);
     // Put focus back on the same doorway. `focusedDir` was read before the wipe
@@ -1387,30 +1391,56 @@ export function candleGutter() {
 
 const breakIn = {
   dir: null,
-  el: null, // the cracked-wall overlay, while it is mounted
+  el: null, // the falling-debris strip, only during the collapse
+  // Which wall art is standing in for the wall right now. No board state says
+  // "cracked" — the board only knows walls and holes — so this is the sequence
+  // remembering what it put there, and renderBoard puts it back after a
+  // re-render rather than losing it mid-fight.
+  wall: null, // "wall-cracked" | "wall-breached" | null
+  grasping: false, // whether the arms should still be reaching after a render
 };
 
 // The stage names are the phases of the turn, not the frames of an animation:
 // telegraph runs while the card resolves, cracks as the sting lands, pressure
 // for as long as the choice is open, collapse on resolution.
+// The wall art, standing where an edge mark would. Built and placed exactly
+// like every other one — same class, same rotation — so a cracked north wall
+// and a cracked east wall need no separate geometry.
+function mountBreachWall(dir, symbol) {
+  const box = document.querySelector(".focus-centre .tilebox");
+  if (!box) return null;
+  const old = box.querySelector(".edgemark--breach");
+  if (old) old.remove();
+  const wrap = document.createElement("span");
+  wrap.className = `edgemark ${DIR_CLASS[dir] || "n"} edgemark--breach`;
+  wrap.setAttribute("aria-hidden", "true"); // describeRoom says it in words
+  const art = icon("edge", symbol, "edgeart");
+  if (!art) return null;
+  wrap.appendChild(art);
+  box.appendChild(wrap);
+  return wrap;
+}
+
+// Called at the end of every board render: the fight is still on, so whatever
+// the wall was doing it should still be doing.
+function restoreBreachWall() {
+  if (!breakIn.dir || !breakIn.wall) return;
+  const wrap = mountBreachWall(breakIn.dir, breakIn.wall);
+  // And still reaching. Without this the arms come back frozen after any
+  // mid-fight render — a cower, a heal, anything that refreshes the board —
+  // which is a wall that stopped being attacked while the fight is still on.
+  if (wrap && breakIn.grasping && !reducedMotion()) wrap.classList.add("edgemark--grasping");
+}
+
+// The debris strip. Only the falling pieces live here now — the cracks are the
+// wall art above, which is a sprite on the edge grid rather than four rotated
+// divs pretending to be one.
 function breachEl(dir) {
   const box = document.querySelector(".focus-centre .tilebox");
   if (!box) return null;
   const el = document.createElement("span");
   el.className = `breach breach--${DIR_CLASS[dir] || "n"}`;
-  el.setAttribute("aria-hidden", "true"); // describeRoom carries this in words
-  // Fixed positions, like every other effect here: the same wall should fail
-  // the same way twice, and a seeded run has to look like itself.
-  // Fanned rather than hanging. The first pass ran them long and near-vertical
-  // from the wall line and they read as drips, not fractures — a crack web
-  // spreads sideways as much as inward, so these are shorter and lean harder.
-  for (const [along, len, tilt] of [[24, 46, -38], [41, 68, 16], [56, 40, 42], [71, 58, -14]]) {
-    const crack = document.createElement("i");
-    crack.style.setProperty("--along", `${along}%`);
-    crack.style.setProperty("--len", `${len}%`);
-    crack.style.setProperty("--tilt", `${tilt}deg`);
-    el.appendChild(crack);
-  }
+  el.setAttribute("aria-hidden", "true");
   box.appendChild(el);
   return el;
 }
@@ -1429,22 +1459,37 @@ export function breakInTelegraph(dir) {
 // does nothing at all: the stages collapse back to the single burst at the end,
 // which is what calm mode promised.
 export function breakInCracks(dir) {
-  if (isCalm()) return;
+  if (isCalm()) {
+    // Calm mode gets the cracked wall and nothing that comes through it: the
+    // information that a wall is failing, without being reached for.
+    breakIn.dir = dir || breakIn.dir;
+    breakIn.wall = "wall-cracked";
+    mountBreachWall(breakIn.dir, breakIn.wall);
+    return;
+  }
   breakIn.dir = dir || breakIn.dir;
-  breakInClear();
-  const el = breachEl(breakIn.dir);
-  if (!el) return;
-  breakIn.el = el;
-  // The cracks arrive; reduced motion gets them without the spreading.
-  el.classList.add(reducedMotion() ? "breach--still" : "breach--spreading");
+  breakIn.wall = "wall-cracked";
+  const wrap = mountBreachWall(breakIn.dir, breakIn.wall);
+  if (wrap && !reducedMotion()) wrap.classList.add("edgemark--cracking");
 }
 
 // Stage 3 — the window is open and you are choosing a weapon. The wall stays
 // cracked and pounds faintly. Pressure, not an event: nothing here resolves,
 // interrupts, or asks for a frame of the player's time.
+// Stage three — the hands. Between the cracks and the collapse, arms come
+// through and stay there for the length of the fight, which is the single most
+// iconic image this game did not have. Pressure, not an event: nothing here
+// resolves, interrupts, or asks for a frame of the player's time.
+//
+// Calm mode keeps the cracked wall and nothing else. Reduced motion gets the
+// arms but not the grasping — they are through the wall either way, and that is
+// the fact; the reaching is the decoration.
 export function breakInPressure() {
-  if (isCalm() || reducedMotion()) return;
-  if (breakIn.el) breakIn.el.classList.add("breach--pounding");
+  if (isCalm() || !breakIn.dir) return;
+  breakIn.wall = "wall-breached";
+  breakIn.grasping = true;
+  const wrap = mountBreachWall(breakIn.dir, breakIn.wall);
+  if (wrap && !reducedMotion()) wrap.classList.add("edgemark--grasping");
 }
 
 // Stage 5 — they followed you. The prediction was wrong, so the whole sequence
@@ -1477,14 +1522,23 @@ export function breakInCollapse(dir) {
   // is on the wall that actually gave — a prediction that turned out wrong has
   // to be dropped, not collapsed.
   if (!(breakIn.el && breakIn.el.isConnected && breakIn.dir === dir)) {
-    breakInClear();
+    if (breakIn.el) breakIn.el.remove();
     breakIn.el = breachEl(dir);
   }
   breakIn.dir = dir;
+  breakIn.wall = null; // the wall is going; nothing to restore after this
+  breakIn.grasping = false;
+
+  // They pull it down: the arms withdraw an instant before the section goes,
+  // which is the difference between the wall failing and the wall being pulled.
+  const arms = document.querySelector(".edgemark--breach");
+  if (arms) {
+    arms.classList.remove("edgemark--grasping", "edgemark--cracking");
+    arms.classList.add("edgemark--pulling");
+  }
 
   const el = breakIn.el;
   if (el) {
-    el.classList.remove("breach--pounding", "breach--spreading");
     el.classList.add("breach--failing");
     // Two chunks, falling inward at different rates — one piece reads as a
     // panel sliding, two read as masonry.
@@ -1507,6 +1561,10 @@ export function breakInCollapse(dir) {
 export function breakInClear() {
   if (breakIn.el) breakIn.el.remove();
   breakIn.el = null;
+  breakIn.wall = null;
+  breakIn.dir = null;
+  breakIn.grasping = false;
+  for (const n of document.querySelectorAll(".edgemark--breach")) n.remove();
 }
 
 // ---- Telegraphing the zombie door ------------------------------------------
@@ -1968,7 +2026,14 @@ function describeRoom(game, tile, edges) {
     const e = edges[dir];
     const where = DIR_WORD[dir];
     if (e.state === "wall") {
-      parts.push(`To the ${where}, a wall.`);
+      // The one transient thing this sentence reports. A wall being broken
+      // through is a fact about the room and it decides what the player does
+      // next, so it is said — unlike the phantoms, which are not facts.
+      parts.push(
+        breakIn.dir === dir && breakIn.wall
+          ? `To the ${where}, a wall giving way — they are coming through it.`
+          : `To the ${where}, a wall.`
+      );
     } else if (e.state === "outside") {
       parts.push(`To the ${where}, the arrow door leading outside.`);
     } else if (e.state === "open") {
