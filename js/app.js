@@ -37,6 +37,8 @@ import {
   itemName as iName,
 } from "./render.js";
 
+import { registerWorker, wireFullscreen, keepAwake } from "./shell.js";
+
 const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
 
 // `no-cache` forces a revalidation rather than a blind cache hit: it still
@@ -648,6 +650,7 @@ class Game {
     stopMurmur();
     unduck();
     stopAmbience();
+    keepAwake(false);
     // The verdicts carry their own stings; the score is never played over them.
     stopScore();
     const won = this.state.status === "won";
@@ -713,6 +716,9 @@ let game = null;
 function startNewGame(seed) {
   hideOverlay();
   clearStage();
+  // A run is in progress: the screen stays lit. Released at the verdict, so a
+  // finished game is not quietly holding the phone awake.
+  keepAwake(true);
   // A new run gets the wind back, and never a second copy of it — startAmbience
   // is idempotent, so restarting mid-run is safe.
   stopMurmur();
@@ -869,6 +875,8 @@ async function main() {
     // Icons are decorative, so a failed sprite must not block the game.
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
+  wireFullscreen();
+  registerWorker();
     paintSoundToggle();
     paintCalmToggle();
     paintCopyIcon();
