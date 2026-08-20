@@ -1172,6 +1172,20 @@ body.app .board-pane > .board { min-height: 0; }
 #overlay.overlay--lost .overlay-card { border-color: color-mix(in srgb, var(--danger) 34%, var(--border)); }
 #overlay.overlay--won .overlay-card { border-color: color-mix(in srgb, #cfd6d0 28%, var(--border)); }
 
+/* The composed closing line. Larger than the rows under it and set in the
+   title face, because it is the sentence and they are the footnotes — if the
+   two look alike, the eye reads neither. */
+.verdict-epilogue {
+  font-family: var(--font-display);
+  margin: 4px 0 18px;
+  font-size: 1.06rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text) 88%, var(--flame));
+  max-width: 34ch;
+  text-wrap: balance;
+}
+
+
 .verdict-summary {
   list-style: none;
   margin: 0 0 22px;
@@ -1310,6 +1324,13 @@ body.app .board-pane > .board { min-height: 0; }
   box-shadow: 0 0 60px rgba(120, 10, 10, .25), 0 12px 40px rgba(0, 0, 0, .6);
 }
 #overlay.overlay--lost .overlay-card p { font-style: italic; }
+/* …except the epilogue, which stays upright. Without this it would slant after
+   a death and stand straight after a win, and that difference would be an
+   accident rather than a decision. Written here rather than beside the rest of
+   .verdict-epilogue because this is where the rule it is arguing with lives —
+   and it has to be a tie on specificity broken by source order, which only
+   works from below. */
+#overlay .overlay-card p.verdict-epilogue { font-style: normal; }
 /* The title gutters — three brief dips over six seconds, more candle than
    strobe. Photosensitivity: the dips are shallow (opacity, no colour flash)
    and far apart, and reduced motion removes them entirely. */

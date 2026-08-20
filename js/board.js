@@ -211,6 +211,70 @@ function connected(a, b, dir) {
   return a.exits.includes(dir) && b.exits.includes(back);
 }
 
+// How many moves from where you are standing to a placed tile, through rooms
+// that are actually joined — doors facing doors, holes, and the seam. Returns
+// null when the tile is not on the board or nothing connects to it, which is a
+// real answer and not a failure: the Family Plot you never found is not a
+// distance away, it is nowhere.
+//
+// Written for the epilogue (#93), which needs to say "three rooms from the
+// plot" and must never say it wrongly. Breadth-first, so the first time the
+// goal is reached is the shortest way there.
+export function distanceTo(board, tileId) {
+  const start = currentTile(board);
+  if (!start) return null;
+  if (start.id === tileId) return 0;
+
+  const key = (world, x, y) => `${world}:${cellKey(x, y)}`;
+  const seen = new Set([key(start.world, start.x, start.y)]);
+  let frontier = [start];
+  let steps = 0;
+
+  while (frontier.length) {
+    steps += 1;
+    const next = [];
+    for (const tile of frontier) {
+      for (const neighbour of joinedTo(board, tile)) {
+        const k = key(neighbour.world, neighbour.x, neighbour.y);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        if (neighbour.id === tileId) return steps;
+        next.push(neighbour);
+      }
+    }
+    frontier = next;
+  }
+  return null;
+}
+
+// Every placed tile you could walk to from this one in a single move. Kept
+// separate from listMoves because that one answers a different question — it
+// includes unexplored directions and is written from the player's position,
+// where this has to work from any tile on the board.
+function joinedTo(board, tile) {
+  const out = [];
+  for (const dir of openings(tile)) {
+    if (dir === tile.exteriorDir && tile.world === "indoor" && !board.seamPlaced) continue;
+    const [nx, ny] = inDir(tile.x, tile.y, dir);
+    const neighbour = tileAt(board, tile.world, nx, ny);
+    if (neighbour && connected(tile, neighbour, dir)) out.push(neighbour);
+  }
+  // The seam is a passage like any other once the Patio is down, and leaving it
+  // out would make every outdoor tile unreachable from indoors — which is the
+  // whole route the epilogue is measuring.
+  const s = board.seam;
+  if (board.seamPlaced && s) {
+    if (tile.world === "indoor" && tile.x === s.indoor.x && tile.y === s.indoor.y) {
+      const far = tileAt(board, "outdoor", s.outdoor.x, s.outdoor.y);
+      if (far) out.push(far);
+    } else if (tile.world === "outdoor" && tile.x === s.outdoor.x && tile.y === s.outdoor.y) {
+      const far = tileAt(board, "indoor", s.indoor.x, s.indoor.y);
+      if (far) out.push(far);
+    }
+  }
+  return out;
+}
+
 // ---- Actions ---------------------------------------------------------------
 // Reveal and place a new tile in `moveDir`, then move onto it. Returns the
 // placed tile.

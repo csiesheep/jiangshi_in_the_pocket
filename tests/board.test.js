@@ -371,3 +371,74 @@ test("every seed can place the whole house and garden, Reliquary included", () =
   }
   eq(bad, [], "no seed strands the tiles the win depends on");
 });
+
+// ---- Distance to the plot ------------------------------------------------------
+// The epilogue says "three rooms from the Family Plot" out loud, so this has to
+// be right rather than roughly right.
+
+// Explores outward until the Family Plot is placed, preferring new ground over
+// walking back and forth across the seam — which is what the first version of
+// this helper did for forty moves without ever placing an outdoor tile.
+function openUp(b, limit = 40) {
+  for (let i = 0; i < limit; i++) {
+    for (const t of b.worlds.outdoor.values()) if (t.id === "graveyard") return t;
+    const moves = B.listMoves(b);
+    if (!moves.length) return null;
+    const m =
+      (!b.seamPlaced && moves.find((x) => x.type === "outside")) ||
+      moves.find((x) => x.type === "explore") ||
+      moves.find((x) => x.type === "move") ||
+      moves[0];
+    if (m.type === "explore") B.explore(b, m.dir, B.validExploreRotations(b, m.dir)[0]);
+    else if (m.type === "outside") B.goOutside(b);
+    else B.moveTo(b, m.dir);
+  }
+  return null;
+}
+
+test("distanceTo: nowhere is not a distance", () => {
+  const b = board({ seed: 1 });
+  eq(B.distanceTo(b, "graveyard"), null, "a plot that was never placed is not N rooms away");
+});
+
+test("distanceTo: standing on it is zero", () => {
+  const b = board({ seed: 5 });
+  const plot = openUp(b);
+  assert(plot, "the plot was placed");
+  b.player = { world: "outdoor", x: plot.x, y: plot.y };
+  eq(B.distanceTo(b, "graveyard"), 0);
+});
+
+test("distanceTo: every step toward it is worth exactly one", () => {
+  const b = board({ seed: 5 });
+  const plot = openUp(b);
+  assert(plot, "the plot was placed");
+
+  // From every placed tile, the distance has to be one more than the best of
+  // its neighbours — which is the definition of shortest path, checked without
+  // trusting the implementation's own idea of who is a neighbour.
+  const all = [];
+  for (const w of ["indoor", "outdoor"]) for (const t of b.worlds[w].values()) all.push([w, t]);
+  const dist = new Map();
+  for (const [w, t] of all) {
+    b.player = { world: w, x: t.x, y: t.y };
+    dist.set(`${w}:${t.x},${t.y}`, B.distanceTo(b, "graveyard"));
+  }
+  const reached = [...dist.values()].filter((d) => d !== null);
+  assert(reached.length > 2, "several rooms connect to the plot");
+  eq(Math.min(...reached), 0, "the plot itself is zero");
+  // No gaps: the set of distances is 0..max with nothing missing, which cannot
+  // be true of anything but a breadth-first walk over a connected board.
+  const sorted = [...new Set(reached)].sort((a, c) => a - c);
+  eq(sorted, sorted.map((_, i) => i), "the distances run 0, 1, 2 … with no holes");
+});
+
+test("distanceTo: the seam is a passage like any other", () => {
+  const b = board({ seed: 5 });
+  const plot = openUp(b);
+  assert(plot, "the plot was placed");
+  b.player = { world: "indoor", x: 0, y: 0 };
+  const fromInside = B.distanceTo(b, "graveyard");
+  assert(fromInside !== null, "the Foyer can still reach the plot, through the seam");
+  assert(fromInside > 0, "and it is not standing on it");
+});

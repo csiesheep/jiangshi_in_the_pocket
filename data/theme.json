@@ -93,5 +93,53 @@
       "Doors are on the walls. Use them."
     ],
     "dismiss": "Fold it away"
+  },
+  "epilogue": {
+    "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}.",
+    "open": {
+      "won": "You walked out at dawn",
+      "won-hurt": "You walked out at dawn on your last heart",
+      "combat": "They pulled you down at {hour}",
+      "combat-swarmed": "They came through the walls at {hour} and did not stop",
+      "health": "You bled out at {hour}",
+      "health-worn": "The house wore you through by {hour}",
+      "midnight": "Midnight found you still inside"
+    },
+    "hand": {
+      "armed": "{weapon} in hand",
+      "dry": "the {weapon} out of fuel",
+      "bare": "nothing in your hands",
+      "tool": "only the {weapon} on you"
+    },
+    "close": {
+      "buried": "and the {relic} back in the ground where it belongs",
+      "carrying-near": "the {relic} on you, {rooms} from the {goal}",
+      "carrying-there": "the {relic} on you and the {goal} under your feet",
+      "carrying-far": "the {relic} on you and the {goal} still {rooms} away",
+      "carrying-lost": "the {relic} on you and no way through to the {goal}",
+      "never": "the {relic} never found",
+      "never-close": "the {relic} never found, {rooms} from the {goal}"
+    },
+    "rooms": {
+      "1": "one room",
+      "2": "two rooms",
+      "3": "three rooms",
+      "4": "four rooms",
+      "5": "five rooms",
+      "6": "six rooms",
+      "7": "seven rooms",
+      "8": "eight rooms",
+      "9": "nine rooms",
+      "10": "ten rooms",
+      "11": "eleven rooms",
+      "12": "twelve rooms",
+      "many": "{n} rooms"
+    },
+    "hours": {
+      "21": "nine",
+      "22": "ten",
+      "23": "eleven",
+      "24": "midnight"
+    }
   }
 }

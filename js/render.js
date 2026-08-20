@@ -2247,6 +2247,15 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
   p.textContent = sub || "";
   card.appendChild(p);
 
+  // Above the rows, because it is the thing worth reading. The seed sits below
+  // both: the sentence is the bait and the seed is the share.
+  if (opts.epilogue) {
+    const line = document.createElement("p");
+    line.className = "verdict-epilogue";
+    line.textContent = opts.epilogue;
+    card.appendChild(line);
+  }
+
   if (opts.summary && opts.summary.length) {
     const list = document.createElement("ul");
     list.className = "verdict-summary";

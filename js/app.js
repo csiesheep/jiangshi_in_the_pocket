@@ -41,6 +41,7 @@ import {
 
 import { registerWorker, wireFullscreen, keepAwake } from "./shell.js";
 import { recordVerdict } from "./tally.js";
+import { epilogue } from "./epilogue.js";
 
 const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
 
@@ -707,12 +708,16 @@ class Game {
       `Seed ${this.seed}`,
     ];
 
+    // The sentence somebody might actually screenshot, above the rows nobody
+    // does. Composed here so both verdicts get it from one place.
+    const closing = epilogue(this);
+
     if (won) {
       showOverlay(
         "You made it to dawn",
         `The ${this.word("relic")} is buried. The house falls silent.`,
         again,
-        { tone: "won", summary }
+        { tone: "won", summary, epilogue: closing }
       );
       return;
     }
@@ -725,7 +730,7 @@ class Game {
       this.state.lossReason === "midnight" ? "Midnight" : "You are one of them now",
       why[this.state.lossReason] || "Game over.",
       again,
-      { tone: "lost", reason: this.state.lossReason, summary }
+      { tone: "lost", reason: this.state.lossReason, summary, epilogue: closing }
     );
   }
 }
