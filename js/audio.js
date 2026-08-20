@@ -1373,13 +1373,30 @@ function applyScore() {
   const c = live();
   if (!c || !score) return;
   const t = c.currentTime;
+  // The newest voice is the one relief takes away — the score falls back an
+  // hour for a turn rather than going quiet, so what you hear is the pressure
+  // easing rather than the music stopping.
+  const top = scoreWanted - 1;
   score.voices.forEach((v, i) => {
-    const target = i < scoreWanted ? v.level * (calm ? 0.5 : 1) : 0.0001;
+    let target = i < scoreWanted ? v.level * (calm ? 0.5 : 1) : 0.0001;
+    if (i === top && scoreRelief > 0) target = Math.max(0.0001, target * (1 - scoreRelief));
     v.gain.gain.cancelScheduledValues(t);
     v.gain.gain.setValueAtTime(Math.max(v.gain.gain.value, 0.0001), t);
     // Long fades. A voice arriving or leaving should never be an event.
     v.gain.gain.exponentialRampToValueAtTime(target, t + SCORE_FADE);
   });
+}
+
+// How much the top layer is pulled back, 0..1, from the engine's relief. Its
+// own setter rather than a second argument to setScoreHour, because the hour
+// changes seven times a night and this changes every turn.
+let scoreRelief = 0;
+
+export function setScoreRelief(x) {
+  const next = Math.min(1, Math.max(0, Number(x) || 0));
+  if (Math.abs(next - scoreRelief) < 0.01) return;
+  scoreRelief = next;
+  applyScore();
 }
 
 // Called whenever the hour is drawn. Silence at eleven is a stop, not a fade to

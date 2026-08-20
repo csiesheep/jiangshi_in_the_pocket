@@ -97,6 +97,7 @@ export function newGame(data, opts = {}) {
     lossReason: null,
     coweredThisTurn: false,
     foughtThisHour: 0, // risen put down since the hour turned; feeds dread()
+    relief: 0, // 1 the moment something is survived, gone two turns later
     healthCap: opts.healthCap ?? RULES.HEALTH_CAP,
     deck: [],
     burned: [],
@@ -226,7 +227,44 @@ export function dread(state) {
     running * w.running +
     carrying * w.carrying;
 
-  return Math.min(1, Math.max(0, score));
+  // Relief. Everything above ratchets up inside an hour and never comes down,
+  // and tension that only rises stops being tension — there has to be a trough
+  // for the next peak to rise out of. So surviving something buys one turn of
+  // the room letting go.
+  //
+  // It is subtracted from the headroom above the hour's own contribution, never
+  // from the total. That is what stops it undoing the clock: the night term is
+  // untouchable, so relief at eleven still leaves you at eleven, and the same
+  // relief at nine — where the floor is nearly zero — empties the dial almost
+  // completely. Which is right. Surviving a fight at nine o'clock IS a relief.
+  const floor = night * w.night;
+  const ease = Math.min(1, Math.max(0, state.relief || 0));
+  const eased = score - ease * RELIEF_DEPTH * Math.max(0, score - floor);
+
+  return Math.min(1, Math.max(0, eased));
+}
+
+// How much of the headroom a full measure of relief takes away. Not all of it:
+// you survived a fight, you are not safe.
+const RELIEF_DEPTH = 0.6;
+
+// Something was survived. Called on the far side of a fight and at the end of a
+// turn spent in a room that heals — the two moments the game says "not this
+// time" — and decayed by beginTurn, so it lasts about one turn either way.
+export function grantRelief(state, strength = 1) {
+  if (!state) return 0;
+  state.relief = Math.min(1, Math.max(state.relief || 0, strength));
+  return state.relief;
+}
+
+// Decayed rather than cleared, so the turn after a fight is the way back up
+// rather than a cliff: full on the turn it happens, about a third on the next,
+// and gone by the one after that.
+export function decayRelief(state) {
+  if (!state) return 0;
+  const next = (state.relief || 0) * 0.3;
+  state.relief = next < 0.1 ? 0 : next;
+  return state.relief;
 }
 
 // ---- The unseen -------------------------------------------------------------
@@ -382,6 +420,11 @@ export function resolveCombat(state, zombies, choices = {}) {
     state.health = 0;
     state.status = "lost";
     state.lossReason = "combat";
+  } else {
+    // Survived it. The set-piece is over, and the room is allowed to breathe
+    // out before the next one — a fight that ends with the dial still climbing
+    // has nowhere left to climb to.
+    grantRelief(state);
   }
   return { weaponId, attack, damage };
 }
@@ -496,6 +539,7 @@ export function openCowerWindow(state) {
 }
 
 export function beginTurn(state) {
+  decayRelief(state);
   return openCowerWindow(state);
 }
 

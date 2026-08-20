@@ -274,6 +274,81 @@ test("gutter: its own stream, disturbing nothing", () => {
   eq(E.rollSilentScare(guttered), E.rollSilentScare(not), "scares unmoved");
 });
 
+// ---- Relief -------------------------------------------------------------------
+
+// What relief does is absorb the spike, not reverse it. Coming out of a fight
+// at 3 HP genuinely IS worse than going into it at 4, and a dial that said
+// otherwise would be lying. The claim is that the set-piece does not leave the
+// game permanently wound tighter than it found it.
+test("relief: a survived fight does not leave the dial wound up", () => {
+  const s = game({ seed: 2 });
+  s.hour = 22;
+  s.health = 4;
+  const before = E.dread(s);
+  E.resolveCombat(s, 2);
+  assert(s.relief > 0, "a survived fight buys relief");
+
+  const eased = E.dread(s);
+  const raw = E.dread({ ...s, relief: 0 });
+  assert(eased < raw, "the modifier is doing something");
+  assert(eased - before < (raw - before) * 0.25,
+    "and it absorbs most of what the fight added");
+});
+
+test("relief: dying buys nothing", () => {
+  const s = game({ seed: 2 });
+  s.hour = 23;
+  s.health = 1;
+  E.resolveCombat(s, 6);
+  eq(s.status, "lost", "that fight was not survived");
+  eq(s.relief, 0, "and the dead are not relieved");
+});
+
+test("relief: it never undoes the hour", () => {
+  const late = game({ seed: 12 });
+  late.hour = 23;
+  late.deck = [];
+  E.grantRelief(late, 1);
+  const early = game({ seed: 12 });
+  early.hour = E.RULES.START_HOUR;
+  // A frightened nine o'clock: hurt, carrying, and mid-hour.
+  early.health = 2;
+  early.totem = true;
+  assert(E.dread(late) > 0, "eleven with full relief is still not calm");
+  assert(E.dread(late) >= E.dread(early) * 0.5,
+    "the hour keeps its weight through any amount of relief");
+});
+
+test("relief: the same relief is worth more early", () => {
+  const at = (hour) => {
+    const s = game({ seed: 12 });
+    s.hour = hour;
+    s.health = 3;
+    const tense = E.dread(s);
+    E.grantRelief(s, 1);
+    return tense - E.dread(s);
+  };
+  assert(at(21) > at(23), "nine o'clock has more to let go of");
+});
+
+test("relief: gone within two turns", () => {
+  const s = game({ seed: 2 });
+  s.hour = 22;
+  E.grantRelief(s, 1);
+  eq(s.relief, 1, "full on the turn it happens");
+  E.beginTurn(s);
+  assert(s.relief > 0.2 && s.relief < 0.5, "about a third on the next");
+  E.beginTurn(s);
+  eq(s.relief, 0, "and nothing on the one after");
+});
+
+test("relief: it cannot stack past full", () => {
+  const s = game({ seed: 2 });
+  E.grantRelief(s, 1);
+  E.grantRelief(s, 1);
+  eq(s.relief, 1, "two survivals are not twice as safe");
+});
+
 // ---- Someone standing ---------------------------------------------------------
 
 test("standing: not before the last hour, however bad it is", () => {

@@ -607,6 +607,10 @@ class Game {
     const tile = Bd.currentTile(this.board);
     if (!this.fled && tile.def.onTurnEnd === "HEAL_1") {
       E.changeHealth(this.state, 1);
+      // A room that heals is the game's other "not this time", so it buys the
+      // same turn of release a survived fight does. Slightly less of one: it is
+      // a kitchen, not an escape.
+      E.grantRelief(this.state, 0.7);
       log(`You steady yourself here. +1 HP.`, "good");
       this.refresh();
     }

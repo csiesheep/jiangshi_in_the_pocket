@@ -5,7 +5,7 @@ import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
          muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm,
-         setSpace, wickHiss } from "./audio.js";
+         setSpace, wickHiss, setScoreRelief } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -269,6 +269,9 @@ function renderHour(s) {
   // same place the light and the wind are, so the three never disagree about
   // what time it is.
   setScoreHour(s.hour);
+  // And falls back a layer while the room is letting go. Same dial, same
+  // place: the light, the wind and the music are never told different things.
+  setScoreRelief(s.relief || 0);
 
   // The hour class stays for the jobs a gradient cannot do — the last hour's
   // change of register, and strikeEleven keying off the turn. timePasses loses
