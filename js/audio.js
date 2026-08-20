@@ -15,6 +15,11 @@ const KEY = "zitp:muted";
 
 let ctx = null;
 let master = null;
+let world = null;
+// Transparent: well above anything the cues put out, so the filter does
+// nothing at all until it is asked to.
+const OPEN_HZ = 20000;
+const MUFFLED_HZ = 520;
 let noiseBuffer = null;
 let bedNoise = null;
 let muted = readMuted();
@@ -69,6 +74,21 @@ function audio() {
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 1;
     master.connect(ctx.destination);
+
+    // Two buses under the one mute. `master` is everything at your ear —
+    // breathing, your own footsteps, the cues that are happening to you. `world`
+    // is everything happening somewhere else, and it runs through a lowpass
+    // that is transparent until something closes it.
+    //
+    // The split exists so cowering can muffle the house without muffling the
+    // sound of you holding your breath in it. #78 wants this routing too, for
+    // placing sounds rather than dulling them; the bus is built here because
+    // this is the issue that first needed it.
+    world = ctx.createBiquadFilter();
+    world.type = "lowpass";
+    world.frequency.value = OPEN_HZ;
+    world.Q.value = 0.4;
+    world.connect(master);
     // Fire and forget: cues synthesise until this lands, and forever if it
     // never does.
     loadManifest(ctx);
@@ -151,7 +171,7 @@ async function loadManifest(c) {
 
 // Play a recorded cue if one is loaded. Returns false when there is nothing to
 // play, which is the signal for the caller to synthesise instead.
-function sample(name, gain = 1, delay = 0) {
+function sample(name, gain = 1, delay = 0, bus = null) {
   const c = live();
   if (!c || !samples.has(name)) return false;
   const takes = samples.get(name);
@@ -161,7 +181,7 @@ function sample(name, gain = 1, delay = 0) {
   src.buffer = takes[takes.length === 1 ? 0 : Math.floor(Math.random() * takes.length)];
   const g = c.createGain();
   g.gain.value = gain;
-  src.connect(g).connect(master);
+  src.connect(g).connect(bus || master);
   src.start(c.currentTime + delay);
   return true;
 }
@@ -736,7 +756,7 @@ export function startAmbience() {
   lfoDepth.gain.value = 150;
   lfo.connect(lfoDepth).connect(filter.frequency);
 
-  src.connect(filter).connect(gain).connect(master);
+  src.connect(filter).connect(gain).connect(world || master);
   src.start();
   lfo.start();
   // Fade in. Sound arriving at full strength announces itself as a sound
@@ -803,6 +823,30 @@ export function stopAmbience() {
       /* fine */
     }
   }, 1700);
+}
+
+// Shut the house out, or let it back in. Rides the world bus, so what you can
+// still hear clearly is whatever is at your ear — which is the point of the
+// scene this was built for: you are not out there with them.
+export function muffle(on, seconds = 0.45) {
+  const c = live();
+  if (!c || !world) return;
+  const t = c.currentTime;
+  world.frequency.cancelScheduledValues(t);
+  world.frequency.setValueAtTime(world.frequency.value, t);
+  world.frequency.exponentialRampToValueAtTime(on ? MUFFLED_HZ : OPEN_HZ, t + seconds);
+}
+
+// Somebody walking past, on the other side of a wall. The ordinary footstep
+// takes, at a fraction of the gain and routed through the world bus — so when
+// the house is muffled these are muffled with it. The same sound as your own
+// steps, placed somewhere you are not.
+export function passingSteps(surface = "indoor") {
+  const cue = surface === "outdoor" ? "step-grass" : "step-wood";
+  const bus = world || master;
+  sample(cue, 0.2, 0, bus);
+  sample(cue, 0.16, 0.34, bus);
+  sample(cue, 0.12, 0.7, bus);
 }
 
 // ---- The quiet before ---------------------------------------------------------
@@ -889,7 +933,7 @@ export function startMurmur(count = 3) {
     voices.push(osc);
   }
   src.connect(filter);
-  filter.connect(gain).connect(master);
+  filter.connect(gain).connect(world || master);
   src.start();
   if (!ducked) gain.gain.exponentialRampToValueAtTime(0.02 + weight * 0.014, c.currentTime + 1.1);
 

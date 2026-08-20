@@ -4,7 +4,7 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
-import { combatHit, isMuted, setMuted, cowerBreath, relicFound, seamCross, verdictSting,
+import { combatHit, isMuted, setMuted, relicFound, seamCross, verdictSting,
          startAmbience, stopAmbience, startMurmur, stopMurmur, unduck } from "./audio.js";
 import {
   renderHud,
@@ -18,6 +18,7 @@ import {
   clearStage,
   mountFilmStock,
   buryBeat,
+  cowerScene,
   resolveBeat,
   log,
   clearLog,
@@ -462,12 +463,16 @@ class Game {
 
   doCowerBeforeSecond(kind) {
     const r = E.cower(this.state);
-    if (r.ok) cowerBreath();
-    if (r.ok) log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
-    this.refresh();
-    // Burning that card can empty the deck, turn the hour, and even end the run.
-    if (this.state.status !== "playing") return this.gameOver();
-    this.promptSecondCard(kind);
+    if (!r.ok) return this.promptSecondCard(kind);
+    log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
+    clearChoices();
+    const outdoors = Bd.currentTile(this.board).world === "outdoor";
+    cowerScene(outdoors).then(() => {
+      this.refresh();
+      // Burning that card can empty the deck, turn the hour, and even end the run.
+      if (this.state.status !== "playing") return this.gameOver();
+      this.promptSecondCard(kind);
+    });
   }
 
   doDrawSecond(kind) {
@@ -592,11 +597,18 @@ class Game {
 
   doCower() {
     const r = E.cower(this.state);
-    if (r.ok) cowerBreath();
-    if (r.ok) log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
-    this.refresh();
-    if (this.state.status === "lost") return this.gameOver();
-    this.renderEndTurn();
+    if (!r.ok) return this.renderEndTurn();
+    log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
+    // The engine has already resolved: the card is spent and the health is
+    // banked. What follows is the hour you spent in the corner, and the health
+    // is only shown on the way out of it, with the exhale.
+    clearChoices();
+    const outdoors = Bd.currentTile(this.board).world === "outdoor";
+    cowerScene(outdoors).then(() => {
+      this.refresh();
+      if (this.state.status === "lost") return this.gameOver();
+      this.renderEndTurn();
+    });
   }
 
   nextTurn() {

@@ -1873,3 +1873,23 @@ body.burying .board-pane::after {
 @media (prefers-reduced-motion: reduce) {
   .grave { transition: none; }
 }
+
+/* ---- Cowering ---------------------------------------------------------------
+   The view closes to a slit. It rides the vignette, which is already the thing
+   that says how much of the world you can see — so this is the same statement
+   pushed to its end rather than a new effect layered over it.
+
+   Overrides the dread breath and the low-health beat while it runs: both are
+   about how the room feels, and right now the room is somewhere you are not
+   looking at. */
+body.cowering .board-pane::after {
+  opacity: .97;
+  transition: opacity .34s ease-in;
+  animation: none;
+}
+body.cowering .board { transform: scale(.985); transition: transform .34s ease-in; }
+
+@media (prefers-reduced-motion: reduce) {
+  body.cowering .board-pane::after { transition: none; }
+  body.cowering .board { transform: none; transition: none; }
+}

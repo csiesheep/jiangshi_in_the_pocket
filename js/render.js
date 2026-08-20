@@ -3,7 +3,8 @@
 import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
-         cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat } from "./audio.js";
+         cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
+         muffle, passingSteps, cowerBreath } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -979,6 +980,52 @@ function swingArt(row, iconId) {
   if (!art) return null;
   row.appendChild(art);
   return art;
+}
+
+// ---- Cowering, from the inside -----------------------------------------------
+// Mechanically this is hiding in a corner for a slice of an hour while things
+// walk past. It used to be a button and a log line.
+//
+// So: the view narrows to a slit, the house goes muffled, the breathing is the
+// only thing still close, and one set of footsteps passes a wall you are not on
+// the other side of. Then the slit opens and the health lands with the exhale.
+//
+// Presentation only — E.cower has already resolved and the card is already
+// spent. Reduced motion keeps the whole audio treatment and drops the squint,
+// because the muffle is what actually says "hiding" and the vignette only
+// illustrates it.
+const COWER_MS = 1500;
+
+export function cowerScene(outdoors = false) {
+  return new Promise((resolve) => {
+    cowerBreath();
+    muffle(true, 0.28);
+    // Something goes past while you are down there. Late enough that the
+    // muffle has closed first, so it arrives already distant.
+    setTimeout(() => passingSteps(outdoors ? "outdoor" : "indoor"), 420);
+
+    const open = () => {
+      muffle(false, 0.6);
+      document.body.classList.remove("cowering");
+    };
+
+    if (reducedMotion()) {
+      setTimeout(() => { open(); resolve(); }, COWER_MS);
+      return;
+    }
+
+    document.body.classList.add("cowering");
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      open();
+      resolve();
+    };
+    // Timer-backed like every other awaited beat: a hidden tab advances no
+    // animation, and the turn cannot be allowed to hang on one.
+    setTimeout(done, COWER_MS);
+  });
 }
 
 // ---- The burial --------------------------------------------------------------
