@@ -2002,3 +2002,42 @@ body.calm #overlay.overlay--lost .overlay-card h2 { animation: none; }
 body.calm.pushing .board { transform: none; transition: none; }
 /* Grain is texture and stays; the motes are movement and go. */
 body.calm .motes { display: none; }
+
+/* ---- The note in the hall ----------------------------------------------------
+   One card-sized panel, paper-coloured against the dark, over everything but
+   under nothing that matters — it is the first thing a new player sees and the
+   only thing on screen while it is up. */
+.notecard {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 4, 6, .74);
+}
+.notesheet {
+  max-width: 42ch;
+  padding: 26px 26px 20px;
+  border-radius: 4px;
+  /* Paper, lit from the side it was folded on. */
+  background: linear-gradient(160deg, #e7dcc4 0%, #d9cbad 62%, #cdbe9d 100%);
+  color: #211b12;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
+  font-family: var(--font-head);
+}
+.notesheet h2 {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: #2b2317;
+}
+.notesheet p { margin: 0 0 12px; line-height: 1.5; font-size: .96rem; }
+.notesheet .notedismiss {
+  margin-top: 6px;
+  width: 100%;
+  background: #2b2317;
+  color: #e7dcc4;
+  border-color: #2b2317;
+}
+.notesheet .notedismiss:hover { background: #3a2f1f; }

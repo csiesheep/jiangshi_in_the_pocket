@@ -82,5 +82,16 @@
       "10": "Dust, and the sound of your own steps.",
       "11": "Five block the way you came in."
     }
+  },
+  "note": {
+    "_note": "The first-run letter (#81). Diegetic: written by whoever sent you, in the same voice as cardFlavour. Teaches only the three things that decide the game.",
+    "title": "A note, left folded on the hall table",
+    "lines": [
+      "You know why you are here. The relic is somewhere in this house, and it does not want to be found.",
+      "Take it to the family plot behind the garden and put it back in the ground. That is all that is being asked.",
+      "Be quick about it. The deck on the table is the hour — every card you turn is time you have spent, and when the last one goes over it is midnight.",
+      "Doors are on the walls. Use them."
+    ],
+    "dismiss": "Fold it away"
   }
 }

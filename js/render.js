@@ -1106,6 +1106,64 @@ export function buryBeat(kind = "graveyard") {
   });
 }
 
+// ---- The note in the hall ----------------------------------------------------
+// A new player used to learn this game by leaving it — a link to the rulebook,
+// read in a browser tab, before any of the atmosphere had started. Horror
+// teaches inside the fiction, so the fiction teaches: a folded letter on the
+// hall table from whoever sent you.
+//
+// It says only the three things that decide a run — what you are looking for,
+// where it goes, and that the deck is the clock. The rulebook is still the
+// reference; this is only the hook.
+//
+// Real text in a real dialog, not a picture of a letter: a screen reader gets
+// exactly what everyone else gets.
+export function showNote(note, onClose) {
+  const wrap = document.createElement("div");
+  wrap.className = "notecard";
+  wrap.setAttribute("role", "dialog");
+  wrap.setAttribute("aria-modal", "true");
+  wrap.setAttribute("aria-labelledby", "note-title");
+
+  const sheet = document.createElement("div");
+  sheet.className = "notesheet";
+
+  const h = document.createElement("h2");
+  h.id = "note-title";
+  h.textContent = note.title;
+  sheet.appendChild(h);
+
+  for (const line of note.lines) {
+    const p = document.createElement("p");
+    p.textContent = line;
+    sheet.appendChild(p);
+  }
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "btn btn--primary notedismiss";
+  close.textContent = note.dismiss;
+  sheet.appendChild(close);
+  wrap.appendChild(sheet);
+  document.body.appendChild(wrap);
+
+  const done = () => {
+    if (!wrap.isConnected) return;
+    wrap.remove();
+    document.removeEventListener("keydown", onKey);
+    if (onClose) onClose();
+  };
+  const onKey = (e) => {
+    // Escape closes it, because a dialog that traps you is a worse first
+    // impression than no dialog at all.
+    if (e.key === "Escape") done();
+  };
+  close.addEventListener("click", done);
+  document.addEventListener("keydown", onKey);
+  close.focus();
+  return done;
+}
+
 // ---- Film stock --------------------------------------------------------------
 // Grain and dust, mounted once into the board pane and then left alone. Both
 // are decoration in the strictest sense: aria-hidden, pointer-events none, and

@@ -20,6 +20,7 @@ import {
   buryBeat,
   cowerScene,
   damageCameFrom,
+  showNote,
   resolveBeat,
   log,
   clearLog,
@@ -761,6 +762,37 @@ async function copyReplayLink(btn) {
 // next to Sound because they are the same kind of decision — how loud should
 // this be at me — and it is a separate switch from the OS motion setting on
 // purpose: wanting animation and not wanting to be frightened are different.
+// First run only. The key is the whole mechanism: no zitp:seen means nobody has
+// played here before.
+//
+// Off the RNG entirely — showing the note is presentation, so a shared seed
+// plays out identically whether or not the note appeared. That matters more
+// than it looks: reading the note takes time, and time is exactly what this
+// game measures, so it must not be allowed to cost any.
+const SEEN_KEY = "zitp:seen";
+
+function firstVisit() {
+  try {
+    return localStorage.getItem(SEEN_KEY) !== "1";
+  } catch {
+    return false; // storage blocked: do not ambush a returning player every run
+  }
+}
+
+function markSeen() {
+  try {
+    localStorage.setItem(SEEN_KEY, "1");
+  } catch {
+    /* they will be offered it again; the button in the corner still works */
+  }
+}
+
+function openNote() {
+  const note = data && data.theme && data.theme.note;
+  if (!note) return;
+  showNote(note, markSeen);
+}
+
 function paintCalmToggle() {
   const btn = document.getElementById("btn-calm");
   if (!btn) return;
@@ -806,6 +838,9 @@ function wireControls() {
     paintSoundToggle();
   });
 
+  const noteBtn = document.getElementById("btn-note");
+  if (noteBtn) noteBtn.addEventListener("click", openNote);
+
   const calmBtn = document.getElementById("btn-calm");
   if (calmBtn) {
     calmBtn.addEventListener("click", () => {
@@ -844,6 +879,9 @@ async function main() {
     // the pane, not to any particular run.
     mountFilmStock();
     startNewGame(seedFromUrl());
+    // After the game is up, so the note is read over the Entry Hall rather
+    // than over nothing.
+    if (firstVisit()) openNote();
   } catch (err) {
     console.error(err);
     log("Failed to start the game — see console.", "bad");
