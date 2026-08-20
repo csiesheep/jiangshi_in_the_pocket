@@ -2041,3 +2041,38 @@ body.calm .motes { display: none; }
   border-color: #2b2317;
 }
 .notesheet .notedismiss:hover { background: #3a2f1f; }
+
+/* ---- The frame is a desktop promise ------------------------------------------
+   #39 said this and the implementation did not do it: "no-scroll is a desktop
+   promise; on phones, keep flow layout ... ensure the board + actions fit the
+   first screen and only the sidebar continues below."
+
+   The rigid 100dvh frame split the viewport into two equal rows whatever was in
+   them, so the board took half and the event window lived on whatever was left.
+   The controls no longer shrink (that was the crush), but the frame is still
+   the wrong shape for a phone: the utility row hung 6px past the bottom of the
+   screen with nothing able to scroll to it.
+
+   So below the one-column breakpoint the frame is surrendered and the page
+   simply flows. The board and the actions still land on the first screen; the
+   sidebar continues below, which is exactly what was specified.
+
+   The height gate is not decoration. The breakpoint is width-based, so a phone
+   in landscape — 812x375 — was getting the DESKTOP frame with 375px to fit it
+   in. Anything this short needs flow for the same reason a narrow screen does.
+*/
+@media (max-width: 800px), (max-height: 560px) {
+  body.app {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  body.app .game-layout { height: auto; min-height: 0; }
+  /* The pane keeps its own clipping — the candle glow still must not inflate
+     the page — but it stops being told how tall to be by a grid row. */
+  body.app .board-pane { min-height: 0; }
+  /* In flow, the window sits under the board at whatever height it needs, and
+     the page is what scrolls. Nothing here is ever clipped again. */
+  body.app .actions-pop { max-height: none; }
+}
