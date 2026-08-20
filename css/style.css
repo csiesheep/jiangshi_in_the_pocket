@@ -1728,3 +1728,47 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   78%  { opacity: 1; }
   100% { left: 105%; opacity: 0; }
 }
+
+/* ---- Camera language ---------------------------------------------------------
+   Two of the cheapest tricks in the bag, and both only work if they never
+   disagree with each other — which is why one module owns the classes and
+   nothing else touches them.
+
+   Push-in: the board creeps toward you while a decision is open. Fourteen
+   seconds to travel 3%, which is far too slow to read as movement and quite
+   fast enough to read as pressure. The release is quick on purpose: the relief
+   is the half you actually feel.
+
+   It rides on .board while the entry slide rides on .focus and the break-in
+   shake rides on the edge art — three transforms, three elements, no fight. */
+.board { transform: scale(1); transition: transform 1.1s ease-out; }
+body.pushing .board { transform: scale(1.03); transition: transform 14s linear; }
+
+/* Letterbox: the bars say "this is a scene". Fixed to the viewport, because a
+   scene frames the whole picture and not one panel of it.
+
+   z-index 4 is deliberate and load-bearing: above the board and its vignette,
+   below the action window (5) so a card is never covered, and below the scare
+   (50) which is the one thing allowed over everything. */
+.letterbox {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 7vh;
+  z-index: 4;
+  background: #000;
+  pointer-events: none;
+  transform: scaleY(0);
+  transition: transform 420ms cubic-bezier(.2, .8, .3, 1);
+}
+.letterbox--top { top: 0; transform-origin: top; }
+.letterbox--bottom { bottom: 0; transform-origin: bottom; }
+body.staged .letterbox { transform: scaleY(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The bars still frame the scene; they just stop sliding. The push-in is
+     motion with no other job, so it goes entirely — pushIn() already refuses
+     to add the class, and this is the belt to that pair of braces. */
+  .letterbox { transition: none; }
+  body.pushing .board { transform: none; transition: none; }
+}

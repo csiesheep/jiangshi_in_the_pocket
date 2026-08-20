@@ -15,6 +15,7 @@ import {
   darkDoorBeat,
   telegraphWall,
   phantom,
+  clearStage,
   resolveBeat,
   log,
   clearLog,
@@ -658,6 +659,7 @@ let game = null;
 
 function startNewGame(seed) {
   hideOverlay();
+  clearStage();
   // A new run gets the wind back, and never a second copy of it — startAmbience
   // is idempotent, so restarting mid-run is safe.
   stopMurmur();

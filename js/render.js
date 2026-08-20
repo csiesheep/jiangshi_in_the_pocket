@@ -740,16 +740,18 @@ export function jumpScare(count = 0) {
 
 function scareNow(count) {
   return new Promise((resolve) => {
+    enterScene();
+    const endScene = () => leaveScene();
     // Same rule as the door: the cue is sound, not motion, so it plays whether
     // or not the picture does.
     combatSting(count);
-    if (reducedMotion()) return resolve();
+    if (reducedMotion()) { endScene(); return resolve(); }
 
     // A card fight can be followed straight away by a zombie door; never stack.
     const stale = document.querySelector(".scare");
     if (stale) stale.remove();
 
-    if (!document.getElementById("scare-zombie")) return resolve(); // no art, no hold-up
+    if (!document.getElementById("scare-zombie")) { endScene(); return resolve(); } // no art, no hold-up
 
     const el = document.createElement("div");
     el.className = "scare";
@@ -758,6 +760,7 @@ function scareNow(count) {
 
     if (typeof el.animate !== "function") {
       el.remove();
+      endScene();
       return resolve();
     }
 
@@ -810,6 +813,7 @@ function scareNow(count) {
       if (settled) return;
       settled = true;
       el.remove();
+      endScene();
       resolve();
     };
     anim.finished.then(done).catch(done);
@@ -877,6 +881,7 @@ export function watchBoardSize() {
 // hides the whole pop, which would take the pack row down with it — and the
 // pack row is the stage the resolution beat plays on.
 export function clearChoices() {
+  pushIn(false);
   const el = document.getElementById("actions");
   if (el) el.innerHTML = "";
   pendingMoves = [];
@@ -974,6 +979,42 @@ function swingArt(row, iconId) {
   if (!art) return null;
   row.appendChild(art);
   return art;
+}
+
+// ---- The stage ---------------------------------------------------------------
+// One owner for "which cinematic state are we in". Both tricks here are cheap
+// individually and awful together if they disagree — bars sliding out while a
+// second set-piece is still running, a push-in released by the wrong window.
+// So the state lives in one place and nothing else touches the classes.
+//
+// Set-pieces nest: a jump scare happens inside a zombie-door sequence, and a
+// verdict can land while a fight is still unwinding. Counted rather than
+// boolean, so the bars leave when the LAST scene ends rather than the first.
+let sceneDepth = 0;
+
+export function enterScene() {
+  sceneDepth++;
+  document.body.classList.add("staged");
+}
+
+export function leaveScene() {
+  sceneDepth = Math.max(0, sceneDepth - 1);
+  if (sceneDepth === 0) document.body.classList.remove("staged");
+}
+
+// Belt and braces for the paths that end a run: whatever was on stage, the
+// curtain comes down.
+export function clearStage() {
+  sceneDepth = 0;
+  document.body.classList.remove("staged");
+  document.body.classList.remove("pushing");
+}
+
+// The board creeps toward you while a decision is open. Slow enough not to
+// read as motion, present enough to read as pressure — and released quickly,
+// because the relief is the point.
+export function pushIn(on) {
+  document.body.classList.toggle("pushing", !!on && !reducedMotion());
 }
 
 // ---- The unseen --------------------------------------------------------------
@@ -1094,6 +1135,8 @@ export function animateBreakIn(dir) {
   // the wall coming in, and that happened whether or not the picture plays.
   breakThrough();
   if (reducedMotion()) return;
+  enterScene();
+  setTimeout(leaveScene, 1200);
   requestAnimationFrame(() => {
     const art = document.querySelector(`.focus-centre .tilebox .edgemark.${DIR_CLASS[dir]} .edgeart`);
     if (art && typeof art.animate === "function") {
@@ -1618,8 +1661,14 @@ export function renderActions(actions, prompt = "", opts = {}) {
 
   if (!actions.length) {
     if (pop) pop.hidden = true;
+    pushIn(false);
     return;
   }
+
+  // A decision is open: the board starts closing in. Moves are not a decision
+  // in this sense — walking is what you do between them, and a push-in that
+  // never released would just be a zoom.
+  pushIn(!actions.every((a) => a.kind === "move" && a.dir));
 
   // Moving is the one thing the board can say better than a list. When every
   // choice is a move, the doorways become the buttons and the panel stays shut.
@@ -1757,6 +1806,9 @@ export function renderActions(actions, prompt = "", opts = {}) {
 // second and a half, then the card arrives. Under reduced motion both land at
 // once — the ceremony is the first thing to go, the information is not.
 export function showOverlay(title, sub, actions = [], opts = {}) {
+  // The end of a run is the one scene that does not need to hand the stage
+  // back — the bars stay up under the veil until a new game clears them.
+  enterScene();
   let ov = document.getElementById("overlay");
   if (!ov) {
     ov = document.createElement("div");
