@@ -53,9 +53,11 @@ export function setMuted(next) {
     // running has to be built now rather than waiting for the next event.
     if (bedWanted) startAmbience();
     if (murmurWanted) startMurmur(murmurWanted);
+    if (scoreWanted) { buildScore(); applyScore(); }
   } else {
     tearDownBed();
     tearDownMurmur();
+    tearDownScore();
   }
   return muted;
 }
@@ -897,6 +899,120 @@ export function unduck() {
     murmur.gain.gain.setValueAtTime(Math.max(murmur.gain.gain.value, 0.0001), t);
     murmur.gain.gain.exponentialRampToValueAtTime(0.02, t + 0.8);
   }
+}
+
+// ---- The score, and its ending ----------------------------------------------
+// Barely tonal, well under everything, more felt than heard. It thickens by one
+// voice an hour — and then at eleven it stops, and does not come back.
+//
+// That silence is the point of writing it at all. Three hours of something
+// under the floor is what makes its absence in the last hour land as a change
+// rather than as nothing; a game with no score has no way to take one away.
+//
+// On master rather than the world bus, deliberately: a score is not in the
+// house. Cowering muffles the room and leaves the music where it is, which is
+// what film does — the score does not duck because a character is hiding.
+//
+// A1, its fifth, and the octave. Low, close together, and detuned enough to
+// beat slowly against each other rather than sound like a chord.
+const SCORE_VOICES = [
+  { hz: 55, detune: -6, gain: 0.030 },
+  { hz: 82.4, detune: 5, gain: 0.020 },
+  { hz: 110, detune: -9, gain: 0.013 },
+];
+// Hour to voice count. The last hour is the empty one.
+const SCORE_LAYERS = { 21: 1, 22: 2, 23: 0 };
+const SCORE_FADE = 6;
+
+let score = null; // { voices: [{osc, gain}], lfo }
+let scoreWanted = 0; // how many voices the game wants; 0 means silence
+
+function buildScore() {
+  const c = live();
+  if (!c || score) return;
+
+  // One slow shared wobble across the whole score, so the voices drift together
+  // instead of each having its own idea of the tempo.
+  const lfo = c.createOscillator();
+  lfo.type = "sine";
+  lfo.frequency.value = 0.037;
+  const lfoDepth = c.createGain();
+  lfoDepth.gain.value = 1.6;
+  lfo.connect(lfoDepth);
+
+  const voices = SCORE_VOICES.map(({ hz, detune, gain }) => {
+    const osc = c.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = hz;
+    osc.detune.value = detune;
+    lfoDepth.connect(osc.detune);
+    const g = c.createGain();
+    g.gain.value = 0.0001;
+    osc.connect(g).connect(master);
+    osc.start();
+    return { osc, gain: g, level: gain };
+  });
+  lfo.start();
+  score = { voices, lfo };
+}
+
+function applyScore() {
+  const c = live();
+  if (!c || !score) return;
+  const t = c.currentTime;
+  score.voices.forEach((v, i) => {
+    const target = i < scoreWanted ? v.level : 0.0001;
+    v.gain.gain.cancelScheduledValues(t);
+    v.gain.gain.setValueAtTime(Math.max(v.gain.gain.value, 0.0001), t);
+    // Long fades. A voice arriving or leaving should never be an event.
+    v.gain.gain.exponentialRampToValueAtTime(target, t + SCORE_FADE);
+  });
+}
+
+// Called whenever the hour is drawn. Silence at eleven is a stop, not a fade to
+// nothing that lingers — but it still takes its six seconds, because the bell
+// is what the player should notice, not the music leaving.
+export function setScoreHour(hour) {
+  scoreWanted = SCORE_LAYERS[hour] ?? 0;
+  if (scoreWanted === 0) {
+    if (score) applyScore();
+    return;
+  }
+  buildScore();
+  applyScore();
+}
+
+function tearDownScore() {
+  if (!score) return;
+  try {
+    for (const v of score.voices) v.osc.stop();
+    score.lfo.stop();
+  } catch {
+    /* already stopped */
+  }
+  score = null;
+}
+
+export function stopScore() {
+  scoreWanted = 0;
+  const c = live();
+  if (!c || !score) return tearDownScore();
+  const dying = score;
+  score = null;
+  const t = c.currentTime;
+  for (const v of dying.voices) {
+    v.gain.gain.cancelScheduledValues(t);
+    v.gain.gain.setValueAtTime(Math.max(v.gain.gain.value, 0.0001), t);
+    v.gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+  }
+  setTimeout(() => {
+    try {
+      for (const v of dying.voices) v.osc.stop();
+      dying.lfo.stop();
+    } catch {
+      /* fine */
+    }
+  }, 2200);
 }
 
 // The pack, breathing, for as long as it is on screen. Pitched under the cues

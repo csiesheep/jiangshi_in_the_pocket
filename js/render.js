@@ -4,7 +4,7 @@ import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
-         muffle, passingSteps, cowerBreath } from "./audio.js";
+         muffle, passingSteps, cowerBreath, setScoreHour } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -263,6 +263,11 @@ function renderHour(s) {
   const fear = dread(s);
   body.style.setProperty("--dread", fear.toFixed(4));
   setDread(fear);
+
+  // The score thickens by an hour and then, at eleven, stops. Driven from the
+  // same place the light and the wind are, so the three never disagree about
+  // what time it is.
+  setScoreHour(s.hour);
 
   // The hour class stays for the jobs a gradient cannot do — the last hour's
   // change of register, and strikeEleven keying off the turn. timePasses loses

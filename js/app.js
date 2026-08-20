@@ -5,7 +5,7 @@
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
 import { combatHit, isMuted, setMuted, relicFound, seamCross, verdictSting,
-         startAmbience, stopAmbience, startMurmur, stopMurmur, unduck } from "./audio.js";
+         startAmbience, stopAmbience, startMurmur, stopMurmur, unduck, stopScore } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -627,6 +627,8 @@ class Game {
     stopMurmur();
     unduck();
     stopAmbience();
+    // The verdicts carry their own stings; the score is never played over them.
+    stopScore();
     const won = this.state.status === "won";
 
     // A win is always a burial — buryTotem is the only thing that sets it — so
