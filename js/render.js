@@ -3,7 +3,7 @@
 import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
-         cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch } from "./audio.js";
+         cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -979,6 +979,63 @@ function swingArt(row, iconId) {
   if (!art) return null;
   row.appendChild(art);
   return art;
+}
+
+// ---- The burial --------------------------------------------------------------
+// The climax used to resolve like any other card: draw, verdict. This wraps the
+// draw the way the scare wraps combat — presentation only, the engine untouched
+// underneath, and it hands back in every circumstance.
+//
+// The Family Plot gets the full weight and the Reliquary a lighter version of
+// the same shape. Both are the same beat; only the count and the tightening
+// differ, because one is finding the thing and the other is finishing.
+const DIG_CUTS = { graveyard: 3, temple: 2 };
+const DIG_GAP_MS = 640;
+
+export function buryBeat(kind = "graveyard") {
+  const full = kind === "graveyard";
+  const cuts = DIG_CUTS[kind] || 2;
+
+  return new Promise((resolve) => {
+    // The cues play even when the picture does not — the same rule the door and
+    // the wall follow.
+    if (reducedMotion()) {
+      for (let i = 0; i < cuts; i++) setTimeout(shovel, i * DIG_GAP_MS);
+      return resolve();
+    }
+
+    enterScene();
+    if (full) document.body.classList.add("burying");
+
+    const box = document.querySelector(".focus-centre .tilebox");
+    const hole = document.createElement("span");
+    hole.className = "grave";
+    hole.setAttribute("aria-hidden", "true");
+    if (box) box.appendChild(hole);
+
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      hole.remove();
+      document.body.classList.remove("burying");
+      leaveScene();
+      resolve();
+    };
+
+    // Each cut deepens the ground a step, with the heart under it. Fixed
+    // rhythm rather than a random one: this is the same grave every time.
+    for (let i = 0; i < cuts; i++) {
+      setTimeout(() => {
+        shovel();
+        heartbeat(full ? 1 : 0.7);
+        hole.style.setProperty("--depth", String((i + 1) / cuts));
+      }, i * DIG_GAP_MS);
+    }
+    // Timer-backed, like every awaited beat here: a hidden tab advances no
+    // animations and the turn must never hang on one.
+    setTimeout(done, cuts * DIG_GAP_MS + 420);
+  });
 }
 
 // ---- Film stock --------------------------------------------------------------

@@ -17,6 +17,7 @@ import {
   phantom,
   clearStage,
   mountFilmStock,
+  buryBeat,
   resolveBeat,
   log,
   clearLog,
@@ -470,10 +471,18 @@ class Game {
   }
 
   doDrawSecond(kind) {
-    const c = E.drawCard(this.state);
-    if (this.state.status !== "playing" || c == null) return this.gameOver();
-    this.refresh();
-    this.presentCard(c, { second: true, kind });
+    // The staging wraps the draw; the draw itself is unchanged. Choices go
+    // first so a mashed key during the digging finds nothing — and the cower
+    // choice is untouched, because it was offered and taken before this point.
+    clearChoices();
+    buryBeat(kind).then(() => {
+      const c = E.drawCard(this.state);
+      if (this.state.status !== "playing" || c == null) return this.gameOver();
+      this.refresh();
+      // If the card is the risen, the scare lands mid-dig, which is the best
+      // timing this game has to offer and costs nothing to arrange.
+      this.presentCard(c, { second: true, kind });
+    });
   }
 
   takeItemFlow(item, done) {
@@ -607,6 +616,14 @@ class Game {
     unduck();
     stopAmbience();
     const won = this.state.status === "won";
+
+    // A win is always a burial — buryTotem is the only thing that sets it — so
+    // this is the moment the digging has been building to. One silent beat
+    // before the dawn: the release is the silence, not the sting.
+    if (won && !this.verdictHeld) {
+      this.verdictHeld = true;
+      return void setTimeout(() => this.gameOver(), 700);
+    }
     verdictSting(won);
 
     const again = [

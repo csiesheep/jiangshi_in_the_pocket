@@ -604,6 +604,58 @@ export function phantomScratch(pan = 0) {
   src.stop(t + 0.55);
 }
 
+// A shovel going in and coming out. Grit on the way down, a duller weight on
+// the way up — the two halves are what make it read as work rather than a hit.
+export function shovel() {
+  if (sample("shovel")) return;
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+
+  const src = c.createBufferSource();
+  src.buffer = noise(c);
+  const bp = c.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.Q.value = 1.6;
+  bp.frequency.setValueAtTime(2200, t);
+  bp.frequency.exponentialRampToValueAtTime(700, t + 0.26);
+  const cut = envelope(c, 0.12, 0.01, 0.26);
+  src.connect(bp).connect(cut).connect(master);
+  src.start(t);
+  src.stop(t + 0.32);
+
+  // The earth landing.
+  const osc = c.createOscillator();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(120, t + 0.2);
+  osc.frequency.exponentialRampToValueAtTime(52, t + 0.44);
+  const thud = envelope(c, 0.1, 0.02, 0.24);
+  osc.connect(thud).connect(master);
+  osc.start(t + 0.2);
+  osc.stop(t + 0.5);
+}
+
+// Two beats, close together, low. Under the digging rather than over it: this
+// is the thing you notice only once you stop hearing it.
+export function heartbeat(strength = 1) {
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+  for (const [at, gain] of [[0, 0.16], [0.29, 0.11]]) {
+    const osc = c.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(64, t + at);
+    osc.frequency.exponentialRampToValueAtTime(34, t + at + 0.2);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t + at);
+    g.gain.exponentialRampToValueAtTime(gain * strength, t + at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.24);
+    osc.connect(g).connect(master);
+    osc.start(t + at);
+    osc.stop(t + at + 0.3);
+  }
+}
+
 // The event window arriving: a card turned over. Short and papery, well under
 // the cues it introduces — this is punctuation, not an announcement.
 export function cardTurn() {
