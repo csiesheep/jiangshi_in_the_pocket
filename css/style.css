@@ -1988,3 +1988,17 @@ body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.1s both; }
   body.coldopen .menu nav,
   body.coldopen .menu .footnote { animation: none; opacity: 1; transform: none; }
 }
+
+/* ---- Calm mode ---------------------------------------------------------------
+   The dark stays — this is still a game about a house at night — but it stops
+   moving at you, and the loudest flourishes step back.
+
+   Deliberately separate from prefers-reduced-motion: someone can want the
+   animation and not the assault, or the reverse. */
+body.calm .board-pane::after { animation: none; }
+body.calm .tilebadge--relic .tilebadge-art { animation: none; opacity: 1; }
+body.calm #overlay.overlay--lost .overlay-card h2 { animation: none; }
+/* The push-in is pressure by design; calm keeps the frame still. */
+body.calm.pushing .board { transform: none; transition: none; }
+/* Grain is texture and stays; the motes are movement and go. */
+body.calm .motes { display: none; }

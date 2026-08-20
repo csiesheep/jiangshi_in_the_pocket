@@ -4,7 +4,7 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
-import { combatHit, isMuted, setMuted, relicFound, seamCross, verdictSting,
+import { combatHit, isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
          startAmbience, stopAmbience, startMurmur, stopMurmur, unduck, stopScore } from "./audio.js";
 import {
   renderHud,
@@ -536,8 +536,13 @@ class Game {
     // rather than on a timer, because a shared seed has to hear the same house
     // — and never while something real is happening, because a false cue is
     // only worth anything when the honest ones are unambiguous.
-    const dir = E.rollPhantom(this.state, E.dread(this.state));
-    if (dir) phantom(dir);
+    // Not rolled at all in calm mode rather than rolled and discarded: the
+    // stream stays where it was, so switching calm on and off mid-run does not
+    // change what a seed does afterwards.
+    if (!isCalm()) {
+      const dir = E.rollPhantom(this.state, E.dread(this.state));
+      if (dir) phantom(dir);
+    }
     return this.endTurn();
   }
 
@@ -752,6 +757,26 @@ async function copyReplayLink(btn) {
 
 // The toggle carries the state, not just a label: a button reading "Mute" tells
 // you nothing about whether sound is currently on.
+// The way out of the horror, for players who want the game without it. Sits
+// next to Sound because they are the same kind of decision — how loud should
+// this be at me — and it is a separate switch from the OS motion setting on
+// purpose: wanting animation and not wanting to be frightened are different.
+function paintCalmToggle() {
+  const btn = document.getElementById("btn-calm");
+  if (!btn) return;
+  const on = isCalm();
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+  const label = document.getElementById("calm-label");
+  if (label) label.textContent = on ? "Calm mode on" : "Calm mode off";
+  const slot = document.getElementById("calm-icon");
+  if (slot) {
+    slot.textContent = "";
+    const art = uiIcon("calm", "utilicon-svg");
+    if (art) slot.appendChild(art);
+  }
+  document.body.classList.toggle("calm", on);
+}
+
 function paintSoundToggle() {
   const btn = document.getElementById("btn-sound");
   if (!btn) return;
@@ -780,6 +805,14 @@ function wireControls() {
     setMuted(!isMuted());
     paintSoundToggle();
   });
+
+  const calmBtn = document.getElementById("btn-calm");
+  if (calmBtn) {
+    calmBtn.addEventListener("click", () => {
+      setCalm(!isCalm());
+      paintCalmToggle();
+    });
+  }
   // M is off the 1-9 action path on purpose, and ignored while typing.
   document.addEventListener("keydown", (e) => {
     if (e.key !== "m" && e.key !== "M") return;
@@ -802,6 +835,7 @@ async function main() {
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
     paintSoundToggle();
+    paintCalmToggle();
     paintCopyIcon();
     // Size the board off its pane before the first render, and keep it sized as
     // the pane changes — the sidebar growing counts, not just the window.

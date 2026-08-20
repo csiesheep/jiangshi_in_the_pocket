@@ -12,6 +12,7 @@
 // toggle is how sound gets turned *on*.
 
 const KEY = "zitp:muted";
+const CALM_KEY = "zitp:calm";
 
 let ctx = null;
 let master = null;
@@ -23,6 +24,7 @@ const MUFFLED_HZ = 520;
 let noiseBuffer = null;
 let bedNoise = null;
 let muted = readMuted();
+let calm = readCalm();
 
 function readMuted() {
   try {
@@ -31,6 +33,48 @@ function readMuted() {
   } catch {
     return true; // storage blocked (private mode, embedded) — stay quiet
   }
+}
+
+// ---- Calm mode ---------------------------------------------------------------
+// The scares, the blood, the phantoms and the buzzing are the point of all this
+// work, and they are also a wall for players who want the game without the
+// assault. This is the way past it.
+//
+// Deliberately NOT the same thing as prefers-reduced-motion. That is an OS
+// setting about vestibular safety; this is a choice about intensity. Someone
+// can want full animation and no jump scares, or the reverse, so they are two
+// independent gates and every effect checks both.
+//
+// Lives here beside the mute flag because this is the module that already owns
+// persisted preferences, and because the audio side needs it too — render
+// imports it, and audio cannot import render.
+function readCalm() {
+  try {
+    return localStorage.getItem(CALM_KEY) === "1";
+  } catch {
+    return false; // storage blocked: the game is what it is
+  }
+}
+
+export function isCalm() {
+  return calm;
+}
+
+export function setCalm(next) {
+  calm = !!next;
+  try {
+    localStorage.setItem(CALM_KEY, calm ? "1" : "0");
+  } catch {
+    /* the setting simply will not survive a reload */
+  }
+  if (typeof document !== "undefined") {
+    document.body.classList.toggle("calm", calm);
+  }
+  // The beds are already running; they move to the new level rather than
+  // restarting, so switching mid-run is not itself an event.
+  applyBedLevel();
+  applyScore();
+  return calm;
 }
 
 export function isMuted() {
@@ -567,7 +611,7 @@ export function setHaptics(on) {
 }
 
 export function buzz(pattern) {
-  if (!hapticsOn) return;
+  if (!hapticsOn || calm) return;
   if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
   try {
     navigator.vibrate(pattern);
@@ -821,8 +865,20 @@ export function startAmbience() {
 
 function bedLevel() {
   // Quiet, and quietest early: this has to sit under everything else or it
-  // stops being a bed and starts being a noise.
-  return 0.012 + dread * 0.03;
+  // stops being a bed and starts being a noise. Calm keeps the weather —
+  // silence would be its own kind of wrong — but takes it further down.
+  const base = 0.012 + dread * 0.03;
+  return calm ? base * 0.55 : base;
+}
+
+// Move a running bed to whatever the level should be now, without restarting
+// it. Used when dread moves and when calm is switched mid-run.
+function applyBedLevel() {
+  const c = live();
+  if (!c || !bed) return;
+  bed.gain.gain.cancelScheduledValues(c.currentTime);
+  bed.gain.gain.setValueAtTime(Math.max(bed.gain.gain.value, 0.0001), c.currentTime);
+  bed.gain.gain.exponentialRampToValueAtTime(bedLevel(), c.currentTime + 1.2);
 }
 
 // How much heavier a one-shot plays when the game is frightened. Deliberately
@@ -909,6 +965,9 @@ export function passingSteps(surface = "indoor") {
 // stalls on audio that is not playing.
 const DUCK_MS = 150;
 const HOLD_MS = 560;
+// Calm still gets the shape of the beat — the room going quiet is not the
+// frightening part — but it does not get held there.
+const CALM_HOLD_MS = 180;
 let ducked = false;
 
 export function duckForScare() {
@@ -927,7 +986,7 @@ export function duckForScare() {
     g.setValueAtTime(Math.max(g.value, 0.0001), t);
     g.exponentialRampToValueAtTime(0.0001, t + fall);
   }
-  return DUCK_MS + HOLD_MS;
+  return DUCK_MS + (calm ? CALM_HOLD_MS : HOLD_MS);
 }
 
 // Put the room back. Called when the fight is over rather than when the window
@@ -1010,7 +1069,7 @@ function applyScore() {
   if (!c || !score) return;
   const t = c.currentTime;
   score.voices.forEach((v, i) => {
-    const target = i < scoreWanted ? v.level : 0.0001;
+    const target = i < scoreWanted ? v.level * (calm ? 0.5 : 1) : 0.0001;
     v.gain.gain.cancelScheduledValues(t);
     v.gain.gain.setValueAtTime(Math.max(v.gain.gain.value, 0.0001), t);
     // Long fades. A voice arriving or leaving should never be an event.

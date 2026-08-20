@@ -4,7 +4,7 @@ import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
-         muffle, passingSteps, cowerBreath, setScoreHour, buzz } from "./audio.js";
+         muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -732,6 +732,8 @@ const SCARE_SLOTS = [
 ];
 
 export function jumpScare(count = 0, silent = false) {
+  // Calm keeps the sting and the pack row; the face does not arrive.
+  if (isCalm()) silent = true;
   // The room goes quiet first. duckForScare returns how long to wait — and
   // returns 0 when there is nothing audible to take away, so a muted player
   // waits for nothing at all. A silence nobody can hear is just a delay.
@@ -1194,6 +1196,7 @@ export function pushIn(on) {
 // region that cries wolf is not atmosphere, it is a lie in the only channel
 // they have.
 export function phantom(dir) {
+  if (isCalm()) return; // opted out of being lied to, sound included
   phantomScratch(dir);
   if (reducedMotion()) return;
 
@@ -1407,6 +1410,14 @@ const DOOR_MS = 300;
 const FOOT_MS = 360;
 const FOOT_STAGGER = 78;
 const OPPOSITE = { N: "S", E: "W", S: "N", W: "E" };
+
+// The one predicate every intense effect asks. Two independent gates: reduced
+// motion is the OS saying "do not move things at me", calm is the player saying
+// "do not frighten me". Either is enough to hold an effect back, and neither
+// implies the other.
+function intense() {
+  return !reducedMotion() && !isCalm();
+}
 
 function reducedMotion() {
   return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -2016,7 +2027,7 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
   const reason = opts.tone === "lost" ? opts.reason || "combat" : null;
   if (reason) ov.classList.add(`overlay--lost-${reason}`);
 
-  if (reason === "combat") {
+  if (reason === "combat" && intense()) {
     const blood = document.createElement("div");
     blood.className = "blood";
     blood.setAttribute("aria-hidden", "true");
