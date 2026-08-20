@@ -623,6 +623,10 @@ export function renderBoard(game) {
     const slot = document.createElement("div");
     slot.className = `focus-slot focus-slot--${DIR_CLASS[dir]}`;
     if (e.state === "open" && e.neighbour) slot.appendChild(halfRoom(game, e, dir));
+    // A way out with nothing placed behind it yet: the only dark on this board
+    // that is a doorway rather than a wall. Marked here because this is where
+    // the edge is known, and read by standing() much later.
+    else if (e.kind !== "wall") slot.dataset.unopened = "";
     view.appendChild(slot);
   }
 
@@ -1272,6 +1276,44 @@ export function phantom(dir) {
   shade.setAttribute("aria-hidden", "true");
   half.appendChild(shade);
   setTimeout(() => shade.remove(), 2600);
+}
+
+// ---- Someone standing --------------------------------------------------------
+// The phantom escalated: not a shadow crossing a glimpse but a figure in the
+// dark of a door nobody has opened yet. It changes nothing, blocks nothing, and
+// is never spoken — a screen reader is told about the room, not about this,
+// because a narrated ghost is a fact and this is not one.
+//
+// It leaves the way it arrived: by the board being rebuilt. No fade. Fades are
+// how an interface withdraws something; absence is how a thing that was there
+// stops being there, and the difference is the whole effect.
+
+export function standing() {
+  if (isCalm()) return false;
+  if (reducedMotion()) return false; // it does not move, but the shock does
+
+  // Only the dark. A slot with a half-room in it is a room you can see into and
+  // reason about, and putting a figure there would be information; an empty
+  // slot is a door with nothing behind it yet.
+  const dark = [...document.querySelectorAll(".focus-slot[data-unopened]")].filter(
+    (slot) => !slot.querySelector(".standing")
+  );
+  if (!dark.length) return false;
+
+  // Which one is not a decision — every empty slot is equally nothing — so the
+  // first is as good as any, and picking without a die keeps this out of every
+  // rng in the file.
+  const shape = icon("scene", "standing", "standing");
+  if (!shape) return false;
+  shape.setAttribute("aria-hidden", "true");
+  dark[0].appendChild(shape);
+
+  // A floor under the "next render", because a player who sets the phone down
+  // would otherwise leave it standing there until they came back, and a figure
+  // you can study is a sprite. Removed outright — no transition on this element
+  // for one to run.
+  setTimeout(() => shape.remove(), 9000);
+  return true;
 }
 
 // ---- The candle gutters ------------------------------------------------------

@@ -1813,6 +1813,40 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   100% { left: 105%; opacity: 0; }
 }
 
+/* ---- Someone standing ---------------------------------------------------------
+   In the empty slot behind an unopened door. Sized by height so it stays a
+   figure in the short northern strip and the tall eastern one alike, and set
+   just off centre — dead centre in the doorway reads as placed, and slightly to
+   one side reads as someone who walked there.
+
+   No animation of any kind. It is the only thing on this board that does not
+   move, which is exactly why it is frightening, and a fade-in would make it an
+   effect arriving rather than something already there. */
+.standing {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  /* Faint and slightly out of focus. The first pass was a crisp black cutout at
+     full strength and it read as a sprite someone had placed there — you could
+     describe it, which is the failure. Blurred and half-transparent it is a
+     shape you would have to argue for. */
+  opacity: .6;
+  filter: blur(.8px);
+}
+
+/* Anchored to the slot's inner edge, and that went the wrong way once before it
+   went right. Pushed out to the far edge — the deepest dark, which sounds like
+   the correct answer — it is black on black and there is genuinely nothing to
+   see. Pulled in, it stands at the edge of where the candle still reaches,
+   which is the only place a silhouette can be read at all.
+
+   Off centre on the other axis, though: dead centre in the doorway reads as
+   placed, slightly to one side reads as someone who walked there. */
+.focus-slot--n .standing { bottom: 2%; left: 43%; height: 80%; transform: translateX(-50%); }
+.focus-slot--s .standing { top: 2%; left: 57%; height: 80%; transform: translateX(-50%); }
+.focus-slot--w .standing { right: 2%; top: 46%; height: 68%; transform: translateY(-50%); }
+.focus-slot--e .standing { left: 2%; top: 54%; height: 68%; transform: translateY(-50%); }
+
 /* ---- Camera language ---------------------------------------------------------
    Two of the cheapest tricks in the bag, and both only work if they never
    disagree with each other — which is why one module owns the classes and

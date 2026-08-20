@@ -274,6 +274,48 @@ test("gutter: its own stream, disturbing nothing", () => {
   eq(E.rollSilentScare(guttered), E.rollSilentScare(not), "scares unmoved");
 });
 
+// ---- Someone standing ---------------------------------------------------------
+
+test("standing: not before the last hour, however bad it is", () => {
+  const s = game({ seed: 4 });
+  s.hour = 22;
+  for (let i = 0; i < 200; i++) eq(E.rollStanding(s, 1), false, "ten o'clock is too early");
+});
+
+test("standing: not in a run that is going well", () => {
+  const s = game({ seed: 4 });
+  s.hour = 23;
+  for (let i = 0; i < 200; i++) eq(E.rollStanding(s, 0.4), false, "a calm midnight stays empty");
+});
+
+test("standing: once a run and never again", () => {
+  const s = game({ seed: 6 });
+  s.hour = 23;
+  let n = 0;
+  for (let i = 0; i < 600; i++) if (E.rollStanding(s, 1)) n++;
+  eq(n, 1, "the budget is one, whatever the dice say");
+});
+
+test("standing: same seed, same figure", () => {
+  const run = (seed) => {
+    const s = game({ seed });
+    s.hour = 23;
+    return Array.from({ length: 40 }, () => E.rollStanding(s, 1)).join(",");
+  };
+  eq(run(21), run(21), "a shared seed is haunted on the same turn");
+});
+
+test("standing: its own stream, disturbing nothing", () => {
+  const stood = game({ seed: 17 });
+  const not = game({ seed: 17 });
+  stood.hour = 23;
+  for (let i = 0; i < 40; i++) E.rollStanding(stood, 1);
+  stood.hour = 21;
+  eq(stood.deck, not.deck, "the deck is untouched");
+  eq(E.rollPhantom(stood, 1), E.rollPhantom(not, 1), "phantoms unmoved");
+  eq(E.rollGutter(stood, 1), E.rollGutter(not, 1), "the candle unmoved");
+});
+
 // The reason for a second stream at all.
 test("phantoms: rolling them does not disturb the game's own rng", () => {
   const withPhantoms = game({ seed: 11 });

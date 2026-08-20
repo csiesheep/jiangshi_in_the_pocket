@@ -126,6 +126,32 @@
   </symbol>
 
   <!-- Entry Hall. Where the night starts: a hall cabinet, a stand by the door, and the stairs you are not going up. -->
+  <!-- Someone standing in an unexplored doorway (#89). Under-drawn on purpose:
+       a figure you could describe is a monster, and a figure you are not sure
+       you saw is worse. No face, no hands, no detail to resolve.
+
+       The proportions are wrong rather than monstrous — the head is small, the
+       arms hang well below the hips, the whole thing is too narrow. Nothing you
+       could point at; everything slightly off. -->
+  <symbol id="scene-standing" viewBox="0 0 96 96">
+    <g stroke="none" fill="#05060a">
+      <ellipse cx="48" cy="15.5" rx="6.4" ry="7.8"/>
+      <path d="M40.5 24h15l3.5 10-2 30H39l-2-30z"/>
+      <rect x="30.5" y="27" width="5" height="46" rx="2.5"/>
+      <rect x="60.5" y="27" width="5" height="46" rx="2.5"/>
+      <rect x="40.6" y="61" width="6.4" height="35" rx="3"/>
+      <rect x="49" y="61" width="6.4" height="35" rx="3"/>
+    </g>
+    <!-- The sliver of candlelight that just catches one side of it. Without
+         this the shape is black on black and nobody sees anything at all; with
+         much more of it, everybody does. -->
+    <g stroke="none" fill="#c48434" opacity=".26">
+      <rect x="39.2" y="25" width="1.6" height="37"/>
+      <ellipse cx="43.6" cy="14" rx="2.1" ry="7"/>
+      <rect x="40.4" y="61" width="1.4" height="34"/>
+    </g>
+  </symbol>
+
   <symbol id="scene-foyer" viewBox="0 0 96 96">
     <g stroke="none">
       <rect width="96" height="96" fill="#17120e"/>

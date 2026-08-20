@@ -16,6 +16,7 @@ import {
   telegraphWall,
   phantom,
   candleGutter,
+  standing,
   clearStage,
   mountFilmStock,
   buryBeat,
@@ -551,6 +552,9 @@ class Game {
       // the two together are one event — something moved, and the light went
       // with it — where separately they are two effects.
       if (dir || E.rollGutter(this.state, fear)) candleGutter();
+      // Once a run at the outside, and never on the same beat as a phantom:
+      // two unexplained things at once is a haunting, and one is a doubt.
+      if (!dir && E.rollStanding(this.state, fear)) standing();
     }
     return this.endTurn();
   }

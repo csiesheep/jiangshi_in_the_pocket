@@ -78,6 +78,12 @@ export function newGame(data, opts = {}) {
     // third: presentation dice that shift each other cannot be reasoned about,
     // and a stream is four bytes.
     gutterRng: makeRng((seed ^ 0xc2b2ae35) >>> 0),
+    // And a fifth, for the one time someone is standing there (#89). The issue
+    // asked for the phantom stream; this file's rule wins, and the rule is that
+    // no two presentation dice may move each other. Sharing would mean a run
+    // that saw the figure got different phantoms for the rest of the night.
+    standingRng: makeRng((seed ^ 0x27d4eb2f) >>> 0),
+    stoodOnce: false,
     seed,
     cardsById,
     itemsById,
@@ -254,6 +260,30 @@ export function rollPhantom(state, fear = 0) {
 
   state.lastPhantom = true;
   return PHANTOM_DIRS[Math.floor(state.phantomRng() * PHANTOM_DIRS.length) % PHANTOM_DIRS.length];
+}
+
+// ---- Someone standing ---------------------------------------------------------
+// The escalation of the phantom, and the rarest thing in the game: a figure
+// that does not move. A shadow crossing a doorway is something happening; a
+// figure standing in one is something waiting, which is worse and cannot be
+// used twice.
+//
+// So: once per run, at most, and only in the last hour of a bad one. The player
+// who asks "did you see that?" once is the whole goal. Twice and it is a sprite.
+const STANDING_CHANCE = 0.16;
+const STANDING_DREAD = 0.55;
+
+export function rollStanding(state, fear = 0) {
+  if (!state || !state.standingRng) return false;
+  if (state.status !== "playing") return false;
+  if (state.stoodOnce) return false;
+  // Late, and going badly. Not merely late: a comfortable run at 11 PM has not
+  // earned this, and spending the once-per-run budget there wastes it.
+  if (state.hour < RULES.FINAL_HOUR) return false;
+  if (fear < STANDING_DREAD) return false;
+  if (state.standingRng() >= STANDING_CHANCE) return false;
+  state.stoodOnce = true;
+  return true;
 }
 
 // ---- The light you cannot trust ---------------------------------------------
