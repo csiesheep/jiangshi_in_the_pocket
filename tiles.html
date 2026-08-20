@@ -20,7 +20,14 @@
   <meta property="og:title" content="Grave Errand — The Tiles">
   <meta property="og:description" content="Every room in the house and garden on one sheet: doors, effects, and where the relic waits.">
   <meta property="og:url" content="https://games.csiesheep.com/zombie_in_the_pocket/tiles">
-  <meta property="og:image" content="https://games.csiesheep.com/zombie_in_the_pocket/og-image.png">
+  <!-- Absolute, because crawlers do not reliably resolve relative OG paths, and
+       a new filename rather than a new picture at the old one — scrapers cache
+       by URL, so replacing the image in place would leave every link that has
+       ever been shared showing the old card. -->
+  <meta property="og:image" content="https://games.csiesheep.com/zombie_in_the_pocket/assets/social.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A dark house at night, lit windows and an open door, under the title Grave Errand.">
   <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
