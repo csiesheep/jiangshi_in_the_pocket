@@ -286,6 +286,7 @@ export function doorCreak(dir = null) {
 // The scare's sting: two detuned saws hauled upward. Bigger packs go higher and
 // louder, so the sound carries the same information as the picture.
 export function combatSting(count = 3) {
+  // Recorded when the manifest names one; the oscillators below are the fallback.
   if (sample("sting")) return;
   const c = live();
   if (!c) return;
@@ -860,19 +861,35 @@ let dread = 0; // 0 at nine o'clock, 1 at midnight
 // Wind, synthesised rather than sourced — and not for want of a file. Noise
 // through a moving filter loops seamlessly by construction, weighs nothing, and
 // can follow the clock: a recording is the same wind at nine as at midnight.
+// A recorded loop for a held sound, if the manifest named one. The beds build
+// their own buffer source rather than going through sample(), because they loop
+// and carry their own filter chain — so this hands back the buffer and lets the
+// caller wire it exactly as it wires the synthesised one.
+function loopBuffer(name) {
+  const takes = samples.get(name);
+  return takes && takes.length ? takes[0] : null;
+}
+
 export function startAmbience() {
   bedWanted = true;
   const c = live();
   if (!c || bed) return;
 
+  // A recording is a room; noise through a filter is a synthesizer pretending
+  // to be one. Take the recording when there is one, and keep the synth as the
+  // fallback for a failed load — that rule has not changed.
+  const recorded = loopBuffer("bed-wind");
   const src = c.createBufferSource();
-  src.buffer = longNoise(c);
+  src.buffer = recorded || longNoise(c);
   src.loop = true;
 
   const filter = c.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.Q.value = 0.7;
-  filter.frequency.value = 320;
+  // Recorded room tone is already voiced; a bandpass on top would only take
+  // the body out of it. It still passes through a filter node so setDread can
+  // move the tone either way, just opened up.
+  filter.type = recorded ? "lowpass" : "bandpass";
+  filter.Q.value = recorded ? 0.4 : 0.7;
+  filter.frequency.value = recorded ? 6000 : 320;
 
   const gain = c.createGain();
   gain.gain.value = 0.0001;
@@ -1200,8 +1217,9 @@ export function startMurmur(count = 3) {
   filter.type = "lowpass";
   filter.frequency.value = 340;
 
+  const recordedMurmur = loopBuffer("murmur");
   const src = c.createBufferSource();
-  src.buffer = longNoise(c);
+  src.buffer = recordedMurmur || longNoise(c);
   src.loop = true;
 
   // Two detuned voices under the noise: a crowd, not a machine. Bigger packs

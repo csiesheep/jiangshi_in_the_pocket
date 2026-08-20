@@ -60,6 +60,42 @@ without provenance is just an unsourced file.
 
 Total 121 KB. Largest single cue 30 KB, against the 50 KB budget.
 
+The held sounds — wind bed, pack murmur, scare sting
+----------------------------------------------------
+Sourced from OpenGameArt, CC0, and re-encoded rather than used as-is: the
+originals are 0.8-1.6 MB each, well over the 300 KB an ambient loop is allowed
+here. Each was decoded, cut, and re-encoded to mono Opus at 24 kHz in a
+browser, which is the only encoder available in this toolchain.
+
+The two loops are seamless by construction: the tail of the clip is crossfaded
+back over its own head, so the join has no edge to hear. A plain trim would
+click once a bar.
+
+  source:   https://opengameart.org/content/loopable-dungeon-ambience
+  author:   (see the OpenGameArt page)
+  licence:  CC0 1.0
+  changes:  26s excerpt, tail crossfaded over the head for a seamless loop,
+            downmixed to mono, resampled to 24 kHz, encoded to Opus
+  added:    2026-08-19
+    bed-wind.webm    90 KB   <- dungeon_ambient_1_0.ogg (1.6 MB original)
+
+  source:   https://opengameart.org/content/low-rumbling
+  author:   (see the OpenGameArt page)
+  licence:  CC0 1.0
+  changes:  18s excerpt, crossfaded loop, mono, 24 kHz, Opus
+  added:    2026-08-19
+    murmur.webm      60 KB   <- low-rumbling-176033.mp3 (453 KB original)
+
+  source:   https://opengameart.org/content/ambient-horror
+  author:   (see the OpenGameArt page)
+  licence:  CC0 1.0
+  changes:  1.8s slice from the loudest passage, short attack and a half-second
+            release, mono, 24 kHz, Opus
+  added:    2026-08-19
+    sting.webm        7 KB   <- ambient_horror_0.ogg (776 KB original)
+
+Held sounds total 157 KB, each inside the 300 KB budget.
+
 How the manifest works
 ----------------------
 js/audio.js fetches assets/audio/manifest.json and, for each "cue": "file"
@@ -100,10 +136,14 @@ recording of wind cannot do.
 Which cues are recorded, and which are still synthesised
 -------------------------------------------------------
 recorded:     door, break, hit, item-metal, item-wood, item-small,
-              step-wood, step-grass
-synthesised:  sting, bell, cower, relic, seam, win, death,
-              item-engine, item-liquid, card, tick, the three swing layers,
-              and both beds (wind, pack murmur)
+              step-wood, step-grass, sting, bed-wind, murmur
+synthesised:  bell, cower, relic, seam, win, death, item-engine,
+              item-liquid, card, tick, the three swing layers, and the
+              murmur's growl voices (which sit under the recorded bed)
+
+The wind, murmur and sting keep their synthesised versions as the load-failure
+fallback, exactly as the struck cues do — a missing file costs texture, never
+silence.
 
 The synthesised ones are not an oversight. The bell is deliberate — the issue
 called it good as it is. The rest are sounds these two packs cannot serve
