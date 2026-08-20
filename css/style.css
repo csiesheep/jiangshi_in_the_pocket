@@ -239,6 +239,22 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 
 .footnote { margin-top: 36px; color: var(--muted); font-size: 0.8rem; max-width: 44ch; }
 
+/* The house remembering you. Quieter than the tagline and set apart from it,
+   because it is not part of the pitch — it is the room adding something after
+   the sentence had finished. Italic and dim on purpose: a scoreboard is
+   something you read, and this should be something you notice. */
+.whisper {
+  margin: -26px 0 40px;
+  /* 82%, not the 76% this started at. Dimmer read better and measured 4.86:1
+     against pure black, which is only above the floor because the cold open's
+     background is not actually pure black — over the gradient it sits under it.
+     Atmosphere does not get to make text unreadable. */
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
+  font-style: italic;
+  font-size: .92rem;
+  max-width: 40ch;
+}
+
 /* ---- The game is a frame, not a document ----------------------------------
    game.html only: the menu, rulebook and credits stay ordinary scrolling pages.
    dvh rather than vh, because the mobile URL bar collapsing is the exact bug
@@ -2085,8 +2101,11 @@ body.coldopen .menu h1 { animation: titlegutter 2.4s ease-out both; }
 body.coldopen .menu .tagline { animation: fadeup 1.2s ease-out .9s both; }
 /* The links fade up but are clickable from the first frame — opacity does not
    take pointer events, and Start must never wait for the show. */
-body.coldopen .menu nav { animation: fadeup 1.4s ease-out 1.5s both; }
-body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.1s both; }
+/* Last of the title block to arrive, and later than the tagline by enough to
+   read as an afterthought rather than a second line of copy. */
+body.coldopen .menu .whisper { animation: fadeup 1.6s ease-out 1.45s both; }
+body.coldopen .menu nav { animation: fadeup 1.4s ease-out 1.9s both; }
+body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.5s both; }
 @keyframes fadeup {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
@@ -2097,6 +2116,7 @@ body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.1s both; }
   .fog { animation: none; }
   body.coldopen .menu h1,
   body.coldopen .menu .tagline,
+  body.coldopen .menu .whisper,
   body.coldopen .menu nav,
   body.coldopen .menu .footnote { animation: none; opacity: 1; transform: none; }
 }

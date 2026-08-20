@@ -3,6 +3,7 @@
 // player and the Start button.
 
 import { tollBell, isMuted } from "./audio.js";
+import { houseLine } from "./tally.js";
 
 // Far enough apart to be a house settling rather than a metronome.
 const BELL_MS = 20000;
@@ -32,3 +33,24 @@ function begin() {
 for (const evt of ["pointerdown", "pointermove", "keydown", "touchstart"]) {
   window.addEventListener(evt, begin, { once: true, passive: true });
 }
+
+// ---- What the house remembers -------------------------------------------------
+// One line under the tagline, and only if there is something to say. Written
+// from here rather than sitting empty in the HTML: a first visit should have no
+// element at all, not an element with nothing in it.
+//
+// Inserted before the nav so it reads as part of the title block, and after it
+// in the fade order — the house says this while you are still looking at the
+// title, not as a fact attached to the buttons.
+function rememberYou() {
+  const line = houseLine();
+  if (!line) return;
+  const tagline = document.querySelector(".menu .tagline");
+  if (!tagline) return;
+  const p = document.createElement("p");
+  p.className = "whisper";
+  p.textContent = line;
+  tagline.after(p);
+}
+
+rememberYou();

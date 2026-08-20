@@ -40,6 +40,7 @@ import {
 } from "./render.js";
 
 import { registerWorker, wireFullscreen, keepAwake } from "./shell.js";
+import { recordVerdict } from "./tally.js";
 
 const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
 
@@ -668,6 +669,14 @@ class Game {
     // The verdicts carry their own stings; the score is never played over them.
     stopScore();
     const won = this.state.status === "won";
+
+    // Counted once, and the guard is load-bearing: the win path re-enters
+    // gameOver after the silent beat below, so without it every escape would
+    // be recorded twice and every one of those runs would look like two.
+    if (!this.tallied) {
+      this.tallied = true;
+      recordVerdict(won);
+    }
 
     // A win is always a burial — buryTotem is the only thing that sets it — so
     // this is the moment the digging has been building to. One silent beat
