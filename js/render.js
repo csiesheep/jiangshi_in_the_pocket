@@ -1180,7 +1180,7 @@ export function pushIn(on) {
 // region that cries wolf is not atmosphere, it is a lie in the only channel
 // they have.
 export function phantom(dir) {
-  phantomScratch(PAN_OF[dir] ?? 0);
+  phantomScratch(dir);
   if (reducedMotion()) return;
 
   // If a neighbour happens to lie that way, something passes through it.
@@ -1201,10 +1201,8 @@ export function phantom(dir) {
 // The direction is knowable in advance because isDeadEnd and pickZombieDoorWall
 // are pure reads — no state moves here, this only says out loud what the board
 // already decided.
-const PAN_OF = { W: -0.8, E: 0.8, N: 0, S: 0 };
-
 export function telegraphWall(dir) {
-  wallThump(PAN_OF[dir] ?? 0);
+  wallThump(dir);
   if (reducedMotion()) return; // the knock stays; the dust is the motion part
 
   const box = document.querySelector(".focus-centre .tilebox");
@@ -1252,7 +1250,9 @@ export function darkDoorBeat(dir, fear = 0) {
   return new Promise((resolve) => {
     const pane = document.querySelector(".board-pane");
     // The hinge is a cue, not a picture: it plays even when the beat does not.
-    doorCreak();
+    // Placed on the wall being opened — this is the door in front of you, not
+    // the one you came through.
+    doorCreak(dir);
     if (!pane || reducedMotion() || typeof pane.animate !== "function") return resolve();
 
     const stale = pane.querySelector(".darkdoor");
@@ -1394,9 +1394,14 @@ export function animateEntry(dir) {
   // Only for a real door — a smashed wall has nothing to swing.
   const back = OPPOSITE[dir];
   const backEdge = document.querySelector(`.focus-centre .tilebox .edgemark.${DIR_CLASS[back]}`);
-  if (backEdge && !backEdge.classList.contains("edgemark--broken")) doorCreak();
+  // The door is behind you now — you came through it — so both the hinge and
+  // the steps are placed on the wall you actually used.
+  if (backEdge && !backEdge.classList.contains("edgemark--broken")) doorCreak(back);
   // And the walk in, on whatever the floor is here — boards or grass.
-  footsteps(document.getElementById("board")?.classList.contains("board--outdoor") ? "outdoor" : "indoor");
+  footsteps(
+    document.getElementById("board")?.classList.contains("board--outdoor") ? "outdoor" : "indoor",
+    back
+  );
 
   if (reducedMotion()) return;
 

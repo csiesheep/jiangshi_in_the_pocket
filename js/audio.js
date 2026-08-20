@@ -198,8 +198,9 @@ function envelope(c, peak, attack, decay) {
 }
 
 // A dry hinge giving way: narrow band of noise sliding up and back down.
-export function doorCreak() {
-  if (sample("door", weight(0.85, 1))) return;
+export function doorCreak(dir = null) {
+  const out = dir ? placed(dir, master) : master;
+  if (sample("door", weight(0.85, 1), 0, out)) return;
   const c = live();
   if (!c) return;
   const t = c.currentTime;
@@ -217,7 +218,7 @@ export function doorCreak() {
   band.frequency.exponentialRampToValueAtTime(620, t + 0.32 * slow);
 
   const g = envelope(c, 0.13, 0.05, 0.29 * slow);
-  src.connect(band).connect(g).connect(master);
+  src.connect(band).connect(g).connect(out);
   src.start(t);
   src.stop(t + 0.42 * slow);
 }
@@ -543,11 +544,51 @@ export function verdictSting(won) {
 // rather than seen, and it is why these are the one cue with no synthesised
 // fallback: a convincing footstep is not something two oscillators do, and a
 // bad one is worse than silence.
-export function footsteps(world = "indoor") {
-  const cue = world === "outdoor" ? "step-grass" : "step-wood";
+export function footsteps(surface = "indoor", dir = null) {
+  const cue = surface === "outdoor" ? "step-grass" : "step-wood";
+  // Your own steps: at your ear, but they still come from the door you used.
+  const out = dir ? placed(dir, master) : master;
   // Heavier and slower as dread rises: the same walk, taken worse.
-  sample(cue, weight(0.5, 0.72));
-  sample(cue, weight(0.4, 0.6), weight(0.19, 0.25));
+  sample(cue, weight(0.5, 0.72), 0, out);
+  sample(cue, weight(0.4, 0.6), weight(0.19, 0.25), out);
+}
+
+// ---- Placing a sound ---------------------------------------------------------
+// One owner for "where did that come from". Cues take a compass direction and
+// this turns it into a node to connect to; nothing else in the file knows what
+// a pan value is.
+//
+// East right, west left, and deliberately gentle: half, not hard. A hard pan
+// puts a sound outside the listener's head, which is wrong for something on the
+// other side of a wall you are standing next to.
+//
+// North and south both sit centre, because stereo genuinely cannot place front
+// from back — but south is the wall behind you, and things behind you are
+// duller. A little top taken off is the honest version of that difference;
+// making it quieter would just sound further away.
+const PAN_BY_DIR = { E: 0.5, W: -0.5, N: 0, S: 0 };
+const BEHIND_HZ = 1500;
+
+function placed(dir, bus) {
+  const c = live();
+  const out = bus || master;
+  if (!c) return out;
+
+  let head = out;
+  if (dir === "S") {
+    const dull = c.createBiquadFilter();
+    dull.type = "lowpass";
+    dull.frequency.value = BEHIND_HZ;
+    dull.connect(head);
+    head = dull;
+  }
+  if (typeof c.createStereoPanner === "function") {
+    const p = c.createStereoPanner();
+    p.pan.value = PAN_BY_DIR[dir] ?? 0;
+    p.connect(head);
+    head = p;
+  }
+  return head;
 }
 
 // Something heavy hitting a wall from the other side. Panned, because hearing
@@ -557,20 +598,12 @@ export function footsteps(world = "indoor") {
 // pan is -1 at the west wall, +1 at the east; north and south sit centre, which
 // is honest rather than a shortcoming. Stereo cannot place front from back, and
 // faking it with volume would only make a north thump sound quieter.
-export function wallThump(pan = 0) {
+export function wallThump(dir = "N") {
   const c = live();
   if (!c) return;
   const t = c.currentTime;
-
-  // StereoPannerNode is not everywhere. Without one the thump still lands, it
-  // just lands in the middle.
-  let out = master;
-  if (typeof c.createStereoPanner === "function") {
-    const p = c.createStereoPanner();
-    p.pan.value = Math.max(-1, Math.min(1, pan));
-    p.connect(master);
-    out = p;
-  }
+  // Through a wall, so it belongs to the house rather than to you.
+  const out = placed(dir, world || master);
 
   // The knock: low, almost no attack, so it reads as coming through a wall
   // rather than happening in the room.
@@ -598,18 +631,11 @@ export function wallThump(pan = 0) {
 // A phantom: something dragging along a wall that has nothing behind it. Drier
 // and thinner than the real thump so it does not read as a break-in about to
 // happen — it is meant to be doubted, not acted on.
-export function phantomScratch(pan = 0) {
+export function phantomScratch(dir = "N") {
   const c = live();
   if (!c) return;
   const t = c.currentTime;
-
-  let out = master;
-  if (typeof c.createStereoPanner === "function") {
-    const p = c.createStereoPanner();
-    p.pan.value = Math.max(-1, Math.min(1, pan));
-    p.connect(master);
-    out = p;
-  }
+  const out = placed(dir, world || master);
 
   const src = c.createBufferSource();
   src.buffer = noise(c);
