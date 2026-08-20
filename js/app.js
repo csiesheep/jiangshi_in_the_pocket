@@ -13,7 +13,12 @@ import {
   caption,
   clearChoices,
   darkDoorBeat,
-  telegraphWall,
+  breakInTelegraph,
+  breakInCracks,
+  breakInPressure,
+  breakInReanchor,
+  breakInCollapse,
+  breakInClear,
   phantom,
   candleGutter,
   standing,
@@ -31,7 +36,6 @@ import {
   loadIcons,
   watchBoardSize,
   animateEntry,
-  animateBreakIn,
   jumpScare,
   uiIcon,
   formatHour,
@@ -190,7 +194,9 @@ class Game {
     // merely happening. Nothing here changes state.
     if (Bd.isDeadEnd(this.board)) {
       const wall = Bd.pickZombieDoorWall(this.board);
-      if (wall) telegraphWall(wall);
+      // Stage one of the staged failure: a knock, and then a harder one. The
+      // sequence owner handles the second — from here it is still one call.
+      if (wall) breakInTelegraph(wall);
     }
 
     if (o.t === "EVENT") {
@@ -300,6 +306,11 @@ class Game {
     // makes the flash safe: the previous step's buttons are gone, so nothing can
     // be clicked and the global number keys have nothing to find while it plays.
     renderActions([]);
+    // Stage two: the wall cracks as the sting lands. Only for the break-in —
+    // this.breachDir is set by zombieDoorPhase and null for a card fight, and
+    // the difference between "they are here" and "they came through THERE" is
+    // the whole reason the stages exist.
+    if (this.breachDir) breakInCracks(this.breachDir);
     // Sometimes the picture does not come. Seeded from its own stream, so a
     // shared run is startled in the same places — and the actions still land
     // after the beat either way, so the input gating is untouched.
@@ -316,6 +327,10 @@ class Game {
       }
       startMurmur(n);
       renderActions(acts, prompt, { pack: n, health: s.health });
+      // Stage three: it keeps pounding while you decide. Mounted after the
+      // choices, so a wall that is coming in is the last thing added and the
+      // first thing the eye catches.
+      if (this.breachDir) breakInPressure();
     });
   }
 
@@ -365,6 +380,7 @@ class Game {
     // and the walk into the next room is the beat that matters here.
     stopMurmur();
     unduck();
+    breakInClear();
     clearChoices();
     resolveBeat({ mode: "flee" }).then(() => {
       this.refresh();
@@ -583,6 +599,7 @@ class Game {
   }
 
   breakInWall(cameFrom) {
+    breakInClear(); // whatever was pounding, stop pounding
     if (this.state.status !== "playing") return;
     const here = Bd.currentTile(this.board);
     // Compared by tile rather than this.fled, which may already be set from an
@@ -594,13 +611,20 @@ class Game {
     if (!wall) return; // nothing blank left to break through
     Bd.openZombieDoor(this.board, wall);
     this.refresh();
-    animateBreakIn(wall);
     log(
       ran
         ? `They follow you in through the ${DIR_WORD[wall]} wall of the ${this.tileName(here.id)}.`
         : `They come through the ${DIR_WORD[wall]} wall.`,
       "bad"
     );
+    // Stage four, or five. Standing your ground collapses the wall that has
+    // been cracking all fight. Running means the prediction was wrong and the
+    // whole sequence has to move: a fast knock and a crack in the room you
+    // actually reached, and then the collapse there. The board already decides
+    // where the hole goes; the staging follows it rather than the other way
+    // round.
+    if (ran) breakInReanchor(wall).then(() => breakInCollapse(wall));
+    else breakInCollapse(wall);
   }
 
   // ---- Steps 8–9: end of turn (heal, cower) -------------------------------
@@ -661,6 +685,9 @@ class Game {
   gameOver() {
     this.refresh();
     renderActions([]);
+    // A run that ended mid-break-in must not leave a wall pounding under the
+    // verdict card.
+    breakInClear();
     // The house stops breathing when the run does. Both beds go before the
     // verdict sting, so the ending has the room to itself.
     stopMurmur();

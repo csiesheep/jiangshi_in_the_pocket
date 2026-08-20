@@ -1369,6 +1369,146 @@ export function candleGutter() {
   }, (reducedMotion() ? GUTTER_MS_CALM_MOTION : GUTTER_MS) + 60);
 }
 
+// ---- The wall failing, in stages -----------------------------------------------
+// A wall in a film does not become a hole. It takes a knock, then a harder one,
+// then it cracks, then something comes through it, and only then does it fall.
+// The game already had those moments — a telegraph knock, a scare, a fight, a
+// 460ms burst — but nothing joined them up, so it read as three unrelated
+// effects and an instant hole.
+//
+// This is the sequence owner, the same shape the burial has: one module that
+// knows every stage, so the stages can share state (which wall, how far gone)
+// and so tearing the whole thing down is one call rather than five.
+//
+// The wall it stages on is a PREDICTION. pickZombieDoorWall is a pure read and
+// can be asked early, but fleeing moves the answer — so nothing here punches
+// state, and stage five re-anchors the whole sequence onto whatever wall the
+// board actually chose. Never punch state early; stage on the guess.
+
+const breakIn = {
+  dir: null,
+  el: null, // the cracked-wall overlay, while it is mounted
+};
+
+// The stage names are the phases of the turn, not the frames of an animation:
+// telegraph runs while the card resolves, cracks as the sting lands, pressure
+// for as long as the choice is open, collapse on resolution.
+function breachEl(dir) {
+  const box = document.querySelector(".focus-centre .tilebox");
+  if (!box) return null;
+  const el = document.createElement("span");
+  el.className = `breach breach--${DIR_CLASS[dir] || "n"}`;
+  el.setAttribute("aria-hidden", "true"); // describeRoom carries this in words
+  // Fixed positions, like every other effect here: the same wall should fail
+  // the same way twice, and a seeded run has to look like itself.
+  // Fanned rather than hanging. The first pass ran them long and near-vertical
+  // from the wall line and they read as drips, not fractures — a crack web
+  // spreads sideways as much as inward, so these are shorter and lean harder.
+  for (const [along, len, tilt] of [[24, 46, -38], [41, 68, 16], [56, 40, 42], [71, 58, -14]]) {
+    const crack = document.createElement("i");
+    crack.style.setProperty("--along", `${along}%`);
+    crack.style.setProperty("--len", `${len}%`);
+    crack.style.setProperty("--tilt", `${tilt}deg`);
+    el.appendChild(crack);
+  }
+  box.appendChild(el);
+  return el;
+}
+
+// Stage 1 — while the card resolves. Two knocks, the second harder and late
+// enough to be a second knock rather than an echo.
+export function breakInTelegraph(dir) {
+  breakIn.dir = dir;
+  telegraphWall(dir);
+  // The pause is the point. One knock is a noise; a knock, a gap, and a harder
+  // knock is something working at it.
+  setTimeout(() => telegraphWall(dir, 1.35), 620);
+}
+
+// Stage 2 — the sting lands and the wall is visibly losing. In calm mode this
+// does nothing at all: the stages collapse back to the single burst at the end,
+// which is what calm mode promised.
+export function breakInCracks(dir) {
+  if (isCalm()) return;
+  breakIn.dir = dir || breakIn.dir;
+  breakInClear();
+  const el = breachEl(breakIn.dir);
+  if (!el) return;
+  breakIn.el = el;
+  // The cracks arrive; reduced motion gets them without the spreading.
+  el.classList.add(reducedMotion() ? "breach--still" : "breach--spreading");
+}
+
+// Stage 3 — the window is open and you are choosing a weapon. The wall stays
+// cracked and pounds faintly. Pressure, not an event: nothing here resolves,
+// interrupts, or asks for a frame of the player's time.
+export function breakInPressure() {
+  if (isCalm() || reducedMotion()) return;
+  if (breakIn.el) breakIn.el.classList.add("breach--pounding");
+}
+
+// Stage 5 — they followed you. The prediction was wrong, so the whole sequence
+// moves: a fast knock and a crack in the room you actually reached, and then
+// the collapse happens there.
+export function breakInReanchor(dir) {
+  breakIn.dir = dir;
+  if (isCalm() || reducedMotion()) return Promise.resolve();
+  breakInCracks(dir);
+  telegraphWall(dir, 1.2);
+  // Short — this is a catch-up, not a second telegraph. The player has already
+  // had the slow version once this turn.
+  return new Promise((resolve) => setTimeout(resolve, 340));
+}
+
+// Stage 4 — the collapse. The old animateBreakIn was one 460ms burst on the
+// hole art; this widens the cracks first, drops the section in two pieces, and
+// only then lets the hole settle in behind it.
+export function breakInCollapse(dir) {
+  breakThrough();
+  if (reducedMotion() || isCalm()) {
+    breakIn.dir = dir;
+    breakInClear();
+    return animateBreakIn(dir, { quiet: true }); // the single burst, as before
+  }
+
+  // The overlay from stage two is usually gone by now: opening the hole
+  // re-renders the board, and renderBoard rebuilds .focus from nothing. So the
+  // one that is still standing is only reusable if it survived the render AND
+  // is on the wall that actually gave — a prediction that turned out wrong has
+  // to be dropped, not collapsed.
+  if (!(breakIn.el && breakIn.el.isConnected && breakIn.dir === dir)) {
+    breakInClear();
+    breakIn.el = breachEl(dir);
+  }
+  breakIn.dir = dir;
+
+  const el = breakIn.el;
+  if (el) {
+    el.classList.remove("breach--pounding", "breach--spreading");
+    el.classList.add("breach--failing");
+    // Two chunks, falling inward at different rates — one piece reads as a
+    // panel sliding, two read as masonry.
+    for (const lead of [0, 1]) {
+      const chunk = document.createElement("b");
+      chunk.style.setProperty("--lead", String(lead));
+      el.appendChild(chunk);
+    }
+    setTimeout(() => breakInClear(), 620);
+  }
+  // The burst underneath it, after the pieces have started to go: the hole is
+  // what is left when the wall has finished failing, not what replaces it.
+  setTimeout(() => animateBreakIn(dir, { quiet: true }), el ? 300 : 0);
+  return Promise.resolve();
+}
+
+// Always safe to call, and called on every exit from the fight — a flee, a
+// verdict, a new game. A wall left pounding forever is the failure mode a held
+// effect always has.
+export function breakInClear() {
+  if (breakIn.el) breakIn.el.remove();
+  breakIn.el = null;
+}
+
 // ---- Telegraphing the zombie door ------------------------------------------
 // The wall they are about to come through knocks once, while the card is still
 // being read. It is the difference between a stat event and a horror beat: you
@@ -1377,8 +1517,8 @@ export function candleGutter() {
 // The direction is knowable in advance because isDeadEnd and pickZombieDoorWall
 // are pure reads — no state moves here, this only says out loud what the board
 // already decided.
-export function telegraphWall(dir) {
-  wallThump(dir);
+export function telegraphWall(dir, force = 1) {
+  wallThump(dir, force);
   if (reducedMotion()) return; // the knock stays; the dust is the motion part
 
   const box = document.querySelector(".focus-centre .tilebox");
@@ -1400,7 +1540,8 @@ export function telegraphWall(dir) {
 
   // And the wall itself takes the knock, once.
   const edge = box.querySelector(`.edgemark.${DIR_CLASS[dir]}`) || box;
-  const [ax, ay] = dir === "N" || dir === "S" ? [0, dir === "N" ? 2 : -2] : [dir === "W" ? 2 : -2, 0];
+  const [ax, ay] = (dir === "N" || dir === "S" ? [0, dir === "N" ? 2 : -2] : [dir === "W" ? 2 : -2, 0])
+    .map((v) => v * force);
   edge.animate(
     [
       { transform: "translate(0, 0)" },
@@ -1460,10 +1601,13 @@ export function darkDoorBeat(dir, fear = 0) {
 // oversized, settle back, and the room takes the knock. The static art is
 // already in place underneath, so under reduced motion the hole is simply
 // there — nothing is lost by skipping this.
-export function animateBreakIn(dir) {
+export function animateBreakIn(dir, opts = {}) {
   // Sound first and unconditionally, the same rule the door follows: the cue is
   // the wall coming in, and that happened whether or not the picture plays.
-  breakThrough();
+  // `quiet` is for the staged version, which has already played the crash at
+  // the top of the collapse — the burst here is the tail of that, not a second
+  // wall giving way.
+  if (!opts.quiet) breakThrough();
   if (reducedMotion()) return;
   enterScene();
   setTimeout(leaveScene, 1200);

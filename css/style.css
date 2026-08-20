@@ -1827,6 +1827,93 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   100% { opacity: 0; transform: translateY(14px); }
 }
 
+/* ---- A wall losing -----------------------------------------------------------
+   The staged break-in (#96). Sits over the wall it belongs to, inside the tile,
+   so the crop and the wall art already frame it — the same trick .wallshake
+   uses, and it means the strip needs no per-direction geometry beyond which
+   edge it hugs.
+
+   Everything here is a crack. There is no picture of a hole: the hole is the
+   board's own broken-wall art, which arrives after this has finished failing. */
+.breach {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4; /* over the wall art, under the doorway hotspots */
+}
+.breach--n { top: 0; left: 0; right: 0; height: 22%; }
+.breach--s { bottom: 0; left: 0; right: 0; height: 22%; }
+.breach--w { left: 0; top: 0; bottom: 0; width: 22%; }
+.breach--e { right: 0; top: 0; bottom: 0; width: 22%; }
+
+/* One crack: a hairline, not a drawing. Light, not dark — which took a look at
+   it to get right. A crack is a dark line in daylight, and the first version
+   drew it that way: near-black on a near-black wall, which is nothing at all.
+   What you actually see in a room this dark is the broken plaster catching the
+   candle, so the line is bone with a dark edge behind it. */
+.breach i {
+  position: absolute;
+  width: 1.6px;
+  height: var(--len, 60%);
+  background: linear-gradient(180deg, rgba(196, 180, 148, .7), rgba(196, 180, 148, .58) 62%,
+                                      transparent);
+  box-shadow: -1px 0 1px rgba(4, 4, 6, .8);
+  transform-origin: top center;
+  opacity: 0;
+}
+.breach--n i, .breach--s i { left: var(--along); top: 4%; transform: rotate(var(--tilt)); }
+.breach--w i, .breach--e i { top: var(--along); left: 4%; transform: rotate(calc(90deg + var(--tilt))); }
+
+/* Reduced motion: the cracks are simply there. They are information — this wall
+   is going — and information is not motion. */
+.breach--still i { opacity: .9; }
+
+/* They spread. Staggered by index so the wall fails in four places at slightly
+   different moments rather than all at once, which is the difference between a
+   crack web and a stencil. */
+.breach--spreading i { animation: crackopen 420ms ease-out forwards; }
+.breach--spreading i:nth-child(2) { animation-delay: 90ms; }
+.breach--spreading i:nth-child(3) { animation-delay: 40ms; }
+.breach--spreading i:nth-child(4) { animation-delay: 150ms; }
+@keyframes crackopen {
+  from { opacity: 0; transform: rotate(var(--tilt)) scaleY(.15); }
+  to   { opacity: .9; transform: rotate(var(--tilt)) scaleY(1); }
+}
+
+/* And then they are pounded on while you choose. Slow, shallow, and the same
+   period as nothing else on screen: this is a thing happening behind the wall,
+   not a UI pulse. */
+.breach--pounding i { animation: crackpound 1.6s ease-in-out infinite; }
+.breach--pounding i:nth-child(2) { animation-delay: 120ms; }
+.breach--pounding i:nth-child(3) { animation-delay: 60ms; }
+.breach--pounding i:nth-child(4) { animation-delay: 200ms; }
+@keyframes crackpound {
+  0%, 100% { opacity: .78; transform: rotate(var(--tilt)) scaleY(1); }
+  46%      { opacity: 1;   transform: rotate(var(--tilt)) scaleY(1.1); }
+}
+
+/* Failing: the cracks widen and brighten as the section goes. */
+.breach--failing i { animation: crackfail 300ms ease-in forwards; }
+@keyframes crackfail {
+  from { opacity: 1; width: 1.5px; }
+  to   { opacity: 1; width: 4px; }
+}
+
+/* The section itself, in two pieces falling inward at different rates. One
+   piece slides; two pieces are masonry. */
+.breach b {
+  position: absolute;
+  background: linear-gradient(160deg, #14151a, #080a0d);
+  box-shadow: inset 0 1px 0 rgba(190, 176, 150, .18);
+  animation: chunkfall 460ms cubic-bezier(.3, .7, .5, 1) forwards;
+  animation-delay: calc(var(--lead, 0) * 90ms);
+}
+.breach--n b, .breach--s b { top: 0; bottom: 0; width: 26%; left: calc(30% + var(--lead, 0) * 26%); }
+.breach--w b, .breach--e b { left: 0; right: 0; height: 26%; top: calc(30% + var(--lead, 0) * 26%); }
+@keyframes chunkfall {
+  0%   { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(26px) rotate(7deg) scale(.86); }
+}
+
 /* ---- Something crossing a room you are half looking at -----------------------
    A slow shadow over a glimpse. Soft-edged and low-contrast: a shape you would
    report seeing is a monster, and a shape you are not sure about is worse. It
@@ -2290,6 +2377,7 @@ body.asleep #hud-health,
 body.asleep .tilebadge--relic .tilebadge-art,
 body.asleep .grain,
 body.asleep .motes i,
+body.asleep .breach--pounding i,
 body.asleep .fog {
   animation-play-state: paused;
 }
