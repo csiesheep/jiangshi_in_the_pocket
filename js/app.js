@@ -39,7 +39,7 @@ import {
   itemName as iName,
 } from "./render.js";
 
-import { registerWorker, wireFullscreen, keepAwake } from "./shell.js";
+import { registerWorker, wireFullscreen, keepAwake, wireSleep } from "./shell.js";
 import { recordVerdict } from "./tally.js";
 import { epilogue } from "./epilogue.js";
 
@@ -904,6 +904,7 @@ async function main() {
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
   wireFullscreen();
+  wireSleep();
   registerWorker();
     paintSoundToggle();
     paintCalmToggle();

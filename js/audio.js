@@ -122,7 +122,11 @@ export function setMuted(next) {
 // until a user gesture, and every caller here runs from a click or a keypress.
 function audio() {
   if (ctx) {
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    // Not while the page is hidden. Timers still fire in a background tab, so
+    // a delayed beat arriving after sleep() suspended the context would resume
+    // it and play into an empty room — the one way the throttling could undo
+    // itself. Coming back into view resumes it deliberately.
+    if (ctx.state === "suspended" && !document.hidden) ctx.resume().catch(() => {});
     return ctx;
   }
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -676,6 +680,25 @@ export function wickHiss() {
   src.loop = true; // half a second of noise under a one-second breath
   src.start(t);
   src.stop(t + 1.1);
+}
+
+// ---- Sleeping ----------------------------------------------------------------
+// A hidden tab should not be running an audio graph. Suspending the context
+// stops its clock and its processing outright — cheaper than tearing anything
+// down and, unlike a teardown, it comes back exactly where it left off.
+//
+// Nothing is torn down deliberately. The wanted/running split exists so that
+// muting can free the nodes, but this is not a mute: the player has not asked
+// for silence, they have looked away, and everything should be where they left
+// it when they look back. Suspending gives that for free.
+export function sleep(on) {
+  if (!ctx) return false; // never opened: nothing to put to sleep
+  if (on) {
+    if (ctx.state === "running") ctx.suspend().catch(() => {});
+    return true;
+  }
+  if (ctx.state === "suspended" && !muted) ctx.resume().catch(() => {});
+  return false;
 }
 
 // ---- Haptics ------------------------------------------------------------------

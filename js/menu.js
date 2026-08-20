@@ -4,6 +4,7 @@
 
 import { tollBell, isMuted } from "./audio.js";
 import { houseLine } from "./tally.js";
+import { wireSleep } from "./shell.js";
 
 // Far enough apart to be a house settling rather than a metronome.
 const BELL_MS = 20000;
@@ -22,7 +23,9 @@ function begin() {
   if (started) return;
   started = true;
   const ring = () => {
-    if (!isMuted()) tollBell();
+    // Not while nobody is looking. The timer keeps its own time either way, so
+    // coming back to the tab does not come back to a queue of bells.
+    if (!isMuted() && !document.hidden) tollBell();
     // setTimeout rather than setInterval: a tab that was backgrounded for ten
     // minutes should not come back to ten bells queued up.
     window.setTimeout(ring, BELL_MS);
@@ -54,3 +57,7 @@ function rememberYou() {
 }
 
 rememberYou();
+
+// The fog drifts forever, and a menu left open in a background tab should not
+// be drifting it. Same handler the game uses.
+wireSleep();

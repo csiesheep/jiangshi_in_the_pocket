@@ -2263,3 +2263,33 @@ body.calm .motes { display: none; }
   .utilbtn { min-height: 44px; min-width: 44px; }
   .action { min-height: 44px; }
 }
+
+/* ---- Asleep -------------------------------------------------------------------
+   A hidden page pauses every animation that runs forever. Named one by one on
+   purpose: a blanket `* { animation-play-state: paused }` would also stop the
+   one-shot beats a turn is waiting on, and a turn that never gets its beat back
+   is a game that does not resume.
+
+   Last in the file because animation-play-state is not part of the `animation`
+   shorthand's cascade in the way you want here — several of these elements have
+   their shorthand redeclared under other body classes (low health, the last
+   hour), and a shorthand resets play-state to running. Being below all of them
+   is what makes this hold.
+
+   Only ever set by shell.js on visibilitychange, so nobody looking at the page
+   ever sees it. */
+body.asleep .board-pane::after,
+body.asleep .focus-centre::before,
+body.asleep .doorway--explore .doorway-chev,
+/* Carries the #overlay id, so this selector has to as well or it loses the
+   specificity argument rather than the source-order one. */
+body.asleep #overlay .overlay-card h2,
+body.asleep .tollwrap::before,
+body.asleep .tollwrap::after,
+body.asleep #hud-health,
+body.asleep .tilebadge--relic .tilebadge-art,
+body.asleep .grain,
+body.asleep .motes i,
+body.asleep .fog {
+  animation-play-state: paused;
+}

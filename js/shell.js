@@ -4,6 +4,8 @@
 // worker at all. So each piece is feature-detected and each failure is silent:
 // the game is exactly as playable without any of it.
 
+import { sleep as sleepAudio } from "./audio.js";
+
 // ---- Service worker ---------------------------------------------------------
 // Registered relative, because this ships under a subpath and an absolute "/sw.js"
 // would ask for the domain root and get a 404 (or worse, somebody else's worker).
@@ -94,6 +96,36 @@ export function keepAwake(on) {
   }
 }
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") take();
-});
+// ---- Asleep ------------------------------------------------------------------
+// The atmosphere is a dozen animations that never stop — grain, motes, the
+// breathing vignette, the candle, the fog on the menu — plus a Web Audio graph.
+// In a pocketed phone all of it is work done for nobody.
+//
+// So a hidden page sleeps: one class pauses the loops, and the audio context is
+// suspended. Presentation only. The game is turn-based and already waiting, and
+// nothing here touches a timer that a turn is sitting on — the rule is pause
+// loops, never beats.
+function setAsleep(hidden) {
+  const body = document.body;
+  if (body) body.classList.toggle("asleep", hidden);
+  sleepAudio(hidden);
+}
+
+// Called by each page that has something to put to sleep — the game and the
+// menu. A named call rather than a side effect of importing this file, so that
+// importing it for the fullscreen button alone does not silently install a
+// visibility handler as well.
+export function wireSleep() {
+  document.addEventListener("visibilitychange", () => {
+    const hidden = document.visibilityState !== "visible";
+    setAsleep(hidden);
+    // The OS drops the wake lock whenever the tab is hidden and does not give
+    // it back, so coming into view is where it has to be re-taken.
+    if (!hidden) take();
+  });
+
+  // A page can be loaded already hidden — opened in a background tab, or
+  // restored by the browser on startup — and then no visibilitychange ever
+  // fires and it would animate away unseen for as long as it stayed there.
+  setAsleep(document.visibilityState !== "visible");
+}
