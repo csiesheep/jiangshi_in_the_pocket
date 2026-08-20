@@ -553,6 +553,29 @@ export function footsteps(surface = "indoor", dir = null) {
   sample(cue, weight(0.4, 0.6), weight(0.19, 0.25), out);
 }
 
+// ---- Haptics ------------------------------------------------------------------
+// Not sound, so the mute toggle does not govern it — a player who silenced the
+// game did not ask their phone to stop moving. It gets its own switch, which
+// the calm-mode issue will own.
+//
+// navigator.vibrate is absent on desktop and ignored by browsers that dislike
+// it; both are fine, this is decoration.
+let hapticsOn = true;
+
+export function setHaptics(on) {
+  hapticsOn = !!on;
+}
+
+export function buzz(pattern) {
+  if (!hapticsOn) return;
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+  try {
+    navigator.vibrate(pattern);
+  } catch {
+    /* a browser that would rather not; nothing here depends on it */
+  }
+}
+
 // ---- Placing a sound ---------------------------------------------------------
 // One owner for "where did that come from". Cues take a compass direction and
 // this turns it into a node to connect to; nothing else in the file knows what

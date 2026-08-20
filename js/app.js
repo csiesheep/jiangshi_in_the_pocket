@@ -19,6 +19,7 @@ import {
   mountFilmStock,
   buryBeat,
   cowerScene,
+  damageCameFrom,
   resolveBeat,
   log,
   clearLog,
@@ -292,7 +293,11 @@ class Game {
     // makes the flash safe: the previous step's buttons are gone, so nothing can
     // be clicked and the global number keys have nothing to find while it plays.
     renderActions([]);
-    jumpScare(n).then(() => {
+    // Sometimes the picture does not come. Seeded from its own stream, so a
+    // shared run is startled in the same places — and the actions still land
+    // after the beat either way, so the input gating is untouched.
+    const silent = E.rollSilentScare(this.state);
+    jumpScare(n, silent).then(() => {
       // Never leave the keyboard's default resting on a choice that kills while
       // a survivable one is on the table. The lethal card stays clickable — it
       // just stops being the thing you hit by reflex.
@@ -308,6 +313,10 @@ class Game {
   }
 
   doFight(n, weapon, onDone) {
+    // If the risen broke in, the blow comes from that wall. Read once and
+    // cleared: a stale direction would tilt the next card fight for no reason.
+    damageCameFrom(this.breachDir || null);
+    this.breachDir = null;
     // Which weapon actually swings, asked of the same picker resolveCombat uses
     // — and asked before it runs, since a chainsaw spends a use on the way
     // through. The auto-fight card passes null; it still has a weapon in hand.
@@ -335,6 +344,8 @@ class Game {
   }
 
   doFlee(move, useOil, onDone) {
+    // The parting swipe comes from the door you are going through.
+    damageCameFrom(move.dir);
     Bd.moveTo(this.board, move.dir);
     E.flee(this.state, { useOil });
     this.fled = true;
@@ -537,6 +548,10 @@ class Game {
     // wall of this room; run and they follow, and break into the room you
     // reached instead.
     const cameFrom = Bd.currentTile(this.board);
+    // Which wall they are working on. Known before the fight because
+    // pickZombieDoorWall is a pure read — the same look-ahead the telegraph
+    // uses — and it is what leans the damage flash toward them.
+    this.breachDir = Bd.pickZombieDoorWall(this.board);
     this.presentCombat(
       E.RULES.ZOMBIE_DOOR_COUNT,
       () => {

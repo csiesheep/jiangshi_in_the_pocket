@@ -68,6 +68,12 @@ export function newGame(data, opts = {}) {
     // reshuffle every deck after it and desync every shared seed in existence.
     phantomRng: makeRng((seed ^ 0x9e3779b9) >>> 0),
     lastPhantom: false,
+    // A third stream, for deciding when to withhold the scare's picture (#79).
+    // Its own rather than shared with the phantoms: two presentation dice that
+    // shift each other are impossible to reason about later, and a stream costs
+    // nothing.
+    scareRng: makeRng((seed ^ 0x85ebca6b) >>> 0),
+    scaresSeen: 0,
     seed,
     cardsById,
     itemsById,
@@ -244,6 +250,22 @@ export function rollPhantom(state, fear = 0) {
 
   state.lastPhantom = true;
   return PHANTOM_DIRS[Math.floor(state.phantomRng() * PHANTOM_DIRS.length) % PHANTOM_DIRS.length];
+}
+
+// The scare fires identically every fight, and the third one lands softer than
+// the first. So sometimes the picture simply does not come — the sting and the
+// silence happen, the window arrives, and nothing was there.
+//
+// Only once the pattern exists to break: the first two are always shown,
+// because withholding something the player has not learned to expect is not a
+// subversion, it is just a missing effect.
+const SILENT_SCARE_CHANCE = 0.22;
+
+export function rollSilentScare(state) {
+  if (!state || !state.scareRng) return false;
+  state.scaresSeen = (state.scaresSeen || 0) + 1;
+  if (state.scaresSeen <= 2) return false;
+  return state.scareRng() < SILENT_SCARE_CHANCE;
 }
 
 // ---- Health ----------------------------------------------------------------

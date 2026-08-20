@@ -1387,9 +1387,15 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   z-index: 40;
   pointer-events: none;
   opacity: 0;
-  background: radial-gradient(ellipse at center,
+  /* --at moves the centre of the wash toward whatever hurt you; unset, it is
+     the middle, which is the right answer for damage from a card. */
+  background: radial-gradient(ellipse at var(--at, center),
     rgba(224, 82, 63, .16) 0%, rgba(190, 40, 30, .5) 100%);
 }
+.hitflash--n { --at: 50% 8%; }
+.hitflash--s { --at: 50% 92%; }
+.hitflash--w { --at: 8% 50%; }
+.hitflash--e { --at: 92% 50%; }
 
 /* The jump scare: covers everything, including the actions pop-out, and eats
    pointer events for its duration so nothing underneath can be clicked. */

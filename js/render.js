@@ -4,7 +4,7 @@ import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
-         muffle, passingSteps, cowerBreath, setScoreHour } from "./audio.js";
+         muffle, passingSteps, cowerBreath, setScoreHour, buzz } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -731,17 +731,30 @@ const SCARE_SLOTS = [
   [50, 21, 0.5, 0.34],
 ];
 
-export function jumpScare(count = 0) {
+export function jumpScare(count = 0, silent = false) {
   // The room goes quiet first. duckForScare returns how long to wait — and
   // returns 0 when there is nothing audible to take away, so a muted player
   // waits for nothing at all. A silence nobody can hear is just a delay.
   const quiet = duckForScare();
+  const fire = () => (silent ? stingOnly(count) : scareNow(count));
   if (quiet > 0) {
     return new Promise((resolve) => {
-      setTimeout(() => scareNow(count).then(resolve), quiet);
+      setTimeout(() => fire().then(resolve), quiet);
     });
   }
-  return scareNow(count);
+  return fire();
+}
+
+// The scare that does not arrive: the sting lands, the room stays quiet, and
+// the window simply opens on a pack that is already there. Same shape and
+// roughly the same length as the real one, because the gating that keeps a
+// mashed key from finding anything depends on this taking time too.
+function stingOnly(count) {
+  return new Promise((resolve) => {
+    combatSting(count);
+    buzz([18, 40, 18]);
+    setTimeout(resolve, reducedMotion() ? 0 : 420);
+  });
 }
 
 function scareNow(count) {
@@ -751,6 +764,7 @@ function scareNow(count) {
     // Same rule as the door: the cue is sound, not motion, so it plays whether
     // or not the picture does.
     combatSting(count);
+    buzz([26, 50, 90]);
     if (reducedMotion()) { endScene(); return resolve(); }
 
     // A card fight can be followed straight away by a zombie door; never stack.
@@ -1324,7 +1338,18 @@ export function animateBreakIn(dir) {
 // ---- Taking a hit ----------------------------------------------------------
 // A red wash over the board and a short shake. Sits below the jump scare so the
 // two do not fight when a fight is what dealt the damage.
+// Where the damage came from, when anything knows. Set by the fight or the
+// flight just before the health changes, read once, and cleared — a direction
+// left lying around would bias the next unrelated hit.
+let hurtFrom = null;
+export function damageCameFrom(dir) {
+  hurtFrom = dir || null;
+}
+
 function damageFeedback() {
+  // Not sound, so mute does not govern it, and not motion either — a short
+  // knock is the one cue a player can feel with the screen away from them.
+  buzz(30);
   if (reducedMotion()) return;
 
   const pane = document.querySelector(".board-pane");
@@ -1344,13 +1369,17 @@ function damageFeedback() {
   const existing = document.querySelector(".hitflash");
   if (existing) existing.remove();
   const flash = document.createElement("div");
-  flash.className = "hitflash";
+  // Weighted toward the threat when the threat has a direction — the wall the
+  // pack came through, or the door you fled by. Uniform when it does not, which
+  // is honest: a card that hurts you came from nowhere in particular.
+  flash.className = `hitflash${hurtFrom ? " hitflash--" + DIR_CLASS[hurtFrom] : ""}`;
   flash.setAttribute("aria-hidden", "true");
   document.body.appendChild(flash);
   if (typeof flash.animate !== "function") {
     flash.remove();
     return;
   }
+  hurtFrom = null; // one hit, one direction
   const anim = flash.animate(
     [{ opacity: 0 }, { opacity: 0.5, offset: 0.18 }, { opacity: 0 }],
     { duration: 380, easing: "ease-out" }
