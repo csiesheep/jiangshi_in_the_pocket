@@ -981,6 +981,51 @@ function swingArt(row, iconId) {
   return art;
 }
 
+// ---- Film stock --------------------------------------------------------------
+// Grain and dust, mounted once into the board pane and then left alone. Both
+// are decoration in the strictest sense: aria-hidden, pointer-events none, and
+// nothing in the game ever reads them.
+//
+// Fixed mote positions rather than random ones, the same house rule the wall
+// dust and the scare faces follow — a shared seed should look the same twice,
+// and dust that reshuffles on every render reads as a glitch.
+const MOTES = [
+  // [x%, y%, drift x, drift y, seconds, delay]
+  [38, 62, 22, -52, 15, 0],
+  [55, 70, -18, -60, 19, 2.5],
+  [46, 55, 30, -40, 13, 6],
+  [62, 58, -26, -48, 17, 9],
+  [44, 72, 14, -66, 21, 12],
+  [58, 48, -20, -34, 16, 4.5],
+];
+
+export function mountFilmStock() {
+  const pane = document.querySelector(".board-pane");
+  if (!pane || pane.querySelector(".grain")) return;
+
+  const grain = document.createElement("div");
+  grain.className = "grain";
+  grain.setAttribute("aria-hidden", "true");
+  pane.appendChild(grain);
+
+  if (reducedMotion()) return; // grain holds a frame; dust does not belong at all
+
+  const motes = document.createElement("div");
+  motes.className = "motes";
+  motes.setAttribute("aria-hidden", "true");
+  for (const [x, y, dx, dy, dur, delay] of MOTES) {
+    const m = document.createElement("i");
+    m.style.setProperty("--x", `${x}%`);
+    m.style.setProperty("--y", `${y}%`);
+    m.style.setProperty("--dx", `${dx}px`);
+    m.style.setProperty("--dy", `${dy}px`);
+    m.style.setProperty("--dur", `${dur}s`);
+    m.style.setProperty("--delay", `${delay}s`);
+    motes.appendChild(m);
+  }
+  pane.appendChild(motes);
+}
+
 // ---- The stage ---------------------------------------------------------------
 // One owner for "which cinematic state are we in". Both tricks here are cheap
 // individually and awful together if they disagree — bars sliding out while a

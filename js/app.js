@@ -16,6 +16,7 @@ import {
   telegraphWall,
   phantom,
   clearStage,
+  mountFilmStock,
   resolveBeat,
   log,
   clearLog,
@@ -759,6 +760,9 @@ async function main() {
     // Size the board off its pane before the first render, and keep it sized as
     // the pane changes — the sidebar growing counts, not just the window.
     watchBoardSize();
+    // Mounted once for the life of the page: the grain and the dust belong to
+    // the pane, not to any particular run.
+    mountFilmStock();
     startNewGame(seedFromUrl());
   } catch (err) {
     console.error(err);

@@ -1772,3 +1772,72 @@ body.staged .letterbox { transform: scaleY(1); }
   .letterbox { transition: none; }
   body.pushing .board { transform: none; transition: none; }
 }
+
+/* ---- Film stock -------------------------------------------------------------
+   Grain over the board, so the picture reads as something shot rather than
+   something drawn.
+
+   A 140px feTurbulence tile repeated, NOT a filter over the whole pane: a
+   full-viewport turbulence is recomputed every frame and is the expensive way
+   to do this. The tile is generated once by the browser and then it is only a
+   background.
+
+   And it is stepped, never regenerated — the position jumps between eight
+   fixed offsets, which is what film does. A smoothly sliding noise field reads
+   as fog; a jumping one reads as stock. */
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: .045;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27140%27%20height%3D%27140%27%3E%3Cfilter%20id%3D%27g%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.86%27%20numOctaves%3D%273%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27140%27%20height%3D%27140%27%20filter%3D%27url%28%23g%29%27%2F%3E%3C%2Fsvg%3E");
+  background-repeat: repeat;
+  animation: grainstep 800ms steps(1, end) infinite;
+}
+@keyframes grainstep {
+  0%    { background-position: 0 0; }
+  12.5% { background-position: -18px 9px; }
+  25%   { background-position: 11px -21px; }
+  37.5% { background-position: -27px -13px; }
+  50%   { background-position: 23px 17px; }
+  62.5% { background-position: -9px 25px; }
+  75%   { background-position: 19px -8px; }
+  87.5% { background-position: -22px -25px; }
+}
+
+/* Dust in the candlelight. Same particle idea as the wall-shake motes (#70),
+   different job: those fall once from a wall that is about to give, these just
+   hang in the light. Positioned around the middle, where the glow is. */
+.motes {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.motes i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #e8cfa4;
+  opacity: 0;
+  animation: drift var(--dur, 14s) linear var(--delay, 0s) infinite;
+}
+@keyframes drift {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  14%  { opacity: .5; }
+  70%  { opacity: .32; }
+  100% { opacity: 0; transform: translate(var(--dx, 26px), var(--dy, -46px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The grain stays as a single held frame — it is texture, not movement, and
+     losing it would change how the picture reads. The motes are movement with
+     no other job, so they go entirely. */
+  .grain { animation: none; }
+  .motes { display: none; }
+}
