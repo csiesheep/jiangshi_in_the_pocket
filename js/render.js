@@ -5,7 +5,7 @@ import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
          muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm,
-         setSpace } from "./audio.js";
+         setSpace, wickHiss } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -1272,6 +1272,56 @@ export function phantom(dir) {
   shade.setAttribute("aria-hidden", "true");
   half.appendChild(shade);
   setTimeout(() => shade.remove(), 2600);
+}
+
+// ---- The candle gutters ------------------------------------------------------
+// The light nearly dies. It means nothing, which is exactly why it works: this
+// game's cues are honest, so the one that carries no information is the one
+// that makes the room untrustworthy rather than the game unfair.
+//
+// Driven entirely through the light model — one multiplier, three dials — so
+// the vignette, the glow and the peeked half-rooms sag together. That is what
+// separates "the candle is failing" from "an element is animating".
+
+const GUTTER_MS = 1100;
+const GUTTER_MS_CALM_MOTION = 1800; // the reduced-motion shape is slower
+let guttering = false;
+
+// A gutter is 800ms during which room names are below the contrast floor. That
+// is affordable while the player is reading, and not affordable while they are
+// choosing: if a decision is on screen, the light stays up.
+function decisionPending() {
+  // All of them, not the first: querySelector would answer for whichever pop
+  // happens to come first in the document and miss a second one standing open.
+  for (const pop of document.querySelectorAll(".actions-pop")) {
+    if (!pop.hidden) return true;
+  }
+  const focused = document.activeElement;
+  // Note what this does NOT gate on: doorways merely being present. They are
+  // present for most of every turn, and gating on that would mean the candle
+  // never gutters at all. A doorway with focus on it is someone mid-choice; a
+  // doorway on screen is just the room.
+  return !!(focused && focused.closest && focused.closest(".doorway, .actions-pop"));
+}
+
+export function candleGutter() {
+  if (isCalm()) return; // the opt-out covers the light as well as the noise
+  // The sound goes either way. It is not motion, it costs no readability, and
+  // a player who cannot see the flame fail should still hear it.
+  wickHiss();
+  if (guttering || decisionPending()) return;
+
+  const body = document.body;
+  if (!body) return;
+  guttering = true;
+  body.classList.add("guttering");
+  // Timer-backed rather than animationend: a hidden tab does not advance
+  // animations, and a class that only comes off when the animation finishes
+  // would leave the room dark for as long as the player is away.
+  setTimeout(() => {
+    body.classList.remove("guttering");
+    guttering = false;
+  }, (reducedMotion() ? GUTTER_MS_CALM_MOTION : GUTTER_MS) + 60);
 }
 
 // ---- Telegraphing the zombie door ------------------------------------------

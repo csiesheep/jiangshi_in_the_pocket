@@ -74,6 +74,10 @@ export function newGame(data, opts = {}) {
     // nothing.
     scareRng: makeRng((seed ^ 0x85ebca6b) >>> 0),
     scaresSeen: 0,
+    // A fourth, for the candle nearly going out (#88). Same argument as the
+    // third: presentation dice that shift each other cannot be reasoned about,
+    // and a stream is four bytes.
+    gutterRng: makeRng((seed ^ 0xc2b2ae35) >>> 0),
     seed,
     cardsById,
     itemsById,
@@ -250,6 +254,23 @@ export function rollPhantom(state, fear = 0) {
 
   state.lastPhantom = true;
   return PHANTOM_DIRS[Math.floor(state.phantomRng() * PHANTOM_DIRS.length) % PHANTOM_DIRS.length];
+}
+
+// ---- The light you cannot trust ---------------------------------------------
+// The candle nearly goes out. Not a warning about anything — that is the point:
+// every other cue in this game means something, so the one that means nothing
+// is the one that makes you distrust the room rather than the game.
+//
+// Scaled by dread and only after the first hour, like the phantoms, for the
+// same reason: the early game is spent building the trust the late game spends.
+// Rolled at the same fixed point in the turn, from its own stream.
+const GUTTER_CHANCE = 0.22;
+
+export function rollGutter(state, fear = 0) {
+  if (!state || !state.gutterRng) return false;
+  if (state.status !== "playing") return false;
+  if (state.hour <= RULES.START_HOUR) return false;
+  return state.gutterRng() < GUTTER_CHANCE * Math.min(1, Math.max(0, fear));
 }
 
 // The scare fires identically every fight, and the third one lands softer than

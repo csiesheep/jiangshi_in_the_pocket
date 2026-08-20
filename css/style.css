@@ -44,8 +44,25 @@
    Custom properties are not animatable without @property, so each consumer
    transitions an ordinary property (opacity, filter) that reads the dial, and
    the 2s duration turns a draw into the light sagging rather than flickering. */
+/* Registered, and for one reason: a plain custom property cannot be animated,
+   and this one has to move continuously or the light snaps instead of sags.
+   With @property the browser knows it is a number, can interpolate it, and the
+   dials above recompute every frame — including inside the candle and vignette
+   keyframes, which is why the flicker keeps flickering while it dies.
+
+   The fallback where @property is unsupported is not a broken layout: the
+   declaration below is an ordinary custom property too, so --gutter stays 1
+   and the light simply never gutters. */
+@property --gutter {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
 :root {
   --dusk: 0;
+  /* 1 is a candle behaving. Down toward 0 is a candle about to stop. */
+  --gutter: 1;
   /* How frightened the game is, 0..1, written by renderHour from engine
      dread(). Distinct from --dusk: the clock only goes one way, this does not. */
   --dread: 0;
@@ -62,16 +79,77 @@
 body {
   /* Capped at 1: past midnight-on-the-face the sum would exceed a legal
      opacity, and the low-health pulse reads (1 - --vignette) as its headroom. */
-  --vignette: min(1, calc(.5 + .57 * var(--dusk)));
-  --glow: calc(.45 - .225 * var(--dusk));
+  --vignette-base: min(1, calc(.5 + .57 * var(--dusk)));
+  --glow-base: calc(.45 - .225 * var(--dusk));
   /* Floored at .26, the brightness the 11 PM peek already had. Below that the
      maths runs out: a half-room's floor is effectively black, so at brightness
      k the best contrast any text can reach is (k + .05) / .05 — 4.2:1 at .16,
      under the 4.5 a room name needs even if it were pure white. So the peek
      stops darkening at the old floor while the vignette, glow and flame carry
      on to midnight. */
-  --peek-light: max(.26, calc(.46 - .3 * var(--dusk)));
+  --peek-base: max(.26, calc(.46 - .3 * var(--dusk)));
   --flame: color-mix(in srgb, var(--flame-late) calc(var(--dusk) * 100%), var(--flame-early));
+
+  /* The candle guttering multiplies the three brightness dials at once, which
+     is the whole trick: light that sags everywhere at the same moment reads as
+     the flame failing, and light that sags in one element reads as a CSS
+     effect. At --gutter: 1 each of these reduces exactly to the value it had
+     before the dial existed.
+
+     The vignette moves the other way — it CLOSES as the light dies — so it
+     interpolates toward 1 by however much the flame has lost. */
+  --vignette: min(1, calc(var(--vignette-base) + (1 - var(--vignette-base)) * (1 - var(--gutter))));
+  --glow: calc(var(--glow-base) * var(--gutter));
+  --peek-light: calc(var(--peek-base) * var(--gutter));
+}
+
+/* ---- The gutter ------------------------------------------------------------
+   Down fast, held down longer than is comfortable, and then a recovery that
+   fails once before it takes. The second dip is the part that works: a light
+   that comes back cleanly was a flicker, and a light that nearly goes out
+   twice is a light you stop trusting.
+
+   Linear timing on purpose. Eased, the collapse reads as something dimming the
+   room deliberately; linear reads as the flame simply losing. */
+@keyframes gutter {
+  0%   { --gutter: 1; }
+  14%  { --gutter: .16; }
+  52%  { --gutter: .10; }
+  63%  { --gutter: .58; }
+  71%  { --gutter: .22; }
+  86%  { --gutter: .95; }
+  92%  { --gutter: .78; }
+  100% { --gutter: 1; }
+}
+body.guttering { animation: gutter 1100ms linear 1; }
+
+/* The half-rooms read the same dial but reach it through a filter with a
+   two-second transition on it — right for the light dying across an hour, far
+   too slow for this. While the candle is failing they follow it directly. */
+body.guttering .halfroom { transition: none; }
+
+/* And the room you are standing in, which is otherwise the one thing the light
+   model does not dim — it is lit because you are in it. A candle failing has
+   to take the room it is lighting with it, or the effect reads as the walls
+   going dark around a tile that is somehow still bright.
+
+   Same dial, no second timeline; floored at .35 because this is the surface
+   the flame is closest to and it should be the last thing to go. */
+body.guttering .focus-centre .tilebox {
+  filter: brightness(calc(.35 + .65 * var(--gutter)));
+}
+
+/* Luminance, not motion — so this is allowed under reduced motion, but not in
+   this shape. What gets removed is the flinching: one slow dim, one slow
+   return, no double dip, and nowhere near as dark. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes gutter {
+    0%   { --gutter: 1; }
+    45%  { --gutter: .55; }
+    55%  { --gutter: .55; }
+    100% { --gutter: 1; }
+  }
+  body.guttering { animation-duration: 1800ms; }
 }
 
 /* Continuous dusk underneath, discrete class on top. The last hour is a change

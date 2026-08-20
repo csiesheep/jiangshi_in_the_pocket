@@ -15,6 +15,7 @@ import {
   darkDoorBeat,
   telegraphWall,
   phantom,
+  candleGutter,
   clearStage,
   mountFilmStock,
   buryBeat,
@@ -543,8 +544,13 @@ class Game {
     // stream stays where it was, so switching calm on and off mid-run does not
     // change what a seed does afterwards.
     if (!isCalm()) {
-      const dir = E.rollPhantom(this.state, E.dread(this.state));
+      const fear = E.dread(this.state);
+      const dir = E.rollPhantom(this.state, fear);
       if (dir) phantom(dir);
+      // The candle fails on its own schedule, and always when a phantom fires:
+      // the two together are one event — something moved, and the light went
+      // with it — where separately they are two effects.
+      if (dir || E.rollGutter(this.state, fear)) candleGutter();
     }
     return this.endTurn();
   }

@@ -229,6 +229,51 @@ test("phantoms: same seed, same house", () => {
   assert(run(42) !== run(43), "and different seeds do not");
 });
 
+// ---- The candle -------------------------------------------------------------
+
+test("gutter: the light holds through the first hour", () => {
+  const s = game({ seed: 3 });
+  for (let i = 0; i < 60; i++) eq(E.rollGutter(s, 1), false, "nine o'clock is steady");
+});
+
+test("gutter: frightened nights gutter, calm ones do not", () => {
+  const count = (fear) => {
+    const s = game({ seed: 7 });
+    s.hour = 23;
+    let n = 0;
+    for (let i = 0; i < 400; i++) if (E.rollGutter(s, fear)) n++;
+    return n;
+  };
+  eq(count(0), 0, "a steady hand at no dread");
+  assert(count(1) > 0, "and a failing one at full");
+});
+
+test("gutter: same seed, same flame", () => {
+  const run = (seed) => {
+    const s = game({ seed });
+    s.hour = 22;
+    return Array.from({ length: 150 }, () => E.rollGutter(s, 0.8)).join(",");
+  };
+  eq(run(8), run(8), "a shared seed watches the same candle");
+  assert(run(8) !== run(9), "and different seeds do not");
+});
+
+// Four streams now, and the whole point of splitting them is that none of them
+// can move any of the others.
+test("gutter: its own stream, disturbing nothing", () => {
+  const guttered = game({ seed: 13 });
+  const not = game({ seed: 13 });
+  guttered.hour = 23;
+  for (let i = 0; i < 80; i++) E.rollGutter(guttered, 1);
+  guttered.hour = 21;
+
+  eq(guttered.deck, not.deck, "the deck is untouched");
+  // And the other two presentation streams are where they were, so a run that
+  // guttered a dozen times still sees the same phantoms.
+  eq(E.rollPhantom(guttered, 1), E.rollPhantom(not, 1), "phantoms unmoved");
+  eq(E.rollSilentScare(guttered), E.rollSilentScare(not), "scares unmoved");
+});
+
 // The reason for a second stream at all.
 test("phantoms: rolling them does not disturb the game's own rng", () => {
   const withPhantoms = game({ seed: 11 });

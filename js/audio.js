@@ -645,6 +645,39 @@ export function footsteps(surface = "indoor", dir = null) {
   sample(cue, weight(0.4, 0.6), weight(0.19, 0.25), out);
 }
 
+// A wick nearly losing it: a short breath of noise pulled downward, and a
+// small catch at the end where it takes again. Goes to master, which means it
+// goes through the room — the candle is in here with you, and out on the patio
+// it should sound like it.
+export function wickHiss() {
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+
+  const src = c.createBufferSource();
+  src.buffer = noise(c);
+  const band = c.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 1.1;
+  // Falling, because that is the whole information: the flame is losing
+  // height. A rising hiss would read as it flaring up.
+  band.frequency.setValueAtTime(2600, t);
+  band.frequency.exponentialRampToValueAtTime(620, t + 0.42);
+
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.05, t + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.008, t + 0.4);
+  // The catch: it comes back, not quite all the way.
+  g.gain.exponentialRampToValueAtTime(0.022, t + 0.72);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 1.05);
+
+  src.connect(band).connect(g).connect(master);
+  src.loop = true; // half a second of noise under a one-second breath
+  src.start(t);
+  src.stop(t + 1.1);
+}
+
 // ---- Haptics ------------------------------------------------------------------
 // Not sound, so the mute toggle does not govern it — a player who silenced the
 // game did not ask their phone to stop moving. It gets its own switch, which
