@@ -4,7 +4,8 @@ import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
-         muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm } from "./audio.js";
+         muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm,
+         setSpace } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -603,6 +604,11 @@ export function renderBoard(game) {
   // reaches floors, walls and all fourteen scenes from one place.
   el.classList.toggle("board--indoor", board.player.world === "indoor");
   el.classList.toggle("board--outdoor", board.player.world === "outdoor");
+  // The same fact told to the ear: inside is a small dark room, outside is
+  // distance. Sent from here rather than from the seam crossing so that a
+  // reload, a new game and the first render all land in the right space —
+  // seamCross() only fires on the one move that changes world.
+  setSpace(board.player.world);
   const pane = el.closest(".board-pane");
   if (pane) {
     pane.classList.toggle("pane--indoor", board.player.world === "indoor");

@@ -18,6 +18,10 @@ let ctx = null;
 let master = null;
 let limiter = null;
 let world = null;
+let weather = null;
+let dry = null;
+let send = null;
+let convolver = null;
 // Transparent: well above anything the cues put out, so the filter does
 // nothing at all until it is asked to.
 const OPEN_HZ = 20000;
@@ -90,6 +94,7 @@ export function setMuted(next) {
     /* setting just won't survive the reload */
   }
   if (master) master.gain.value = muted ? 0 : 1;
+  if (dry) dry.gain.value = muted ? 0 : 1;
   // Un-muting is itself a click, which is exactly the gesture a browser wants
   // before it will let a page make noise — so open the context here.
   if (!muted) {
@@ -99,10 +104,16 @@ export function setMuted(next) {
     if (bedWanted) startAmbience();
     if (murmurWanted) startMurmur(murmurWanted);
     if (scoreWanted) { buildScore(); applyScore(); }
+    // No fade: there is nothing to fade from, and the first cue after unmuting
+    // should already be in the right room.
+    applySpace(0);
   } else {
     tearDownBed();
     tearDownMurmur();
     tearDownScore();
+    // The convolver is left alone. It holds no oscillators and costs nothing
+    // with silence going into it, and the impulse it holds is still the right
+    // one for wherever the player is standing.
   }
   return muted;
 }
@@ -151,6 +162,26 @@ function audio() {
     world.frequency.value = OPEN_HZ;
     world.Q.value = 0.4;
     world.connect(master);
+
+    // A third bus that the reverb send does not tap. The beds live here: they
+    // are already a recorded room, and running a room through a room only
+    // smears it. Muted in tandem with master rather than routed through it,
+    // because the send hangs off master and anything upstream of that point
+    // cannot be kept out of it.
+    dry = ctx.createGain();
+    dry.gain.value = muted ? 0 : 1;
+    dry.connect(limiter);
+
+    // `weather` is to `dry` what `world` is to `master`: the same muffling, for
+    // the sounds that skip the reverb. muffle() drives both.
+    weather = ctx.createBiquadFilter();
+    weather.type = "lowpass";
+    weather.frequency.value = OPEN_HZ;
+    weather.Q.value = 0.4;
+    weather.connect(dry);
+
+    buildSpace(ctx);
+    master.connect(send);
     // Fire and forget: cues synthesise until this lands, and forever if it
     // never does.
     loadManifest(ctx);
@@ -462,7 +493,7 @@ export function cowerBreath() {
   band.frequency.setValueAtTime(900, t);
   band.frequency.exponentialRampToValueAtTime(430, t + 0.75);
   const g = envelope(c, 0.1, 0.22, 0.62);
-  src.connect(band).connect(g).connect(master);
+  src.connect(band).connect(g).connect(dry || master);
   src.start(t);
   src.stop(t + 0.9);
 }
@@ -784,7 +815,7 @@ export function heartbeat(strength = 1) {
     g.gain.setValueAtTime(0.0001, t + at);
     g.gain.exponentialRampToValueAtTime(gain * strength, t + at + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.24);
-    osc.connect(g).connect(master);
+    osc.connect(g).connect(dry || master);
     osc.start(t + at);
     osc.stop(t + at + 0.3);
 
@@ -800,7 +831,7 @@ export function heartbeat(strength = 1) {
     tg.gain.setValueAtTime(0.0001, t + at);
     tg.gain.exponentialRampToValueAtTime(gain * strength * 0.42, t + at + 0.012);
     tg.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.11);
-    thump.connect(tg).connect(master);
+    thump.connect(tg).connect(dry || master);
     thump.start(t + at);
     thump.stop(t + at + 0.16);
   }
@@ -902,7 +933,7 @@ export function startAmbience() {
   lfoDepth.gain.value = 150;
   lfo.connect(lfoDepth).connect(filter.frequency);
 
-  src.connect(filter).connect(gain).connect(world || master);
+  src.connect(filter).connect(gain).connect(weather || master);
   src.start();
   lfo.start();
   // Fade in. Sound arriving at full strength announces itself as a sound
@@ -983,6 +1014,166 @@ export function stopAmbience() {
   }, 1700);
 }
 
+// ---- The room you are standing in --------------------------------------------
+// A reverb send, so that inside and outside are different *spaces* and not just
+// different palettes. Close your eyes on the patio and the footsteps should
+// already have told you the walls are gone.
+//
+// One convolver, fed from master, returning to the limiter — a send, not an
+// insert, so the dry cue is never softened by the wet one. The impulse is
+// generated here rather than shipped: an IR is a big file for something that is
+// noise with a curve on it, and generating it means the two rooms can be tuned
+// by numbers instead of by re-recording.
+//
+// The beds do not go through this. They are on `dry` for that reason: a
+// recorded room already has its own, and putting it in another one just makes
+// mud. Cues only, which is the whole point — the cue tells you where you are.
+
+const SPACES = {
+  // seconds, decay shape, tone, send level, pre-delay
+  // Indoor: short and dark. A hallway with the doors shut, not a cathedral —
+  // the tail has to be gone before the next syllable of the cue lands or the
+  // house starts sounding like a car park.
+  indoor: { seconds: 0.5, decay: 3.4, tone: -0.55, level: 0.3, predelay: 0.006 },
+  // Outdoor: longer, thinner, and further away. There are no walls to give you
+  // a real tail out here, so this is not a room — it is distance, which the ear
+  // reads from a late, quiet, top-heavy return.
+  outdoor: { seconds: 1.7, decay: 2.1, tone: 0.5, level: 0.55, predelay: 0.026 },
+};
+
+// Wanted and loaded, kept apart for the same reason the beds keep them apart:
+// nothing is built while muted, so the world can change three times behind a
+// mute and the convolver will know nothing about it. `spaceWanted` is where the
+// player is; `spaceLoaded` is which impulse is actually in the convolver.
+let spaceWanted = "indoor";
+let spaceLoaded = null;
+let spacePending = null; // a swap already scheduled, so renders do not stack them
+
+// Noise with an exponential decay on it, which is what a room mostly is. Two
+// channels, generated independently: a stereo return off a mono cue is what
+// makes the space feel wider than the sound that entered it.
+//
+// `tone` tilts the noise before the decay: negative runs a one-pole lowpass
+// over it (dark, absorbent, soft furnishings), positive takes the difference
+// instead (thin and airy, which is what distance sounds like once the ground
+// has eaten the bottom end).
+function impulse(c, { seconds, decay, tone, predelay }) {
+  const rate = c.sampleRate;
+  const head = Math.floor(rate * predelay);
+  const frames = head + Math.floor(rate * seconds);
+  const buf = c.createBuffer(2, frames, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    let last = 0;
+    for (let i = head; i < frames; i++) {
+      // Math.random again, and again for texture only: an impulse response is
+      // not a game outcome and never touches the seeded run.
+      const white = Math.random() * 2 - 1;
+      let v = white;
+      if (tone < 0) {
+        last = last + (white - last) * (1 + tone); // one-pole lowpass
+        v = last;
+      } else if (tone > 0) {
+        v = white - last * tone; // one-pole highpass, by difference
+        last = white;
+      }
+      const t = (i - head) / (frames - head);
+      data[i] = v * (1 - t) ** decay;
+    }
+    // Normalise by the impulse's own energy, which is not decoration: a second
+    // of noise convolved with a cue is about fifty times the gain that went in,
+    // and unscaled it drove the limiter into pumping the whole mix on every
+    // door. Dividing by sqrt(sum of squares) makes the convolution roughly
+    // unity, which is what lets `level` below mean a send level instead of a
+    // number found by trial. It also stops the long room being louder than the
+    // short one purely for being longer.
+    let energy = 0;
+    for (let i = 0; i < frames; i++) energy += data[i] * data[i];
+    const scale = energy > 0 ? 1 / Math.sqrt(energy) : 0;
+    for (let i = 0; i < frames; i++) data[i] *= scale;
+  }
+  return buf;
+}
+
+function buildSpace(c) {
+  if (send) return;
+  send = c.createGain();
+  send.gain.value = 0;
+  convolver = c.createConvolver();
+  // The browser's own normalisation is off because impulse() already does it,
+  // to a formula this file controls. Two of them fighting is how a send level
+  // stops meaning anything.
+  convolver.normalize = false;
+  send.connect(convolver);
+  // Back in after the mute gain, not before it: the send taps master's output,
+  // so the wet path is already muted with everything else and must not be
+  // muted twice.
+  convolver.connect(limiter);
+  setSpace(spaceWanted, 0);
+}
+
+// Called on every render, so it has to be cheap and idempotent: only a change
+// of world does anything at all.
+//
+// The impulse is swapped rather than crossfaded between two convolvers. One
+// convolver is half the cost on the phones this has to run on, and the swap is
+// inaudible because the send is taken to silence first — you cannot hear a tail
+// being cut off if there is no tail. That is also why the fade down is faster
+// than the fade up: the room you are leaving should be gone by the time the
+// door shuts, and the one you are arriving in can take its time.
+export function setSpace(world, seconds = 1) {
+  spaceWanted = world === "outdoor" ? "outdoor" : "indoor";
+  applySpace(seconds);
+}
+
+function applySpace(seconds = 1) {
+  const next = spaceWanted;
+  // A render is not an event — it happens several times over a single move, and
+  // without this the fade below would be scheduled once per render, generating
+  // a second and a third impulse and stepping the send level as each landed.
+  if (next === spaceLoaded || next === spacePending) return;
+  const c = live();
+  // Muted, or no context yet: `spaceWanted` is already recorded, and unmuting
+  // calls back here. Leaving it at that is what stopped this working the first
+  // time — the room was set behind a mute, the flag said it had been done, and
+  // switching sound on outdoors put you in a hallway.
+  if (!c || !send || !convolver) return;
+
+  const spec = SPACES[next];
+  const t = c.currentTime;
+  const down = Math.min(seconds * 0.35, 0.35);
+
+  send.gain.cancelScheduledValues(t);
+  send.gain.setValueAtTime(send.gain.value, t);
+
+  if (!convolver.buffer || seconds <= 0) {
+    // First build, or an explicit instant set: nothing is ringing yet.
+    spacePending = null;
+    spaceLoaded = next;
+    convolver.buffer = impulse(c, spec);
+    send.gain.linearRampToValueAtTime(spec.level, t + Math.max(seconds, 0.02));
+    return;
+  }
+
+  spacePending = next;
+  send.gain.linearRampToValueAtTime(0, t + down);
+  // setTimeout rather than an AudioParam callback because there is no such
+  // thing: the buffer swap is a main-thread assignment and has to be scheduled
+  // on the main thread's clock.
+  setTimeout(() => {
+    spacePending = null;
+    if (spaceWanted !== next || !convolver) return; // the world changed again mid-fade
+    const c2 = live();
+    if (!c2) return;
+    spaceLoaded = next;
+    convolver.buffer = impulse(c2, spec);
+    const t2 = c2.currentTime;
+    send.gain.cancelScheduledValues(t2);
+    send.gain.setValueAtTime(0, t2);
+    send.gain.linearRampToValueAtTime(spec.level, t2 + Math.max(seconds - down, 0.1));
+  }, down * 1000 + 30);
+}
+
 // Shut the house out, or let it back in. Rides the world bus, so what you can
 // still hear clearly is whatever is at your ear — which is the point of the
 // scene this was built for: you are not out there with them.
@@ -990,9 +1181,12 @@ export function muffle(on, seconds = 0.45) {
   const c = live();
   if (!c || !world) return;
   const t = c.currentTime;
-  world.frequency.cancelScheduledValues(t);
-  world.frequency.setValueAtTime(world.frequency.value, t);
-  world.frequency.exponentialRampToValueAtTime(on ? MUFFLED_HZ : OPEN_HZ, t + seconds);
+  for (const f of [world, weather]) {
+    if (!f) continue;
+    f.frequency.cancelScheduledValues(t);
+    f.frequency.setValueAtTime(f.frequency.value, t);
+    f.frequency.exponentialRampToValueAtTime(on ? MUFFLED_HZ : OPEN_HZ, t + seconds);
+  }
 }
 
 // Somebody walking past, on the other side of a wall. The ordinary footstep
@@ -1110,7 +1304,7 @@ function buildScore() {
   const voices = SCORE_VOICES.map(({ hz, detune, gain, partial }) => {
     const g = c.createGain();
     g.gain.value = 0.0001;
-    g.connect(master);
+    g.connect(dry || master);
 
     const oscs = [];
     const osc = c.createOscillator();
@@ -1236,7 +1430,7 @@ export function startMurmur(count = 3) {
     voices.push(osc);
   }
   src.connect(filter);
-  filter.connect(gain).connect(world || master);
+  filter.connect(gain).connect(weather || master);
   src.start();
   if (!ducked) gain.gain.exponentialRampToValueAtTime(0.02 + weight * 0.014, c.currentTime + 1.1);
 
