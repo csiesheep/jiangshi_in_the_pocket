@@ -38,7 +38,24 @@
   }
   </script>
 </head>
-<body>
+<body class="coldopen">
+  <!-- The house, once, inline. The game's sprite is 20KB and this page needs one
+       shape out of it — the sprite conventions without the sprite. -->
+  <div class="titlescene" aria-hidden="true">
+    <svg class="titlehouse" viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice">
+      <!-- ridge, gables and chimneys, as one silhouette -->
+      <path d="M0 180V126l38-26v-18l16-11 16 11v10l50-34 62 42v-18l14-9 14 9v28l52 35v55z" fill="#080a0c"/>
+      <!-- the two windows with something behind them -->
+      <rect x="104" y="120" width="20" height="26" rx="2" fill="#3a2a12"/>
+      <rect x="196" y="126" width="18" height="24" rx="2" fill="#2a1e0d"/>
+      <!-- and the door, open -->
+      <path d="M148 180v-34h24v34z" fill="#120c06"/>
+      <path d="M152 180v-30h7v30z" fill="#4a3517"/>
+    </svg>
+    <div class="fog fog--near"></div>
+    <div class="fog fog--far"></div>
+  </div>
+
   <main class="menu">
     <h1>Grave Errand</h1>
     <p class="tagline">Find the relic. Bury it in the family plot. Beat the clock

@@ -1893,3 +1893,92 @@ body.cowering .board { transform: scale(.985); transition: transform .34s ease-i
   body.cowering .board-pane::after { transition: none; }
   body.cowering .board { transform: none; transition: none; }
 }
+
+/* ---- The menu as a cold open -------------------------------------------------
+   The register of the whole thing is set before the first click, and a clean
+   text menu sets it to "website".
+
+   Everything here is behind .coldopen so the rulebook, tiles and credits pages
+   stay the plain documents they should be. */
+body.coldopen { position: relative; overflow: hidden; }
+.titlescene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;   /* the Start link is never behind the theatrics */
+  overflow: hidden;
+  background:
+    /* the low warm spill from the doorway */
+    radial-gradient(120% 80% at 50% 108%, rgba(232, 176, 112, .12), transparent 62%),
+    /* moonlight sitting on the horizon, so the roof has something to cut into */
+    radial-gradient(150% 62% at 50% 100%, rgba(96, 108, 132, .30), transparent 72%),
+    linear-gradient(180deg, #0a0b0d 0%, #0c0d10 46%, #14161b 100%);
+}
+.titlehouse {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(1100px, 168vw);
+  height: min(58vh, 420px);
+  opacity: .96;
+}
+/* Two fog layers at different speeds and heights — one slow bank low over the
+   ground, one thinner and quicker above it. Parallax on the cheap. */
+.fog {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  pointer-events: none;
+}
+.fog--near {
+  bottom: -4%;
+  height: 34%;
+  background: radial-gradient(60% 100% at 30% 100%, rgba(150, 152, 160, .11), transparent 70%),
+              radial-gradient(50% 90% at 72% 100%, rgba(150, 152, 160, .09), transparent 72%);
+  animation: fogdrift 71s linear infinite;
+}
+.fog--far {
+  bottom: 20%;
+  height: 22%;
+  background: radial-gradient(55% 100% at 60% 100%, rgba(150, 152, 160, .07), transparent 74%);
+  animation: fogdrift 113s linear infinite reverse;
+}
+@keyframes fogdrift {
+  from { transform: translateX(-12%); }
+  to   { transform: translateX(12%); }
+}
+
+/* The menu sits over the scene. */
+body.coldopen .menu { position: relative; z-index: 1; }
+
+/* The title gutters in like a bulb deciding to work. */
+body.coldopen .menu h1 { animation: titlegutter 2.4s ease-out both; }
+@keyframes titlegutter {
+  0%   { opacity: 0; }
+  18%  { opacity: .8; }
+  24%  { opacity: .25; }
+  34%  { opacity: .9; }
+  41%  { opacity: .4; }
+  60%  { opacity: 1; }
+  68%  { opacity: .75; }
+  100% { opacity: 1; }
+}
+body.coldopen .menu .tagline { animation: fadeup 1.2s ease-out .9s both; }
+/* The links fade up but are clickable from the first frame — opacity does not
+   take pointer events, and Start must never wait for the show. */
+body.coldopen .menu nav { animation: fadeup 1.4s ease-out 1.5s both; }
+body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.1s both; }
+@keyframes fadeup {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Static silhouette, no drift, everything simply there. */
+  .fog { animation: none; }
+  body.coldopen .menu h1,
+  body.coldopen .menu .tagline,
+  body.coldopen .menu nav,
+  body.coldopen .menu .footnote { animation: none; opacity: 1; transform: none; }
+}
