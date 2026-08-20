@@ -315,7 +315,10 @@ class Game {
     // shared run is startled in the same places — and the actions still land
     // after the beat either way, so the input gating is untouched.
     const silent = E.rollSilentScare(this.state);
-    jumpScare(n, silent).then(() => {
+    // A break-in scare comes through the wall it is breaking. A card fight
+    // passes nothing and keeps the centred burst — that difference is the
+    // point, so this must never be a default.
+    jumpScare(n, silent, { from: this.breachDir || null }).then(() => {
       // Never leave the keyboard's default resting on a choice that kills while
       // a survivable one is on the table. The lethal card stays clickable — it
       // just stops being the thing you hit by reflex.

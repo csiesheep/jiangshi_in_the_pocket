@@ -320,11 +320,16 @@ export function doorCreak(dir = null) {
 
 // The scare's sting: two detuned saws hauled upward. Bigger packs go higher and
 // louder, so the sound carries the same information as the picture.
-export function combatSting(count = 3) {
-  // Recorded when the manifest names one; the oscillators below are the fallback.
-  if (sample("sting")) return;
+export function combatSting(count = 3, dir = null) {
   const c = live();
   if (!c) return;
+  // Panned when the game knows where they came from — a break-in has a wall, a
+  // card fight does not. The sting is the one cue that has to carry direction
+  // even when the picture cannot: calm mode and reduced motion both drop the
+  // faces, and this is what is left to say which side of the room it is.
+  const out = dir ? placed(dir, master) : master;
+  // Recorded when the manifest names one; the oscillators below are the fallback.
+  if (sample("sting", 1, 0, out)) return;
   const t = c.currentTime;
   const weight = Math.min(Math.max((count - 3) / 3, 0), 1);
   const top = 620 + weight * 380;
@@ -343,7 +348,7 @@ export function combatSting(count = 3) {
   const hp = c.createBiquadFilter();
   hp.type = "highpass";
   hp.frequency.value = 220;
-  g.connect(hp).connect(master);
+  g.connect(hp).connect(out);
 }
 
 // The blow landing: a low body dropping away under a short burst of grit.

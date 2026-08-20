@@ -748,14 +748,30 @@ const SCARE_SLOTS = [
   [50, 21, 0.5, 0.34],
 ];
 
-export function jumpScare(count = 0, silent = false) {
+// Where they come from, when the game knows. A card fight is a pack that is
+// simply there and gets the centred burst it always had; a break-in came
+// through a particular wall, and the difference between "they are here" and
+// "they came through THERE" is the entire reason this exists.
+//
+// The slots stay exactly where they were — same fixed positions, same
+// determinism — and the direction is one extra transform axis on the way in:
+// the faces enter from that edge of the screen rather than scaling up in place.
+const SCARE_ENTRY = {
+  N: [0, -34],
+  S: [0, 34],
+  E: [38, 0],
+  W: [-38, 0],
+};
+
+export function jumpScare(count = 0, silent = false, opts = {}) {
   // Calm keeps the sting and the pack row; the face does not arrive.
   if (isCalm()) silent = true;
+  const from = SCARE_ENTRY[opts.from] ? opts.from : null;
   // The room goes quiet first. duckForScare returns how long to wait — and
   // returns 0 when there is nothing audible to take away, so a muted player
   // waits for nothing at all. A silence nobody can hear is just a delay.
   const quiet = duckForScare();
-  const fire = () => (silent ? stingOnly(count) : scareNow(count));
+  const fire = () => (silent ? stingOnly(count, from) : scareNow(count, from));
   if (quiet > 0) {
     return new Promise((resolve) => {
       setTimeout(() => fire().then(resolve), quiet);
@@ -768,21 +784,24 @@ export function jumpScare(count = 0, silent = false) {
 // the window simply opens on a pack that is already there. Same shape and
 // roughly the same length as the real one, because the gating that keeps a
 // mashed key from finding anything depends on this taking time too.
-function stingOnly(count) {
+function stingOnly(count, from = null) {
   return new Promise((resolve) => {
-    combatSting(count);
+    // A silent directional scare is just the panned sting — which is the whole
+    // of it in calm mode too, where the sound carries the direction because
+    // audio is not motion.
+    combatSting(count, from);
     buzz([18, 40, 18]);
     setTimeout(resolve, reducedMotion() ? 0 : 420);
   });
 }
 
-function scareNow(count) {
+function scareNow(count, from = null) {
   return new Promise((resolve) => {
     enterScene();
     const endScene = () => leaveScene();
     // Same rule as the door: the cue is sound, not motion, so it plays whether
     // or not the picture does.
-    combatSting(count);
+    combatSting(count, from);
     buzz([26, 50, 90]);
     if (reducedMotion()) { endScene(); return resolve(); }
 
@@ -824,9 +843,19 @@ function scareNow(count) {
       // itself comes from --face-scale on the width, so these keyframes are a
       // relative nudge around it — multiplying by `scale` here would apply it
       // twice and leave the back row far smaller than intended.
+      //
+      // With a direction, they arrive from that edge instead: the same landing
+      // positions, entered from off-screen on the side the wall is failing. The
+      // one in front still comes in largest — it is nearest, and coming through
+      // first.
+      const [ex, ey] = from ? SCARE_ENTRY[from] : [0, 0];
+      const lead = i ? 0.8 : 1.2;
+      const enterFrom = from
+        ? `translate(calc(-50% + ${ex}vw), calc(-50% + ${ey}vh)) scale(${lead})`
+        : `translate(-50%, -50%) scale(${lead})`;
       seat.animate(
         [
-          { opacity: 0, transform: `translate(-50%, -50%) scale(${i ? 0.8 : 1.2})` },
+          { opacity: 0, transform: enterFrom },
           { opacity: 1, transform: "translate(-50%, -50%) scale(1)" },
         ],
         { duration: Math.round(duration * 0.34), delay: Math.round(duration * at), fill: "backwards", easing: "cubic-bezier(.2,.8,.3,1)" }
