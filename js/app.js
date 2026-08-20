@@ -328,7 +328,9 @@ class Game {
         for (const a of acts) a.primary = false;
         survivable.primary = true;
       }
-      startMurmur(n);
+      // Explicitly not flooded: at this point the wall is still there, and the
+      // whole point of the flood is that a moment later it is not.
+      startMurmur(n, { flood: false });
       renderActions(acts, prompt, { pack: n, health: s.health });
       // Stage three: it keeps pounding while you decide. Mounted after the
       // choices, so a wall that is coming in is the last thing added and the

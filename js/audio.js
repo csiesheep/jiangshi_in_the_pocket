@@ -104,6 +104,7 @@ export function setMuted(next) {
     if (bedWanted) startAmbience();
     if (murmurWanted) startMurmur(murmurWanted);
     if (scoreWanted) { buildScore(); applyScore(); }
+    if (poundWanted) startPounding(poundWanted);
     // No fade: there is nothing to fade from, and the first cue after unmuting
     // should already be in the right room.
     applySpace(0);
@@ -111,6 +112,7 @@ export function setMuted(next) {
     tearDownBed();
     tearDownMurmur();
     tearDownScore();
+    stopPounding();
     // The convolver is left alone. It holds no oscillators and costs nothing
     // with silence going into it, and the impulse it holds is still the right
     // one for wherever the player is standing.
@@ -485,6 +487,120 @@ export function breakThrough() {
   growl.connect(throat).connect(gv).connect(master);
   growl.start(t + 0.05);
   growl.stop(t + 0.56);
+
+  // Debris. The crash is the wall arriving; this is the wall still coming down
+  // afterwards, which is what makes it a collapse rather than a hit. Six pieces
+  // over most of a second at fixed offsets, the smaller ones landing last.
+  const rubble = [[0.09, 0.7], [0.17, 0.45], [0.26, 0.85], [0.38, 0.4], [0.52, 0.6], [0.71, 0.3]];
+  for (const [at, size] of rubble) {
+    const piece = c.createBufferSource();
+    piece.buffer = noise(c);
+    const shape = c.createBiquadFilter();
+    shape.type = "bandpass";
+    shape.Q.value = 1.1;
+    shape.frequency.value = 240 + (1 - size) * 900;
+    const pg = c.createGain();
+    pg.gain.setValueAtTime(0.0001, t + at);
+    pg.gain.exponentialRampToValueAtTime(0.03 * size, t + at + 0.008);
+    pg.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.09 + size * 0.1);
+    piece.connect(shape).connect(pg).connect(master);
+    piece.start(t + at);
+    piece.stop(t + at + 0.3);
+  }
+}
+
+// Wood and plaster giving up in small pieces. Short, dry and bright — the
+// opposite of the knock, which is low and comes through the wall. A splinter is
+// the wall itself failing, so it happens on your side of it and takes no
+// muffling at all.
+//
+// Synthesised rather than sourced, and that is a deliberate exception to the
+// rule that struck cues are recordings. A pop this short is two envelopes and a
+// filter; a recording of one is mostly the room it was recorded in, and three
+// of them have to differ audibly or the wall sounds like a machine — which
+// costs three files to do badly and one function to do well.
+export function splinter(dir = null, hardness = 0.5) {
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+  const out = dir ? placed(dir, master) : master;
+  const h = Math.min(1, Math.max(0, hardness));
+
+  // The crack itself: a very short band of noise, high and gone.
+  const src = c.createBufferSource();
+  src.buffer = noise(c);
+  const band = c.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 1.6;
+  // Harder cracks sit higher. The spread is what stops three in a row from
+  // sounding like one sample played three times.
+  band.frequency.setValueAtTime(1500 + h * 1700, t);
+  band.frequency.exponentialRampToValueAtTime(700 + h * 500, t + 0.09);
+  const g = envelope(c, 0.05 + h * 0.05, 0.003, 0.1 + h * 0.06);
+  src.connect(band).connect(g).connect(out);
+  src.start(t);
+  src.stop(t + 0.2);
+
+  // And the timber under it: one low click, so the crack has a wall behind it
+  // rather than floating.
+  const thud = c.createOscillator();
+  thud.type = "triangle";
+  thud.frequency.setValueAtTime(210 - h * 60, t);
+  thud.frequency.exponentialRampToValueAtTime(90, t + 0.07);
+  const tg = envelope(c, 0.05, 0.004, 0.08);
+  thud.connect(tg).connect(out);
+  thud.start(t);
+  thud.stop(t + 0.12);
+}
+
+// A handful of them, spread out, for the moment the cracks appear and the
+// moment something comes through. Fixed offsets: the same wall should fail the
+// same way twice.
+export function splintering(dir = null, count = 3) {
+  const spread = [[0, 0.75], [0.07, 0.35], [0.16, 0.6], [0.26, 0.45], [0.33, 0.8]];
+  for (let i = 0; i < Math.min(count, spread.length); i++) {
+    const [at, hardness] = spread[i];
+    setTimeout(() => splinter(dir, hardness), Math.round(at * 1000));
+  }
+}
+
+// ---- The wall being worked on -------------------------------------------------
+// A held pattern, not a cue: it runs for as long as the fight is open and has to
+// come down on every exit from it. Wanted and running are separate for the same
+// reason the beds keep them separate — muting frees the timer, and unmuting
+// mid-fight has to start it again.
+//
+// It accelerates. The gap between hits shortens as the fight goes on, which is
+// the only thing here saying the wall is closer to giving than it was.
+let pounding = null; // { timer } while it is running
+let poundWanted = null; // the wall, while the game wants this running
+
+const POUND_START_MS = 900;
+const POUND_FLOOR_MS = 420;
+
+export function startPounding(dir = "N") {
+  poundWanted = dir;
+  if (pounding || !live()) return;
+  let hit = 0;
+  const beat = () => {
+    if (!poundWanted) return;
+    // Irregular on purpose. An even pulse is a metronome and a metronome is a
+    // machine; something trying to get through a wall does not keep time.
+    const jitter = [1, 0.72, 1.15, 0.86, 1.04, 0.78][hit % 6];
+    const gap = Math.max(POUND_FLOOR_MS, POUND_START_MS - hit * 55);
+    // Ducked means the room has gone quiet for the scare, and the quiet wins
+    // over every layer — including this one.
+    if (!ducked) wallThump(poundWanted, 0.62 + Math.min(hit, 6) * 0.06);
+    hit += 1;
+    pounding = { timer: setTimeout(beat, Math.round(gap * jitter)) };
+  };
+  beat();
+}
+
+export function stopPounding() {
+  poundWanted = null;
+  if (pounding) clearTimeout(pounding.timer);
+  pounding = null;
 }
 
 // Cowering: a held breath let go. Noise through a moving bandpass, no pitch —
@@ -1313,9 +1429,10 @@ export function unduck() {
     bed.gain.gain.exponentialRampToValueAtTime(bedLevel(), t + 1.6);
   }
   if (murmur) {
+    const weight = Math.min(Math.max((murmurWanted - 3) / 3, 0), 1);
     murmur.gain.gain.cancelScheduledValues(t);
     murmur.gain.gain.setValueAtTime(Math.max(murmur.gain.gain.value, 0.0001), t);
-    murmur.gain.gain.exponentialRampToValueAtTime(0.02, t + 0.8);
+    murmur.gain.gain.exponentialRampToValueAtTime(murmurLevel(weight), t + 0.8);
   }
 }
 
@@ -1482,8 +1599,14 @@ export function stopScore() {
 let murmur = null;
 let murmurWanted = 0;
 
-export function startMurmur(count = 3) {
+// `flood` is the moment the hole exists: they are not behind anything any more.
+// The loudest the murmur is ever allowed to be, and the headroom for it was
+// reserved when the ordinary level was set — everything else sits under this.
+let murmurFlooded = false;
+
+export function startMurmur(count = 3, opts = {}) {
   murmurWanted = count || 3;
+  if (opts.flood !== undefined) murmurFlooded = !!opts.flood;
   const c = live();
   if (!c || murmur) return;
 
@@ -1491,7 +1614,9 @@ export function startMurmur(count = 3) {
   gain.gain.value = 0.0001;
   const filter = c.createBiquadFilter();
   filter.type = "lowpass";
-  filter.frequency.value = 340;
+  // Opened up when they are through: a lowpass is what "behind a wall" sounds
+  // like, and taking it off is the sound of the wall no longer being there.
+  filter.frequency.value = murmurFlooded ? 1400 : 340;
 
   const recordedMurmur = loopBuffer("murmur");
   const src = c.createBufferSource();
@@ -1514,9 +1639,31 @@ export function startMurmur(count = 3) {
   src.connect(filter);
   filter.connect(gain).connect(weather || master);
   src.start();
-  if (!ducked) gain.gain.exponentialRampToValueAtTime(0.02 + weight * 0.014, c.currentTime + 1.1);
+  if (!ducked) gain.gain.exponentialRampToValueAtTime(murmurLevel(weight), c.currentTime + 1.1);
 
   murmur = { src, gain, filter, voices };
+}
+
+function murmurLevel(weight) {
+  return (0.02 + weight * 0.014) * (murmurFlooded ? 1.9 : 1);
+}
+
+// Called when the hole opens under an already-running murmur: they were behind
+// a wall a moment ago and now they are not, and the mix should say so without
+// tearing the loop down and starting it again.
+export function floodMurmur() {
+  murmurFlooded = true;
+  const c = live();
+  if (!c || !murmur) return;
+  const t = c.currentTime;
+  const weight = Math.min(Math.max((murmurWanted - 3) / 3, 0), 1);
+  murmur.filter.frequency.cancelScheduledValues(t);
+  murmur.filter.frequency.setValueAtTime(murmur.filter.frequency.value, t);
+  murmur.filter.frequency.exponentialRampToValueAtTime(1400, t + 0.5);
+  if (ducked) return; // the quiet wins; unduck brings it back at the new level
+  murmur.gain.gain.cancelScheduledValues(t);
+  murmur.gain.gain.setValueAtTime(Math.max(murmur.gain.gain.value, 0.0001), t);
+  murmur.gain.gain.exponentialRampToValueAtTime(murmurLevel(weight), t + 0.5);
 }
 
 function tearDownMurmur() {
@@ -1532,6 +1679,7 @@ function tearDownMurmur() {
 
 export function stopMurmur() {
   murmurWanted = 0;
+  murmurFlooded = false;
   const c = live();
   if (!c || !murmur) return tearDownMurmur();
   const dying = murmur;

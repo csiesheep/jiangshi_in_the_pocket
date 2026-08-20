@@ -5,7 +5,8 @@ import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
          muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm,
-         setSpace, wickHiss, setScoreRelief } from "./audio.js";
+         setSpace, wickHiss, setScoreRelief, splintering, startPounding, stopPounding,
+         floodMurmur } from "./audio.js";
 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
@@ -1498,6 +1499,10 @@ export function breakInCracks(dir) {
   }
   breakIn.dir = dir || breakIn.dir;
   breakIn.wall = "wall-cracked";
+  // The sound of it cracking, panned to the wall. Plays under calm mode too —
+  // the branch above returns before this, so calm gets the cracked picture and
+  // the cracks are all it gets; the splintering belongs to the full sequence.
+  splintering(breakIn.dir, 3);
   const wrap = mountBreachWall(breakIn.dir, breakIn.wall);
   if (wrap && !reducedMotion()) wrap.classList.add("edgemark--cracking");
 }
@@ -1517,6 +1522,12 @@ export function breakInPressure() {
   if (isCalm() || !breakIn.dir) return;
   breakIn.wall = "wall-breached";
   breakIn.grasping = true;
+  // Coming through costs the wall more of itself, and then it is worked on for
+  // as long as the choice is open. The pounding is held — every exit from the
+  // fight stops it, and muting frees it — because a wall still being hit after
+  // the fight is over is the failure mode a held cue always has.
+  splintering(breakIn.dir, 5);
+  startPounding(breakIn.dir);
   const wrap = mountBreachWall(breakIn.dir, breakIn.wall);
   if (wrap && !reducedMotion()) wrap.classList.add("edgemark--grasping");
 }
@@ -1538,7 +1549,12 @@ export function breakInReanchor(dir) {
 // hole art; this widens the cracks first, drops the section in two pieces, and
 // only then lets the hole settle in behind it.
 export function breakInCollapse(dir) {
+  stopPounding();
   breakThrough();
+  // They are not behind anything now. The murmur opens up and steps to the
+  // loudest it is ever allowed to be — the one moment the mix reserves that
+  // headroom for.
+  floodMurmur();
   if (reducedMotion() || isCalm()) {
     breakIn.dir = dir;
     breakInClear();
@@ -1588,6 +1604,7 @@ export function breakInCollapse(dir) {
 // verdict, a new game. A wall left pounding forever is the failure mode a held
 // effect always has.
 export function breakInClear() {
+  stopPounding();
   if (breakIn.el) breakIn.el.remove();
   breakIn.el = null;
   breakIn.wall = null;

@@ -138,8 +138,16 @@ Which cues are recorded, and which are still synthesised
 recorded:     door, break, hit, item-metal, item-wood, item-small,
               step-wood, step-grass, sting, bed-wind, murmur
 synthesised:  bell, cower, relic, seam, win, death, item-engine,
-              item-liquid, card, tick, the three swing layers, and the
-              murmur's growl voices (which sit under the recorded bed)
+              item-liquid, card, tick, wick, the three swing layers, the
+              murmur's growl voices (which sit under the recorded bed), and
+              the whole break-in cue set — the accelerating pounding, the
+              splinter cracks and the debris tail under the collapse.
+
+The break-in splinters are a deliberate exception to "struck cues are
+recordings". A crack that short is two envelopes and a filter; a recording of
+one is mostly the room it was recorded in, and three of them have to differ
+audibly or the wall starts sounding like a machine — which costs three files to
+do badly and one function to do well.
 
 The wind, murmur and sting keep their synthesised versions as the load-failure
 fallback, exactly as the struck cues do — a missing file costs texture, never
