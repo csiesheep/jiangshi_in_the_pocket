@@ -2076,3 +2076,37 @@ body.calm .motes { display: none; }
      the page is what scrolls. Nothing here is ever clipped again. */
   body.app .actions-pop { max-height: none; }
 }
+
+/* ---- Tap targets -------------------------------------------------------------
+   Three controls sat under the 44px minimum on a phone. Fixed here, at the end,
+   because each of them is styled earlier in the file and these have to win.
+
+   The doorway is the important one: it is the most-tapped control in the game
+   and its short axis was 32px. The DRAWN door is left exactly as it is — it is
+   sized to the threshold and must not paint on the neighbour (#56) — and only
+   the touch area grows, as a pseudo-element centred on the button. A finger
+   gets 44px in both directions; the picture does not move a pixel.
+
+   The grown area is transparent and belongs to the button, so it cannot
+   intercept anything else meaningful: there is nothing else tappable in the gap
+   it grows into, and it sits at the doorway's own z-index rather than above the
+   neighbour. */
+.doorway::after {
+  content: "";
+  position: absolute;
+  background: transparent; /* no paint, no layout — this exists to be hit */
+}
+/* It grows INWARD, into the room you are standing in, never outward into the
+   neighbour. Growing symmetrically was the obvious thing and it did not work:
+   the outward half lands in the glimpse, which sits above the doorway in the
+   #56 z-order, so those taps were swallowed. The room's own interior has
+   nothing else tappable in it, so that is where the finger room comes from. */
+.doorway.n::after { left: 50%; transform: translateX(-50%); top: 0; width: max(100%, 44px); height: 44px; }
+.doorway.s::after { left: 50%; transform: translateX(-50%); bottom: 0; width: max(100%, 44px); height: 44px; }
+.doorway.w::after { top: 50%; transform: translateY(-50%); left: 0; height: max(100%, 44px); width: 44px; }
+.doorway.e::after { top: 50%; transform: translateY(-50%); right: 0; height: max(100%, 44px); width: 44px; }
+
+@media (pointer: coarse), (max-width: 800px) {
+  .utilbtn { min-height: 44px; min-width: 44px; }
+  .action { min-height: 44px; }
+}
