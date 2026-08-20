@@ -16,6 +16,7 @@ const CALM_KEY = "zitp:calm";
 
 let ctx = null;
 let master = null;
+let limiter = null;
 let world = null;
 // Transparent: well above anything the cues put out, so the filter does
 // nothing at all until it is asked to.
@@ -117,9 +118,24 @@ function audio() {
   if (!AC) return null;
   try {
     ctx = new AC();
+    // A limiter, last in the chain before the speakers. Two jobs, both of them
+    // about the hardware most people will actually use: stings stop clipping
+    // when several land together, and the make-up keeps the quiet bed above a
+    // phone's noise floor instead of under it.
+    //
+    // Gentle settings on purpose — this is a safety net, not a sound. A hard
+    // ratio here would pump the bed every time a door creaked.
+    limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -14;
+    limiter.knee.value = 12;
+    limiter.ratio.value = 6;
+    limiter.attack.value = 0.004;
+    limiter.release.value = 0.18;
+    limiter.connect(ctx.destination);
+
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 1;
-    master.connect(ctx.destination);
+    master.connect(limiter);
 
     // Two buses under the one mute. `master` is everything at your ear —
     // breathing, your own footsteps, the cues that are happening to you. `world`
@@ -757,6 +773,8 @@ export function heartbeat(strength = 1) {
   if (!c) return;
   const t = c.currentTime;
   for (const [at, gain] of [[0, 0.16], [0.29, 0.11]]) {
+    // The fundamental. On earbuds this IS the heartbeat; on a phone speaker,
+    // which rolls off below roughly 400Hz, almost none of it survives.
     const osc = c.createOscillator();
     osc.type = "sine";
     osc.frequency.setValueAtTime(64, t + at);
@@ -768,6 +786,22 @@ export function heartbeat(strength = 1) {
     osc.connect(g).connect(master);
     osc.start(t + at);
     osc.stop(t + at + 0.3);
+
+    // A short mid-frequency knock on top, quiet and quick. A speaker that
+    // cannot move air at 40Hz can reproduce this, and the ear rebuilds the
+    // missing fundamental from it — the beat is still felt as low. Costs
+    // earbuds almost nothing because it is brief and well under the body.
+    const thump = c.createOscillator();
+    thump.type = "triangle";
+    thump.frequency.setValueAtTime(305, t + at);
+    thump.frequency.exponentialRampToValueAtTime(130, t + at + 0.09);
+    const tg = c.createGain();
+    tg.gain.setValueAtTime(0.0001, t + at);
+    tg.gain.exponentialRampToValueAtTime(gain * strength * 0.42, t + at + 0.012);
+    tg.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.11);
+    thump.connect(tg).connect(master);
+    thump.start(t + at);
+    thump.stop(t + at + 0.16);
   }
 }
 
@@ -1023,10 +1057,18 @@ export function unduck() {
 //
 // A1, its fifth, and the octave. Low, close together, and detuned enough to
 // beat slowly against each other rather than sound like a chord.
+// The drone. 55Hz and 82Hz carry most of the weight and neither exists on a
+// phone speaker, so each note also sounds a quiet partial an octave up, which
+// does survive — the ear puts the low note back from it. On earbuds the
+// partials sit far enough down to read as timbre rather than as extra notes.
+//
+// A voice here is a NOTE, not an oscillator, which matters: SCORE_LAYERS counts
+// voices to decide how full the hour sounds, and pairing the partials into the
+// same entry keeps that count meaning what it says.
 const SCORE_VOICES = [
-  { hz: 55, detune: -6, gain: 0.030 },
-  { hz: 82.4, detune: 5, gain: 0.020 },
-  { hz: 110, detune: -9, gain: 0.013 },
+  { hz: 55, detune: -6, gain: 0.030, partial: 0.30 },
+  { hz: 82.4, detune: 5, gain: 0.020, partial: 0.28 },
+  { hz: 110, detune: -9, gain: 0.013, partial: 0 }, // already above the rolloff
 ];
 // Hour to voice count. The last hour is the empty one.
 const SCORE_LAYERS = { 21: 1, 22: 2, 23: 0 };
@@ -1048,17 +1090,36 @@ function buildScore() {
   lfoDepth.gain.value = 1.6;
   lfo.connect(lfoDepth);
 
-  const voices = SCORE_VOICES.map(({ hz, detune, gain }) => {
+  const voices = SCORE_VOICES.map(({ hz, detune, gain, partial }) => {
+    const g = c.createGain();
+    g.gain.value = 0.0001;
+    g.connect(master);
+
+    const oscs = [];
     const osc = c.createOscillator();
     osc.type = "triangle";
     osc.frequency.value = hz;
     osc.detune.value = detune;
     lfoDepth.connect(osc.detune);
-    const g = c.createGain();
-    g.gain.value = 0.0001;
-    osc.connect(g).connect(master);
+    osc.connect(g);
     osc.start();
-    return { osc, gain: g, level: gain };
+    oscs.push(osc);
+
+    // The octave, quieter, on the same gain so it fades in and out with its
+    // note rather than becoming a voice of its own.
+    if (partial > 0) {
+      const up = c.createOscillator();
+      up.type = "sine";
+      up.frequency.value = hz * 2;
+      up.detune.value = detune + 3;
+      lfoDepth.connect(up.detune);
+      const ug = c.createGain();
+      ug.gain.value = partial;
+      up.connect(ug).connect(g);
+      up.start();
+      oscs.push(up);
+    }
+    return { oscs, gain: g, level: gain };
   });
   lfo.start();
   score = { voices, lfo };
@@ -1093,7 +1154,7 @@ export function setScoreHour(hour) {
 function tearDownScore() {
   if (!score) return;
   try {
-    for (const v of score.voices) v.osc.stop();
+    for (const v of score.voices) for (const o of v.oscs) o.stop();
     score.lfo.stop();
   } catch {
     /* already stopped */
@@ -1115,7 +1176,7 @@ export function stopScore() {
   }
   setTimeout(() => {
     try {
-      for (const v of dying.voices) v.osc.stop();
+      for (const v of dying.voices) for (const o of v.oscs) o.stop();
       dying.lfo.stop();
     } catch {
       /* fine */
