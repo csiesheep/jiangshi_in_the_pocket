@@ -1549,6 +1549,7 @@ export function breakInReanchor(dir) {
 // hole art; this widens the cracks first, drops the section in two pieces, and
 // only then lets the hole settle in behind it.
 export function breakInCollapse(dir) {
+  freshHole = dir;
   stopPounding();
   breakThrough();
   // They are not behind anything now. The murmur opens up and steps to the
@@ -1940,6 +1941,12 @@ function centreRoom(game, tile, edges) {
   box.setAttribute("role", "img");
   box.setAttribute("aria-label", describeRoom(game, tile, edges));
 
+  // The aftermath, before the edge marks so it sits under them: a hole is a
+  // permanent, two-sided piece of board state, so this draws itself in both
+  // rooms and on every visit for the rest of the run. That permanence is the
+  // point — the map remembers where a wall came in.
+  for (const dir of tile.holes || []) aftermath(box, dir);
+
   for (const dir of DIRS) {
     const mark = edgeMark(dir, edges[dir]);
     if (mark) box.appendChild(mark);
@@ -1958,6 +1965,70 @@ function centreRoom(game, tile, edges) {
   const badges = badgeRow(tileBadges(game, tile));
   if (badges) box.appendChild(badges);
   return box;
+}
+
+// ---- The wound in the house ----------------------------------------------------
+// What is left after a wall comes in. Three things, and only the first of them
+// survives calm mode, because only the first is information: gouges are a map
+// telling you a hole is here and can be used, and the other two are dread.
+//
+// Nothing here plays a sound or takes a frame of the player's time. Aftermath
+// is texture, not a beat.
+
+// Which hole the dust is still settling in, if any. Cleared at the start of the
+// next turn — dust that hangs forever is not dust, it is a decal.
+let freshHole = null;
+
+function aftermath(box, dir) {
+  const d = DIR_CLASS[dir] || "n";
+
+  // Claw marks, dragged from the opening toward the middle of the room. Fixed
+  // positions like everything else here: the same hole should look the same
+  // twice, in this run and in a shared one.
+  const gouges = document.createElement("span");
+  gouges.className = `gouges gouges--${d}`;
+  gouges.setAttribute("aria-hidden", "true");
+  for (const [along, reach, tilt] of [[38, 54, -9], [50, 68, 3], [62, 46, 11]]) {
+    const line = document.createElement("i");
+    line.style.setProperty("--along", `${along}%`);
+    line.style.setProperty("--reach", `${reach}%`);
+    line.style.setProperty("--tilt", `${tilt}deg`);
+    gouges.appendChild(line);
+  }
+  box.appendChild(gouges);
+
+  if (isCalm() || reducedMotion()) return;
+
+  // The dark beyond it. A hole is not a door: nothing was ever going to close
+  // it, and the outside is on the other side of it for the rest of the night.
+  // Depth follows the dread dial, so the same opening is a shadow at nine
+  // o'clock and a throat at midnight.
+  const dark = document.createElement("span");
+  dark.className = `holedark holedark--${d}`;
+  dark.setAttribute("aria-hidden", "true");
+  box.appendChild(dark);
+
+  // And for the turn it was made in, the dust has not settled.
+  if (freshHole === dir) {
+    const dust = document.createElement("span");
+    dust.className = `holedust holedust--${d}`;
+    dust.setAttribute("aria-hidden", "true");
+    for (const [along, delay, dur] of [[34, 0, 5.5], [46, 900, 7], [55, 400, 6.2], [66, 1500, 5]]) {
+      const mote = document.createElement("i");
+      mote.style.setProperty("--along", `${along}%`);
+      mote.style.animationDelay = `${delay}ms`;
+      mote.style.animationDuration = `${dur}s`;
+      dust.appendChild(mote);
+    }
+    box.appendChild(dust);
+  }
+}
+
+// The turn moves on and the air clears. Called from the start of the next turn
+// rather than on a timer: "the rest of this turn" is a game-length, and a
+// wall-clock version of it would be wrong at both ends.
+export function settleDust() {
+  freshHole = null;
 }
 
 // What a room does, said on the room. Read off the tile's own definition

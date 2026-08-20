@@ -1827,6 +1827,83 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   100% { opacity: 0; transform: translateY(14px); }
 }
 
+/* ---- The wound in the house ----------------------------------------------------
+   What a hole leaves behind. All of it inside the tile, under the edge marks,
+   and none of it interactive — the hole itself is the thing you can walk
+   through, and this is only the evidence of how it got there.
+
+   The three pieces are deliberately different in kind: the gouges are map
+   information and survive every accessibility setting, and the dark and the
+   dust are dread and do not. */
+.gouges, .holedark, .holedust {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1; /* over the floor, under the room's own art and the edge marks */
+}
+.gouges--n, .holedark--n, .holedust--n { top: 0; left: 0; right: 0; height: 46%; }
+.gouges--s, .holedark--s, .holedust--s { bottom: 0; left: 0; right: 0; height: 46%; }
+.gouges--w, .holedark--w, .holedust--w { left: 0; top: 0; bottom: 0; width: 46%; }
+.gouges--e, .holedark--e, .holedust--e { right: 0; top: 0; bottom: 0; width: 46%; }
+
+/* Claw marks dragged inward from the opening. Scratched INTO a dark floor, so
+   they are lighter than it — the same thing the cracks learned: a dark line on
+   a dark surface is not a line. */
+.gouges i {
+  position: absolute;
+  width: 1.4px;
+  height: var(--reach, 50%);
+  background: linear-gradient(180deg, rgba(150, 132, 104, .5), rgba(150, 132, 104, .12) 70%, transparent);
+  transform-origin: top center;
+  opacity: .85;
+}
+.gouges--n i { left: var(--along); top: 6%; transform: rotate(var(--tilt)); }
+.gouges--s i { left: var(--along); bottom: 6%; transform: rotate(calc(180deg + var(--tilt))); }
+/* 270 for the west wall and 90 for the east, which is the way round it is not
+   obvious it should be: the line is drawn pointing down and rotate() by 270
+   swings it to the right — inward from the west wall. Backwards, the claw
+   marks drag OUT through the wall, which is a different and much stranger
+   story about what happened here. */
+.gouges--w i { top: var(--along); left: 6%; transform: rotate(calc(270deg + var(--tilt))); }
+.gouges--e i { top: var(--along); right: 6%; transform: rotate(calc(90deg + var(--tilt))); }
+
+/* The dark on the other side. Not a shadow the room casts — a hole has nothing
+   behind it but the night, and it is there for the rest of the run.
+
+   Depth rides --dread rather than --dusk: this is not the hour getting later,
+   it is the run going badly, and the same opening should be a shadow in a calm
+   nine o'clock and a throat at a desperate midnight. */
+.holedark {
+  opacity: calc(.3 + var(--dread, 0) * .55);
+  transition: opacity 2s linear;
+}
+.holedark--n { background: linear-gradient(180deg, rgba(2, 2, 4, .92), transparent 78%); }
+.holedark--s { background: linear-gradient(0deg, rgba(2, 2, 4, .92), transparent 78%); }
+.holedark--w { background: linear-gradient(90deg, rgba(2, 2, 4, .92), transparent 78%); }
+.holedark--e { background: linear-gradient(270deg, rgba(2, 2, 4, .92), transparent 78%); }
+
+/* Dust still hanging, for the turn the hole was made in. Slower and longer than
+   the knock's dust, which is knocked loose and falls; this is what is left in
+   the air afterwards and has nowhere to be. */
+.holedust i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #cbb894;
+  opacity: 0;
+  animation-name: hangingdust;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.holedust--n i, .holedust--s i { left: var(--along); top: 22%; }
+.holedust--w i, .holedust--e i { top: var(--along); left: 22%; }
+@keyframes hangingdust {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  22%  { opacity: .34; }
+  70%  { opacity: .22; }
+  100% { opacity: 0; transform: translate(4px, 10px); }
+}
+
 /* ---- A wall losing -----------------------------------------------------------
    The staged break-in (#96). Sits over the wall it belongs to, inside the tile,
    so the crop and the wall art already frame it — the same trick .wallshake
@@ -2361,6 +2438,7 @@ body.asleep .tilebadge--relic .tilebadge-art,
 body.asleep .grain,
 body.asleep .motes i,
 body.asleep .edgemark--grasping .edgeart,
+body.asleep .holedust i,
 body.asleep .fog {
   animation-play-state: paused;
 }

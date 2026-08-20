@@ -19,6 +19,7 @@ import {
   breakInReanchor,
   breakInCollapse,
   breakInClear,
+  settleDust,
   phantom,
   candleGutter,
   standing,
@@ -680,6 +681,9 @@ class Game {
   }
 
   nextTurn() {
+    // A turn later, the dust in last turn's hole has settled. The gouges and
+    // the dark stay — those are what the house keeps.
+    settleDust();
     E.beginTurn(this.state);
     this.fled = false;
     this.refresh();
