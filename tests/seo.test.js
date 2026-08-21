@@ -105,3 +105,10 @@ test("seo: every page can be reached from every other", () => {
     assert(/href="[a-z]+\.html"/.test(html.index), "the menu links out");
   }
 });
+
+test("seo: nothing public is held back from search", () => {
+  for (const name of PUBLIC_PAGES) {
+    const robots = meta(html[name], "robots") || "";
+    assert(!/noindex/.test(robots), `${name} is indexable — a noindex left in is invisible`);
+  }
+});
