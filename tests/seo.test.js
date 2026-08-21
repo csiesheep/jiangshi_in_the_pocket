@@ -112,3 +112,23 @@ test("seo: nothing public is held back from search", () => {
     assert(!/noindex/.test(robots), `${name} is indexable — a noindex left in is invisible`);
   }
 });
+
+// ---- The measurement tag -------------------------------------------------------
+// Not SEO, but the same failure shape as everything above and it belongs with
+// them: five hand-pasted copies of one hardcoded id, invisible when wrong. The
+// sitemap already proved this project can ship four pages out of five and not
+// notice.
+const GA_ID = "G-Q4VS3P3T58";
+
+test("analytics: every public page carries the tag, exactly once", () => {
+  for (const name of PUBLIC_PAGES) {
+    const loaders = (html[name].match(/googletagmanager\.com\/gtag\/js\?id=/g) || []).length;
+    eq(loaders, 1, `${name} loads gtag once — twice double-counts every visit`);
+    assert(html[name].includes(`gtag('config', '${GA_ID}')`), `${name} configures ${GA_ID}`);
+  }
+});
+
+test("analytics: one property, not five", () => {
+  const ids = PUBLIC_PAGES.flatMap((n) => html[n].match(/G-[A-Z0-9]+/g) || []);
+  eq([...new Set(ids)], [GA_ID], "a stray id sends part of the traffic somewhere else");
+});

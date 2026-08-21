@@ -7,7 +7,7 @@
 // a cache-first worker with one immortal cache name means players keep a build
 // forever and every later fix is invisible to them.
 
-const CACHE = "grave-errand-v16";
+const CACHE = "grave-errand-v17";
 
 // Everything needed to open the game with no network. Relative paths on
 // purpose: this ships under a subpath (…/zombie_in_the_pocket/) and absolute
