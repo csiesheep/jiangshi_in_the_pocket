@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- Served from the same origin as the game, so a crawler can reach it.
+       A page whose title is a pass/fail count has no business in a search
+       result. -->
+  <meta name="robots" content="noindex, nofollow">
   <title>Engine tests</title>
   <style>
     body { font-family: system-ui, sans-serif; background: #0a0b0d; color: #e6e3dc; padding: 24px; }
@@ -16,6 +20,7 @@
     // then report once.
     await import("./engine.test.js");
     await import("./board.test.js");
+    await import("./seo.test.js");
     const { report } = await import("./harness.js");
     report();
   </script>
