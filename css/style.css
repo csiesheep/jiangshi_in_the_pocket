@@ -657,7 +657,11 @@ body.app .board-pane > .board { min-height: 0; }
 .board .halfroom {
   background-color: color-mix(in srgb, var(--world-cast) var(--cast), var(--room));
   border-color: color-mix(in srgb, var(--world-cast) var(--cast-wall), var(--wall));
-  transition: background-color 1s ease, border-color 1s ease;
+  /* box-shadow belongs on this rule and not on .tilebox, for the same
+     specificity reason as the lit border below: two classes beat one, so a
+     transition declared on .tilebox alone would be discarded here and the
+     candle glow would snap on instead of coming up over two seconds. */
+  transition: background-color 1s ease, border-color 1s ease, box-shadow 2s linear;
 }
 .board .roomscene {
   color: color-mix(in srgb, var(--world-cast) 55%, var(--muted));
@@ -679,8 +683,21 @@ body.app .board-pane > .board { min-height: 0; }
 }
 
 /* --tile is the room you're standing in; --peek is how much of a neighbour
-   shows through an open door. */
-:root { --tile: clamp(96px, 19vh, 190px); --wall: #3a4150; --wall-w: 7px; --room: #23262d;
+   shows through an open door.
+
+   --wall was #3a4150, a cool blue-grey, and it was the reason the board read as
+   a row of cards rather than a plan of a building. Everything else here is warm
+   — the floor, the candle, the scenes — so a cool line drawn around a warm room
+   is the one element on screen that cannot be lit by anything in the fiction.
+   It is a stroke, and it looked like one.
+
+   It is warm dark stone now, and close to the floor in value rather than eight
+   stops above it. That deliberately removes most of the contrast that used to
+   separate one tile from the next: the separation is done below by light and
+   depth instead — a lit inner face, a vignette into the corners, and the wall's
+   own shadow falling into the threshold. Contrast draws a box; light describes
+   a room. */
+:root { --tile: clamp(96px, 19vh, 190px); --wall: #2e2a26; --wall-w: 7px; --room: #23262d;
         --hedge: #3d5540; }
 .focus {
   --peek: calc(var(--tile) * 0.42);
@@ -733,20 +750,60 @@ body.app .board-pane > .board { min-height: 0; }
   inset: 0;
   background-color: var(--room);
   border: var(--wall-w) solid var(--wall);
-  border-radius: 6px;
+  /* Softer than the old 6px. A 7px wall turning a 6px corner reads as a chunky
+     rounded rectangle — the radius and the wall are the same size, so the
+     corner is all corner. At 11px the wall turns rather than stops. */
+  border-radius: 11px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
   text-align: center;
+  /* ---- What makes a wall a wall ------------------------------------------
+     Four layers, in paint order. The candle stands in the middle of the room,
+     so the wall's inner face is the lit one and its outer face is not; that
+     one fact is the whole difference between a drawn box and a built one.
+
+     Kept as a variable so the lit room can add its glow without redeclaring
+     the stack — box-shadow does not merge, and a --here rule that restated
+     all four would drift from this one within a week. */
+  --lit-glow: 0 0 0 0 transparent;
+  box-shadow:
+    var(--lit-glow),
+    /* 1. the inner face, catching the light that is in the room with you */
+    inset 0 0 0 1px color-mix(in srgb, var(--world-cast) 24%, transparent),
+    /* 2. one light in the middle means the corners are the darkest part of
+          the floor, which is what stops it reading as a flat swatch */
+    inset 0 0 26px 8px rgba(0, 0, 0, .34),
+    /* 3. the top wall shades the floor under it; the light is in the room,
+          not above the board */
+    inset 0 3px 5px -2px rgba(0, 0, 0, .45),
+    /* 4. the wall has mass and the threshold beyond it is dark, so the gap
+          between two rooms is a shadow they both cast into rather than a
+          strip of empty page */
+    0 3px 14px rgba(0, 0, 0, .5);
 }
-/* The one lit room in a dark house, not a selected row in a list. */
-.tilebox--here {
-  border-color: color-mix(in srgb, var(--flame) 42%, var(--wall));
-  box-shadow: 0 0 26px color-mix(in srgb, var(--flame) 16%, transparent);
+/* The one lit room in a dark house, not a selected row in a list.
+
+   Selector deliberately `.board .tilebox--here` and not `.tilebox--here`. The
+   world-cast rule above is `.board .tilebox` — two classes — so a single-class
+   rule here loses on specificity and the flame border silently never painted.
+   It has been losing that way since the world cast went in; it went unnoticed
+   because the old wall was a bright blue-grey and the room read as lit from the
+   glow alone. With the wall now close to the floor in value, this border is
+   most of what says "you are standing here", so it has to actually win. */
+.board .tilebox--here {
+  /* Flame over the world's own light, not instead of it: the inner mix is the
+     same cast every other wall on the board gets, and the candle is laid on top
+     of that. Mixing flame straight into --wall would make the room you stand in
+     the one place outdoors that is not moonlit, which is backwards — you carry
+     the candle everywhere, so it should add warmth to the cool rather than
+     delete it. */
+  border-color: color-mix(in srgb, var(--flame) 42%,
+    color-mix(in srgb, var(--world-cast) var(--cast-wall), var(--wall)));
+  --lit-glow: 0 0 30px color-mix(in srgb, var(--flame) 17%, transparent);
   z-index: 1;
-  transition: border-color 2s linear, box-shadow 2s linear;
 }
 .focus-centre::before {
   content: "";
@@ -852,6 +909,14 @@ body.app .board-pane > .board { min-height: 0; }
   position: relative;
   background-color: var(--room);
   border: var(--wall-w) solid var(--wall);
+  /* The same wall, seen from the unlit side. It gets the corner vignette and
+     its own shadow into the threshold, but no inner lip — the light that would
+     catch that face is in the room you are standing in, not this one. The
+     brightness filter below dims the lot again, so these are set a little
+     stronger than they finally read. */
+  box-shadow:
+    inset 0 0 22px 7px rgba(0, 0, 0, .42),
+    0 2px 12px rgba(0, 0, 0, .45);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -904,28 +969,28 @@ body.app .board-pane > .board { min-height: 0; }
 .halfroom--w .roomscene { right: 0;  top: 50%;  transform: translateY(-50%); }
 .halfroom--e .roomscene { left: 0;   top: 50%;  transform: translateY(-50%); }
 .halfroom--n {
-  border-radius: 6px 6px 0 0; border-bottom: 0;
+  border-radius: 11px 11px 0 0; border-bottom: 0;
   /* Visibility spreads from the gap in the wall rather than filling the slot,
      so what is not in line with the doorway falls into the dark. */
   -webkit-mask-image: radial-gradient(ellipse 125% 135% at 50% 100%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
           mask-image: radial-gradient(ellipse 125% 135% at 50% 100%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 .halfroom--s {
-  border-radius: 0 0 6px 6px; border-top: 0;
+  border-radius: 0 0 11px 11px; border-top: 0;
   /* Visibility spreads from the gap in the wall rather than filling the slot,
      so what is not in line with the doorway falls into the dark. */
   -webkit-mask-image: radial-gradient(ellipse 125% 135% at 50% 0%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
           mask-image: radial-gradient(ellipse 125% 135% at 50% 0%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 .halfroom--w {
-  border-radius: 6px 0 0 6px; border-right: 0;
+  border-radius: 11px 0 0 11px; border-right: 0;
   /* Visibility spreads from the gap in the wall rather than filling the slot,
      so what is not in line with the doorway falls into the dark. */
   -webkit-mask-image: radial-gradient(ellipse 125% 135% at 100% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
           mask-image: radial-gradient(ellipse 125% 135% at 100% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
 }
 .halfroom--e {
-  border-radius: 0 6px 6px 0; border-left: 0;
+  border-radius: 0 11px 11px 0; border-left: 0;
   /* Visibility spreads from the gap in the wall rather than filling the slot,
      so what is not in line with the doorway falls into the dark. */
   -webkit-mask-image: radial-gradient(ellipse 125% 135% at 0% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
