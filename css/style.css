@@ -703,10 +703,19 @@ body.app .board-pane > .board { min-height: 0; }
    structure. The separation that used to come from a pale outline now comes
    from light: a lit inner face, a vignette into the corners, and the room you
    stand in painting its shadow onto the ones you do not. */
-:root { --tile: clamp(96px, 19vh, 190px); --wall: #000000; --wall-w: 7px; --room: #23262d;
+/* The clamp is the fallback for the stacked one-column layout, where there is
+   nothing safe to measure and fitBoard hands the size back to CSS. Scaled by
+   the same 1.5 as TILE_MAX so a narrow window gets the larger rooms too and the
+   two layouts do not disagree about how big a room is. */
+:root { --tile: clamp(96px, 28vh, 285px); --wall: #000000; --wall-w: 7px; --room: #23262d;
         --hedge: #3d5540; }
 .focus {
-  --peek: calc(var(--tile) * 0.42);
+  /* Was .42. Dropped so the room itself can reach the 1.5x cap inside a board
+     column that tops out around 844px — at .42 the two glimpses ate enough of
+     the span to hold the room ~70px short of it. Note this does NOT shrink the
+     glimpses: .35 of a much larger tile is wider than .42 of the old one, so
+     every tile on the board grew, the middle one most. */
+  --peek: calc(var(--tile) * 0.35);
   /* There is no threshold any more. Rooms used to float apart with daylight
      between them, which is what made a neighbour read as a detached fragment
      rather than the next room along — you cannot see a building in a set of
@@ -1280,8 +1289,17 @@ body.app .board-pane > .board { min-height: 0; }
 .edgemark--exterior { color: var(--gold); }
 
 @media (max-width: 600px) {
-  /* Must sit after the :root above; a media query adds no specificity. */
-  :root { --tile: 140px; }
+  /* Must sit after the :root above; a media query adds no specificity.
+
+     Was a flat 140px, which is why the small screen missed the enlargement
+     entirely — fitBoard hands the size back to CSS in the stacked layout, and
+     CSS then handed back the same number regardless of the phone. It scales
+     now, but against the viewport rather than to a fixed 1.5x: at 210px the
+     board would be 357px across and a 375px phone has about 351px of pane, so
+     a flat multiple would have started clipping on exactly the devices this
+     rule exists for. The division is the focus span, so the board is sized to
+     fit the screen by construction and 200px is just the ceiling. */
+  :root { --tile: min(200px, calc((100vw - 30px) / 1.7)); }
   /* Sidebar is full width here, so the stats read better two across. */
   .statgrid { grid-template-columns: 1fr 1fr; }
   .tilename { font-size: .72rem; }

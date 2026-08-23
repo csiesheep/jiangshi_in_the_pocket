@@ -939,16 +939,24 @@ function scareNow(count, from = null) {
 // map stayed the same size whether it had 300px of room or 900px. These
 // constants mirror the CSS geometry — the focus is peek + tile + peek across
 // with a gap either side — so the tile can be solved from the space available.
-const FOCUS_SPAN = 1.84; // peek(.42) + tile(1) + peek(.42), in tiles
+const FOCUS_SPAN = 1.70; // peek(.35) + tile(1) + peek(.35), in tiles
 // The rooms touch, so there is no gap in the span any more. Kept as a named
 // zero rather than folded away: --tile-gap still exists in the CSS for the same
 // reason, and the two mirror each other — a gap reintroduced in one place and
 // not the other sizes the board wrong in a way nothing here would catch.
 const GAP_RATIO = 0;
 const GAP_FLOOR = 0;
-const BOARD_FILL = 0.88; // how much of the pane's short side the focus claims
+// How much of the pane's short side the focus claims. Was .88, which left an
+// eighth of the pane empty on every side of a board that was already the thing
+// the page is for. The rooms no longer float apart, so the board does not need
+// air around it to stop reading as one blob — the black walls do that.
+const BOARD_FILL = 0.97;
 const TILE_MIN = 96;
-const TILE_MAX = 320;
+// 1.5x the old 320. That cap, not the pane, was what limited the board on any
+// reasonably sized window: at 320 the room stopped growing while the pane kept
+// going, so the map sat small in the middle of its own column. On a pane with
+// the height for it a room is now half again as wide and half again as tall.
+const TILE_MAX = 480;
 // Below this the layout is one column and the pane's height comes from its own
 // content — measuring it there would feed the tile back into its own budget.
 const TWO_COLUMN = "(min-width: 801px)";
