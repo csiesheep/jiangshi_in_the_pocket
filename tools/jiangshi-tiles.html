@@ -66,7 +66,7 @@ const DIRS = ["N","E","S","W"];
 const WALLS = { N:[10,10,90,10], E:[90,10,90,90], S:[10,90,90,90], W:[10,10,10,90] };
 
 const [sprite, tiles, theme] = await Promise.all([
-  fetch("../assets/modes/jiangshi/icons.svg").then(r => r.text()),
+  fetch("../assets/icons.svg").then(r => r.text()),
   fetch("../data/tiles.json").then(r => r.json()),
   fetch("../data/modes/jiangshi/theme.json").then(r => r.json()),
 ]);

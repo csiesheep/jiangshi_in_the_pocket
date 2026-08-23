@@ -152,25 +152,19 @@
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-<!-- ============================================================================
-     jiangshi mode &#8212; the twenty tile scenes.
-
-     Same contract as assets/icons.svg: 96x96 symbols named `scene-<tile id>`,
-     flat vector, no external references, and a final currentColor wash so the
-     board's warm/cool cast still reaches the art without touching it.
-
-     The two halves are told apart INSIDE the picture, not only by the cast.
-     Every indoor scene is built on #bg-in &#8212; beams overhead, a plastered back
-     wall, a stone floor running away from you, and lamplight from the left.
-     Every outdoor scene is built on #bg-out &#8212; sky, a moon at the top right,
-     hills on the horizon, cold ground and a band of mist. You can cover the
-     name and still say which half of the map you are standing on.
-
-     PASS 1 of 2: the read. Silhouette, staging and light are settled here;
-     texture, wear and the small props come in the detail pass.
-     ============================================================================ -->
-<defs>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <style>
+      symbol { fill: none; stroke: currentColor; stroke-width: 1.5;
+               stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+    <!-- The one sky in the game that is not night. Only the won verdict uses it. -->
+    <linearGradient id="vg-dawnsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2440"/>
+      <stop offset=".55" stop-color="#503a56"/>
+      <stop offset=".8" stop-color="#b06a3a"/>
+      <stop offset="1" stop-color="#e8b25c"/>
+    </linearGradient>
+  </defs><defs>
 
   <!-- ==== indoor: oil lamp, old wood, lime plaster ======================== -->
   <linearGradient id="ji-wall" x1="0" y1="0" x2="0" y2="1">
@@ -292,12 +286,6 @@
     <rect width="96" height="96" fill="currentColor" opacity=".13" style="mix-blend-mode:color"/>
   </g>
 </defs>
-
-<!-- ==========================================================================
-     &#23460;&#20839; &#8212; the village, and the &#32681;&#33674; at the end of it
-     ========================================================================== -->
-
-<!-- &#38272;&#24307; Gatehouse &#8212; where you begin. The gate is shut behind you. -->
 <symbol id="scene-gatehouse" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -340,8 +328,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#34277;&#37610; Apothecary &#8212; drawers of herbs and scales. &#20025;&#34277;. -->
 <symbol id="scene-apothecary" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -387,8 +373,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#26612;&#25151; Woodshed &#8212; poles and axes, close to the start. &#27494;&#22120;. -->
 <symbol id="scene-woodshed" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -428,8 +412,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#32147;&#22530; Sutra Hall &#9733; &#8212; scripture and talismans. The richest magic. &#31526;&#21650;. -->
 <symbol id="scene-sutra-hall" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -482,8 +464,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#38728;&#22530; Mourning Hall &#8212; where the coffins are laid out. &#31526;&#21650;. -->
 <symbol id="scene-mourning-hall" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -529,8 +509,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#22825;&#20117; Courtyard &#8212; the crossroads. Roofless, and the moon gate is the way out. -->
 <symbol id="scene-courtyard" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -568,8 +546,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#37941;&#21280;&#37610; Blacksmith &#9733; &#8212; the forge. Iron is anti-yin, and the coals are still live. &#27494;&#22120;. -->
 <symbol id="scene-blacksmith" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -612,8 +588,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#24115;&#25151; Counting Room &#8212; ledgers, an abacus, and the medicine chest behind the desk. &#20025;&#34277;, +1 HP. -->
 <symbol id="scene-counting-room" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -672,8 +646,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#39321;&#22530; Incense Hall &#8212; tablets in tiers, and one coil still burning. Restores a cower charge. -->
 <symbol id="scene-incense-hall" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -725,8 +697,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#20572;&#26601;&#25151; Sealed Crypt &#8212; the coffin nobody claimed, papered shut. The tablet is here. GOAL A. -->
 <symbol id="scene-sealed-crypt" viewBox="0 0 96 96">
   <use href="#bg-in"/>
   <g stroke="none">
@@ -778,12 +748,6 @@
   <use href="#fg-in"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- ==========================================================================
-     &#23460;&#22806; &#8212; the hillside
-     ========================================================================== -->
-
-<!-- &#24460;&#38272;&#30707;&#38542; Back Steps &#8212; the landing outside the moon gate. Set aside at setup. -->
 <symbol id="scene-back-steps" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -821,8 +785,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#26543;&#20117; Dry Well &#8212; where the village threw what it wanted gone. &#27494;&#22120;. -->
 <symbol id="scene-dry-well" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -866,8 +828,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#31481;&#26519; Bamboo Grove &#8212; poles, and not much else. &#27494;&#22120;. -->
 <symbol id="scene-bamboo-grove" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -910,8 +870,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#29260;&#22346; Memorial Arch &#8212; offerings and tools stacked at its foot. &#27494;&#22120;. -->
 <symbol id="scene-memorial-arch" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -962,8 +920,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#28092;&#20141; Pavilion &#8212; somewhere to sit, if this were a different night. -->
 <symbol id="scene-pavilion" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -1005,8 +961,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#27088;&#27193; Pagoda Tree &#8212; &#39740;&#27193;. It heals because it is literally a medicine tree. &#20025;&#34277;, +1 HP. -->
 <symbol id="scene-pagoda-tree" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -1051,8 +1005,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#30707;&#25954;&#30070; Stone Ward &#8212; the stone at the junction. Every route outdoors crosses it. -->
 <symbol id="scene-stone-ward" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -1090,8 +1042,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#28330;&#28567; Stream &#8212; running water. Jiangshi cannot cross it. Shelter and nothing more. -->
 <symbol id="scene-stream" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -1135,8 +1085,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#22303;&#22320;&#24287; Earth God Shrine &#8212; pray, and the land god tells you where the dead are buried. -->
 <symbol id="scene-earth-god-shrine" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -1188,8 +1136,6 @@
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
 </symbol>
-
-<!-- &#20098;&#33900;&#23831; Mass Grave &#8212; the pit for the unclaimed. Bury the tablet here. GOAL B. -->
 <symbol id="scene-mass-grave" viewBox="0 0 96 96">
   <use href="#bg-out"/>
   <g stroke="none">
@@ -1248,9 +1194,7 @@
   </g>
   <use href="#fg-out"/>
   <use href="#ji-cast"/>
-</symbol>
-
-</svg>
+</symbol></svg>
 <div class="wrap">
   <header class="mast">
     <span class="eyebrow">Art pass 1 &middot; twenty tiles</span>

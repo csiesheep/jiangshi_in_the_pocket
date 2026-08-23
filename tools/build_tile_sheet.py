@@ -7,7 +7,7 @@ cannot drift from the set it is reviewing.
 import io, json, re, sys
 
 ROOT = "."
-SPRITE = f"{ROOT}/assets/modes/jiangshi/icons.svg"
+SPRITE = f"{ROOT}/assets/icons.svg"
 TILES  = f"{ROOT}/data/tiles.json"
 THEME  = f"{ROOT}/data/modes/jiangshi/theme.json"
 
@@ -98,9 +98,16 @@ for world, cjk, latin, note in meta:
   </div>
 </section>""")
 
-# The sprite ships as a standalone document; strip its wrapper and keep the defs.
-inner = re.sub(r"^.*?<svg[^>]*>", "", sprite, flags=re.S)
-inner = re.sub(r"</svg>\s*$", "", inner, flags=re.S)
+# The sprite is the whole game's art. This sheet only reviews the twenty rooms,
+# so take the <defs> (the two shells everything is built on) and just the twenty
+# symbols it actually draws, rather than inlining every item and UI glyph too.
+wanted = {d["id"] for d in tiles["indoor"] + tiles["outdoor"]}
+inner = "".join(re.findall(r"<defs>.*?</defs>", sprite, flags=re.S))
+for m in re.finditer(r'<symbol id="scene-([a-z-]+)".*?</symbol>', sprite, flags=re.S):
+    if m.group(1) in wanted:
+        inner += chr(10) + m.group(0)
+missing = wanted - set(re.findall(r'<symbol id="scene-([a-z-]+)"', inner))
+assert not missing, f"no art for: {sorted(missing)}"
 
 html = io.open(f"{ROOT}/tools/tile_sheet_template.html", encoding="utf-8").read()
 html = html.replace("<!--SPRITE-->", '<svg width="0" height="0" style="position:absolute" aria-hidden="true">' + inner + "</svg>")
