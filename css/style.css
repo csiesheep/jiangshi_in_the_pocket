@@ -1254,7 +1254,10 @@ body.app .board-pane > .board { min-height: 0; }
 
 /* Colour carries the state: green you can walk, grey is shut, red is smashed,
    gold is the way outside. */
-.edgemark--open { color: var(--accent); }
+/* An open way was --accent, the sickly green from the other game — the last
+   of it left on the board. It takes the flame instead, which is the colour the
+   doorway arrows already use and which warms as the night runs down. */
+.edgemark--open { color: var(--flame); }
 .edgemark--shut { color: var(--muted); }
 .edgemark--blocked { color: #5a6070; }
 .edgemark--broken { color: var(--danger); }

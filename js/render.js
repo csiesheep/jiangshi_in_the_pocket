@@ -1494,9 +1494,19 @@ const breakIn = {
 // The wall art, standing where an edge mark would. Built and placed exactly
 // like every other one — same class, same rotation — so a cracked north wall
 // and a cracked east wall need no separate geometry.
+// Indoors the wall is lime plaster over mud brick; outdoors it is a hedge. The
+// sequence names the stage ("cracked", "breached") and this decides what is
+// doing the cracking, read off the tile the player is standing on rather than
+// threaded through six call sites.
+function breachFamily() {
+  const box = document.querySelector(".focus-centre .tilebox");
+  return box && box.classList.contains("world--outdoor") ? "hedge" : "wall";
+}
+
 function mountBreachWall(dir, symbol) {
   const box = document.querySelector(".focus-centre .tilebox");
   if (!box) return null;
+  symbol = symbol.replace(/^(wall|hedge)-/, `${breachFamily()}-`);
   const old = box.querySelector(".edgemark--breach");
   if (old) old.remove();
   const wrap = document.createElement("span");
@@ -2006,7 +2016,7 @@ function centreRoom(game, tile, edges) {
   for (const dir of tile.holes || []) aftermath(box, dir);
 
   for (const dir of DIRS) {
-    const mark = edgeMark(dir, edges[dir]);
+    const mark = edgeMark(dir, edges[dir], tile.world);
     if (mark) box.appendChild(mark);
   }
 
@@ -2161,25 +2171,32 @@ function halfRoom(game, edge, dir) {
   return half;
 }
 
-function edgeMark(dir, edge) {
+// Indoors an edge is a door; outdoors it is a gap in the verge with a track
+// running out of it. The hillside has no jambs and no leaves, so drawing it as
+// a door was the last thing on the board still describing a house. Same four
+// states either way — only the family of art changes.
+function edgeMark(dir, edge, world) {
   if (edge.kind === "wall") return null;
 
+  const way = world === "outdoor" ? "path" : "door";
   let symbol;
   let tone;
   if (edge.kind === "broken") {
-    symbol = "wall-broken";
+    symbol = world === "outdoor" ? "hedge-broken" : "wall-broken";
     tone = "broken";
   } else if (edge.arrow && (edge.state === "outside" || edge.crossesWorld)) {
+    // The moon gate is the one crossing between the two halves, and it is a
+    // moon gate from both sides — so this one does not follow the world.
     symbol = "door-exterior";
     tone = "exterior";
   } else if (edge.state === "open") {
-    symbol = "door-open";
+    symbol = `${way}-open`;
     tone = "open";
   } else if (edge.state === "blocked") {
-    symbol = "door-blocked";
+    symbol = `${way}-blocked`;
     tone = "blocked";
   } else {
-    symbol = "door-closed";
+    symbol = `${way}-closed`;
     tone = "shut";
   }
 
