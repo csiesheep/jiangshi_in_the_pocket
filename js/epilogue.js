@@ -87,6 +87,12 @@ function closeKey(state, won, distance) {
   return distance !== null && distance <= WITHIN_SIGHT ? "never-close" : "never";
 }
 
+function burialTileId(game) {
+  const outdoor = (game.data && game.data.tiles && game.data.tiles.outdoor) || [];
+  const found = outdoor.find((d) => d.onResolve === "SECOND_CARD_THEN_BURY_TOTEM");
+  return found ? found.id : null;
+}
+
 // `game` is the controller: it owns the state, the board and the skin, and this
 // needs all three.
 export function epilogue(game) {
@@ -96,15 +102,18 @@ export function epilogue(game) {
   const won = state.status === "won";
 
   const weapon = bestWeapon(state);
-  // Only measured when it can be said. A run that never found the plot has no
+  // Which room the burial happens in, asked of the tile data rather than named
+  // here: the epilogue has no business knowing what that room is called.
+  const goalId = burialTileId(game);
+  // Only measured when it can be said. A run that never found the ground has no
   // distance to it, and distanceTo answers null rather than guessing.
-  const distance = won ? null : distanceTo(game.board, "graveyard");
+  const distance = won || !goalId ? null : distanceTo(game.board, goalId);
 
   const values = {
     hour: pick(theme.hours, String(state.hour), "24"),
     weapon: weapon ? game.itemName(weapon.id) : "",
     relic: game.word("relic"),
-    goal: game.tileName("graveyard"),
+    goal: goalId ? game.tileName(goalId) : "",
     rooms: roomsPhrase(theme, distance),
   };
 

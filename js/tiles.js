@@ -18,6 +18,15 @@ const ON_RESOLVE = {
     "Resolve the card, then a second for the burial. Survive it holding the relic and you have won.",
 };
 const ON_TURN_END = { HEAL_1: "+1 Health if you end your turn here." };
+const ONCE = { RESTORE_COWER: "Restores one cower charge. Once per night." };
+// The one category this room can be rummaged for. The pool behind them is not
+// designed yet, so this says where a search happens and nothing about what it
+// finds.
+const SEARCH = {
+  weapon: "Search here for a weapon.",
+  magic: "Search here for a charm.",
+  medicine: "Search here for medicine.",
+};
 
 const WORD = { N: "north", E: "east", S: "south", W: "west" };
 
@@ -30,11 +39,22 @@ function noteFor(def, world) {
     notes.push(
       world === "indoor"
         ? "Where you begin."
-        : "The first of the garden — it goes down the moment you step outside."
+        : "Set aside at setup — it goes down the moment you first step outside."
     );
   }
-  if (def.exteriorDoor) notes.push("Carries the arrow door — the way out of the house.");
+  if (def.search) {
+    const line = SEARCH[def.search] || `Search here for ${def.search}.`;
+    notes.push(def.best ? `${line} The best of its kind in the game.` : line);
+  }
+  if (def.exteriorDoor) {
+    notes.push(
+      `Carries the gate out — its ${WORD[def.exteriorDoor]} door leads outside, not to another room.`
+    );
+  }
   if (def.seam) notes.push("Joins the house along its seam edge, the way back in.");
+  if (def.sanctuary) notes.push("Running water. Their attacks do you no harm while you stand here.");
+  if (def.pray) notes.push("Pray: the next unexplored place you put down is the one you are looking for. Once per night.");
+  if (def.once) notes.push(ONCE[def.once] || `Special: ${def.once}`);
   if (def.onResolve) notes.push(ON_RESOLVE[def.onResolve] || `Special: ${def.onResolve}`);
   if (def.onTurnEnd) notes.push(ON_TURN_END[def.onTurnEnd] || `Special: ${def.onTurnEnd}`);
   return notes;
@@ -157,7 +177,7 @@ async function main() {
       loadIcons(),
     ]);
     host.textContent = "";
-    for (const [world, heading] of [["indoor", "Inside the house"], ["outdoor", "Out the back"]]) {
+    for (const [world, heading] of [["indoor", "Inside the village"], ["outdoor", "Out on the hillside"]]) {
       const h = document.createElement("h2");
       h.id = world;
       h.textContent = heading;

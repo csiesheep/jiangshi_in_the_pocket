@@ -27,23 +27,22 @@ function currentChoices() {
   return doorways.length ? doorways : cards;
 }
 
-// The three yard tiles are all "Lawn" and share one icon.
-const ICON_ALIAS = { "yard-1": "yard", "yard-2": "yard", "yard-3": "yard" };
+// Rooms that share one drawing. Empty for the twenty-tile set — every room is
+// its own place — but the lookup stays, because a set with two of anything
+// wants it back and the call sites already go through it.
+const ICON_ALIAS = {};
 const SCENE_ALIAS = ICON_ALIAS;
 // Scenes paint themselves rather than being drawn in currentColor (#62): they
 // carry their own fills and end with a currentColor veil, so the world cast and
 // the dusk dial still reach them. They must not be dimmed the way line art is,
 // which is what the class is for.
 //
-// All fourteen are painted now. The check stays rather than being deleted: it
-// is what a scene added later falls through, and falling through to the line-art
-// treatment is the safe direction — a new drawing rendered faint is a smaller
-// problem than a line drawing rendered at full opacity over the floor.
-const SCENE_RICH = new Set([
-  "foyer", "bathroom", "bedroom", "family-room", "dining-room", "storage",
-  "kitchen", "evil-temple",
-  "patio", "garage", "yard", "sitting-area", "garden", "graveyard",
-]);
+// Empty until the twenty rooms are drawn. Falling through to the line-art
+// treatment is the safe direction — an undrawn room rendered faint is a smaller
+// problem than a line drawing rendered at full opacity over the floor — and
+// `icon()` already returns null for a sprite that does not exist yet, so a room
+// with no art simply shows its name.
+const SCENE_RICH = new Set([]);
 
 // Inject the icon sprite once, then reference symbols with <use href="#id">.
 // External-file <use> references are not dependably supported, so the sprite is
@@ -444,7 +443,7 @@ function renderRelic(s) {
   const el = statBox("hud-totem");
   if (!el) return;
   if (s.totem) {
-    const art = icon("tile", "graveyard", "staticon relic relic--held");
+    const art = uiIcon("relic", "staticon relic relic--held");
     if (art) el.appendChild(art);
   }
   const text = document.createElement("span");

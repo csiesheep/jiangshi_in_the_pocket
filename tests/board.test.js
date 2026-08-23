@@ -13,21 +13,67 @@ test("rotateDir / opposite / rotatedExits", () => {
   eq(B.rotatedExits(["N", "W"], 1), ["E", "N"]);
 });
 
-// ---- Setup -----------------------------------------------------------------
-test("createBoard: Foyer at origin, decks minus the two set-aside tiles", () => {
-  const b = board({ seed: 1 });
-  const t = B.currentTile(b);
-  eq(t.id, "foyer");
-  eq(b.player, { world: "indoor", x: 0, y: 0 });
-  eq(b.decks.indoor.length, 7, "8 indoor minus Foyer");
-  eq(b.decks.outdoor.length, 7, "8 outdoor minus Patio");
-  eq(t.exits, ["N"]);
+// ---- The tile set itself ---------------------------------------------------
+// The data is the rules here, so the shape the rulebook settles on is asserted
+// rather than assumed. Ten and ten, one set-aside tile each side.
+test("tiles.json: ten indoor, ten outdoor, one start apiece", () => {
+  eq(tiles.indoor.length, 10);
+  eq(tiles.outdoor.length, 10);
+  eq(tiles.indoor.filter((d) => d.start).length, 1);
+  eq(tiles.outdoor.filter((d) => d.start).length, 1);
 });
 
-test("Foyer offers a single explore move (N)", () => {
+// "One of its four ordinary ways out, not a fifth." A gate on an edge that is
+// not a door would hand the room a way out it does not have.
+test("tiles.json: the exterior door is one of the room's own doors", () => {
+  const gates = [...tiles.indoor, ...tiles.outdoor].filter((d) => d.exteriorDoor);
+  eq(gates.length, 1, "exactly one way between the worlds");
+  for (const d of gates) {
+    assert(d.exits.includes(d.exteriorDoor), `${d.id}: the gate must be one of its exits`);
+  }
+});
+
+// Ten of the twenty can be searched, split 5 weapons / 2 charms / 3 medicine,
+// with one best-in-category apiece for the two that have a ★.
+test("tiles.json: ten searchable rooms, and every ★ is searchable", () => {
+  const all = [...tiles.indoor, ...tiles.outdoor];
+  const searchable = all.filter((d) => d.search);
+  eq(searchable.length, 10);
+  const byKind = {};
+  for (const d of searchable) byKind[d.search] = (byKind[d.search] || 0) + 1;
+  eq(byKind, { medicine: 3, weapon: 5, magic: 2 });
+  for (const d of all.filter((x) => x.best)) {
+    assert(d.search, `${d.id}: best of a category it cannot be searched for`);
+  }
+});
+
+// Every tile has to be enterable from any direction, or a stack can jam: the
+// placement rule needs one way out to line up with the way you came, and
+// rotation is what makes that possible.
+test("tiles.json: every tile has at least one way out", () => {
+  for (const d of [...tiles.indoor, ...tiles.outdoor]) {
+    assert(d.exits.length > 0, `${d.id} has no exits`);
+  }
+});
+
+// ---- Setup -----------------------------------------------------------------
+test("createBoard: start tile at origin, decks minus the two set aside", () => {
+  const b = board({ seed: 1 });
+  const t = B.currentTile(b);
+  eq(t.id, "gatehouse");
+  eq(b.player, { world: "indoor", x: 0, y: 0 });
+  eq(b.decks.indoor.length, 9, "10 indoor minus the Gatehouse");
+  eq(b.decks.outdoor.length, 9, "10 outdoor minus the Back Steps");
+  eq(t.exits, ["N", "E", "W"]);
+  eq(b.prayerTarget, null);
+  eq(b.prayerSpent, false);
+});
+
+test("the Gatehouse offers its three ways on, and is no dead end", () => {
   const b = board({ seed: 1 });
   const moves = B.listMoves(b);
-  eq(moves, [{ dir: "N", type: "explore" }]);
+  eq(moves.map((m) => m.dir).sort(), ["E", "N", "W"]);
+  assert(moves.every((m) => m.type === "explore"), "all three lead into the unexplored");
   eq(B.isDeadEnd(b), false);
 });
 
@@ -39,7 +85,7 @@ test("explore: placed tile faces back and player moves onto it", () => {
   const r = B.explore(b, "N", rots[0]);
   assert(r.ok, "explore ok");
   eq(b.player, { world: "indoor", x: 0, y: -1 }, "moved north");
-  assert(r.tile.exits.includes("S"), "an exit faces back toward the Foyer");
+  assert(r.tile.exits.includes("S"), "an exit faces back toward the Gatehouse");
 });
 
 test("explore: illegal rotation is rejected", () => {
@@ -93,13 +139,13 @@ test("pickExploreRotation: prefers a placement that leaves a way onward", () => 
   assert(onward.length > 0, "and leaves at least one door into unexplored space");
 });
 
-test("dead end: Bathroom above the Foyer, then a zombie door frees it", () => {
+test("dead end: a one-door room off the Gatehouse, then a zombie door frees it", () => {
   const b = board({ seed: 1 });
-  b.decks.indoor = ["bathroom", "bedroom"]; // force the next tile
-  const rots = B.validExploreRotations(b, "N"); // bathroom needs its exit facing S
+  b.decks.indoor = ["apothecary", "woodshed"]; // force the next tile
+  const rots = B.validExploreRotations(b, "N"); // its one door has to face S
   const r = B.explore(b, "N", rots[0]);
   assert(r.ok);
-  eq(r.tile.id, "bathroom");
+  eq(r.tile.id, "apothecary");
   eq(B.openings(r.tile), ["S"], "only door faces back");
   eq(B.isDeadEnd(b), true, "no unexplored exit");
 
@@ -113,20 +159,27 @@ test("pickZombieDoorWall: only ever names a wall with no opening", () => {
   const b = board({ seed: 4 });
   const t = B.currentTile(b);
   const wall = B.pickZombieDoorWall(b);
-  assert(wall !== null, "the Entry Hall has blank walls to break");
+  assert(wall !== null, "the Gatehouse has a blank wall to break");
   assert(!B.openings(t).includes(wall), "picked a wall, not an existing way out");
 });
 
 test("pickZombieDoorWall: deterministic, and prefers unexplored space", () => {
-  const a = board({ seed: 11 });
-  const b = board({ seed: 11 });
-  eq(B.pickZombieDoorWall(a), B.pickZombieDoorWall(b), "same seed, same wall");
+  // Stood in a one-door room, so there are three blank walls to choose between —
+  // the Gatehouse has only one, and a forced choice tests nothing.
+  const stand = (seed) => {
+    const b = board({ seed });
+    b.decks.indoor = ["apothecary"];
+    B.explore(b, "N", B.validExploreRotations(b, "N")[0]);
+    return b;
+  };
+  const a = stand(11);
+  eq(B.pickZombieDoorWall(a), B.pickZombieDoorWall(stand(11)), "same seed, same wall");
 
   // Wall off one side with a placed tile; the pick should avoid breaking into it.
   const t = B.currentTile(a);
   const blanks = B.DIRS.filter((d) => !B.openings(t).includes(d));
-  const blocked = blanks[0];
-  const [bx, by] = B.inDir(t.x, t.y, blocked);
+  eq(blanks.length, 3, "three walls to choose between");
+  const [bx, by] = B.inDir(t.x, t.y, blanks[0]);
   a.worlds[t.world].set(B.cellKey(bx, by), { id: "decoy", world: t.world, x: bx, y: by,
     rotation: 0, exits: [], holes: [], def: { id: "decoy", exits: [] } });
 
@@ -146,14 +199,14 @@ test("pickZombieDoorWall: null when every wall already has an opening", () => {
 // It only does if both sides of the wall know about it.
 test("holes are two-way: exploring through one leaves a way back", () => {
   const b = board({ seed: 3 });
-  b.decks.indoor = ["bathroom"]; // one door only
+  b.decks.indoor = ["apothecary"]; // one door only
   const rots = B.validExploreRotations(b, "N");
   B.explore(b, "N", rots[0]);
-  assert(B.isDeadEnd(b), "the bathroom dead-ends");
+  assert(B.isDeadEnd(b), "the one-door room dead-ends");
 
   const wall = B.pickZombieDoorWall(b);
   assert(wall !== null, "there is a wall to break");
-  b.decks.indoor = ["storage"];
+  b.decks.indoor = ["blacksmith"];
   B.openZombieDoor(b, wall);
 
   const from = B.currentTile(b);
@@ -172,22 +225,22 @@ test("holes are two-way: exploring through one leaves a way back", () => {
 
 test("holes are two-way: breaking into a room already standing", () => {
   const b = board({ seed: 3 });
-  b.decks.indoor = ["bathroom"];
+  b.decks.indoor = ["apothecary"];
   const rots = B.validExploreRotations(b, "N");
-  B.explore(b, "N", rots[0]); // bathroom to the north, its only door facing back
+  B.explore(b, "N", rots[0]); // one-door room to the north, its door facing back
 
-  // Punch from the bathroom into the Entry Hall's cell, which is already placed.
+  // Punch from there into the Gatehouse's cell, which is already placed.
   const here = B.currentTile(b);
-  const foyer = B.tileAt(b, "indoor", here.x, here.y + 1);
-  assert(foyer, "the Entry Hall is south of us");
-  const before = foyer.holes.slice();
-  // S is the bathroom's own door, so pick a wall that is blank but occupied:
+  const start = B.tileAt(b, "indoor", here.x, here.y + 1);
+  assert(start, "the Gatehouse is south of us");
+  const before = start.holes.slice();
+  // S is this room's own door, so pick a wall that is blank but occupied:
   // force the situation by clearing the door and re-breaching it.
   here.exits = [];
   const zd = B.openZombieDoor(b, "S");
   assert(zd.ok, "breached south into the placed room");
   assert(here.holes.includes("S"), "this side has the hole");
-  assert(foyer.holes.includes("N"), "and so does the room on the other side");
+  assert(start.holes.includes("N"), "and so does the room on the other side");
   assert(!before.includes("N"), "which it did not have before");
 });
 
@@ -227,17 +280,17 @@ test("holes stay symmetric across a played-out board", () => {
 
 test("openZombieDoor: refuses an existing opening", () => {
   const b = board({ seed: 1 });
-  eq(B.openZombieDoor(b, "N").ok, false, "N is already the Foyer door");
+  eq(B.openZombieDoor(b, "N").ok, false, "N is already a Gatehouse door");
 });
 
 // ---- Moving between explored tiles -----------------------------------------
 test("moveTo: can walk back through a matched door", () => {
   const b = board({ seed: 1 });
-  b.decks.indoor = ["bathroom"];
+  b.decks.indoor = ["apothecary"];
   const rots = B.validExploreRotations(b, "N");
-  B.explore(b, "N", rots[0]); // now on the bathroom, exit S back to Foyer
+  B.explore(b, "N", rots[0]); // now next door, its exit S back to the Gatehouse
   const back = B.moveTo(b, "S");
-  assert(back.ok, "walked back to the Foyer");
+  assert(back.ok, "walked back to the Gatehouse");
   eq(b.player, { world: "indoor", x: 0, y: 0 });
 });
 
@@ -252,13 +305,16 @@ test("listMoves: never offers two moves for the same direction", () => {
   };
   assert(seen(), "at the start");
 
-  // walk out through the arrow door, then back in, which is where it broke
-  const dining = [...b.worlds.indoor.values()].find((t) => t.exteriorDir);
-  if (!dining) return; // that tile is not down in this seed
-  b.player = { world: "indoor", x: dining.x, y: dining.y };
-  assert(seen(), "standing on the arrow door before the seam");
+  // Walk out through the gate, then back in, which is where it broke. The gate
+  // room is forced onto the stack rather than hoped for: looking for it on a
+  // board where only the start tile is down finds nothing, and the check that
+  // never runs is the one that never catches anything.
+  b.decks.indoor = ["courtyard"];
+  const gate = B.explore(b, "N", B.pickExploreRotation(b, "N")).tile;
+  assert(gate.exteriorDir, "the gate room is down and carries the gate");
+  assert(seen(), "standing on the gate before the seam");
   B.goOutside(b);
-  assert(seen(), "outside on the Veranda");
+  assert(seen(), "outside on the landing");
   B.moveTo(b, B.currentTile(b).seamDir);
   assert(seen(), "back inside, with the seam placed");
   assert(
@@ -267,34 +323,121 @@ test("listMoves: never offers two moves for the same direction", () => {
   );
 });
 
-test("seam: stepping through the Dining Room arrow places the Patio", () => {
+test("seam: stepping through the gate places the landing tile", () => {
   const b = board({ seed: 1 });
-  b.decks.indoor = ["dining-room"];
-  const r = B.explore(b, "N", 0); // dining-room has all 4 doors; rot 0 keeps arrow on N
+  b.decks.indoor = ["courtyard"];
+  const r = B.explore(b, "N", 0); // all four doors; rot 0 keeps the gate on N
   assert(r.ok);
-  eq(r.tile.id, "dining-room");
+  eq(r.tile.id, "courtyard");
   eq(r.tile.exteriorDir, "N");
 
   const out = B.goOutside(b);
   assert(out.ok, "went outside");
-  eq(out.tile.id, "patio");
+  eq(out.tile.id, "back-steps");
   eq(b.player.world, "outdoor");
-  eq(B.tileAt(b, "outdoor", 0, 0).id, "patio");
+  eq(B.tileAt(b, "outdoor", 0, 0).id, "back-steps");
   assert(b.seamPlaced);
 
-  // And we can cross back inside from the Patio.
+  // And we can cross back inside from the landing.
   const cross = B.listMoves(b).find((m) => m.type === "cross");
   assert(cross, "a cross-back move is offered");
   B.moveTo(b, cross.dir);
   eq(b.player.world, "indoor");
 });
 
+// ---- The shrine's prayer -----------------------------------------------------
+// Stand on the shrine with the grave still in the stack. Returns the board with
+// the player on the shrine, the outdoor deck a known order, and the grave
+// buried in the middle of it — never on top, so a passing test cannot be the
+// deck agreeing by accident.
+function atTheShrine(seed = 1) {
+  const b = board({ seed });
+  b.decks.indoor = ["courtyard"];
+  B.explore(b, "N", 0);
+  B.goOutside(b);
+  b.decks.outdoor = ["pavilion", "stream", "mass-grave", "dry-well"];
+  // Put the shrine under our feet: it is where the prayer is made from.
+  b.worlds.outdoor.set(
+    B.cellKey(0, 0),
+    { id: "earth-god-shrine", world: "outdoor", x: 0, y: 0, rotation: 0,
+      exits: ["E", "S"], holes: [], def: DATA.tiles.outdoor.find((d) => d.id === "earth-god-shrine") }
+  );
+  return b;
+}
+
+test("pray: the next tile placed is the one the shrine names", () => {
+  const b = atTheShrine();
+  assert(B.canPray(b), "the grave is still in the stack");
+  eq(B.pray(b).ok, true);
+  eq(b.prayerTarget, "mass-grave");
+  eq(B.peekTile(b, "outdoor"), "mass-grave", "and it is what comes up next");
+
+  const r = B.explore(b, "E", B.pickExploreRotation(b, "E"));
+  assert(r.ok);
+  eq(r.tile.id, "mass-grave", "the land god knows where the dead are buried");
+  eq(b.prayerTarget, null, "the prayer is answered, not standing");
+  eq(b.decks.outdoor, ["pavilion", "stream", "dry-well"], "the rest of the stack keeps its order");
+});
+
+// The rotation offered has to be the grave's, not the tile that happened to be
+// on top — validate one and place the other and the grave goes down sideways.
+test("pray: the rotations offered are the summoned tile's", () => {
+  const b = atTheShrine();
+  const topFirst = B.validExploreRotations(b, "E");
+  B.pray(b);
+  const prayed = B.validExploreRotations(b, "E");
+  const placed = B.explore(b, "E", prayed[0]);
+  assert(placed.ok, "the rotation the board offered is one it accepts");
+  assert(placed.tile.exits.includes("W"), "and the grave still faces back the way we came");
+  assert(
+    JSON.stringify(topFirst) !== JSON.stringify(prayed),
+    "the two tiles genuinely turn differently, so this test can fail"
+  );
+});
+
+test("pray: once per night, and never for a tile already on the table", () => {
+  const b = atTheShrine();
+  B.pray(b);
+  B.explore(b, "E", B.pickExploreRotation(b, "E"));
+  // Back to the shrine, and ask again.
+  b.player = { world: "outdoor", x: 0, y: 0 };
+  eq(B.canPray(b), false, "the incense is burnt");
+  eq(B.pray(b).reason, "spent");
+
+  // And a fresh night, where the grave is already down.
+  const c = atTheShrine(2);
+  c.decks.outdoor = ["pavilion", "stream"];
+  eq(B.canPray(c), false, "nothing left to summon");
+  eq(B.pray(c).reason, "already-placed");
+});
+
+test("pray: an indoor detour does not spend the answer", () => {
+  const b = atTheShrine();
+  B.pray(b);
+  // Walk back in and explore the village. The prayer names an outdoor tile, so
+  // the indoor stack cannot answer it and must not swallow it either.
+  B.moveTo(b, B.currentTile(b).seamDir || "N");
+  eq(b.player.world, "indoor", "back inside");
+  b.decks.indoor = ["woodshed", "blacksmith"];
+  const inside = B.explore(b, "E", B.pickExploreRotation(b, "E"));
+  assert(inside.ok, "explored a room indoors");
+  assert(inside.tile.id !== "mass-grave", "the village has no grave in it");
+  eq(b.prayerTarget, "mass-grave", "the prayer is still owed");
+});
+
+test("pray: refused anywhere but the shrine", () => {
+  const b = board({ seed: 1 });
+  eq(B.canPray(b), false);
+  eq(B.pray(b).reason, "not-a-shrine");
+  eq(b.prayerSpent, false, "and a refused prayer costs nothing");
+});
+
 // ---- Is every run actually winnable? ---------------------------------------
-// The win needs the Reliquary, which sits at a random depth in the indoor deck,
+// The win needs the Sealed Crypt, which sits at a random depth in the indoor deck,
 // and only exploring places tiles — so a run is winnable only while exploration
 // can continue. This sweeps seeds with a policy that plays the way the rules
-// allow and asserts both decks always empty out, which means the Reliquary and
-// the Family Plot were both placed. Placement is the same event as arrival:
+// allow and asserts both decks always empty out, which means the Sealed Crypt and
+// the Mass Grave were both placed. Placement is the same event as arrival:
 // explore() moves the player onto the tile it lays down, so "placed" is
 // "stood on".
 //
@@ -354,7 +497,7 @@ function playOut(makeBoard, seed, maxSteps = 600) {
   return { b, reason: "hit the step cap" };
 }
 
-test("every seed can place the whole house and garden, Reliquary included", () => {
+test("every seed can place the whole village and hillside, crypt included", () => {
   const bad = [];
   for (let seed = 1; seed <= 1000; seed++) {
     const { b, reason } = playOut(board, seed);
@@ -362,8 +505,8 @@ test("every seed can place the whole house and garden, Reliquary included", () =
     for (const world of ["indoor", "outdoor"]) {
       for (const t of b.worlds[world].values()) placed.add(t.id);
     }
-    if (!placed.has("evil-temple")) bad.push(`seed ${seed}: no Reliquary (${reason})`);
-    else if (!placed.has("graveyard")) bad.push(`seed ${seed}: no Family Plot (${reason})`);
+    if (!placed.has("sealed-crypt")) bad.push(`seed ${seed}: no Sealed Crypt (${reason})`);
+    else if (!placed.has("mass-grave")) bad.push(`seed ${seed}: no Mass Grave (${reason})`);
     else if (b.decks.indoor.length || b.decks.outdoor.length) {
       bad.push(`seed ${seed}: ${b.decks.indoor.length}+${b.decks.outdoor.length} tiles stranded (${reason})`);
     }
@@ -373,15 +516,15 @@ test("every seed can place the whole house and garden, Reliquary included", () =
 });
 
 // ---- Distance to the plot ------------------------------------------------------
-// The epilogue says "three rooms from the Family Plot" out loud, so this has to
+// The epilogue says "three rooms from the Mass Grave" out loud, so this has to
 // be right rather than roughly right.
 
-// Explores outward until the Family Plot is placed, preferring new ground over
+// Explores outward until the Mass Grave is placed, preferring new ground over
 // walking back and forth across the seam — which is what the first version of
 // this helper did for forty moves without ever placing an outdoor tile.
 function openUp(b, limit = 40) {
   for (let i = 0; i < limit; i++) {
-    for (const t of b.worlds.outdoor.values()) if (t.id === "graveyard") return t;
+    for (const t of b.worlds.outdoor.values()) if (t.id === "mass-grave") return t;
     const moves = B.listMoves(b);
     if (!moves.length) return null;
     const m =
@@ -398,7 +541,7 @@ function openUp(b, limit = 40) {
 
 test("distanceTo: nowhere is not a distance", () => {
   const b = board({ seed: 1 });
-  eq(B.distanceTo(b, "graveyard"), null, "a plot that was never placed is not N rooms away");
+  eq(B.distanceTo(b, "mass-grave"), null, "ground that was never placed is not N rooms away");
 });
 
 test("distanceTo: standing on it is zero", () => {
@@ -406,7 +549,7 @@ test("distanceTo: standing on it is zero", () => {
   const plot = openUp(b);
   assert(plot, "the plot was placed");
   b.player = { world: "outdoor", x: plot.x, y: plot.y };
-  eq(B.distanceTo(b, "graveyard"), 0);
+  eq(B.distanceTo(b, "mass-grave"), 0);
 });
 
 test("distanceTo: every step toward it is worth exactly one", () => {
@@ -422,7 +565,7 @@ test("distanceTo: every step toward it is worth exactly one", () => {
   const dist = new Map();
   for (const [w, t] of all) {
     b.player = { world: w, x: t.x, y: t.y };
-    dist.set(`${w}:${t.x},${t.y}`, B.distanceTo(b, "graveyard"));
+    dist.set(`${w}:${t.x},${t.y}`, B.distanceTo(b, "mass-grave"));
   }
   const reached = [...dist.values()].filter((d) => d !== null);
   assert(reached.length > 2, "several rooms connect to the plot");
@@ -438,7 +581,7 @@ test("distanceTo: the seam is a passage like any other", () => {
   const plot = openUp(b);
   assert(plot, "the plot was placed");
   b.player = { world: "indoor", x: 0, y: 0 };
-  const fromInside = B.distanceTo(b, "graveyard");
-  assert(fromInside !== null, "the Foyer can still reach the plot, through the seam");
+  const fromInside = B.distanceTo(b, "mass-grave");
+  assert(fromInside !== null, "the Gatehouse can still reach the grave, through the seam");
   assert(fromInside > 0, "and it is not standing on it");
 });

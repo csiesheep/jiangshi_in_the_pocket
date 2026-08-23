@@ -64,11 +64,11 @@ export function createBoard(data, opts = {}) {
   const byId = {};
   for (const d of [...data.tiles.indoor, ...data.tiles.outdoor]) byId[d.id] = d;
 
-  const foyer = data.tiles.indoor.find((d) => d.start);
-  const patio = data.tiles.outdoor.find((d) => d.start);
+  const indoorStart = data.tiles.indoor.find((d) => d.start);
+  const outdoorStart = data.tiles.outdoor.find((d) => d.start);
 
-  // Foyer and Patio are set aside (not shuffled): Foyer is placed now, Patio
-  // is placed the first time you step outside.
+  // Both start tiles are set aside rather than shuffled: the indoor one is
+  // placed now, the outdoor one the first time you step outside.
   const board = {
     rng,
     byId,
@@ -77,13 +77,19 @@ export function createBoard(data, opts = {}) {
       indoor: shuffle(data.tiles.indoor.filter((d) => !d.start).map((d) => d.id), rng),
       outdoor: shuffle(data.tiles.outdoor.filter((d) => !d.start).map((d) => d.id), rng),
     },
-    patioId: patio.id,
+    outsideId: outdoorStart.id,
     seamPlaced: false,
     seam: null,
+    // The shrine's prayer. `prayerTarget` is the tile it is holding open for —
+    // null once the prayer has been answered — and `prayerSpent` is the
+    // once-per-night budget, which is not the same thing: a prayer made and
+    // answered leaves the first null and the second true.
+    prayerTarget: null,
+    prayerSpent: false,
     player: { world: "indoor", x: 0, y: 0 },
   };
 
-  board.worlds.indoor.set(cellKey(0, 0), makeTile(byId, foyer.id, "indoor", 0, 0, 0));
+  board.worlds.indoor.set(cellKey(0, 0), makeTile(byId, indoorStart.id, "indoor", 0, 0, 0));
   return board;
 }
 
@@ -97,6 +103,43 @@ export function currentTile(board) {
   return tileAt(board, p.world, p.x, p.y);
 }
 
+// Which tile this stack would turn over next. Normally the top one — but an
+// answered prayer reaches into the stack and brings its tile up instead, and
+// everything that has to know what is coming (the legal rotations, the
+// auto-placement, the line in the log) must ask the same question, or the tile
+// gets validated as one room and placed as another.
+export function peekTile(board, world) {
+  const deck = board.decks[world];
+  if (board.prayerTarget) {
+    const i = deck.indexOf(board.prayerTarget);
+    if (i >= 0) return deck[i];
+  }
+  return deck[0];
+}
+
+// The same choice, made for real. Splicing rather than reshuffling: the prayer
+// moves one tile to the front and leaves the rest of the night in the order it
+// was already in.
+function drawTile(board, world) {
+  const deck = board.decks[world];
+  const want = board.prayerTarget;
+  if (want) {
+    const i = deck.indexOf(want);
+    if (i >= 0) {
+      board.prayerTarget = null;
+      return deck.splice(i, 1)[0];
+    }
+    // Not in this stack. The promise is for the next tile you place *that this
+    // stack could answer with* — pray outdoors and then wander back into the
+    // village, and the village cannot spend it. Only a tile that is in no stack
+    // at all cancels the prayer, and then it is already on the table.
+    if (!board.decks.indoor.includes(want) && !board.decks.outdoor.includes(want)) {
+      board.prayerTarget = null;
+    }
+  }
+  return deck.shift();
+}
+
 // Rotations that let a freshly drawn tile be entered from `moveDir`. A normal
 // (door) move needs an exit facing back; a hole move places the tile
 // wall-to-wall, so any rotation is legal.
@@ -105,7 +148,7 @@ export function validExploreRotations(board, moveDir) {
   const throughHole = tile.holes.includes(moveDir) && !tile.exits.includes(moveDir);
   const deck = board.decks[tile.world];
   if (deck.length === 0) return [];
-  const def = board.byId[deck[0]];
+  const def = board.byId[peekTile(board, tile.world)];
   const need = opposite(moveDir);
   const out = [];
   for (let r = 0; r < 4; r++) {
@@ -133,7 +176,7 @@ export function pickExploreRotation(board, moveDir) {
   if (rots.length <= 1) return rots[0] ?? 0;
 
   const tile = currentTile(board);
-  const def = board.byId[board.decks[tile.world][0]];
+  const def = board.byId[peekTile(board, tile.world)];
   const [nx, ny] = inDir(tile.x, tile.y, moveDir);
   const back = opposite(moveDir);
 
@@ -292,7 +335,7 @@ export function explore(board, moveDir, rotation) {
   const [nx, ny] = inDir(tile.x, tile.y, moveDir);
   if (tileAt(board, tile.world, nx, ny)) return { ok: false, reason: "occupied" };
 
-  const id = deck.shift();
+  const id = drawTile(board, tile.world);
   const placed = makeTile(board.byId, id, tile.world, nx, ny, rotation);
   // A breach has two sides. Exploring through one puts a room on the far side
   // of it, and that room has to carry the matching hole — otherwise the way
@@ -312,21 +355,55 @@ export function moveTo(board, moveDir) {
   return { ok: true };
 }
 
-// Step outside for the first time: place the Patio and cross onto it.
+// Step outside for the first time: place the set-aside landing tile and cross
+// onto it. It goes down against the room you left, joined along that edge, and
+// from then on the crossing works in both directions.
 export function goOutside(board) {
   const tile = currentTile(board);
   if (!tile.exteriorDir || board.seamPlaced || tile.world !== "indoor") {
     return { ok: false, reason: "no-exterior-door" };
   }
-  const patio = makeTile(board.byId, board.patioId, "outdoor", 0, 0, 0);
-  board.worlds.outdoor.set(cellKey(0, 0), patio);
+  const landing = makeTile(board.byId, board.outsideId, "outdoor", 0, 0, 0);
+  board.worlds.outdoor.set(cellKey(0, 0), landing);
   board.seam = {
     indoor: { x: tile.x, y: tile.y, dir: tile.exteriorDir },
-    outdoor: { x: 0, y: 0, dir: patio.seamDir },
+    outdoor: { x: 0, y: 0, dir: landing.seamDir },
   };
   board.seamPlaced = true;
   board.player = { world: "outdoor", x: 0, y: 0 };
-  return { ok: true, tile: patio };
+  return { ok: true, tile: landing };
+}
+
+// ---- The shrine's prayer -----------------------------------------------------
+// 土地廟: pray, and the next unexplored tile you place is the one the shrine
+// names. Once per night. The land god knows where the dead are buried.
+//
+// It steers the stack rather than teleporting anyone — the grave still has to
+// be walked to, and still goes down against a real edge at a legal rotation.
+// That is what keeps it a shortcut through the *draw* and not through the map.
+
+// Asked by the UI before it offers the button, and it has to agree with pray()
+// exactly — an offered prayer that refuses is a bug the player sees. Kept in
+// step by testing them together rather than by one calling the other: pray()
+// has to answer *why* it refused, and canPray only ever needs to know whether.
+export function canPray(board) {
+  const tile = currentTile(board);
+  if (!tile || !tile.def.pray) return false;
+  if (board.prayerSpent) return false;
+  // Nothing left to summon: the tile is already on the table.
+  return board.decks[tile.world].includes(tile.def.pray);
+}
+
+export function pray(board) {
+  const tile = currentTile(board);
+  if (!tile || !tile.def.pray) return { ok: false, reason: "not-a-shrine" };
+  if (board.prayerSpent) return { ok: false, reason: "spent" };
+  if (!board.decks[tile.world].includes(tile.def.pray)) {
+    return { ok: false, reason: "already-placed" };
+  }
+  board.prayerSpent = true;
+  board.prayerTarget = tile.def.pray;
+  return { ok: true, target: board.prayerTarget };
 }
 
 // Choose which wall the risen come through at a dead end. The hole is not

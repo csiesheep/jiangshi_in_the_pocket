@@ -98,9 +98,13 @@ class Game {
     E.beginTurn(this.state);
     this.refresh();
     clearLog();
+    // Both rooms named from the data: where you are standing, and the one tile
+    // that carries the burial. Nothing here knows what either is called.
+    const goal = this.data.tiles.outdoor.find((d) => d.onResolve === "SECOND_CARD_THEN_BURY_TOTEM");
     log(
-      `You wake in the ${this.tileName("foyer")}. Find the ${this.word("relic")}, ` +
-        `bury it in the ${this.tileName("graveyard")} before midnight.`
+      `You wake in the ${this.tileName(Bd.currentTile(this.board).id)}. Find the ${this.word("relic")}` +
+        (goal ? `, bury it in the ${this.tileName(goal.id)}` : "") +
+        ` before midnight.`
     );
     this.renderMoves();
   }
@@ -134,7 +138,9 @@ class Game {
   // keeps a way on into unexplored space, and is deterministic so a shared seed
   // still replays move for move.
   doExplore(dir) {
-    const revealed = this.board.decks[this.board.player.world][0];
+    // peekTile, not decks[0]: an answered prayer brings a tile up from inside
+    // the stack, and the line in the log has to name the room actually placed.
+    const revealed = Bd.peekTile(this.board, this.board.player.world);
     const rot = Bd.pickExploreRotation(this.board, dir);
     const r = Bd.explore(this.board, dir, rot);
     if (!r.ok) return this.renderMoves();
@@ -165,9 +171,9 @@ class Game {
   }
 
   doOutside(dir) {
-    Bd.goOutside(this.board);
+    const out = Bd.goOutside(this.board);
     seamCross();
-    log(`You step out onto the ${this.tileName("patio")}. Night air, and worse.`);
+    log(`You step out onto the ${this.tileName(out.tile.id)}. Night air, and worse.`);
     this.refresh();
     if (dir) animateEntry(dir);
     this.arriveAndDraw();
@@ -441,7 +447,8 @@ class Game {
     const onr = Bd.currentTile(this.board).def.onResolve;
     if (onr === "BONUS_ITEM") return this.offerBonusItem();
     if (onr === "SECOND_CARD_THEN_GAIN_TOTEM") {
-      return this.drawSecond("temple", `You start searching the ${this.tileName("evil-temple")}…`);
+      const here = this.tileName(Bd.currentTile(this.board).id);
+      return this.drawSecond("temple", `You start searching the ${here}…`);
     }
     if (onr === "SECOND_CARD_THEN_BURY_TOTEM") {
       return this.drawSecond("graveyard", "You break ground, and begin the burial…");
@@ -465,7 +472,7 @@ class Game {
         },
         { kind: "item", label: "Leave empty-handed", sub: "no cost", onClick: () => this.deadEndCheck() },
       ],
-      `The ${this.tileName("storage")} — worth a rummage?`
+      `The ${this.tileName(Bd.currentTile(this.board).id)} — worth a rummage?`
     );
   }
 
