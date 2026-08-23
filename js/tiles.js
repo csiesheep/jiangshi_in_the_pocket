@@ -295,6 +295,19 @@ async function main() {
         `know what you are hoping to turn over.`;
     }
 
+    // The cast is the one thing on this page that changes what the art looks
+    // like, so it gets a switch. Off, every scene renders exactly as it was
+    // painted — which is the only way to compare the two halves without the
+    // page colouring the answer.
+    const castBtn = document.getElementById("btn-cast");
+    if (castBtn) {
+      castBtn.addEventListener("click", () => {
+        const on = castBtn.getAttribute("aria-pressed") === "true";
+        castBtn.setAttribute("aria-pressed", String(!on));
+        document.body.classList.toggle("nocast", on);
+      });
+    }
+
     group(host, tiles.indoor, theme, "indoor",
       "The village, and the 義莊 at the end of it",
       "Beams overhead, a plastered wall, a stone floor running away from you, and one oil lamp off to the left.");

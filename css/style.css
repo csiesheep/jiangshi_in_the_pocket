@@ -1686,7 +1686,11 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 /* The plate. Square, black behind it, because every scene is painted to the
    edge and any gap would read as a border the art does not have. */
 .tilecard-plate { position: relative; aspect-ratio: 1; background: #000; }
-.tilecard-scene { display: block; width: 100%; height: 100%; }
+/* Painted scenes take the cast undiluted, the way .roomscene--rich does on the
+   board — the veil inside the symbol is the only currentColor in there, so this
+   is the whole of what tints the art. Without a color here the plate inherits
+   --text and the cast silently never arrives. */
+.tilecard-scene { display: block; width: 100%; height: 100%; color: var(--world-cast); }
 .tilecard-num {
   position: absolute; left: 8px; top: 6px;
   font-family: var(--font-body);
@@ -1752,6 +1756,36 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 .tilechip--medicine { color: #8fc9a8; border-color: #2e4a39; }
 .tilechip--goal     { color: var(--danger); border-color: #55302c; }
 .tilechip--star     { color: #12140f; background: var(--gold); border-color: var(--gold); }
+
+/* The cast switch. Off means the scenes render exactly as painted and the
+   chrome stops taking sides, which is the only way to compare the two halves
+   without the page colouring the answer. Follows the sound toggle: a button
+   carrying aria-pressed, not a checkbox. */
+.tiletoggles { margin: 16px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.tiletoggle {
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tiletoggle:hover { border-color: var(--accent); background: var(--bg-2); }
+.tiletoggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tiletoggle[aria-pressed="true"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--border));
+}
+
+/* Cast off: neutralise the section's cast so the card, the banner and the door
+   plan go quiet, and make the veil inside each scene paint nothing at all. */
+body.nocast .tilesection { --world-cast: var(--muted); --cast: 0%; --cast-wall: 0%; }
+body.nocast .tilecard-scene { color: transparent; }
 
 /* The door plan: the room's four walls, with the ones you can pass through
    punched out in the flame colour. */
