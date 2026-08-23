@@ -713,17 +713,12 @@ function mountDoorways(boardEl) {
       k.setAttribute("aria-hidden", "true");
       hot.appendChild(k);
     }
-    if (move.primary) {
-      const face = document.createElement("span");
-      face.className = "doorway-face";
-      face.setAttribute("aria-hidden", "true");
-      face.textContent = "?";
-      hot.appendChild(face);
-    }
+    // The "?" that used to sit beside the arrow is gone with the button skin it
+    // belonged to. Unexplored now reads from the arrow itself — the bright
+    // green, and the drift only it has — so the mark is one less thing sitting
+    // on top of the door.
 
-    // The arrow points the way out. Explored neighbours get it on its own —
-    // the glimpse through the door already says which room is there. Unexplored
-    // ways keep the "?" beside it: an arrow into the dark.
+    // The arrow points the way out, and is the whole of the control now.
     const arrow = document.createElement("span");
     arrow.className = "doorway-arrow";
     arrow.setAttribute("aria-hidden", "true");
