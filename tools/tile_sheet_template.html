@@ -1,0 +1,202 @@
+<meta charset="utf-8">
+<title>Jiangshi Tile Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Light is the bare :root, so the un-stamped "system" state resolves. */
+  :root {
+    --ground:   #EDE7D9;
+    --surface:  #F7F2E6;
+    --sunk:     #E3DBC9;
+    --line:     #D3C9B2;
+    --text:     #191610;
+    --muted:    #6B6353;
+    --gold:     #8A6714;
+    --cinnabar: #9B2C25;
+    --warm:     #B25E10;
+    --cool:     #1B6E75;
+    --plate:    #07080A;
+    --shadow:   0 1px 0 rgba(25,22,16,.06), 0 8px 22px -18px rgba(25,22,16,.5);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #0B0C0F;
+      --surface:  #14161B;
+      --sunk:     #101217;
+      --line:     #262A33;
+      --text:     #E7E2D6;
+      --muted:    #8C8E97;
+      --gold:     #D8BD6E;
+      --cinnabar: #CC5148;
+      --warm:     #FFB457;
+      --cool:     #6FD3D0;
+      --plate:    #000000;
+      --shadow:   0 1px 0 rgba(0,0,0,.4), 0 10px 26px -20px #000;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:   #0B0C0F;
+    --surface:  #14161B;
+    --sunk:     #101217;
+    --line:     #262A33;
+    --text:     #E7E2D6;
+    --muted:    #8C8E97;
+    --gold:     #D8BD6E;
+    --cinnabar: #CC5148;
+    --warm:     #FFB457;
+    --cool:     #6FD3D0;
+    --plate:    #000000;
+    --shadow:   0 1px 0 rgba(0,0,0,.4), 0 10px 26px -20px #000;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font: 400 16px/1.6 "Noto Serif TC", "Songti TC", Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 40px 22px 88px; }
+
+  .mast { display: grid; gap: 14px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font: 600 11px/1 "IBM Plex Sans", system-ui, sans-serif;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--gold);
+  }
+  h1 { margin: 0; font-size: clamp(30px, 4.6vw, 46px); font-weight: 900; line-height: 1.08;
+       letter-spacing: -.005em; text-wrap: balance; }
+  .lede { margin: 0; max-width: 64ch; color: var(--muted); font-size: 17px; }
+  .lede b { color: var(--text); font-weight: 600; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 7px 13px; border: 1px solid var(--line); border-radius: 2px;
+    background: var(--surface);
+    font: 500 12px/1 "IBM Plex Sans", system-ui, sans-serif;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  }
+  .toggle input { accent-color: var(--gold); margin: 0; }
+  .toggle:has(input:checked) { color: var(--text); border-color: var(--gold); }
+  .toggle:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .half { margin-top: 56px; }
+  .halfhead { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 26px; }
+  .vert {
+    writing-mode: vertical-rl; font-size: 34px; font-weight: 900; line-height: 1;
+    letter-spacing: .12em; color: var(--gold); flex: none;
+    padding: 6px 9px; border: 1px solid currentColor;
+  }
+  .halfhead h2 { margin: 2px 0 6px; font-size: 24px; font-weight: 600; letter-spacing: -.005em; }
+  .halfhead p { margin: 0; color: var(--muted); max-width: 60ch; font-size: 15px; }
+  .halfhead .count { margin-top: 8px; font: 600 11px/1 "IBM Plex Sans", system-ui, sans-serif;
+           letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .half--outdoor .vert, .half--outdoor .halfhead .count { color: var(--cool); }
+
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(224px, 1fr)); }
+
+  .plate { background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+           overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+  .art { position: relative; aspect-ratio: 1; background: var(--plate); }
+  .scene { display: block; width: 100%; height: 100%; }
+  .art--indoor  .scene { color: var(--warm); }
+  .art--outdoor .scene { color: var(--cool); }
+  body.flat .art .scene { color: transparent; }
+  .num {
+    position: absolute; left: 8px; top: 7px;
+    font: 600 10px/1 "IBM Plex Sans", system-ui, sans-serif; letter-spacing: .1em;
+    color: #ffffff; opacity: .38; font-variant-numeric: tabular-nums;
+  }
+
+  .body { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 8px; }
+  .body h3 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.3; }
+  .cjk { letter-spacing: .04em; }
+  .latin { color: var(--muted); font-weight: 400; }
+  .blurb { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+
+  .doors { display: flex; align-items: center; gap: 9px;
+           font: 500 11px/1.3 "IBM Plex Sans", system-ui, sans-serif;
+           letter-spacing: .04em; color: var(--muted); }
+  .plan { width: 26px; height: 26px; flex: none; background: var(--sunk); border-radius: 2px; padding: 2px; }
+  .plan .w { stroke: var(--muted); stroke-width: 7; opacity: .5; stroke-linecap: square; }
+  .plan .d { stroke: var(--gold); stroke-width: 7; stroke-linecap: butt; }
+  .plan .d--seam { stroke: var(--cool); }
+  body.noplans .plan { display: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    font: 600 10px/1 "IBM Plex Sans", system-ui, sans-serif;
+    letter-spacing: .09em; text-transform: uppercase;
+    padding: 5px 8px; border: 1px solid var(--line); border-radius: 2px; color: var(--muted);
+  }
+  .chip--weapon   { color: var(--warm);     border-color: color-mix(in srgb, var(--warm) 40%, var(--line)); }
+  .chip--magic    { color: var(--gold);     border-color: color-mix(in srgb, var(--gold) 40%, var(--line)); }
+  .chip--medicine { color: var(--cool);     border-color: color-mix(in srgb, var(--cool) 40%, var(--line)); }
+  .chip--goal     { color: var(--cinnabar); border-color: color-mix(in srgb, var(--cinnabar) 45%, var(--line)); }
+  .chip--gate, .chip--heal { color: var(--text); }
+
+  .legend { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--line);
+            display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .legend h4 { margin: 0 0 5px; font: 600 11px/1 "IBM Plex Sans", system-ui, sans-serif;
+               letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .legend p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  @media (max-width: 620px) {
+    .halfhead { gap: 14px; }
+    .vert { font-size: 26px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+<!--SPRITE-->
+<div class="wrap">
+  <header class="mast">
+    <span class="eyebrow">Art pass 1 &middot; twenty tiles</span>
+    <h1>Jiangshi in the Pocket</h1>
+    <p class="lede">The village has locked its doors, and at the far end of it is the
+      <b>&#32681;&#33674;</b>. Every scene here is built on one of two shells, so the halves
+      stay apart without a caption: <b>indoors</b> gets beams, plaster and a stone floor under
+      a single oil lamp; <b>outdoors</b> gets sky, the same moon in the same corner, and mist
+      on cold ground. Silhouette, staging and light are settled in this pass; texture, wear
+      and the small props come next.</p>
+    <div class="controls">
+      <label class="toggle"><input type="checkbox" id="t-cast" checked> World cast</label>
+      <label class="toggle"><input type="checkbox" id="t-plans" checked> Door plans</label>
+      <label class="toggle"><input type="checkbox" id="t-dark"> Force dark</label>
+    </div>
+  </header>
+
+<!--SECTIONS-->
+
+  <section class="legend">
+    <div>
+      <h4>The door plan</h4>
+      <p>The small square on each card is that tile&#8217;s own walls. Gold is a way through;
+        teal is the seam the hillside joins the village along. Tiles rotate freely as they are
+        placed, so only the count and the arrangement matter.</p>
+    </div>
+    <div>
+      <h4>The world cast</h4>
+      <p>The board tints every scene by which half you are standing in &mdash; amber indoors,
+        moon-teal outdoors. Switch it off to see the art underneath it.</p>
+    </div>
+    <div>
+      <h4>What is not here</h4>
+      <p>The event pool, the item pool and the King are still open in the design record, so no
+        card says what a search finds. Only the map is settled.</p>
+    </div>
+  </section>
+</div>
+<script>
+  const body = document.body;
+  document.getElementById("t-cast").onchange  = e => body.classList.toggle("flat", !e.target.checked);
+  document.getElementById("t-plans").onchange = e => body.classList.toggle("noplans", !e.target.checked);
+  document.getElementById("t-dark").onchange  = e => {
+    if (e.target.checked) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+  };
+</script>
