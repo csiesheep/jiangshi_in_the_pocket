@@ -3,7 +3,7 @@
      render.js and injected inline, because external <use> references are not
      reliable across browsers. Symbol ids are `tile-<tileId>` / `item-<itemId>`
      and must match the ids in data/tiles.json and data/items.json. -->
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true">
   <defs>
     <style>
       symbol { fill: none; stroke: currentColor; stroke-width: 1.5;
