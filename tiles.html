@@ -14,7 +14,7 @@
     gtag('config', 'G-Q4VS3P3T58');
   </script>
   <title>The Tiles — every room in Grave Errand</title>
-  <meta name="description" content="Every room in Grave Errand on one sheet: the house and the garden, their doors, and what each room does to you.">
+  <meta name="description" content="All twenty tiles on one sheet: the village and the hillside, their doors, what each place can be searched for, and what it does to you.">
   <link rel="canonical" href="https://games.csiesheep.com/jiangshi_in_the_pocket/tiles">
   <!-- Reskin in progress: these pages are still Grave Errand's copy, so
        indexing them would compete with the real one. Drop this line when
@@ -72,9 +72,10 @@
 
   <main class="wrap article">
     <h1>The Tiles</h1>
-    <p class="muted">Sixteen rooms: eight in the house, eight out the back. You
-      meet them one draw at a time, which is the whole idea — but here they all
-      are, for when you want to know what you are hoping to turn over.</p>
+    <!-- Counted from the real set at load, by js/tiles.js. It read "sixteen
+         rooms" for a while after the set became twenty, which is the drift this
+         page exists to prevent. -->
+    <p class="muted" id="tile-intro">Counting the tile set…</p>
     <p class="muted">The plan beside each room shows which walls have a way
       through. Where a tile ends up pointing is the game's business: it turns
       each one as it lays it down.</p>

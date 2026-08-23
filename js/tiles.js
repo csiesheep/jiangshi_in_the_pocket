@@ -100,41 +100,99 @@ function doorCompass(def) {
   return svg;
 }
 
-function card(def, theme, count, world) {
+// The chip layer: the one category a room can be rummaged for, plus the handful
+// of roles worth spotting from across the page. Everything a chip says, noteFor
+// also says in a sentence — the chip is there to be scanned, the sentence to be
+// read, and the geography of the map (magic indoors only, weapons mostly out)
+// is only visible when twenty of these can be taken in at once.
+const CHIP_SEARCH = { weapon: "武器 weapons", magic: "符咒 magic", medicine: "丹藥 medicine" };
+
+function chipsFor(def) {
+  const chips = [];
+  if (def.search) {
+    chips.push([CHIP_SEARCH[def.search] || def.search, `tilechip--${def.search}`, true]);
+    if (def.best) chips.push(["best of its kind", "tilechip--star", false]);
+  }
+  if (def.onTurnEnd === "HEAL_1") chips.push(["+1 health", "", false]);
+  if (def.sanctuary) chips.push(["no damage", "", false]);
+  if (def.once || def.pray) chips.push(["once per night", "", false]);
+  if (def.onResolve) chips.push(["goal", "tilechip--goal", false]);
+  if (def.start) chips.push(["start", "", false]);
+  if (def.exteriorDoor) chips.push(["moon gate", "", false]);
+  if (def.seam) chips.push(["seam", "", false]);
+  if (!chips.length) chips.push(["transit", "", false]);
+  return chips;
+}
+
+function card(def, theme, count, world, n) {
   const el = document.createElement("article");
   el.className = "tilecard";
 
-  const art = document.createElement("div");
-  art.className = "tilecard-art";
+  // The plate. The scene is the point of the page, so it gets the full width of
+  // the card and the words go underneath it.
+  const plate = document.createElement("div");
+  plate.className = "tilecard-plate";
   const scene = icon("scene", def.id.replace(/-\d+$/, ""), "tilecard-scene");
-  if (scene) art.appendChild(scene);
-  art.appendChild(doorCompass(def));
-  el.appendChild(art);
+  if (scene) plate.appendChild(scene);
+  const num = document.createElement("span");
+  num.className = "tilecard-num";
+  num.textContent = String(n).padStart(2, "0");
+  plate.appendChild(num);
+  el.appendChild(plate);
 
   const body = document.createElement("div");
   body.className = "tilecard-body";
 
+  // Names read "門廳 Gatehouse". Split so the Chinese can take a face that has
+  // it and the English can keep the display serif; a name with no space just
+  // falls through as one span.
+  const name = theme.tiles[def.id] || def.id;
+  const cut = name.indexOf(" ");
   const h = document.createElement("h3");
-  h.textContent = theme.tiles[def.id] || def.id;
+  const cjk = document.createElement("span");
+  cjk.className = "tilecard-cjk";
+  cjk.textContent = cut === -1 ? name : name.slice(0, cut);
+  h.appendChild(cjk);
+  if (cut !== -1) {
+    const latin = document.createElement("span");
+    latin.className = "tilecard-latin";
+    latin.textContent = name.slice(cut + 1);
+    h.appendChild(latin);
+  }
   if (count > 1) {
     const badge = document.createElement("span");
     badge.className = "tilecard-count";
     badge.textContent = `×${count}`;
-    // Three identical Lawns in the deck; one card, honestly labelled.
     badge.title = `${count} of these in the deck`;
     h.appendChild(badge);
   }
   body.appendChild(h);
 
+  // The plan and the sentence say the same thing on purpose: the drawing is
+  // faster to compare across twenty cards, the words survive being read aloud.
   const doors = document.createElement("p");
   doors.className = "tilecard-doors";
+  doors.appendChild(doorCompass(def));
   const named = def.exits.map((d) => WORD[d]);
-  // The plan draws the seam as a way through, because it is one — so the
-  // sentence has to count it too, or the two disagree in front of the reader.
-  doors.textContent =
-    (named.length === 4 ? "Doors on all four walls." : `Doors ${named.join(", ")}.`) +
-    (def.seam ? ` The ${WORD[def.seam]} edge is the seam.` : "");
+  const text = document.createElement("span");
+  text.textContent =
+    (named.length === 4 ? "Doors on all four walls" : `Doors ${named.join(", ")}`) +
+    (def.seam ? `, ${WORD[def.seam]} seam` : "") + ".";
+  doors.appendChild(text);
   body.appendChild(doors);
+
+  const chips = chipsFor(def);
+  if (chips.length) {
+    const row = document.createElement("div");
+    row.className = "tilechips";
+    for (const [label, cls, isCjk] of chips) {
+      const chip = document.createElement("span");
+      chip.className = `tilechip${cls ? " " + cls : ""}${isCjk ? " tilechip-cjk" : ""}`;
+      chip.textContent = label;
+      row.appendChild(chip);
+    }
+    body.appendChild(row);
+  }
 
   for (const note of noteFor(def, world)) {
     const p = document.createElement("p");
@@ -146,14 +204,36 @@ function card(def, theme, count, world) {
   return el;
 }
 
-function group(host, defs, theme, world) {
-  const grid = document.createElement("div");
-  // The world cast, so the gallery teaches the same warm/cool language the
-  // board speaks.
-  grid.className = `tilegrid board board--${world}`;
+function group(host, defs, theme, world, heading, note) {
+  // The cast rides on the section, not the grid, so the banner and the plates
+  // warm up indoors and cool down outside together.
+  const section = document.createElement("section");
+  section.className = `tilesection board board--${world}`;
 
-  // The three Lawns share a scene and a name; show one card with a count
-  // rather than three that look like a rendering bug.
+  const head = document.createElement("header");
+  head.className = "tilesection-head";
+  const vert = document.createElement("span");
+  vert.className = "tilesection-vert";
+  vert.setAttribute("aria-hidden", "true");
+  vert.textContent = world === "indoor" ? "室內" : "室外";
+  head.appendChild(vert);
+
+  const headText = document.createElement("div");
+  const h2 = document.createElement("h2");
+  h2.id = world;
+  h2.textContent = heading;
+  headText.appendChild(h2);
+  const p = document.createElement("p");
+  p.textContent = note;
+  headText.appendChild(p);
+  head.appendChild(headText);
+  section.appendChild(head);
+
+  const grid = document.createElement("div");
+  grid.className = "tilegrid";
+
+  // Tiles that share a name and a shape are one card with a count, rather than
+  // several that look like a rendering bug.
   const seen = new Map();
   for (const def of defs) {
     const key = theme.tiles[def.id] || def.id;
@@ -164,8 +244,31 @@ function group(host, defs, theme, world) {
     }
     seen.set(key, { def, count: 1 });
   }
-  for (const { def, count } of seen.values()) grid.appendChild(card(def, theme, count, world));
-  host.appendChild(grid);
+  let n = 0;
+  for (const { def, count } of seen.values()) {
+    grid.appendChild(card(def, theme, count, world, ++n));
+  }
+  section.appendChild(grid);
+
+  const count = document.createElement("p");
+  count.className = "tilesection-count";
+  count.textContent = `${defs.length} tiles`;
+  headText.appendChild(count);
+
+  host.appendChild(section);
+}
+
+// Prose wants words, not digits, and this sentence is prose. Past the teens it
+// gives up and lets the numeral stand, which is the right place to stop.
+const NUMBER = ["zero", "one", "two", "three", "four", "five", "six", "seven",
+  "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+  "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+function count(n) {
+  return NUMBER[n] || String(n);
+}
+// It opens the sentence, so it opens in capitals.
+function up(word) {
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 async function main() {
@@ -177,13 +280,27 @@ async function main() {
       loadIcons(),
     ]);
     host.textContent = "";
-    for (const [world, heading] of [["indoor", "Inside the village"], ["outdoor", "Out on the hillside"]]) {
-      const h = document.createElement("h2");
-      h.id = world;
-      h.textContent = heading;
-      host.appendChild(h);
-      group(host, tiles[world], theme, world);
+
+    // The standfirst counts the real set. It said "sixteen rooms" for a while
+    // after the set became twenty, which is exactly the drift this page exists
+    // to avoid.
+    const intro = document.getElementById("tile-intro");
+    if (intro) {
+      const inside = tiles.indoor.length;
+      const outside = tiles.outdoor.length;
+      intro.textContent =
+        `${up(count(inside + outside))} tiles: ${count(inside)} in the village, ` +
+        `${count(outside)} out on the hillside. You meet them one turn at a time, ` +
+        `which is the whole idea — but here they all are, for when you want to ` +
+        `know what you are hoping to turn over.`;
     }
+
+    group(host, tiles.indoor, theme, "indoor",
+      "The village, and the 義莊 at the end of it",
+      "Beams overhead, a plastered wall, a stone floor running away from you, and one oil lamp off to the left.");
+    group(host, tiles.outdoor, theme, "outdoor",
+      "The hillside",
+      "Sky, the same moon in the same corner, hills on the horizon, cold ground and a band of mist.");
   } catch (err) {
     console.error(err);
     host.textContent = "Could not load the tile set.";

@@ -1611,31 +1611,104 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 /* ---- The tile gallery -------------------------------------------------------
    Article page, but the cards borrow the board's world cast so the gallery
    teaches the same warm-indoors / cool-outdoors language the game speaks. */
+/* ---- The tile sheet -------------------------------------------------------
+   Twenty rooms as plates rather than rows. The art carries the page, so it gets
+   the whole card width and the words sit under it; at the old 62px the scenes
+   were thumbnails of themselves and you could not tell a forge from a coffin.
+
+   The two halves are titled with a vertical banner, because that is how a hall
+   in this building would be labelled and because it marks the seam between the
+   village and the hillside without spending a rule on it. Everything is cast by
+   --world-cast, which the section carries, so the header, the plates and the
+   door plans all warm up indoors and cool down outside together. */
+
+/* IM Fell has no CJK, so a name like 門廳 Gatehouse would fall back mid-word.
+   System faces only — this site self-hosts its one web font and stays offline
+   capable, and a Google Fonts link would cost both. */
+:root {
+  --font-cjk: "Noto Serif TC", "Songti TC", "PingFang TC", "Microsoft JhengHei",
+              "Hiragino Mincho ProN", serif;
+}
+
+.tilesection { margin: 0 0 34px; }
+
+.tilesection-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin: 26px 0 14px;
+}
+.tilesection-vert {
+  writing-mode: vertical-rl;
+  font-family: var(--font-cjk);
+  font-size: 1.6rem;
+  line-height: 1;
+  letter-spacing: .1em;
+  flex: none;
+  padding: 7px 8px;
+  color: color-mix(in srgb, var(--world-cast) 62%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--world-cast) 34%, var(--border));
+  border-radius: 3px;
+}
+.tilesection-head h2 {
+  margin: 2px 0 5px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+.tilesection-head p { margin: 0; font-size: .88rem; color: var(--muted); max-width: 58ch; }
+.tilesection-count {
+  margin-top: 7px !important;
+  font-family: var(--font-body);
+  font-size: .68rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--world-cast) 55%, var(--muted)) !important;
+}
+
 .tilegrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-  margin: 14px 0 8px;
+  grid-template-columns: repeat(auto-fill, minmax(216px, 1fr));
+  gap: 16px;
+  margin: 0;
 }
+
 .tilecard {
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background-color: color-mix(in srgb, var(--world-cast) var(--cast), var(--room));
 }
-.tilecard-art { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: none; }
-.tilecard-scene { width: 62px; height: 62px; color: var(--text); opacity: .92; }
-.tilecard-body { min-width: 0; }
+
+/* The plate. Square, black behind it, because every scene is painted to the
+   edge and any gap would read as a border the art does not have. */
+.tilecard-plate { position: relative; aspect-ratio: 1; background: #000; }
+.tilecard-scene { display: block; width: 100%; height: 100%; }
+.tilecard-num {
+  position: absolute; left: 8px; top: 6px;
+  font-family: var(--font-body);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  opacity: .34;
+}
+
+.tilecard-body { min-width: 0; padding: 11px 13px 13px; }
 .tilecard h3 {
-  margin: 0 0 4px;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
+  margin: 0 0 6px;
+  font-size: 1rem;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 6px;
+  font-weight: 400;
 }
+.tilecard-cjk { font-family: var(--font-cjk); letter-spacing: .04em; }
+.tilecard-latin { font-family: var(--font-display); color: var(--muted); }
 .tilecard-count {
   font-family: var(--font-body);
   font-size: .68rem;
@@ -1644,20 +1717,50 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   border-radius: 999px;
   padding: 1px 6px;
 }
+
 /* The cast card is lighter than a panel, so --muted lands at 4.35:1 here and
    --gold at 4.41 — both under the 4.5 these need as text. Lifted on this page
    only, rather than moving tokens the rest of the game is tuned against. */
-.tilecard-doors { margin: 0 0 6px; font-size: .78rem; color: #bcc1cb; }
-.tilecard-note { margin: 0 0 6px; font-size: .82rem; line-height: 1.4; }
+.tilecard-doors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: .78rem;
+  color: #bcc1cb;
+}
+.tilecard-note { margin: 0 0 6px; font-size: .82rem; line-height: 1.45; }
 .tilecard-note:last-child { margin-bottom: 0; }
+
+/* The scan layer. One chip per searchable category, so the geography of the
+   map — magic indoors only, weapons mostly out — is visible by colour before
+   a word of it is read. */
+.tilechips { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 8px; }
+.tilechip {
+  font-family: var(--font-body);
+  font-size: .63rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: #bcc1cb;
+}
+.tilechip-cjk { font-family: var(--font-cjk); text-transform: none; letter-spacing: .02em; }
+.tilechip--weapon   { color: #e0a468; border-color: #55402c; }
+.tilechip--magic    { color: #dfc077; border-color: #55492c; }
+.tilechip--medicine { color: #8fc9a8; border-color: #2e4a39; }
+.tilechip--goal     { color: var(--danger); border-color: #55302c; }
+.tilechip--star     { color: #12140f; background: var(--gold); border-color: var(--gold); }
 
 /* The door plan: the room's four walls, with the ones you can pass through
    punched out in the flame colour. */
-.doorplan { width: 46px; height: 46px; flex: none; }
+.doorplan { width: 28px; height: 28px; flex: none; }
 .doorplan-room { fill: color-mix(in srgb, var(--world-cast) 8%, transparent); stroke: none; }
 .doorplan-wall { stroke: var(--wall); stroke-width: 7; stroke-linecap: square; }
 .doorplan-door { stroke: var(--flame); stroke-width: 7; stroke-linecap: butt; }
 .doorplan-door--seam { stroke: var(--gold); }
+
 
 @media (max-width: 480px) {
   .tilegrid { grid-template-columns: 1fr; }
