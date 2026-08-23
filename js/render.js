@@ -37,12 +37,16 @@ const SCENE_ALIAS = ICON_ALIAS;
 // the dusk dial still reach them. They must not be dimmed the way line art is,
 // which is what the class is for.
 //
-// Empty until the twenty rooms are drawn. Falling through to the line-art
-// treatment is the safe direction — an undrawn room rendered faint is a smaller
-// problem than a line drawing rendered at full opacity over the floor — and
-// `icon()` already returns null for a sprite that does not exist yet, so a room
-// with no art simply shows its name.
-const SCENE_RICH = new Set([]);
+// All twenty are painted. The check stays rather than being deleted: it is what
+// a scene added later falls through, and falling through to the line-art
+// treatment is the safe direction — a new drawing rendered faint is a smaller
+// problem than a line drawing rendered at full opacity over the floor.
+const SCENE_RICH = new Set([
+  "gatehouse", "apothecary", "woodshed", "sutra-hall", "mourning-hall",
+  "courtyard", "blacksmith", "counting-room", "incense-hall", "sealed-crypt",
+  "back-steps", "dry-well", "bamboo-grove", "memorial-arch", "pavilion",
+  "pagoda-tree", "stone-ward", "stream", "earth-god-shrine", "mass-grave",
+]);
 
 // Inject the icon sprite once, then reference symbols with <use href="#id">.
 // External-file <use> references are not dependably supported, so the sprite is
