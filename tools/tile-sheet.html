@@ -214,7 +214,10 @@
        Beams, wall, floor. The floor lines converge on a vanishing point a
        little left of centre, which is where the lamp is &#8212; one light source,
        one perspective, so twenty rooms feel like one building. -->
-  <g id="bg-in">
+  <!-- stroke="none" on every shell: the sprite's `symbol` rule strokes
+       everything in currentColor for the line art, and it inherits
+       through <use>. Painted content protects itself; so must these. -->
+  <g id="bg-in" stroke="none">
     <rect width="96" height="96" fill="#140f0b"/>
     <rect y="14" width="96" height="46" fill="url(#ji-wall)"/>
     <g fill="#0d0906">
@@ -240,7 +243,7 @@
 
   <!-- Foreground for indoors: the doorway you are looking through, the lamp
        wash, and the dark that closes in at the corners. -->
-  <g id="fg-in">
+  <g id="fg-in" stroke="none">
     <rect width="96" height="96" fill="url(#ji-lamp)"/>
     <rect x="0" y="0" width="5.5" height="96" fill="#100b07"/>
     <rect x="90.5" y="0" width="5.5" height="96" fill="#100b07"/>
@@ -250,7 +253,7 @@
   </g>
 
   <!-- ==== the outdoor shell =============================================== -->
-  <g id="bg-out">
+  <g id="bg-out" stroke="none">
     <rect width="96" height="96" fill="#0a0f16"/>
     <rect width="96" height="48" fill="url(#ji-sky)"/>
     <rect width="96" height="48" fill="url(#ji-moonglow)"/>
@@ -274,7 +277,7 @@
 
   <!-- Foreground for outdoors: mist that sits on the ground, and cold falloff.
        No door frame &#8212; the edge of an outdoor tile is open country. -->
-  <g id="fg-out">
+  <g id="fg-out" stroke="none">
     <rect y="40" width="96" height="18" fill="url(#ji-mist)"/>
     <rect y="70" width="96" height="20" fill="url(#ji-mist)" opacity=".7"/>
     <rect width="96" height="96" fill="url(#ji-vig-out)"/>
@@ -282,7 +285,7 @@
 
   <!-- The cast the board applies. Kept lighter than Grave Errand's .2 because
        these scenes already carry their own temperature. -->
-  <g id="ji-cast">
+  <g id="ji-cast" stroke="none">
     <rect width="96" height="96" fill="currentColor" opacity=".13" style="mix-blend-mode:color"/>
   </g>
 </defs>
