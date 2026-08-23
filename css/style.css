@@ -648,10 +648,16 @@ body.app .board-pane > .board { min-height: 0; }
 .board {
   --world-cast: #ffb457;
   --cast: 14%;
-  --cast-wall: 18%;
+  /* Zero, so the walls stay black in both halves of the map. The cast still
+     reaches the floors and the scenes, which is where a change of light should
+     show; a wall lit amber indoors and teal outdoors was readable back when the
+     wall was pale, but a *tinted black* is just a muddy grey and loses the one
+     quality the black is here for. The token stays so the tint can come back
+     by changing a number rather than restoring a mechanism. */
+  --cast-wall: 0%;
 }
-.board--indoor  { --world-cast: #ffb457; --cast: 13%; --cast-wall: 16%; }
-.board--outdoor { --world-cast: #6fd3d0; --cast: 16%; --cast-wall: 22%; }
+.board--indoor  { --world-cast: #ffb457; --cast: 13%; }
+.board--outdoor { --world-cast: #6fd3d0; --cast: 16%; }
 
 .board .tilebox,
 .board .halfroom {
@@ -691,32 +697,33 @@ body.app .board-pane > .board { min-height: 0; }
    is the one element on screen that cannot be lit by anything in the fiction.
    It is a stroke, and it looked like one.
 
-   It is warm dark stone now, and close to the floor in value rather than eight
-   stops above it. That deliberately removes most of the contrast that used to
-   separate one tile from the next: the separation is done below by light and
-   depth instead — a lit inner face, a vignette into the corners, and the wall's
-   own shadow falling into the threshold. Contrast draws a box; light describes
-   a room. */
-:root { --tile: clamp(96px, 19vh, 190px); --wall: #2e2a26; --wall-w: 7px; --room: #23262d;
+   It is black now. With the rooms butted together and sharing a wall, the line
+   between two of them is doing the job a wall does on a plan — it is the
+   building's structure, not a frame around a card — and black is what reads as
+   structure. The separation that used to come from a pale outline now comes
+   from light: a lit inner face, a vignette into the corners, and the room you
+   stand in painting its shadow onto the ones you do not. */
+:root { --tile: clamp(96px, 19vh, 190px); --wall: #000000; --wall-w: 7px; --room: #23262d;
         --hedge: #3d5540; }
 .focus {
   --peek: calc(var(--tile) * 0.42);
-  /* The threshold between two rooms. It has to clear both walls that face into
-     it — 7px each — with daylight left over, or the rooms read as interleaved
-     rather than adjacent. Scales with the tile so it survives #55. */
-  --tile-gap: max(18px, calc(var(--tile) * .13));
-  /* Door art is centred on the wall line, which sits at the near edge of the
-     gap — so half of it hangs outward. Tying the size to twice the gap is what
-     makes "never paints on the neighbour" true by construction rather than by
-     a number that happens to work at one tile size.
+  /* There is no threshold any more. Rooms used to float apart with daylight
+     between them, which is what made a neighbour read as a detached fragment
+     rather than the next room along — you cannot see a building in a set of
+     separated cards. They butt together now and share one wall: each glimpse
+     drops its border on the side it shares, so the black line between two
+     rooms is the centre room's wall, drawn once, belonging to both.
 
-     The 4px comes off for device-pixel rounding, and it is not a fudge: the
-     markers are offset by the DECLARED --wall-w, while the browser floors the
-     rendered border to whole device pixels — 7px becomes 6.4px at a 1.25 ratio
-     — so the marker's centre can sit up to a pixel past the border box. The
-     error is bounded below 1px at any ratio >= 1, so 2px of outward clearance
-     covers it, and leaves daylight in the threshold besides. */
-  --edge: calc(var(--tile-gap) * 2 - 4px);
+     Kept as a token at 0 rather than deleted, because the sizing constants in
+     render.js mirror this geometry and the two have to be changed together. */
+  --tile-gap: 0px;
+  /* The doorway hotspot, sized across the wall. It used to be twice the gap,
+     which made "never paints on the neighbour" true by construction — with no
+     gap left, that construction is gone and the guarantee with it. That is the
+     right outcome and not a regression to work around: a door in a shared wall
+     belongs to both rooms, so it straddles the line deliberately now. The
+     layering below is what makes that safe. */
+  --edge: clamp(26px, calc(var(--tile) * .2), 44px);
 }
 
 .focus {
@@ -737,23 +744,29 @@ body.app .board-pane > .board { min-height: 0; }
 .focus-slot { display: grid; }
 /* ---- Board layering, stated once --------------------------------------------
    Inside the centre room:  tilebox 0 · lit room 1 · name 2 · door art 3 ·
-   hotspot 4. The centre takes a stacking context of its own so those stay
-   local, and the neighbour slots sit above the lot — anything that reaches
-   into a neighbour's space gets covered by it rather than painting over the
-   glimpse. Nothing should actually reach that far now; this is what keeps it
-   true if something later does. */
-.focus-centre { grid-area: c; position: relative; z-index: 1; }
-.focus-slot { position: relative; z-index: 5; }
+   hotspot 4, kept local by the centre's own stacking context.
+
+   The order of the two below is REVERSED from what it was, and the reversal is
+   load-bearing. The neighbours used to sit on top, so that anything reaching
+   out of the centre was covered by the glimpse it would otherwise obscure —
+   correct while a gap held them apart. With the rooms touching, the thing
+   reaching across the line is the doorway, and a door in a shared wall must be
+   visible from the room deciding to walk through it. So the lit room is on top
+   now, and its wall, its door and its shadow all fall onto the neighbours,
+   which is the right way round for a lamp standing in the middle of it. */
+.focus-slot { position: relative; z-index: 1; }
+.focus-centre { grid-area: c; position: relative; z-index: 2; }
 
 .tilebox {
   position: absolute;
   inset: 0;
   background-color: var(--room);
   border: var(--wall-w) solid var(--wall);
-  /* Softer than the old 6px. A 7px wall turning a 6px corner reads as a chunky
-     rounded rectangle — the radius and the wall are the same size, so the
-     corner is all corner. At 11px the wall turns rather than stops. */
-  border-radius: 11px;
+  /* Square. Rounded corners were survivable while the rooms floated apart; the
+     moment they touch, every join grows four little notches of background where
+     the curves pull away from each other, and a plan of a building does not
+     have rounded rooms anyway. */
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -794,15 +807,24 @@ body.app .board-pane > .board { min-height: 0; }
    glow alone. With the wall now close to the floor in value, this border is
    most of what says "you are standing here", so it has to actually win. */
 .board .tilebox--here {
-  /* Flame over the world's own light, not instead of it: the inner mix is the
-     same cast every other wall on the board gets, and the candle is laid on top
-     of that. Mixing flame straight into --wall would make the room you stand in
-     the one place outdoors that is not moonlit, which is backwards — you carry
-     the candle everywhere, so it should add warmth to the cool rather than
-     delete it. */
-  border-color: color-mix(in srgb, var(--flame) 42%,
+  /* Flame laid over whatever the world's own light left on the wall, not
+     instead of it — you carry the candle everywhere, so it should add warmth
+     rather than replace the cast.
+
+     THE ONE KNOB. At 42% this was bright amber, which fought the black
+     directly: with every other wall on the board at pure black, a glowing
+     outline around the middle one is the frame-around-a-card problem coming
+     back in a warmer colour. At 20% it is a wall the candle is standing next
+     to — black with heat in it, and still the only wall on the board that is
+     not flat. Take it to 0% for uniformly black walls; the room you stand in
+     is separately marked by the glow below, by its brighter floor, and by its
+     scene being drawn at .8 against a neighbour's .5. */
+  border-color: color-mix(in srgb, var(--flame) 20%,
     color-mix(in srgb, var(--world-cast) var(--cast-wall), var(--wall)));
   --lit-glow: 0 0 30px color-mix(in srgb, var(--flame) 17%, transparent);
+  /* Local to the centre's stacking context, and still needed: .focus-centre's
+     ::before is the candle halo and paints in the same layer, so without this
+     the halo washes over the room instead of pooling behind it. */
   z-index: 1;
 }
 .focus-centre::before {
@@ -968,33 +990,36 @@ body.app .board-pane > .board { min-height: 0; }
 .halfroom--s .roomscene { top: 0;    left: 50%; transform: translateX(-50%); }
 .halfroom--w .roomscene { right: 0;  top: 50%;  transform: translateY(-50%); }
 .halfroom--e .roomscene { left: 0;   top: 50%;  transform: translateY(-50%); }
-.halfroom--n {
-  border-radius: 11px 11px 0 0; border-bottom: 0;
-  /* Visibility spreads from the gap in the wall rather than filling the slot,
-     so what is not in line with the doorway falls into the dark. */
-  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 50% 100%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
-          mask-image: radial-gradient(ellipse 125% 135% at 50% 100%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
-}
-.halfroom--s {
-  border-radius: 0 0 11px 11px; border-top: 0;
-  /* Visibility spreads from the gap in the wall rather than filling the slot,
-     so what is not in line with the doorway falls into the dark. */
-  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 50% 0%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
-          mask-image: radial-gradient(ellipse 125% 135% at 50% 0%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
-}
-.halfroom--w {
-  border-radius: 11px 0 0 11px; border-right: 0;
-  /* Visibility spreads from the gap in the wall rather than filling the slot,
-     so what is not in line with the doorway falls into the dark. */
-  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 100% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
-          mask-image: radial-gradient(ellipse 125% 135% at 100% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
-}
-.halfroom--e {
-  border-radius: 0 11px 11px 0; border-left: 0;
-  /* Visibility spreads from the gap in the wall rather than filling the slot,
-     so what is not in line with the doorway falls into the dark. */
-  -webkit-mask-image: radial-gradient(ellipse 125% 135% at 0% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
-          mask-image: radial-gradient(ellipse 125% 135% at 0% 50%, #000 20%, rgba(0,0,0,.5) 56%, transparent 86%);
+/* Each glimpse drops the border on the side it shares with you — that zero
+   width edge IS the doorway wall — and squares off, because rooms that touch
+   cannot be rounded without notching every join.
+
+   The fade runs straight out from that shared wall. It used to be a radial
+   spread from a point in the doorway, which put an ellipse of light in the
+   middle of the glimpse and let the corners fall away: that draws a lens, a
+   soft-edged blob hanging off the room, and a blob beside a room reads as a
+   cut-out of a tile rather than as the tile next door. Falling off along one
+   axis instead keeps the neighbour's walls straight and parallel to ours all
+   the way out, so what the eye follows is rooms continuing past the frame and
+   losing the light — which is what they are.
+
+   Direction is always AWAY from the shared wall: the north neighbour shares
+   its bottom edge, so it fades upward, and so on round. Getting one of these
+   backwards fades the room out exactly where it meets you and leaves its far
+   edge bright, which looks like a lit strip pasted on the outside of the map. */
+.halfroom--n { border-radius: 0; border-bottom: 0;
+  -webkit-mask-image: var(--fade-n); mask-image: var(--fade-n); }
+.halfroom--s { border-radius: 0; border-top: 0;
+  -webkit-mask-image: var(--fade-s); mask-image: var(--fade-s); }
+.halfroom--w { border-radius: 0; border-right: 0;
+  -webkit-mask-image: var(--fade-w); mask-image: var(--fade-w); }
+.halfroom--e { border-radius: 0; border-left: 0;
+  -webkit-mask-image: var(--fade-e); mask-image: var(--fade-e); }
+.focus {
+  --fade-n: linear-gradient(to top,    #000 0 34%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.16) 100%);
+  --fade-s: linear-gradient(to bottom, #000 0 34%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.16) 100%);
+  --fade-w: linear-gradient(to left,   #000 0 34%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.16) 100%);
+  --fade-e: linear-gradient(to right,  #000 0 34%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.16) 100%);
 }
 /* Across the seam — the other side of the house. */
 .board .halfroom--across { border-color: color-mix(in srgb, var(--gold) 55%, var(--wall)); }
@@ -1108,6 +1133,29 @@ body.app .board-pane > .board { min-height: 0; }
 .doorway.s { flex-direction: column-reverse; }
 .doorway.w, .doorway.e { flex-direction: row; padding: 0 3px; }
 .doorway.e { flex-direction: row-reverse; }
+
+/* Staying put, in the middle of the room. Quieter than the doors on purpose:
+   it is the one choice that does not lead anywhere, so it should not compete
+   with four lit exits for the eye. Round, because everything else on this
+   board is now square and the difference is the point — it is not a wall. */
+.doorway--stay {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 0;
+  min-height: 0;
+  width: var(--edge);
+  height: var(--edge);
+  border-radius: 50%;
+  justify-content: center;
+  border-color: color-mix(in srgb, var(--flame) 22%, var(--wall));
+  background: color-mix(in srgb, var(--room) 76%, black);
+  box-shadow: none;
+  opacity: .78;
+}
+.doorway--stay:hover, .doorway--stay:focus-visible { opacity: 1; }
+.doorway--stay .doorway-face { font-size: .8rem; letter-spacing: .05em; }
+.doorway--stay kbd { top: -9px; left: 50%; transform: translateX(-50%); }
 
 /* ---- Direction arrows -------------------------------------------------------
    The hotspots made doors clickable but nothing pointed: a glow and a number

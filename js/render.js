@@ -739,6 +739,36 @@ function mountDoorways(boardEl) {
     hot.addEventListener("focus", doorwayTick);
     group.appendChild(hot);
   }
+
+  // Staying put, drawn where staying put happens. It gets the middle of the
+  // room rather than a card in the panel for two reasons: the panel would have
+  // to open alongside the doorways, which is the one combination this file
+  // warns about, and a choice that lives in a different place from the others
+  // stops being one of the same set of choices. The centre is nominally the
+  // footprints' — they are decoration and this is not.
+  const stay = pendingMoves.find((m) => m.kind === "stay");
+  if (stay) {
+    const hot = document.createElement("button");
+    hot.type = "button";
+    hot.className = "doorway doorway--stay";
+    hot.dataset.kind = "stay";
+    hot.setAttribute("aria-label", stay.label);
+    const n = pendingMoves.indexOf(stay);
+    if (n < 9) {
+      const k = document.createElement("kbd");
+      k.textContent = String(n + 1);
+      k.setAttribute("aria-hidden", "true");
+      hot.appendChild(k);
+    }
+    const face = document.createElement("span");
+    face.className = "doorway-face";
+    face.setAttribute("aria-hidden", "true");
+    face.textContent = "···"; // waiting, not going anywhere
+    hot.appendChild(face);
+    hot.addEventListener("click", stay.onClick);
+    hot.addEventListener("focus", doorwayTick);
+    group.appendChild(hot);
+  }
   box.appendChild(group);
 }
 
@@ -915,8 +945,12 @@ function scareNow(count, from = null) {
 // constants mirror the CSS geometry — the focus is peek + tile + peek across
 // with a gap either side — so the tile can be solved from the space available.
 const FOCUS_SPAN = 1.84; // peek(.42) + tile(1) + peek(.42), in tiles
-const GAP_RATIO = 0.13; // --tile-gap once it is off its floor
-const GAP_FLOOR = 18; // px, the floor itself
+// The rooms touch, so there is no gap in the span any more. Kept as a named
+// zero rather than folded away: --tile-gap still exists in the CSS for the same
+// reason, and the two mirror each other — a gap reintroduced in one place and
+// not the other sizes the board wrong in a way nothing here would catch.
+const GAP_RATIO = 0;
+const GAP_FLOOR = 0;
 const BOARD_FILL = 0.88; // how much of the pane's short side the focus claims
 const TILE_MIN = 96;
 const TILE_MAX = 320;
@@ -945,9 +979,14 @@ export function fitBoard() {
   const budget = BOARD_FILL * Math.min(pane.clientWidth, pane.clientHeight);
   if (!(budget > 0)) return;
 
-  // Two regimes, because the gap scales with the tile until it hits its floor.
+  // One regime now the rooms touch: the span is all tile. The second term and
+  // the floor check below are what the gap used to need, and they fall out to
+  // nothing while GAP_RATIO and GAP_FLOOR are zero — left standing so that
+  // putting a gap back is a change to two constants and not to the arithmetic.
   let tile = budget / (FOCUS_SPAN + 2 * GAP_RATIO);
-  if (tile * GAP_RATIO < GAP_FLOOR) tile = (budget - 2 * GAP_FLOOR) / FOCUS_SPAN;
+  if (GAP_FLOOR > 0 && tile * GAP_RATIO < GAP_FLOOR) {
+    tile = (budget - 2 * GAP_FLOOR) / FOCUS_SPAN;
+  }
   tile = Math.max(TILE_MIN, Math.min(TILE_MAX, Math.round(tile)));
 
   if (root.style.getPropertyValue("--tile") === `${tile}px`) return; // no-op writes churn layout
@@ -2368,14 +2407,25 @@ export function renderActions(actions, prompt = "", opts = {}) {
     return;
   }
 
+  // What the board itself can draw: a walk through a named wall, or the choice
+  // to stay standing where you are. Staying had to be admitted here — it is an
+  // action on the board like any other, and while it was merely "not a move"
+  // its presence in the list disqualified the whole step from the doorway path
+  // below, which silently cost the game its doorways AND held the push-in on
+  // for the entire turn.
+  const isWalk = (a) => a.kind === "move" && a.dir;
+  const isStay = (a) => a.kind === "stay";
+  const boardOnly = actions.some(isWalk) && actions.every((a) => isWalk(a) || isStay(a));
+
   // A decision is open: the board starts closing in. Moves are not a decision
   // in this sense — walking is what you do between them, and a push-in that
   // never released would just be a zoom.
-  pushIn(!actions.every((a) => a.kind === "move" && a.dir));
+  pushIn(!boardOnly);
 
   // Moving is the one thing the board can say better than a list. When every
-  // choice is a move, the doorways become the buttons and the panel stays shut.
-  if (actions.every((a) => a.kind === "move" && a.dir)) {
+  // choice is one the board can draw, they become the buttons and the panel
+  // stays shut.
+  if (boardOnly) {
     pendingMoves = actions;
     movePrompt = prompt;
     if (pop) pop.hidden = true;

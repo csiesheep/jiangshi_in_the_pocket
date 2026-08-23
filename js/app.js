@@ -112,7 +112,9 @@ class Game {
       return { kind: "move", dir: m.dir, label: `Go ${m.dir} — ${this.tileName(to.id)}`,
         icon: `tile-${to.id}`, onClick: () => this.doMove(m.dir) };
     });
-    acts.push({ kind: "rest", label: "Stay where you are", sub: "costs the turn",
+    // kind "stay", not "rest": render.js draws this one on the board with the
+    // doorways, and "rest" would send the whole step to the action panel.
+    acts.push({ kind: "stay", label: "Stay where you are", sub: "costs the turn",
       primary: acts.length === 0, onClick: () => this.doStay() });
     renderActions(acts, "Move on, or stay put — either spends six minutes.");
   }
