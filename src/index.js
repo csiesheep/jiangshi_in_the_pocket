@@ -1,11 +1,11 @@
 // Cloudflare Worker: path-prefix router in front of the static assets.
 // `run_worker_first: true` (wrangler.jsonc) sends every request here before
-// asset matching, so we can strip the `/zombie_in_the_pocket` prefix and
+// asset matching, so we can strip the `/jiangshi_in_the_pocket` prefix and
 // still serve from the bare *.workers.dev root while testing.
 //
 // The public path segment is independent of the repo / Worker name — change
 // PREFIX alone to move the site to a different path.
-const PREFIX = "/zombie_in_the_pocket";
+const PREFIX = "/jiangshi_in_the_pocket";
 const ORIGIN = "https://games.csiesheep.com";
 const CANONICAL = ORIGIN + PREFIX + "/";
 
@@ -54,7 +54,7 @@ export default {
 
       // The static-asset handler redirects .html requests to their
       // extensionless equivalent, but it builds Location from the url we just
-      // stripped the prefix off - so /zombie_in_the_pocket/game.html points at
+      // stripped the prefix off - so /jiangshi_in_the_pocket/game.html points at
       // a bare /game, which escapes this Worker and 404s on the hub. Put the
       // prefix back on any same-origin redirect it hands us.
       const location = response.headers.get("location");

@@ -1,5 +1,6 @@
 // Board model — the dual grid (indoor + outdoor), tile placement, rotation,
-// adjacency, the Dining Room -> Patio seam, and zombie-door dead ends.
+// adjacency, the exterior-door seam between the two worlds, the shrine's
+// prayer, and zombie-door dead ends.
 // Pure logic, no DOM. Shares the seeded RNG with the engine.
 
 import { makeRng, shuffle } from "./engine.js";
@@ -44,7 +45,10 @@ function makeTile(byId, id, world, x, y, rotation) {
     holes: [], // zombie-door openings, added later
     def,
   };
-  if (def.exteriorDoor) tile.exteriorDir = rotateDir("N", rotation); // arrow door
+  // The way between worlds. Named by the data rather than assumed to be the
+  // north face: it costs the room one of its own doors instead of adding a
+  // fifth, so which door it is has to come from the same place the doors do.
+  if (def.exteriorDoor) tile.exteriorDir = rotateDir(def.exteriorDoor, rotation);
   if (def.seam) tile.seamDir = rotateDir(def.seam, rotation);
   return tile;
 }

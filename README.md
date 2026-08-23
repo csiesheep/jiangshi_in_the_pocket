@@ -13,7 +13,7 @@ Worker with static assets, the same stack as
 > every room and item name, all flavour text and all art. See the design notes
 > in the Obsidian vault (`Projects/zombie in the pocket`).
 >
-> The repo name and URL slug are still `zombie_in_the_pocket` from the working
+> The repo name and URL slug are still `jiangshi_in_the_pocket` from the working
 > title. That's just the `PREFIX` constant in `src/index.js` and is independent
 > of the public-facing name.
 
@@ -38,7 +38,7 @@ the names, so keep it in step.
 ## Status
 
 Playable end-to-end and live at
-`https://games.csiesheep.com/zombie_in_the_pocket/`, currently `noindex` until
+`https://games.csiesheep.com/jiangshi_in_the_pocket/`, currently `noindex` until
 the renamed build has been reviewed in production.
 
 - **Done** — engine, board model, playable UI, rulebook, re-theme, deploy.

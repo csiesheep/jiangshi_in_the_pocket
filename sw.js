@@ -10,7 +10,7 @@
 const CACHE = "grave-errand-v17";
 
 // Everything needed to open the game with no network. Relative paths on
-// purpose: this ships under a subpath (…/zombie_in_the_pocket/) and absolute
+// purpose: this ships under a subpath (…/jiangshi_in_the_pocket/) and absolute
 // ones would silently point at the domain root.
 const SHELL = [
   "./",
