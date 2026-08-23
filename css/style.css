@@ -1043,7 +1043,10 @@ body.app .board-pane > .board { min-height: 0; }
    Four bumpy strips, one per edge, painted from repeating gradients rather than
    a clip-path: clipping the tile would cut off the doorway markers and hotspots
    that deliberately overhang its edge. */
-.board .world--outdoor { border-radius: 2px; }
+/* Square, like everything else on the board now. This was 2px — a leftover
+   softening from when rooms floated apart, and the only tiles left with a
+   curve on them once the walls started meeting. */
+.board .world--outdoor { border-radius: 0; }
 .board .world--outdoor::before {
   content: "";
   position: absolute;
