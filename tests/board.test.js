@@ -65,8 +65,6 @@ test("createBoard: start tile at origin, decks minus the two set aside", () => {
   eq(b.decks.indoor.length, 9, "10 indoor minus the Gatehouse");
   eq(b.decks.outdoor.length, 9, "10 outdoor minus the Back Steps");
   eq(t.exits, ["N", "E", "W"]);
-  eq(b.prayerTarget, null);
-  eq(b.prayerSpent, false);
 });
 
 test("the Gatehouse offers its three ways on, and is no dead end", () => {
@@ -343,93 +341,6 @@ test("seam: stepping through the gate places the landing tile", () => {
   assert(cross, "a cross-back move is offered");
   B.moveTo(b, cross.dir);
   eq(b.player.world, "indoor");
-});
-
-// ---- The shrine's prayer -----------------------------------------------------
-// Stand on the shrine with the grave still in the stack. Returns the board with
-// the player on the shrine, the outdoor deck a known order, and the grave
-// buried in the middle of it — never on top, so a passing test cannot be the
-// deck agreeing by accident.
-function atTheShrine(seed = 1) {
-  const b = board({ seed });
-  b.decks.indoor = ["courtyard"];
-  B.explore(b, "N", 0);
-  B.goOutside(b);
-  b.decks.outdoor = ["pavilion", "stream", "mass-grave", "dry-well"];
-  // Put the shrine under our feet: it is where the prayer is made from.
-  b.worlds.outdoor.set(
-    B.cellKey(0, 0),
-    { id: "earth-god-shrine", world: "outdoor", x: 0, y: 0, rotation: 0,
-      exits: ["E", "S"], holes: [], def: DATA.tiles.outdoor.find((d) => d.id === "earth-god-shrine") }
-  );
-  return b;
-}
-
-test("pray: the next tile placed is the one the shrine names", () => {
-  const b = atTheShrine();
-  assert(B.canPray(b), "the grave is still in the stack");
-  eq(B.pray(b).ok, true);
-  eq(b.prayerTarget, "mass-grave");
-  eq(B.peekTile(b, "outdoor"), "mass-grave", "and it is what comes up next");
-
-  const r = B.explore(b, "E", B.pickExploreRotation(b, "E"));
-  assert(r.ok);
-  eq(r.tile.id, "mass-grave", "the land god knows where the dead are buried");
-  eq(b.prayerTarget, null, "the prayer is answered, not standing");
-  eq(b.decks.outdoor, ["pavilion", "stream", "dry-well"], "the rest of the stack keeps its order");
-});
-
-// The rotation offered has to be the grave's, not the tile that happened to be
-// on top — validate one and place the other and the grave goes down sideways.
-test("pray: the rotations offered are the summoned tile's", () => {
-  const b = atTheShrine();
-  const topFirst = B.validExploreRotations(b, "E");
-  B.pray(b);
-  const prayed = B.validExploreRotations(b, "E");
-  const placed = B.explore(b, "E", prayed[0]);
-  assert(placed.ok, "the rotation the board offered is one it accepts");
-  assert(placed.tile.exits.includes("W"), "and the grave still faces back the way we came");
-  assert(
-    JSON.stringify(topFirst) !== JSON.stringify(prayed),
-    "the two tiles genuinely turn differently, so this test can fail"
-  );
-});
-
-test("pray: once per night, and never for a tile already on the table", () => {
-  const b = atTheShrine();
-  B.pray(b);
-  B.explore(b, "E", B.pickExploreRotation(b, "E"));
-  // Back to the shrine, and ask again.
-  b.player = { world: "outdoor", x: 0, y: 0 };
-  eq(B.canPray(b), false, "the incense is burnt");
-  eq(B.pray(b).reason, "spent");
-
-  // And a fresh night, where the grave is already down.
-  const c = atTheShrine(2);
-  c.decks.outdoor = ["pavilion", "stream"];
-  eq(B.canPray(c), false, "nothing left to summon");
-  eq(B.pray(c).reason, "already-placed");
-});
-
-test("pray: an indoor detour does not spend the answer", () => {
-  const b = atTheShrine();
-  B.pray(b);
-  // Walk back in and explore the village. The prayer names an outdoor tile, so
-  // the indoor stack cannot answer it and must not swallow it either.
-  B.moveTo(b, B.currentTile(b).seamDir || "N");
-  eq(b.player.world, "indoor", "back inside");
-  b.decks.indoor = ["woodshed", "blacksmith"];
-  const inside = B.explore(b, "E", B.pickExploreRotation(b, "E"));
-  assert(inside.ok, "explored a room indoors");
-  assert(inside.tile.id !== "mass-grave", "the village has no grave in it");
-  eq(b.prayerTarget, "mass-grave", "the prayer is still owed");
-});
-
-test("pray: refused anywhere but the shrine", () => {
-  const b = board({ seed: 1 });
-  eq(B.canPray(b), false);
-  eq(B.pray(b).reason, "not-a-shrine");
-  eq(b.prayerSpent, false, "and a refused prayer costs nothing");
 });
 
 // ---- Is every run actually winnable? ---------------------------------------

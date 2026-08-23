@@ -138,9 +138,7 @@ class Game {
   // keeps a way on into unexplored space, and is deterministic so a shared seed
   // still replays move for move.
   doExplore(dir) {
-    // peekTile, not decks[0]: an answered prayer brings a tile up from inside
-    // the stack, and the line in the log has to name the room actually placed.
-    const revealed = Bd.peekTile(this.board, this.board.player.world);
+    const revealed = this.board.decks[this.board.player.world][0];
     const rot = Bd.pickExploreRotation(this.board, dir);
     const r = Bd.explore(this.board, dir, rot);
     if (!r.ok) return this.renderMoves();
