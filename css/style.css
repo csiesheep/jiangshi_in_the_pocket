@@ -1673,6 +1673,13 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   margin: 0;
 }
 
+/* Neutral, not cast. The warm card was right when the art was a 62px thumbnail
+   beside a paragraph — the card WAS the indoor/outdoor signal. Now the plate is
+   full width and the card is mostly picture, so a warm surround does two bad
+   things: it lifts the ground 5x brighter than the art, flattening blacks the
+   scenes rely on, and it sits in the backdrop that the currentColor veil blends
+   against, so the same tile came out warmer here than on the review sheet.
+   The cast still reads, on the banner, the door plan and the art itself. */
 .tilecard {
   display: flex;
   flex-direction: column;
@@ -1680,12 +1687,15 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background-color: color-mix(in srgb, var(--world-cast) var(--cast), var(--room));
+  background-color: var(--bg-2);
 }
 
 /* The plate. Square, black behind it, because every scene is painted to the
    edge and any gap would read as a border the art does not have. */
-.tilecard-plate { position: relative; aspect-ratio: 1; background: #000; }
+/* isolation pins the veil's backdrop to this black plate. Without it the blend
+   reaches whatever the card and page happen to be, and the same scene renders
+   differently in two places that show identical markup. */
+.tilecard-plate { position: relative; aspect-ratio: 1; background: #000; isolation: isolate; }
 /* Painted scenes take the cast undiluted, the way .roomscene--rich does on the
    board — the veil inside the symbol is the only currentColor in there, so this
    is the whole of what tints the art. Without a color here the plate inherits
