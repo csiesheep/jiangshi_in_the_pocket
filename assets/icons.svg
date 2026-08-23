@@ -825,95 +825,437 @@
 
   <!-- Shut: a panelled leaf filling the gap, handle catching the light. This is
        the explore affordance, so it should look like an invitation. -->
+  <!-- Ways through, indoors: a 板門 in dark red lacquer, the double door of a
+       village house seen square on. Lintel over, stone threshold under, brass
+       studs and 門環 ring pulls.
+
+       These are painted rather than drawn in currentColor: a door the colour of
+       old cinnabar is the point, and a line diagram was never going to say
+       that. The sprite strokes every symbol in currentColor for the line art,
+       so the paint lives inside g stroke="none" and the state tint is a thin
+       wash over the frame at the end. Every edgemark is rotated by CSS, so
+       north is the only orientation drawn. -->
   <symbol id="edge-door-closed" viewBox="0 0 24 24">
-    <rect x="3" y="7" width="18" height="10" rx=".8" fill="currentColor" fill-opacity=".2"/>
-    <rect x="3" y="7" width="18" height="10" rx=".8" stroke-width="1.7"/>
-    <rect x="5.4" y="9" width="5.6" height="6" rx=".4" stroke-width="1.1" stroke-opacity=".75"/>
-    <rect x="13" y="9" width="5.6" height="6" rx=".4" stroke-width="1.1" stroke-opacity=".75"/>
-    <circle cx="18.6" cy="12" r="1.05" fill="currentColor"/>
+    <g stroke="none">
+      <rect x="2.2" y="5.2" width="19.6" height="14" fill="#160d07"/>
+      <rect x="1" y="3.9" width="22" height="2.4" fill="#33210f"/>
+      <rect x="1" y="3.9" width="22" height=".7" fill="#4e3419"/>
+      <rect x="2.2" y="6.3" width="1.2" height="12" fill="#2c1c10"/>
+      <rect x="20.6" y="6.3" width="1.2" height="12" fill="#2c1c10"/>
+      <rect x="3.4" y="6.3" width="8.3" height="12" fill="#6e2b22"/>
+      <rect x="12.3" y="6.3" width="8.3" height="12" fill="#652620"/>
+      <g fill="#4d1b15">
+        <rect x="6.1" y="6.3" width=".5" height="12"/><rect x="8.9" y="6.3" width=".5" height="12"/>
+        <rect x="15" y="6.3" width=".5" height="12"/><rect x="17.8" y="6.3" width=".5" height="12"/>
+      </g>
+      <g fill="#8a3a2c" opacity=".55">
+        <rect x="3.4" y="6.3" width="8.3" height=".6"/><rect x="12.3" y="6.3" width="8.3" height=".6"/>
+      </g>
+      <rect x="11.7" y="6.3" width=".7" height="12" fill="#280f0c"/>
+      <g fill="#c9a35e">
+        <circle cx="5.4" cy="8.7" r=".62"/><circle cx="8.4" cy="8.7" r=".62"/>
+        <circle cx="5.4" cy="15.6" r=".62"/><circle cx="8.4" cy="15.6" r=".62"/>
+        <circle cx="15.6" cy="8.7" r=".62"/><circle cx="18.6" cy="8.7" r=".62"/>
+        <circle cx="15.6" cy="15.6" r=".62"/><circle cx="18.6" cy="15.6" r=".62"/>
+      </g>
+      <g fill="none" stroke="#c9a35e" stroke-width=".75">
+        <circle cx="10.2" cy="12.2" r="1.2"/><circle cx="13.8" cy="12.2" r="1.2"/>
+      </g>
+      <g fill="#8a6a3e">
+        <rect x="9.6" y="10.4" width="1.2" height="1" rx=".3"/>
+        <rect x="13.2" y="10.4" width="1.2" height="1" rx=".3"/>
+      </g>
+      <rect x="1" y="18.3" width="22" height="2" fill="#4b4740"/>
+      <rect x="1" y="18.3" width="22" height=".6" fill="#6e6759"/>
+      <rect x="1" y="3.9" width="22" height="16.4" fill="currentColor" opacity=".14" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
-  <!-- Open: jambs stand, the leaf rests where the swing animation leaves it,
-       and the opening itself is darkness. -->
+  <!-- Both boards swung open, and the dark of the next room between them. The
+       leaves are foreshortened rather than flat: a door that reads as open has
+       to show its own thickness. -->
   <symbol id="edge-door-open" viewBox="0 0 24 24">
-    <path d="M2.6 6.4v11.2M21.4 6.4v11.2" stroke-width="2"/>
-    <path d="M3.4 12L13.6 21.6" stroke-width="2.8"/>
-    <path d="M5 13.6l7.6 7.2" stroke-width="1" stroke-opacity=".45"/>
+    <g stroke="none">
+      <rect x="1" y="3.9" width="22" height="2.4" fill="#33210f"/>
+      <rect x="1" y="3.9" width="22" height=".7" fill="#4e3419"/>
+      <rect x="6.6" y="6.3" width="10.8" height="12" fill="#080604"/>
+      <rect x="6.6" y="6.3" width="10.8" height="2.2" fill="#0d0906"/>
+      <path d="M2.4 6.3h4.2l1 1.9v8.2l-1 1.9H2.4z" fill="#7a3025"/>
+      <path d="M21.6 6.3h-4.2l-1 1.9v8.2l1 1.9h4.2z" fill="#5e2119"/>
+      <g fill="#4d1b15">
+        <path d="M4.1 6.3h.5l.85 1.9v8.2l-.85 1.9h-.5l.85-1.9V8.2z"/>
+        <path d="M19.9 6.3h-.5l-.85 1.9v8.2l.85 1.9h.5l-.85-1.9V8.2z"/>
+      </g>
+      <g fill="#96412f" opacity=".5">
+        <path d="M2.4 6.3h4.2l1 1.9H2.4z"/>
+      </g>
+      <path d="M6.6 8.2l1-1.9v11.9l-1-1.9z" fill="#3d150f"/>
+      <path d="M17.4 8.2l-1-1.9v11.9l1-1.9z" fill="#2e100b"/>
+      <g fill="none" stroke="#c9a35e" stroke-width=".7">
+        <circle cx="5" cy="12.2" r="1"/><circle cx="19" cy="12.2" r="1"/>
+      </g>
+      <rect x="1" y="18.3" width="22" height="2" fill="#4b4740"/>
+      <rect x="1" y="18.3" width="22" height=".6" fill="#6e6759"/>
+      <rect x="7.4" y="18.3" width="9.2" height=".6" fill="#8a7f68" opacity=".7"/>
+      <rect x="1" y="3.9" width="22" height="16.4" fill="currentColor" opacity=".16" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
-  <!-- Blocked: boarded over. A door that will never open, not a grey one. -->
+  <!-- Barred and papered over: a plank across both leaves and a 符 pasted on the
+       seam. A door somebody shut on purpose. -->
   <symbol id="edge-door-blocked" viewBox="0 0 24 24">
-    <rect x="3" y="7" width="18" height="10" rx=".8" fill="currentColor" fill-opacity=".14"/>
-    <rect x="3" y="7" width="18" height="10" rx=".8" stroke-width="1.5" stroke-opacity=".8"/>
-    <path d="M1.8 9.2l20.4 2.4M1.8 14.6l20.4-2.6" stroke-width="2.4"/>
-    <path d="M4.6 8.4l1 7.4M19.2 8.2l-1 7.6" stroke-width="1" stroke-opacity=".5"/>
+    <g stroke="none">
+      <rect x="2.2" y="5.2" width="19.6" height="14" fill="#160d07"/>
+      <rect x="1" y="3.9" width="22" height="2.4" fill="#33210f"/>
+      <rect x="2.2" y="6.3" width="1.2" height="12" fill="#2c1c10"/>
+      <rect x="20.6" y="6.3" width="1.2" height="12" fill="#2c1c10"/>
+      <rect x="3.4" y="6.3" width="8.3" height="12" fill="#5e2119"/>
+      <rect x="12.3" y="6.3" width="8.3" height="12" fill="#571e17"/>
+      <g fill="#42150f">
+        <rect x="6.1" y="6.3" width=".5" height="12"/><rect x="8.9" y="6.3" width=".5" height="12"/>
+        <rect x="15" y="6.3" width=".5" height="12"/><rect x="17.8" y="6.3" width=".5" height="12"/>
+      </g>
+      <rect x="11.7" y="6.3" width=".7" height="12" fill="#240d0a"/>
+      <path d="M2.2 14.6l19.6-1.9v2.5L2.2 17.1z" fill="#7d6134"/>
+      <path d="M2.2 14.6l19.6-1.9v.7L2.2 15.3z" fill="#a1804a"/>
+      <g fill="#3f3120">
+        <circle cx="5" cy="15" r=".55"/><circle cx="19" cy="13.6" r=".55"/>
+      </g>
+      <rect x="10.3" y="6.9" width="3.4" height="5.6" fill="#d8bd6e"/>
+      <rect x="10.3" y="6.9" width="3.4" height=".7" fill="#e8d18c"/>
+      <g fill="none" stroke="#a8302a" stroke-width=".55">
+        <path d="M12 7.6v4.2M10.9 9h2.2M10.9 10.4h2.2"/>
+      </g>
+      <rect x="1" y="18.3" width="22" height="2" fill="#43403a"/>
+      <rect x="1" y="3.9" width="22" height="16.4" fill="currentColor" opacity=".16" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
-  <!-- The arrow door: a heavier double leaf under a lantern. -->
+  <!-- The 月洞門: the round moon gate, and the only way between the village and
+       the hillside. An opening in a lime wall rather than a door, because it has
+       no leaves — and the night showing through it. -->
   <symbol id="edge-door-exterior" viewBox="0 0 24 24">
-    <rect x="3" y="8" width="18" height="9.5" rx=".8" fill="currentColor" fill-opacity=".2"/>
-    <rect x="3" y="8" width="18" height="9.5" rx=".8" stroke-width="1.7"/>
-    <path d="M12 8v9.5" stroke-width="1.5"/>
-    <circle cx="10.4" cy="12.8" r=".85" fill="currentColor"/>
-    <circle cx="13.6" cy="12.8" r=".85" fill="currentColor"/>
-    <path d="M9.6 3.4h4.8v3.4H9.6z" stroke-width="1.5"/>
-    <path d="M12 3.4V1.6" stroke-width="1.3"/>
-    <path d="M8.4 6.8h7.2" stroke-width="1.3" stroke-opacity=".6"/>
+    <g stroke="none">
+      <rect x="0" y="5.4" width="24" height="14.6" fill="#3c362b"/>
+      <rect x="0" y="5.4" width="24" height="1" fill="#544c3d"/>
+      <rect x="0" y="4.4" width="24" height="1.2" fill="#2a251d"/>
+      <g fill="#332e25">
+        <rect x="0" y="11" width="24" height=".5"/><rect x="0" y="15" width="24" height=".5"/>
+      </g>
+      <path d="M4.2 20V13a7.8 7.8 0 0 1 15.6 0v7z" fill="#0d1522"/>
+      <path d="M5.6 20v-7a6.4 6.4 0 0 1 12.8 0v7z" fill="#16233a"/>
+      <path d="M7 20v-7a5 5 0 0 1 10 0v7z" fill="#1d3049"/>
+      <path d="M4.2 13a7.8 7.8 0 0 1 15.6 0h-1.4a6.4 6.4 0 0 0-12.8 0z" fill="#6b6152"/>
+      <path d="M4.2 13a7.8 7.8 0 0 1 15.6 0h-.7a7.1 7.1 0 0 0-14.2 0z" fill="#8a8172"/>
+      <g fill="#9db8d2" opacity=".28">
+        <ellipse cx="12" cy="18.4" rx="4.4" ry="1.6"/>
+      </g>
+      <rect x="1" y="18.4" width="22" height="1.6" fill="#4b4740"/>
+      <rect x="1" y="18.4" width="22" height=".5" fill="#6e6759"/>
+      <rect x="0" y="4.4" width="24" height="15.6" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
   </symbol>
 
-  <!-- The wall is gone. Ragged on both faces, with the debris it left behind. -->
-  <!-- A wall losing, in two states. Both are transient — no board state says
-       "cracked", the break-in sequence (#96) mounts them for the length of the
-       fight and takes them down when the hole opens. Drawn north-wall-up like
-       every other edge mark, so the existing rotation handles the other three
-       sides.
+  <!-- Ways through, outdoors: not doors at all. A sandy track worn through the
+       grass, running away from you. Same four states, same rotation, chosen by
+       tile.world. -->
+  <symbol id="edge-path-closed" viewBox="0 0 24 24">
+    <g stroke="none">
+      <rect x="0" y="4.4" width="24" height="15.6" fill="#1a2019"/>
+      <path d="M0 4.4h24v6H0z" fill="#12180f"/>
+      <path d="M9.9 4.4h4.2l3.1 15.6H6.8z" fill="#6e5c3f"/>
+      <path d="M10.3 4.4h3.4l2.6 15.6H7.7z" fill="#87724e"/>
+      <path d="M11 6h2l1.6 14h-5.2z" fill="#9b8459" opacity=".7"/>
+      <path d="M9.9 4.4h4.2l.5 2.4h-5.2z" fill="#0e1310" opacity=".55"/>
+      <g fill="#2c4a33">
+        <path d="M0 8h8.4l-2.6 12H0z"/><path d="M24 8h-8.4l2.6 12H24z"/>
+      </g>
+      <g fill="#3d6a48">
+        <path d="M7.4 11.4c-.7-1.6-.4-2.9.5-3.8.2 1.7.5 2.7 1 3.8z"/>
+        <path d="M5.2 15c-.8-1.8-.5-3.2.5-4.2.2 1.9.6 3 1.1 4.2z"/>
+        <path d="M3 19c-.9-2-.6-3.6.5-4.7.2 2.1.7 3.4 1.2 4.7z"/>
+        <path d="M16.6 11.4c.7-1.6.4-2.9-.5-3.8-.2 1.7-.5 2.7-1 3.8z"/>
+        <path d="M18.8 15c.8-1.8.5-3.2-.5-4.2-.2 1.9-.6 3-1.1 4.2z"/>
+        <path d="M21 19c.9-2 .6-3.6-.5-4.7-.2 2.1-.7 3.4-1.2 4.7z"/>
+      </g>
+      <g fill="#8fa06a" opacity=".35">
+        <path d="M6.2 13.6c-.5-1.1-.3-2 .3-2.6.1 1.2.3 1.8.6 2.6z"/>
+        <path d="M17.8 13.6c.5-1.1.3-2-.3-2.6-.1 1.2-.3 1.8-.6 2.6z"/>
+      </g>
+      <g fill="#b5a077" opacity=".5">
+        <circle cx="10.6" cy="12" r=".45"/><circle cx="13.6" cy="15.4" r=".5"/><circle cx="11.4" cy="17.6" r=".42"/>
+      </g>
+      <rect x="0" y="4.4" width="24" height="15.6" fill="currentColor" opacity=".18" style="mix-blend-mode:color"/>
+    </g>
+  </symbol>
 
-       The web spreads from a point slightly above the wall line, because that
-       is the side they are hitting it from. -->
+  <!-- Walked: the sand is pale where feet have taken the dust off it, and the
+       grass is trodden back from the edges. -->
+  <symbol id="edge-path-open" viewBox="0 0 24 24">
+    <g stroke="none">
+      <rect x="0" y="4.4" width="24" height="15.6" fill="#1a2019"/>
+      <path d="M0 4.4h24v5H0z" fill="#0f150d"/>
+      <path d="M9.4 4.4h5.2l4 15.6H5.4z" fill="#6e5c3f"/>
+      <path d="M9.8 4.4h4.4l3.4 15.6H6.4z" fill="#97835b"/>
+      <path d="M10.2 4.4h3.6l2.8 15.6H7.4z" fill="#a8916a"/>
+      <path d="M11 6.4h2l1.9 13.6h-5.8z" fill="#bda87e" opacity=".75"/>
+      <path d="M9.4 4.4h5.2l.4 1.8H9z" fill="#0d120f" opacity=".5"/>
+      <g fill="#2c4a33">
+        <path d="M0 7.6h8l-3 12.4H0z"/><path d="M24 7.6h-8l3 12.4h5z"/>
+      </g>
+      <g fill="#3d6a48">
+        <path d="M7.2 10.8c-.7-1.6-.4-2.9.5-3.8.2 1.7.5 2.7 1 3.8z"/>
+        <path d="M5.6 14.6c-.8-1.8-.5-3.2.5-4.2.2 1.9.6 3 1.1 4.2z"/>
+        <path d="M3.4 19c-.9-2-.6-3.6.5-4.7.2 2.1.7 3.4 1.2 4.7z"/>
+        <path d="M16.8 10.8c.7-1.6.4-2.9-.5-3.8-.2 1.7-.5 2.7-1 3.8z"/>
+        <path d="M18.4 14.6c.8-1.8.5-3.2-.5-4.2-.2 1.9-.6 3-1.1 4.2z"/>
+        <path d="M20.6 19c.9-2 .6-3.6-.5-4.7-.2 2.1-.7 3.4-1.2 4.7z"/>
+      </g>
+      <g fill="#8fa06a" opacity=".4">
+        <path d="M6.4 12.8c-.5-1.1-.3-2 .3-2.6.1 1.2.3 1.8.6 2.6z"/>
+        <path d="M17.6 12.8c.5-1.1.3-2-.3-2.6-.1 1.2-.3 1.8-.6 2.6z"/>
+        <path d="M4.6 17c-.5-1.2-.3-2.2.3-2.9.1 1.3.3 2 .6 2.9z"/>
+      </g>
+      <g fill="#6e5c3f" opacity=".55">
+        <path d="M10.4 7.4l-.9 12.6h.7l.9-12.6z"/><path d="M13.6 7.4l.9 12.6h-.7l-.9-12.6z"/>
+      </g>
+      <g fill="#cbb891" opacity=".6">
+        <circle cx="10.2" cy="11.4" r=".45"/><circle cx="13.9" cy="14.6" r=".5"/>
+        <circle cx="11.2" cy="17.2" r=".45"/><circle cx="14.6" cy="18.6" r=".4"/>
+      </g>
+      <rect x="0" y="4.4" width="24" height="15.6" fill="currentColor" opacity=".2" style="mix-blend-mode:color"/>
+    </g>
+  </symbol>
+
+  <!-- Piled shut with cut brush, the way a village closes a track it does not
+       want used tonight. -->
+  <symbol id="edge-path-blocked" viewBox="0 0 24 24">
+    <g stroke="none">
+      <rect x="0" y="4.4" width="24" height="15.6" fill="#1a2019"/>
+      <path d="M0 4.4h24v5.4H0z" fill="#11170f"/>
+      <path d="M9.7 4.4h4.6l3.5 15.6H6.2z" fill="#6e5c3f"/>
+      <path d="M10.1 4.4h3.8l2.9 15.6H7.2z" fill="#8a7551"/>
+      <g fill="#2c4a33">
+        <path d="M0 7.8h8.2l-2.8 12.2H0z"/><path d="M24 7.8h-8.2l2.8 12.2H24z"/>
+      </g>
+      <g fill="#3d6a48">
+        <path d="M7.2 11c-.7-1.6-.4-2.9.5-3.8.2 1.7.5 2.7 1 3.8z"/>
+        <path d="M16.8 11c.7-1.6.4-2.9-.5-3.8-.2 1.7-.5 2.7-1 3.8z"/>
+        <path d="M3.4 19c-.9-2-.6-3.6.5-4.7.2 2.1.7 3.4 1.2 4.7z"/>
+        <path d="M20.6 19c.9-2 .6-3.6-.5-4.7-.2 2.1-.7 3.4-1.2 4.7z"/>
+      </g>
+      <g fill="#4a3a22">
+        <path d="M4.6 15.8l15-3.4.5 2.2-15 3.4z"/>
+        <path d="M4.8 12.2l14.8 3.6-.5 2.2-14.8-3.6z"/>
+      </g>
+      <g fill="#5f4a2c">
+        <path d="M4.6 15.8l15-3.4.2.9-15 3.4z"/>
+        <path d="M4.8 12.2l14.8 3.6-.2.9-14.8-3.6z"/>
+      </g>
+      <g fill="#38291a">
+        <path d="M7.4 10.6l8.4 8.4-1 .6-8.4-8.4z"/><path d="M16.6 10.4l-8.4 8.6 1 .6 8.4-8.6z"/>
+      </g>
+      <g fill="#2c4a33">
+        <path d="M6 13.2c-1-.6-1.6-1.4-1.7-2.3 1 .5 1.7 1.2 2.3 2.1z"/>
+        <path d="M18 13.2c1-.6 1.6-1.4 1.7-2.3-1 .5-1.7 1.2-2.3 2.1z"/>
+        <path d="M12 19.4c-.8-.9-1.1-1.8-1-2.8.8.8 1.2 1.7 1.5 2.8z"/>
+      </g>
+      <rect x="0" y="4.4" width="24" height="15.6" fill="currentColor" opacity=".18" style="mix-blend-mode:color"/>
+    </g>
+  </symbol>
+  <!-- The wall giving way, indoors: lime render over mud brick.
+
+       Hybrid on purpose. The material is painted, because plaster and brick are
+       not a colour the interface gets to choose. The cracks and the arms stay in
+       currentColor, because the sequence says what is happening by recolouring
+       them — bone while the wall is only failing, danger red once something is
+       through — and painting those would throw that away. -->
   <symbol id="edge-wall-cracked" viewBox="0 0 24 24">
+    <g stroke="none">
+      <rect x="0" y="7.4" width="24" height="9.2" fill="#3a352c"/>
+      <rect x="0" y="7.4" width="24" height="1" fill="#4c463a"/>
+      <rect x="0" y="15.6" width="24" height="1" fill="#282419"/>
+      <g fill="#332e26">
+        <rect x="0" y="11.6" width="24" height=".5"/>
+      </g>
+      <path d="M9.6 9.2l4.6-.4 1 3.2-3.4 2.4-3.6-1.4z" fill="#2a2018"/>
+      <path d="M10.4 9.8l3.4-.3.7 2.4-2.5 1.8-2.7-1z" fill="#5a3c26"/>
+      <g fill="#6b4830" opacity=".7">
+        <rect x="10.6" y="10.4" width="2.8" height=".45"/>
+        <rect x="10.9" y="11.7" width="2.4" height=".45"/>
+      </g>
+      <g fill="#d8cdb4" opacity=".5">
+        <path d="M7.8 16.6l1.4 2.6-1 .3-1.2-2.9z"/>
+        <path d="M15.6 16.6l1 3-1 .2-.9-3.2z"/>
+      </g>
+      <g fill="#c4b494" opacity=".45">
+        <circle cx="9" cy="20.4" r=".5"/><circle cx="14.4" cy="21" r=".42"/><circle cx="11.6" cy="19.4" r=".38"/>
+      </g>
+    </g>
     <path d="M11.6 11.2l-3.6-2.8M11.6 11.2l3-2.4M11.6 11.2l-1.4 4.4M11.6 11.2l4.2 2.2M11.6 11.2l-4.8 1.2"
-          stroke-width="1.25" stroke-opacity=".92"/>
+          stroke-width="1.25" stroke-opacity=".95"/>
     <path d="M8 8.4l-2.2-1.6M14.6 8.8l2-1.8M10.2 15.6l-1.2 2.4M15.8 13.4l2.6 1.2"
-          stroke-width=".85" stroke-opacity=".55"/>
+          stroke-width=".85" stroke-opacity=".6"/>
   </symbol>
 
-  <!-- And then something comes through it. Three arms, reaching in from the far
-       side — silhouette rather than anatomy, because this has to read at a
-       96px tile and must not turn comic at 190px. No faces, no detail: an arm
-       is a shape you recognise instantly and a hand you can study is a prop.
-
-       Fewer cracks than the state above: the arms are what the eye should find,
-       and the wall has already finished cracking by the time they are through
-       it. -->
+  <!-- Burst. The render is off, the brick behind it is out, and the dark of
+       whatever is on the other side is showing through. The arms are stiff at
+       the elbow, because that is the whole of what a jiangshi is. -->
   <symbol id="edge-wall-breached" viewBox="0 0 24 24">
-    <path d="M11.6 10.8l-4 -2.6M11.6 10.8l3.4-2.2M11.6 10.8l-4.8 1.6"
-          stroke-width="1.1" stroke-opacity=".6"/>
-    <!-- Forearms: through the wall line and bending toward the room. -->
-    <path d="M6.4 7.2c.6 2.6 1.6 4.6 3.2 6.2" stroke-width="2.3" stroke-linecap="round"
-          stroke-opacity=".95"/>
-    <path d="M12.2 6.6c-.2 2.8.2 5.2 1.2 7.6" stroke-width="2.5" stroke-linecap="round"
-          stroke-opacity=".95"/>
-    <path d="M18.2 7.6c-1 2.4-2.2 4.2-3.8 5.6" stroke-width="2.1" stroke-linecap="round"
-          stroke-opacity=".9"/>
-    <!-- Grasping: three short strokes off each wrist. A hand, at this size, is
-         a direction and a spread — nothing more will survive the scaling. -->
-    <path d="M9.6 13.4l1.4 1.8M9.6 13.4l-.4 2.2M9.6 13.4l-1.8 1.2"
-          stroke-width="1.15" stroke-linecap="round" stroke-opacity=".9"/>
-    <path d="M13.4 14.2l1.8 1.4M13.4 14.2l.2 2.4M13.4 14.2l-1.8 1.6"
-          stroke-width="1.2" stroke-linecap="round" stroke-opacity=".9"/>
-    <path d="M14.4 13.2l1.8 1.6M14.4 13.2l2.2.4"
-          stroke-width="1.05" stroke-linecap="round" stroke-opacity=".8"/>
+    <g stroke="none">
+      <rect x="0" y="7.4" width="24" height="9.2" fill="#3a352c"/>
+      <rect x="0" y="7.4" width="24" height="1" fill="#4c463a"/>
+      <rect x="0" y="15.6" width="24" height="1" fill="#282419"/>
+      <path d="M5.4 7.4h13.6l1.6 3-2.4 3.2 1 2.9H4.6l1.4-3-2-3z" fill="#0a0806"/>
+      <path d="M6.6 7.4h11.2l1.2 2.6-2 2.8.8 2.4H6l1.2-2.6-1.6-2.6z" fill="#050403"/>
+      <g fill="#5a3c26">
+        <path d="M4.6 16.6l2.4-1.4 1 2-2.2 1.4z"/>
+        <path d="M17 15.4l2.6 1.2-.8 2-2.6-1z"/>
+        <path d="M9.8 17.8l2.2-.6.5 1.9-2.2.7z"/>
+      </g>
+      <g fill="#6b4830" opacity=".6">
+        <path d="M4.6 16.6l2.4-1.4.3.6-2.4 1.4z"/><path d="M17 15.4l2.6 1.2-.2.6-2.6-1.2z"/>
+      </g>
+      <g fill="#d8cdb4" opacity=".45">
+        <circle cx="8.4" cy="20.6" r=".55"/><circle cx="13.2" cy="21.4" r=".48"/>
+        <circle cx="16.8" cy="19.8" r=".42"/><circle cx="6.2" cy="22" r=".4"/>
+      </g>
+    </g>
+    <path d="M6.4 7.2c.6 2.6 1.6 4.6 3.2 6.2" stroke-width="2.3" stroke-linecap="round" stroke-opacity=".95"/>
+    <path d="M12.2 6.6c-.2 2.8.2 5.2 1.2 7.6" stroke-width="2.5" stroke-linecap="round" stroke-opacity=".95"/>
+    <path d="M18.2 7.6c-1 2.4-2.2 4.2-3.8 5.6" stroke-width="2.1" stroke-linecap="round" stroke-opacity=".9"/>
+    <path d="M9.6 13.4l1.6 2.2M9.6 13.4l-.5 2.6M9.6 13.4l-2.1 1.4"
+          stroke-width="1.05" stroke-linecap="round" stroke-opacity=".92"/>
+    <path d="M13.4 14.2l2.1 1.7M13.4 14.2l.2 2.8M13.4 14.2l-2.1 1.9"
+          stroke-width="1.1" stroke-linecap="round" stroke-opacity=".92"/>
+    <path d="M14.4 13.2l2.1 1.9M14.4 13.2l2.6.5"
+          stroke-width="1" stroke-linecap="round" stroke-opacity=".82"/>
   </symbol>
 
+  <!-- The hole, afterwards. Permanent board state, so it is drawn as masonry
+       that has actually gone: jambs of broken brick, black between them, and
+       the rubble left on the floor where it fell inward. -->
   <symbol id="edge-wall-broken" viewBox="0 0 24 24">
-    <path d="M0 8.6h2.6l1.4 3.2-2 2.6 2.6 3.4" stroke-width="2"/>
-    <path d="M24 8.6h-2.6l-1.4 3.2 2 2.6-2.6 3.4" stroke-width="2"/>
-    <path d="M5.6 8.2l2.2 2.6-1.6 2.2 2.4 1.4" stroke-width="1.4" stroke-opacity=".8"/>
-    <path d="M18.4 8.2l-2.2 2.6 1.6 2.2-2.4 1.4" stroke-width="1.4" stroke-opacity=".8"/>
-    <path d="M9.4 17.6l1.8 2.4M13.6 18l1.4 2.6" stroke-width="1.2" stroke-opacity=".65"/>
-    <path d="M7.6 19.6l2 1.2-.6 1.8-2.2-.8z" fill="currentColor" fill-opacity=".5" stroke-width=".9"/>
-    <path d="M15 20.2l2.2.6-.4 1.8-2.2-.4z" fill="currentColor" fill-opacity=".5" stroke-width=".9"/>
-    <circle cx="11.8" cy="22.2" r=".8" fill="currentColor"/>
+    <g stroke="none">
+      <rect x="0" y="7.4" width="4.6" height="9.2" fill="#3a352c"/>
+      <rect x="19.4" y="7.4" width="4.6" height="9.2" fill="#3a352c"/>
+      <rect x="0" y="7.4" width="4.6" height="1" fill="#4c463a"/>
+      <rect x="19.4" y="7.4" width="4.6" height="1" fill="#4c463a"/>
+      <path d="M4.6 7.4l2 2.2-1.4 2.4 2 2.4-2.2 2.2H4.6z" fill="#2a2018"/>
+      <path d="M19.4 7.4l-2 2.2 1.4 2.4-2 2.4 2.2 2.2h.4z" fill="#2a2018"/>
+      <path d="M4.6 8.6l1.4 1.4-1 1.8 1.4 1.8-1.6 1.6z" fill="#5a3c26"/>
+      <path d="M19.4 8.6l-1.4 1.4 1 1.8-1.4 1.8 1.6 1.6z" fill="#5a3c26"/>
+      <rect x="5.2" y="7.4" width="13.6" height="9.2" fill="#050403"/>
+      <path d="M5.2 7.4h13.6v2.2H5.2z" fill="#0a0806"/>
+      <g fill="#5a3c26">
+        <path d="M6.4 17.6l2.8-.8.7 2.2-2.8.9z"/>
+        <path d="M15 18.2l2.6.7-.6 2.1-2.6-.7z"/>
+        <path d="M10.4 19.6l2.4-.5.5 1.9-2.4.6z"/>
+        <path d="M8.2 21.4l1.9-.4.4 1.5-1.9.5z"/>
+      </g>
+      <g fill="#6b4830" opacity=".65">
+        <path d="M6.4 17.6l2.8-.8.2.6-2.8.8z"/><path d="M15 18.2l2.6.7-.2.6-2.6-.7z"/>
+        <path d="M10.4 19.6l2.4-.5.1.5-2.4.5z"/>
+      </g>
+      <g fill="#c9bda2" opacity=".4">
+        <circle cx="12.6" cy="22.4" r=".5"/><circle cx="7" cy="20" r=".42"/><circle cx="16.4" cy="21.8" r=".45"/>
+      </g>
+    </g>
+  </symbol>
+
+  <!-- The same three, outdoors, where the wall is a hedge. Nothing masonry
+       about it: what fails is stems and leaf, and what is left is a gap torn in
+       the planting. -->
+  <symbol id="edge-hedge-cracked" viewBox="0 0 24 24">
+    <g stroke="none">
+      <rect x="0" y="7" width="24" height="10" fill="#1c2f22"/>
+      <g fill="#2c4a33">
+        <ellipse cx="4" cy="10" rx="4.4" ry="3"/><ellipse cx="11" cy="9.2" rx="4.8" ry="3.2"/>
+        <ellipse cx="18" cy="9.8" rx="4.6" ry="3"/><ellipse cx="22.6" cy="11.4" rx="3.4" ry="2.6"/>
+        <ellipse cx="7" cy="14.4" rx="4.4" ry="2.8"/><ellipse cx="16" cy="14.8" rx="4.6" ry="2.8"/>
+      </g>
+      <g fill="#3d6a48" opacity=".85">
+        <ellipse cx="5" cy="9.4" rx="2.4" ry="1.6"/><ellipse cx="12" cy="8.6" rx="2.6" ry="1.7"/>
+        <ellipse cx="19" cy="9.2" rx="2.4" ry="1.5"/><ellipse cx="9" cy="13.6" rx="2.2" ry="1.4"/>
+      </g>
+      <g fill="#5a3c26">
+        <path d="M11 16.8l.5-6.6h.9l.5 6.6z"/><path d="M7.6 16.8l.4-4.4h.7l.4 4.4z"/>
+      </g>
+      <g fill="#2c4a33" opacity=".8">
+        <path d="M9.4 18.6l2.2-.5.4 1.6-2.2.6z"/><path d="M13.6 19.2l2 .5-.4 1.5-2-.5z"/>
+      </g>
+      <g fill="#8fa06a" opacity=".45">
+        <circle cx="8.6" cy="20.4" r=".5"/><circle cx="15" cy="21.2" r=".44"/><circle cx="11.8" cy="19.6" r=".4"/>
+      </g>
+    </g>
+    <path d="M11.6 11.2l-3.4-2.4M11.6 11.2l2.8-2M11.6 11.2l-1.2 4M11.6 11.2l3.8 2"
+          stroke-width="1.15" stroke-opacity=".9"/>
+    <path d="M8.2 8.8l-2-1.4M15 9l1.8-1.6M10.4 15.2l-1 2.2"
+          stroke-width=".8" stroke-opacity=".55"/>
+  </symbol>
+
+  <symbol id="edge-hedge-breached" viewBox="0 0 24 24">
+    <g stroke="none">
+      <rect x="0" y="7" width="24" height="10" fill="#1c2f22"/>
+      <g fill="#2c4a33">
+        <ellipse cx="3.4" cy="10" rx="4" ry="3"/><ellipse cx="20.6" cy="10" rx="4" ry="3"/>
+        <ellipse cx="2.6" cy="14.6" rx="3.6" ry="2.6"/><ellipse cx="21.4" cy="14.6" rx="3.6" ry="2.6"/>
+      </g>
+      <path d="M5.6 7h12.8l1.4 3.2-2.2 3.4 1 3.4H5.4l1.2-3.4-2.2-3.4z" fill="#0a0f0b"/>
+      <path d="M6.8 7h10.4l1 2.8-1.8 3 .8 2.8H6.6l1-2.8-1.8-3z" fill="#050805"/>
+      <g fill="#3d6a48" opacity=".8">
+        <ellipse cx="4.2" cy="9.4" rx="2.2" ry="1.5"/><ellipse cx="19.8" cy="9.4" rx="2.2" ry="1.5"/>
+      </g>
+      <g fill="#5a3c26">
+        <path d="M5.8 7.4l1.6 4.6-.8.3-1.6-4.7z"/><path d="M18.2 7.4l-1.6 4.6.8.3 1.6-4.7z"/>
+        <path d="M8 16.8l2.4-.8.6 1.9-2.4.9z"/><path d="M15 17l2.2.7-.5 1.8-2.2-.7z"/>
+      </g>
+      <g fill="#2c4a33" opacity=".85">
+        <path d="M10.6 18.6l2.2-.5.4 1.7-2.2.6z"/>
+      </g>
+      <g fill="#8fa06a" opacity=".4">
+        <circle cx="7.6" cy="20.8" r=".5"/><circle cx="16.2" cy="20.2" r=".44"/><circle cx="12.4" cy="21.4" r=".4"/>
+      </g>
+    </g>
+    <path d="M6.4 7.2c.6 2.6 1.6 4.6 3.2 6.2" stroke-width="2.3" stroke-linecap="round" stroke-opacity=".95"/>
+    <path d="M12.2 6.6c-.2 2.8.2 5.2 1.2 7.6" stroke-width="2.5" stroke-linecap="round" stroke-opacity=".95"/>
+    <path d="M18.2 7.6c-1 2.4-2.2 4.2-3.8 5.6" stroke-width="2.1" stroke-linecap="round" stroke-opacity=".9"/>
+    <path d="M9.6 13.4l1.6 2.2M9.6 13.4l-.5 2.6M9.6 13.4l-2.1 1.4"
+          stroke-width="1.05" stroke-linecap="round" stroke-opacity=".92"/>
+    <path d="M13.4 14.2l2.1 1.7M13.4 14.2l.2 2.8M13.4 14.2l-2.1 1.9"
+          stroke-width="1.1" stroke-linecap="round" stroke-opacity=".92"/>
+    <path d="M14.4 13.2l2.1 1.9M14.4 13.2l2.6.5"
+          stroke-width="1" stroke-linecap="round" stroke-opacity=".82"/>
+  </symbol>
+
+  <symbol id="edge-hedge-broken" viewBox="0 0 24 24">
+    <g stroke="none">
+      <rect x="0" y="7" width="5" height="10" fill="#1c2f22"/>
+      <rect x="19" y="7" width="5" height="10" fill="#1c2f22"/>
+      <g fill="#2c4a33">
+        <ellipse cx="2.6" cy="9.6" rx="3.6" ry="2.8"/><ellipse cx="21.4" cy="9.6" rx="3.6" ry="2.8"/>
+        <ellipse cx="2" cy="14.4" rx="3.2" ry="2.4"/><ellipse cx="22" cy="14.4" rx="3.2" ry="2.4"/>
+      </g>
+      <g fill="#3d6a48" opacity=".8">
+        <ellipse cx="3.4" cy="9" rx="2" ry="1.4"/><ellipse cx="20.6" cy="9" rx="2" ry="1.4"/>
+      </g>
+      <rect x="5" y="7" width="14" height="10" fill="#050805"/>
+      <path d="M5 7h14v2.4H5z" fill="#0a0f0b"/>
+      <g fill="#5a3c26">
+        <path d="M5 7.2l1.8 5.4-.9.3-1.8-5.5z"/><path d="M19 7.2l-1.8 5.4.9.3 1.8-5.5z"/>
+        <path d="M6.4 12.4l2.6 3.4-.7.6-2.7-3.5z"/><path d="M17.6 12.4l-2.6 3.4.7.6 2.7-3.5z"/>
+      </g>
+      <g fill="#4a3020">
+        <path d="M7 17.6l2.8-.8.7 2.1-2.8.9z"/><path d="M14.6 18l2.6.7-.6 2-2.6-.7z"/>
+        <path d="M10.6 19.8l2.4-.6.5 1.9-2.4.6z"/>
+      </g>
+      <g fill="#2c4a33" opacity=".8">
+        <path d="M9 21.2l2 -.5.4 1.6-2 .5z"/>
+      </g>
+      <g fill="#8fa06a" opacity=".4">
+        <circle cx="12.8" cy="22.2" r=".48"/><circle cx="7.4" cy="20.4" r=".42"/><circle cx="16.6" cy="21.6" r=".44"/>
+      </g>
+    </g>
   </symbol>
 
   <!-- ========================= The verdicts =========================
