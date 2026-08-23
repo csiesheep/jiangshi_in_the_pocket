@@ -1,8 +1,17 @@
 // Core game engine — pure rules over a state object, no DOM, no fetch.
-// Numbers come straight from the ruleset spec (v1.5 + designer rulings).
-// Board-dependent turn orchestration (movement, tile placement, dead-end
-// zombie doors) lives in board.js / app.js; this module owns the deck, the
-// clock, combat, items, health and win/lose — everything testable headless.
+// Board-dependent turn orchestration (movement, tile placement, dead ends)
+// lives in board.js / app.js; this module owns the clock, combat, items,
+// health and win/lose — everything testable headless.
+//
+// TILE-EXPLORING BUILD. The event pool, the item pool and the King are still
+// open in the design record, so the card system that used to drive the turn is
+// gone: no deck, no draws, no events, no fights, no searches. What is left is
+// the map and the clock.
+//
+// Combat, items and health are kept and exported, untouched and unreferenced by
+// the turn loop. They are inert rather than deleted because the pools they
+// serve are coming back once they are designed, and a working implementation is
+// cheaper to re-wire than to rewrite.
 //
 // Data (cards + items) is passed in to newGame() rather than imported, so the
 // engine has no I/O and tests can inject fixtures.
@@ -11,24 +20,26 @@ export const RULES = {
   START_HEALTH: 6,
   START_ATTACK: 1,
   HEALTH_CAP: null, // no cap by default; v1.75 hard mode caps at 6
+  // The clock is the turn, not a deck. Thirty turns of six minutes: turn 1
+  // begins at 9:00 PM and turn 30 ends at midnight, in three bands of ten.
   START_HOUR: 21, // 9 PM
-  FINAL_HOUR: 23, // 11 PM; needing a card with an empty deck here = loss
-  DEV_DECK_SIZE: 9,
-  SETUP_BURN: 2, // -> 7 resolvable draws per hour
+  FINAL_HOUR: 23, // 11 PM — the last band
+  TOTAL_TURNS: 30,
+  TURNS_PER_BAND: 10,
+  MINUTES_PER_TURN: 6,
   MAX_COMBAT_DAMAGE: 4,
   MIN_COMBAT_DAMAGE: 0,
   MAX_ITEMS: 2, // the totem is exempt
   COWER_HEAL: 3,
   RUN_AWAY_DAMAGE: 1,
-  ZOMBIE_DOOR_COUNT: 3,
   CHAINSAW_FUEL: 2, // fights per fill
 };
 
-// House rules (spec §13), baked in as the defaults.
+// House rules, baked in as the defaults. Only the one that still has anything
+// to govern: the other two were about cowering and the two-card rites, and both
+// of those went with the card system.
 export const HOUSE_RULES = {
   FLEE_ADJACENT_ONLY: true, // enforced by board.js
-  COWER_ONCE_PER_TURN: true,
-  TEMPLE_SECOND_CARD_ONCE: true,
 };
 
 // ---- RNG -------------------------------------------------------------------
@@ -89,93 +100,100 @@ export function newGame(data, opts = {}) {
     itemsById,
     allCardIds: data.cards.map((c) => c.id),
     health: RULES.START_HEALTH,
+    // The clock, in two forms. `turn` is the truth — 1..30, and 31 the moment
+    // the night is over. `hour` is derived from it and kept in step, because
+    // everything downstream (the bands, the epilogue, the phantoms) already
+    // speaks in hours and has no business doing the division itself.
+    turn: 1,
     hour: RULES.START_HOUR,
     items: [], // carried item ids, length <= MAX_ITEMS
     chainsawFuel: 0, // fuel remaining while a chainsaw is carried
     totem: false, // slotless
     status: "playing", // playing | won | lost
     lossReason: null,
-    coweredThisTurn: false,
     foughtThisHour: 0, // risen put down since the hour turned; feeds dread()
     relief: 0, // 1 the moment something is survived, gone two turns later
     healthCap: opts.healthCap ?? RULES.HEALTH_CAP,
-    deck: [],
-    burned: [],
   };
 
-  startHour(state); // build + shuffle deck, burn 2
   return state;
 }
 
-// (Re)build the full 9-card deck, shuffle, burn 2. Used at setup and each hour.
-function startHour(state) {
-  state.foughtThisHour = 0;
-  const deck = shuffle(state.allCardIds, state.rng);
-  state.burned = deck.splice(0, RULES.SETUP_BURN);
-  state.deck = deck;
+// ---- Clock -----------------------------------------------------------------
+// The turn is the clock. Thirty turns of six minutes, in three bands of ten:
+// turn 1 begins at 9:00 PM and turn 30 ends at midnight. There is no deck to
+// run down, so nothing has to report its own time cost — taking a turn IS the
+// cost, and everything that happens inside one is free.
+
+// Which hour band a turn falls in. Capped at the last band so turn 31 — the
+// night being over — still reads as eleven rather than running off the end.
+function hourForTurn(turn) {
+  const band = Math.floor((Math.max(1, turn) - 1) / RULES.TURNS_PER_BAND);
+  return Math.min(RULES.FINAL_HOUR, RULES.START_HOUR + band);
 }
 
-// Map wall-clock hour (21/22/23) to the card's outcome key ("9"/"10"/"11").
+// Map the band to the key the (undesigned) event pool will be read at.
+// Kept because the bands are settled even though their contents are not.
 export function bandKey(state) {
   return String(state.hour - 12);
 }
 
-// ---- Clock -----------------------------------------------------------------
-// Fires when a draw is attempted on an empty deck.
-export function timePasses(state) {
-  if (state.hour >= RULES.FINAL_HOUR) {
+// Put the clock at a given turn, band and all. `turn` is the truth and `hour`
+// is derived from it, so assigning either one alone is the one reliable way to
+// get them out of step — a state with hour 23 and turn 4 reads as eleven
+// o'clock to the bands and as 9:18 to the face. Everything that moves the clock
+// without taking a turn (tests today, save/restore later) goes through here.
+export function setTurn(state, turn) {
+  state.turn = Math.min(Math.max(1, turn), RULES.TOTAL_TURNS + 1);
+  state.hour = hourForTurn(state.turn);
+  return state;
+}
+
+// Spend a turn. Turn 31 is not a turn: it is midnight, and the night is over.
+export function advanceTurn(state) {
+  if (state.status !== "playing") return state;
+  state.turn += 1;
+  if (state.turn > RULES.TOTAL_TURNS) {
+    state.hour = RULES.FINAL_HOUR;
     state.status = "lost";
     state.lossReason = "midnight";
     return state;
   }
-  state.hour += 1;
-  startHour(state);
+  const hour = hourForTurn(state.turn);
+  if (hour !== state.hour) {
+    state.hour = hour;
+    state.foughtThisHour = 0;
+  }
   return state;
 }
 
-// Draw the top card id. Empty deck advances the clock first (which may lose at
-// midnight, in which case null is returned and status becomes "lost").
-export function drawCard(state) {
-  if (state.deck.length === 0) {
-    timePasses(state);
-    if (state.status === "lost") return null;
-  }
-  return state.deck.shift();
-}
-
-// Display-only. The clock in the rules *is* the deck: seven resolvable draws
-// stand for an hour, so every card spent — room card, second card, item search,
-// and yes, cowering — moves the hand roughly 8.6 minutes. Nothing has to report
-// its own time cost, because it all funnels through drawCard.
-//
-// Pure function of state, no storage, no rng: a shared seed replays the same
-// clock to the minute.
+// Display-only, and a pure function of the turn number: no storage, no rng, so
+// a shared seed replays the same clock to the minute.
 export function clockTime(state) {
-  const perHour = RULES.DEV_DECK_SIZE - RULES.SETUP_BURN; // 7
-  const left = Math.max(0, Math.min(perHour, state.deck ? state.deck.length : 0));
-  const draws = perHour - left;
-  const minutes = Math.round((draws / perHour) * 60);
-
-  // An empty deck reads 60, and that is deliberate — NOT an off-by-one. The
-  // hour has not turned (nothing has been drawn against the empty deck yet), so
-  // state.hour is still 9 while the hand stands at 10:00. That is exactly the
-  // truth of the position: the next card tolls the hour.
-  const carry = minutes >= 60 ? 1 : 0;
-  const hour24 = state.hour + carry;
-  const mins = minutes % 60;
+  const perBand = RULES.TURNS_PER_BAND;
+  const turn = Math.min(Math.max(1, state.turn || 1), RULES.TOTAL_TURNS + 1);
+  const taken = turn - 1; // turns finished
+  const spent = taken * RULES.MINUTES_PER_TURN; // minutes since nine, 0..180
+  const hour24 = RULES.START_HOUR + Math.floor(spent / 60);
+  const mins = spent % 60;
+  const inBand = taken % perBand; // turns spent in this band, 0..9
 
   return {
-    hour: state.hour, // the band the cards are still being read at
-    hour24, // what the face shows, which may be an hour ahead
+    hour: state.hour, // the band being read at
+    hour24, // what the face shows; 24 at midnight
     minutes: mins,
-    draws, // cards spent this hour, 0..7
-    left, // cards still standing between the player and the next hour
-    perHour,
-    atTheTurn: carry === 1,
+    turn,
+    turnsTotal: RULES.TOTAL_TURNS,
+    // Named for the pip row, which counts what stands between you and the next
+    // hour. That used to be cards and is now turns; the shape is the same.
+    draws: inBand,
+    left: turn > RULES.TOTAL_TURNS ? 0 : perBand - inBand,
+    perHour: perBand,
+    atTheTurn: mins === 0 && taken > 0,
     // 0..1 through the hour, for a minute hand.
-    fraction: minutes / 60,
+    fraction: mins / 60,
     // 0..3 hours since nine, for anything that fades across the whole night.
-    elapsed: state.hour - RULES.START_HOUR + minutes / 60,
+    elapsed: spent / 60,
     span: RULES.FINAL_HOUR + 1 - RULES.START_HOUR,
     label: `${((hour24 + 11) % 12) + 1}:${String(mins).padStart(2, "0")}`,
   };
@@ -501,21 +519,6 @@ export function flee(state, { useOil = false } = {}) {
   return state;
 }
 
-// ---- Cowering --------------------------------------------------------------
-// After a completed turn: +3 Health, discard the top card unresolved. Once per
-// turn (house rule). The discard spends clock like any draw.
-export function cower(state) {
-  if (state.status !== "playing") return { ok: false, reason: "not-playing" };
-  if (HOUSE_RULES.COWER_ONCE_PER_TURN && state.coweredThisTurn) {
-    return { ok: false, reason: "once-per-turn" };
-  }
-  const discarded = drawCard(state);
-  if (state.status === "lost") return { ok: true, discarded, lost: true };
-  changeHealth(state, RULES.COWER_HEAL);
-  state.coweredThisTurn = true;
-  return { ok: true, discarded };
-}
-
 // ---- Totem / win -----------------------------------------------------------
 export function gainTotem(state) {
   state.totem = true;
@@ -528,45 +531,7 @@ export function buryTotem(state) {
 }
 
 // ---- Turn boundary ---------------------------------------------------------
-// The cower allowance is really per *window*, not per turn. An ordinary turn has
-// one window, after the room's card is resolved. The Reliquary and Family Plot
-// have a second one in the gap between their two cards, which the designer ruled
-// "behaves like an ordinary fresh turn" — so it gets its own allowance rather
-// than competing with the end-of-turn one.
-export function openCowerWindow(state) {
-  state.coweredThisTurn = false;
-  return state;
-}
-
 export function beginTurn(state) {
   decayRelief(state);
-  return openCowerWindow(state);
-}
-
-// ---- Card resolution -------------------------------------------------------
-// Resolve a drawn card's outcome for the current hour. Returns a descriptor.
-// ITEM: optionally draws the NEXT card and takes the item printed on it
-// (choices.takeItem, default true; choices.drop to make room if full).
-// ZOMBIES: auto-fights (use flee()/useCandleCombo() beforehand for alternatives).
-export function resolveCard(state, cardId, choices = {}) {
-  const card = state.cardsById[cardId];
-  const outcome = card[bandKey(state)];
-
-  if (outcome.t === "EVENT") {
-    changeHealth(state, outcome.hp || 0);
-    return { type: "EVENT", hp: outcome.hp || 0 };
-  }
-
-  if (outcome.t === "ZOMBIES") {
-    const res = resolveCombat(state, outcome.n, choices);
-    return { type: "ZOMBIES", n: outcome.n, ...res };
-  }
-
-  // ITEM
-  if (choices.takeItem === false) return { type: "ITEM", taken: null };
-  const nextId = drawCard(state); // spends clock; may advance the hour or lose
-  if (nextId == null) return { type: "ITEM", taken: null, lost: true };
-  const itemId = state.cardsById[nextId].item;
-  const pick = pickUpItem(state, itemId, choices.drop);
-  return { type: "ITEM", taken: itemId, pickedUp: pick.ok, drewCard: nextId };
+  return state;
 }

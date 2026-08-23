@@ -19,110 +19,93 @@ test("setup: starting stats", () => {
   eq(s.status, "playing", "status");
 });
 
-test("setup: 9-card deck, burn 2, 7 live", () => {
+test("setup: the night starts on turn 1 at nine o'clock", () => {
   const s = game({ seed: 1 });
-  eq(s.deck.length, 7, "deck");
-  eq(s.burned.length, 2, "burned");
-  const all = [...s.deck, ...s.burned].sort((a, b) => a - b);
-  eq(all, [1, 2, 3, 4, 5, 6, 7, 8, 9], "all nine present, unique");
-});
-
-test("setup: same seed -> same shuffle", () => {
-  eq(game({ seed: 42 }).deck, game({ seed: 42 }).deck);
-  assert(
-    JSON.stringify(game({ seed: 1 }).deck) !== JSON.stringify(game({ seed: 2 }).deck),
-    "different seeds should usually differ"
-  );
-});
-
-test("bandKey maps hour -> card key", () => {
-  const s = game({ seed: 1 });
-  s.hour = 21; eq(E.bandKey(s), "9");
-  s.hour = 22; eq(E.bandKey(s), "10");
-  s.hour = 23; eq(E.bandKey(s), "11");
+  eq(s.turn, 1);
+  eq(s.hour, E.RULES.START_HOUR);
+  eq(E.clockTime(s).label, "9:00");
+  eq(s.status, "playing");
 });
 
 // ---- Clock -----------------------------------------------------------------
-test("timePasses: advances hour, rebuilds full deck", () => {
+// The turn is the clock: thirty turns of six minutes, in three bands of ten.
+// Nothing else spends time, so every one of these is a pure function of `turn`.
+
+test("bandKey follows the turn, ten turns to a band", () => {
   const s = game({ seed: 1 });
-  E.timePasses(s);
-  eq(s.hour, 22, "hour++");
-  eq(s.deck.length, 7, "fresh deck");
-  eq(s.burned.length, 2, "burned again");
+  const bandAt = (turn) => {
+    s.turn = turn - 1;
+    s.hour = E.RULES.START_HOUR;
+    // Walk there rather than setting `hour` by hand, so this tests the thing
+    // that actually moves the band in play.
+    if (turn > 1) { s.turn = 0; for (let i = 0; i < turn; i++) E.advanceTurn(s); }
+    return E.bandKey(s);
+  };
+  eq(bandAt(1), "9");
+  eq(bandAt(10), "9", "the tenth turn is still nine o'clock");
+  eq(bandAt(11), "10", "the eleventh turns the hour");
+  eq(bandAt(20), "10");
+  eq(bandAt(21), "11");
+  eq(bandAt(30), "11", "the last turn is the eleven o'clock band");
 });
 
-test("timePasses: midnight at 11 PM is a loss", () => {
+test("advanceTurn: six minutes a turn, and the face walks with it", () => {
   const s = game({ seed: 1 });
-  s.hour = 23;
-  E.timePasses(s);
+  const seen = [E.clockTime(s).label];
+  for (let i = 0; i < 5; i++) {
+    E.advanceTurn(s);
+    seen.push(E.clockTime(s).label);
+  }
+  eq(seen, ["9:00", "9:06", "9:12", "9:18", "9:24", "9:30"]);
+});
+
+test("advanceTurn: the hour turns on the eleventh and twenty-first turns", () => {
+  const s = game({ seed: 1 });
+  for (let i = 1; i < 11; i++) E.advanceTurn(s); // now on turn 11
+  eq(s.turn, 11);
+  eq(s.hour, 22);
+  eq(E.clockTime(s).label, "10:00", "ten turns of six minutes is exactly an hour");
+  for (let i = 0; i < 10; i++) E.advanceTurn(s);
+  eq(s.turn, 21);
+  eq(s.hour, 23);
+  eq(E.clockTime(s).label, "11:00");
+});
+
+test("advanceTurn: the thirtieth turn ends the night at midnight", () => {
+  const s = game({ seed: 1 });
+  for (let i = 1; i < 30; i++) E.advanceTurn(s);
+  eq(s.turn, 30, "thirty turns are granted");
+  eq(s.status, "playing", "and the thirtieth is one of them");
+  eq(E.clockTime(s).label, "11:54");
+
+  E.advanceTurn(s); // the turn that does not exist
   eq(s.status, "lost");
   eq(s.lossReason, "midnight");
-});
-
-test("drawCard: empty deck advances the hour", () => {
-  const s = game({ seed: 1 });
-  s.deck = [];
-  const c = E.drawCard(s);
-  eq(s.hour, 22, "hour advanced");
-  assert(c != null, "drew from the fresh deck");
-  eq(s.deck.length, 6, "one drawn from the fresh 7");
-});
-
-test("clockTime: minutes track the deck, 7 draws to the hour", () => {
-  const s = game({ seed: 1 });
-  eq(s.deck.length, 7, "the hour starts with 7 resolvable draws");
-  eq(E.clockTime(s).label, "9:00", "untouched deck reads the top of the hour");
-  eq(E.clockTime(s).draws, 0);
-
-  const seen = [];
-  for (let i = 0; i < 7; i++) {
-    s.deck.pop();
-    const c = E.clockTime(s);
-    seen.push(c.label);
-    eq(c.draws, i + 1, `draws after ${i + 1} cards`);
-  }
-  eq(seen, ["9:09", "9:17", "9:26", "9:34", "9:43", "9:51", "10:00"], "the walk down the deck");
-});
-
-// The one that looks like a bug and is not.
-test("clockTime: an empty deck stands at the next hour before it turns", () => {
-  const s = game({ seed: 1 });
-  s.deck = [];
-  const c = E.clockTime(s);
-  eq(s.hour, 21, "the hour itself has NOT turned");
-  eq(E.bandKey(s), "9", "cards are still read at the 9 PM band");
-  eq(c.label, "10:00", "but the face shows the top of the next hour");
-  eq(c.hour, 21, "the band hour");
-  eq(c.hour24, 22, "the face hour, one ahead");
-  eq(c.minutes, 0, "carried, not left at 60");
-  assert(c.atTheTurn, "flagged so the UI can say the next card tolls the hour");
-});
-
-test("clockTime: the last deck of the night reads midnight", () => {
-  const s = game({ seed: 1 });
-  s.hour = 23;
-  s.deck = [];
-  eq(E.clockTime(s).label, "12:00", "11 PM exhausted is midnight on the face");
+  eq(E.clockTime(s).label, "12:00", "the face reads midnight");
   eq(E.clockTime(s).elapsed, 3, "the whole night spent");
 });
 
-test("clockTime: the hour turning snaps the hand back to :00", () => {
+test("advanceTurn: a finished night does not keep ticking", () => {
   const s = game({ seed: 1 });
-  s.deck = [];
-  eq(E.clockTime(s).label, "10:00", "standing at the turn");
-  E.drawCard(s); // tolls the hour, reshuffles, and spends one of the new deck
-  eq(s.hour, 22, "hour turned");
-  eq(s.deck.length, 6, "one drawn from the fresh 7");
-  eq(E.clockTime(s).label, "10:09", "one card into the new hour");
+  for (let i = 0; i < 40; i++) E.advanceTurn(s);
+  eq(s.turn, E.RULES.TOTAL_TURNS + 1, "it stops at the one past the last");
+  eq(E.clockTime(s).label, "12:00");
 });
 
-test("clockTime: cowering costs minutes like any other card", () => {
+test("clockTime: the pips count the turns left in the band", () => {
   const s = game({ seed: 1 });
-  const before = E.clockTime(s);
-  E.cower(s);
-  const after = E.clockTime(s);
-  eq(after.draws, before.draws + 1, "the discard spent clock");
-  assert(after.elapsed > before.elapsed, "rest is not free");
+  const c0 = E.clockTime(s);
+  eq(c0.perHour, 10, "ten turns to a band");
+  eq(c0.left, 10, "none of them spent yet");
+  eq(c0.draws, 0);
+
+  for (let i = 0; i < 9; i++) E.advanceTurn(s); // turn 10, the last of the band
+  const c9 = E.clockTime(s);
+  eq(c9.left, 1, "one turn stands between here and ten o'clock");
+  eq(c9.draws, 9);
+
+  E.advanceTurn(s); // turn 11 — the band has turned
+  eq(E.clockTime(s).left, 10, "a fresh band");
 });
 
 // ---- The tension director ---------------------------------------------------
@@ -139,33 +122,32 @@ test("dread: every term pushes it up, and none of them pull it down", () => {
   const hurt = base();
   hurt.health = 1;
   const late = base();
-  late.hour = 23;
+  E.setTurn(late, 21); // the top of the eleven o'clock band
   const bloody = base();
   bloody.foughtThisHour = 12;
-  const thin = base();
-  thin.deck = [];
+  const deep = base();
+  deep.turn = 10; // late in the band, with the hour about to turn
   const carrying = base();
   carrying.totem = true;
 
   for (const [name, s] of [["hurt", hurt], ["late", late], ["bloody", bloody],
-                           ["thin deck", thin], ["carrying the relic", carrying]]) {
+                           ["deep into the band", deep], ["carrying the relic", carrying]]) {
     assert(E.dread(s) > start, `${name} should raise dread`);
   }
 });
 
 test("dread: the worst the game gets is worse than any single thing", () => {
   const s = game({ seed: 1 });
-  s.hour = 23;
+  E.setTurn(s, 30);
   s.health = 1;
   s.foughtThisHour = 12;
-  s.deck = [];
   s.totem = true;
   const worst = E.dread(s);
   assert(worst > 0.85, `a 1 HP relic-carrying midnight should be near the top, got ${worst}`);
   eq(worst <= 1, true, "and never above 1");
   // and worse than any one term on its own, which is the point of a dial
   const onlyLate = game({ seed: 1 });
-  onlyLate.hour = 23;
+  E.setTurn(onlyLate, 30);
   assert(worst > E.dread(onlyLate) * 1.5, "the whole should beat any single part");
 });
 
@@ -179,11 +161,11 @@ test("dread: health matters most at the bottom, which is where it is felt", () =
 test("dread: pure, and deterministic under a seed", () => {
   const a = game({ seed: 77 });
   const b = game({ seed: 77 });
-  for (let i = 0; i < 4; i++) { E.drawCard(a); E.drawCard(b); }
+  for (let i = 0; i < 4; i++) { E.advanceTurn(a); E.advanceTurn(b); }
   eq(E.dread(a), E.dread(b), "same seed, same fear");
-  const before = JSON.stringify({ h: a.health, d: a.deck, f: a.foughtThisHour });
+  const before = JSON.stringify({ h: a.health, t: a.turn, f: a.foughtThisHour });
   E.dread(a);
-  eq(JSON.stringify({ h: a.health, d: a.deck, f: a.foughtThisHour }), before,
+  eq(JSON.stringify({ h: a.health, t: a.turn, f: a.foughtThisHour }), before,
      "reading the dial changes nothing");
 });
 
@@ -267,7 +249,7 @@ test("gutter: its own stream, disturbing nothing", () => {
   for (let i = 0; i < 80; i++) E.rollGutter(guttered, 1);
   guttered.hour = 21;
 
-  eq(guttered.deck, not.deck, "the deck is untouched");
+  eq(guttered.rng(), not.rng(), "the game's own stream is untouched");
   // And the other two presentation streams are where they were, so a run that
   // guttered a dozen times still sees the same phantoms.
   eq(E.rollPhantom(guttered, 1), E.rollPhantom(not, 1), "phantoms unmoved");
@@ -306,11 +288,10 @@ test("relief: dying buys nothing", () => {
 
 test("relief: it never undoes the hour", () => {
   const late = game({ seed: 12 });
-  late.hour = 23;
-  late.deck = [];
+  E.setTurn(late, 30);
   E.grantRelief(late, 1);
   const early = game({ seed: 12 });
-  early.hour = E.RULES.START_HOUR;
+  E.setTurn(early, 1);
   // A frightened nine o'clock: hurt, carrying, and mid-hour.
   early.health = 2;
   early.totem = true;
@@ -320,15 +301,22 @@ test("relief: it never undoes the hour", () => {
 });
 
 test("relief: the same relief is worth more early", () => {
-  const at = (hour) => {
+  // Measured as a fraction of the dial, not as an absolute drop. Relief is
+  // taken out of the headroom above the floor, and the floor IS the night term
+  // — so in absolute terms the two cancel exactly and the comparison is a tie
+  // that only a rounding error can break. The claim the engine actually makes
+  // is the proportional one: at nine the dial empties almost completely, at
+  // eleven the same relief barely dents it.
+  const at = (turn) => {
     const s = game({ seed: 12 });
-    s.hour = hour;
+    E.setTurn(s, turn);
     s.health = 3;
     const tense = E.dread(s);
     E.grantRelief(s, 1);
-    return tense - E.dread(s);
+    return (tense - E.dread(s)) / tense;
   };
-  assert(at(21) > at(23), "nine o'clock has more to let go of");
+  // Both read at the top of a band, so the only difference is the hour itself.
+  assert(at(1) > at(21) * 2, "nine o'clock has far more of its dial to let go of");
 });
 
 test("relief: gone within two turns", () => {
@@ -386,7 +374,7 @@ test("standing: its own stream, disturbing nothing", () => {
   stood.hour = 23;
   for (let i = 0; i < 40; i++) E.rollStanding(stood, 1);
   stood.hour = 21;
-  eq(stood.deck, not.deck, "the deck is untouched");
+  eq(stood.rng(), not.rng(), "the game's own stream is untouched");
   eq(E.rollPhantom(stood, 1), E.rollPhantom(not, 1), "phantoms unmoved");
   eq(E.rollGutter(stood, 1), E.rollGutter(not, 1), "the candle unmoved");
 });
@@ -399,11 +387,9 @@ test("phantoms: rolling them does not disturb the game's own rng", () => {
   for (let i = 0; i < 50; i++) E.rollPhantom(withPhantoms, 1);
   withPhantoms.hour = 21;
 
-  // Same deck order afterwards means the gameplay stream never moved.
-  eq(withPhantoms.deck, without.deck, "the deck is untouched");
-  E.timePasses(withPhantoms);
-  E.timePasses(without);
-  eq(withPhantoms.deck, without.deck, "and reshuffles identically");
+  // The same next value means the gameplay stream never moved.
+  eq(withPhantoms.rng(), without.rng(), "the game's own stream is untouched");
+  eq(withPhantoms.rng(), without.rng(), "and stays in step");
 });
 
 test("foughtThisHour: counts the risen, and resets when the hour turns", () => {
@@ -412,8 +398,7 @@ test("foughtThisHour: counts the risen, and resets when the hour turns", () => {
   E.resolveCombat(s, 3, {});
   E.resolveCombat(s, 2, {});
   eq(s.foughtThisHour, 5, "five risen put down this hour");
-  s.deck = [];
-  E.drawCard(s); // tolls the hour
+  while (s.hour === 21) E.advanceTurn(s); // walk into the ten o'clock band
   eq(s.hour, 22, "the hour turned");
   eq(s.foughtThisHour, 0, "and the count went with it");
 });
@@ -422,23 +407,13 @@ test("clockTime: pure and deterministic under a seed", () => {
   const a = game({ seed: 42 });
   const b = game({ seed: 42 });
   for (let i = 0; i < 5; i++) {
-    E.drawCard(a);
-    E.drawCard(b);
-    eq(E.clockTime(a).label, E.clockTime(b).label, `same seed, same clock at draw ${i}`);
+    E.advanceTurn(a);
+    E.advanceTurn(b);
+    eq(E.clockTime(a).label, E.clockTime(b).label, `same seed, same clock at turn ${i}`);
   }
-  const snapshot = JSON.stringify(a.deck);
+  const snapshot = a.turn;
   E.clockTime(a);
-  eq(JSON.stringify(a.deck), snapshot, "reading the clock does not spend anything");
-});
-
-test("drawCard: empty deck at 11 PM loses (returns null)", () => {
-  const s = game({ seed: 1 });
-  s.hour = 23;
-  s.deck = [];
-  const c = E.drawCard(s);
-  eq(c, null);
-  eq(s.status, "lost");
-  eq(s.lossReason, "midnight");
+  eq(a.turn, snapshot, "reading the clock does not spend anything");
 });
 
 // ---- Health ----------------------------------------------------------------
@@ -600,66 +575,7 @@ test("flee: oil escapes damage, one use", () => {
 });
 
 // ---- Cowering --------------------------------------------------------------
-test("cower: +3, discards a card, once per turn", () => {
-  const s = game({ seed: 1 });
-  const before = s.deck.length;
-  eq(E.cower(s).ok, true);
-  eq(s.health, 9, "+3");
-  eq(s.deck.length, before - 1, "discarded top card");
-  eq(E.cower(s).ok, false, "blocked second time this turn");
-  E.beginTurn(s);
-  eq(E.cower(s).ok, true, "allowed again next turn");
-});
-
 // The designer ruled the gap between the Reliquary's / Family Plot's two cards
 // "behaves like an ordinary fresh turn", so it carries its own cower allowance
 // rather than competing with the one at end of turn.
-test("cower: a fresh window grants another allowance in the same turn", () => {
-  const s = game({ seed: 1 });
-  eq(E.cower(s).ok, true, "first window");
-  eq(E.cower(s).ok, false, "still one per window");
-  E.openCowerWindow(s);
-  const deck = s.deck.length;
-  const hp = s.health;
-  eq(E.cower(s).ok, true, "second window opens a new allowance");
-  eq(s.health, hp + E.RULES.COWER_HEAL, "heals again");
-  eq(s.deck.length, deck - 1, "and costs another card");
-  eq(E.cower(s).ok, false, "but only once inside that window too");
-});
-
 // ---- Card resolution -------------------------------------------------------
-test("resolveCard EVENT: applies hp for the hour", () => {
-  const s = game({ seed: 1 });
-  s.hour = 21; // card 8 @ 9 PM = +1
-  const r = E.resolveCard(s, 8);
-  eq(r.type, "EVENT");
-  eq(s.health, 7);
-});
-
-test("resolveCard ZOMBIES: fights for the hour", () => {
-  const s = game({ seed: 1 });
-  s.hour = 21; // card 9 @ 9 PM = 3 zombies
-  const r = E.resolveCard(s, 9);
-  eq(r.type, "ZOMBIES");
-  eq(r.n, 3);
-  eq(s.health, 4); // 3 - 1 = 2 damage
-});
-
-test("resolveCard ITEM: draws next card, takes its item", () => {
-  const s = game({ seed: 1 });
-  s.hour = 22; // card 1 @ 10 PM = ITEM
-  s.deck = [4]; // next card is the machete card
-  const r = E.resolveCard(s, 1);
-  eq(r.type, "ITEM");
-  eq(r.taken, "machete");
-  assert(s.items.includes("machete"), "item picked up");
-});
-
-test("resolveCard ITEM declined: no draw, no item", () => {
-  const s = game({ seed: 1 });
-  s.hour = 22;
-  const before = s.deck.length;
-  const r = E.resolveCard(s, 1, { takeItem: false });
-  eq(r.taken, null);
-  eq(s.deck.length, before, "no card spent");
-});

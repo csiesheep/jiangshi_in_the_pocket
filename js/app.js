@@ -1,35 +1,28 @@
-// Game page controller — orchestrates the turn sequence (spec §5), wiring user
-// input -> engine + board -> render. Owns the RNG seed and the interactive
-// flow (rotation, item, combat, flee, cower, zombie-door choices).
+// Game page controller — orchestrates the turn, wiring user input -> engine +
+// board -> render. Owns the RNG seed.
+//
+// TILE-EXPLORING BUILD. One action a turn — move or stay — then the room's own
+// instructions, then six minutes off the clock. No cards are drawn, so no
+// events, items, searches or fights can happen; see the note at the top of
+// engine.js.
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
-import { combatHit, isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
-         startAmbience, stopAmbience, startMurmur, stopMurmur, unduck, stopScore } from "./audio.js";
+import { isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
+         startAmbience, stopAmbience, stopScore } from "./audio.js";
 import {
   renderHud,
   renderBoard,
   renderActions,
-  caption,
   clearChoices,
   darkDoorBeat,
-  breakInTelegraph,
-  breakInCracks,
-  breakInPressure,
-  breakInReanchor,
-  breakInCollapse,
-  breakInClear,
   settleDust,
   phantom,
   candleGutter,
   standing,
   clearStage,
   mountFilmStock,
-  buryBeat,
-  cowerScene,
-  damageCameFrom,
   showNote,
-  resolveBeat,
   log,
   clearLog,
   showOverlay,
@@ -37,7 +30,6 @@ import {
   loadIcons,
   watchBoardSize,
   animateEntry,
-  jumpScare,
   uiIcon,
   formatHour,
   tileName as tName,
@@ -74,7 +66,6 @@ class Game {
     this.seed = seed;
     this.state = E.newGame(data, { seed });
     this.board = Bd.createBoard(data, { seed });
-    this.fled = false;
     // Kept for the end-of-run verdict; the engine has no use for them.
     this.tally = { putDown: 0, found: 0 };
   }
@@ -84,13 +75,6 @@ class Game {
 
   // Themed nouns, so nothing player-visible is hardcoded to one setting.
   word(key) { return (this.data.theme.words && this.data.theme.words[key]) || key; }
-
-  // The flavour line for a card in the current hour band, if the skin has one.
-  flavour(cardId) {
-    const f = this.data.theme.cardFlavour;
-    const byCard = f && f[cardId];
-    return (byCard && byCard[E.bandKey(this.state)]) || null;
-  }
 
   refresh() { renderHud(this); renderBoard(this); }
 
@@ -109,28 +93,35 @@ class Game {
     this.renderMoves();
   }
 
-  // ---- Step 1: choose a move (mandatory) -----------------------------------
+  // ---- Step 1: choose an action --------------------------------------------
+  // MOVE or STAY. Movement is optional in this game, unlike the source it came
+  // from — but standing still costs a turn exactly like walking does, so there
+  // is no free turn and STAY is always on the table, dead end or not.
   renderMoves() {
     if (this.state.status !== "playing") return this.gameOver();
-    const moves = Bd.listMoves(this.board);
-    if (!moves.length) {
-      log("Nowhere left to go…", "bad");
-      return this.zombieDoorPhase(() => this.endTurn());
-    }
-    const acts = moves.map((m) => {
+    const acts = Bd.listMoves(this.board).map((m) => {
       if (m.type === "explore") {
         return { kind: "move", dir: m.dir, label: `Go ${m.dir} — explore`, sub: "unexplored",
           primary: true, onClick: () => this.doExplore(m.dir) };
       }
       if (m.type === "outside") {
-        return { kind: "move", dir: m.dir, label: "Step outside (the arrow door)", sub: "the way out",
+        return { kind: "move", dir: m.dir, label: "Step out through the moon gate", sub: "the way out",
           primary: true, onClick: () => this.doOutside(m.dir) };
       }
       const to = this.board.worlds[m.to.world].get(Bd.cellKey(m.to.x, m.to.y));
       return { kind: "move", dir: m.dir, label: `Go ${m.dir} — ${this.tileName(to.id)}`,
         icon: `tile-${to.id}`, onClick: () => this.doMove(m.dir) };
     });
-    renderActions(acts, "Choose a way out — you must move.");
+    acts.push({ kind: "rest", label: "Stay where you are", sub: "costs the turn",
+      primary: acts.length === 0, onClick: () => this.doStay() });
+    renderActions(acts, "Move on, or stay put — either spends six minutes.");
+  }
+
+  // STAY is a whole action. It ends in the same place every other one does, so
+  // the room's own instructions and the end of the turn still run.
+  doStay() {
+    log(`You wait in the ${this.tileName(Bd.currentTile(this.board).id)}.`);
+    this.arrive();
   }
 
 
@@ -152,7 +143,7 @@ class Game {
     darkDoorBeat(dir, E.dread(this.state)).then(() => {
       this.refresh();
       animateEntry(dir);
-      this.arriveAndDraw();
+      this.arrive();
     });
   }
 
@@ -165,7 +156,7 @@ class Game {
     log(`You move to the ${this.tileName(Bd.currentTile(this.board).id)}.`);
     this.refresh();
     animateEntry(dir);
-    this.arriveAndDraw();
+    this.arrive();
   }
 
   doOutside(dir) {
@@ -174,404 +165,61 @@ class Game {
     log(`You step out onto the ${this.tileName(out.tile.id)}. Night air, and worse.`);
     this.refresh();
     if (dir) animateEntry(dir);
-    this.arriveAndDraw();
+    this.arrive();
   }
 
-  // ---- Steps 3–4: draw and resolve a development card ----------------------
-  arriveAndDraw() {
-    const c = E.drawCard(this.state);
-    if (this.state.status !== "playing" || c == null) return this.gameOver();
-    this.refresh();
-    this.presentCard(c, { second: false });
-  }
-
-  presentCard(cardId, ctx) {
-    const o = this.state.cardsById[cardId][E.bandKey(this.state)];
-    const flavour = this.flavour(cardId);
-    // Promoted rather than dropped: this is the only writing in the game, and
-    // nothing else on screen carries it.
-    if (flavour) { log(flavour); caption(flavour); }
-
-    // If this room has no way on, the risen are already at a particular wall,
-    // and the board knows which — isDeadEnd and pickZombieDoorWall are pure
-    // reads, so the answer exists before the fight does. Say it now, while the
-    // card is still being read, so the break-in is heard coming rather than
-    // merely happening. Nothing here changes state.
-    if (Bd.isDeadEnd(this.board)) {
-      const wall = Bd.pickZombieDoorWall(this.board);
-      // Stage one of the staged failure: a knock, and then a harder one. The
-      // sequence owner handles the second — from here it is still one call.
-      if (wall) breakInTelegraph(wall);
-    }
-
-    if (o.t === "EVENT") {
-      E.changeHealth(this.state, o.hp || 0);
-      if (o.hp) log(`${o.hp > 0 ? "+" : ""}${o.hp} HP.`, o.hp > 0 ? "good" : "bad");
-      this.refresh();
-      if (this.state.status === "lost") return this.gameOver();
-      return this.proceed(ctx);
-    }
-
-    if (o.t === "ZOMBIES") {
-      return this.presentCombat(o.n, () => this.proceed(ctx), { allowFlee: true });
-    }
-
-    // ITEM
-    renderActions(
-      [
-        {
-          kind: "item",
-          label: "Search for the item",
-          sub: "costs the next card",
-          primary: true,
-          onClick: () => {
-            const c = E.drawCard(this.state);
-            if (this.state.status !== "playing" || c == null) return this.gameOver();
-            const item = this.state.cardsById[c].item;
-            this.takeItemFlow(item, () => this.proceed(ctx));
-          },
-        },
-        { kind: "item", label: "Leave it", sub: "no cost", onClick: () => this.proceed(ctx) },
-      ],
-      "Worth the time to grab it?"
-    );
-  }
-
-  // ---- Combat (shared by card monsters and zombie doors) -------------------
-  presentCombat(n, onDone, opts = {}) {
-    const s = this.state;
-    const foes = this.word("monsters");
-    const usable = E.usableWeapons(s);
-    const acts = [];
-
-    if (usable.length > 1) {
-      for (const w of usable) {
-        acts.push({
-          kind: "fight",
-          icon: `item-${w}`,
-          label: this.itemName(w),
-          sub: `atk ${E.RULES.START_ATTACK + s.itemsById[w].attack}`,
-          // combatDamage is what resolveCombat will call, clamp and all — never
-          // a second copy of the formula sitting in the UI.
-          cost: { hp: -E.combatDamage(n, E.RULES.START_ATTACK + s.itemsById[w].attack) },
-          primary: true,
-          onClick: () => this.doFight(n, w, onDone),
-        });
-      }
-    } else {
-      const best = E.chooseWeapon(s);
-      acts.push({
-        kind: "fight",
-        icon: best ? `item-${best}` : null,
-        label: `Fight ${n} ${foes}`,
-        sub: best ? `with the ${this.itemName(best)}, atk ${E.effectiveAttack(s)}` : "bare-handed",
-        cost: { hp: -E.combatDamage(n, E.effectiveAttack(s)) },
-        primary: true,
-        onClick: () => this.doFight(n, null, onDone),
-      });
-    }
-
-    if (opts.allowFlee !== false) {
-      const dests = Bd.listMoves(this.board).filter((m) => m.type === "move" || m.type === "cross");
-      for (const d of dests) {
-        const to = this.board.worlds[d.to.world].get(Bd.cellKey(d.to.x, d.to.y));
-        acts.push({ kind: "flee", dir: d.dir, icon: `tile-${to.id}`,
-          label: `Flee ${d.dir} to the ${this.tileName(to.id)}`,
-          cost: { hp: -E.RULES.RUN_AWAY_DAMAGE },
-          onClick: () => this.doFlee(d, false, onDone) });
-        if (s.items.includes("oil")) {
-          acts.push({
-            kind: "flee",
-            dir: d.dir,
-            icon: "item-oil",
-            label: `Flee ${d.dir} — throw the ${this.itemName("oil")}`,
-            cost: { hp: 0 },
-            onClick: () => this.doFlee(d, true, onDone),
-          });
-        }
-      }
-    }
-
-    for (const fuel of ["oil", "gasoline"]) {
-      if (s.items.includes("candle") && s.items.includes(fuel)) {
-        acts.push({
-          kind: "fight",
-          icon: `item-${fuel}`,
-          label: `${this.itemName("candle")} + ${this.itemName(fuel)}`,
-          sub: "burn them all",
-          cost: { hp: 0 },
-          onClick: () => this.doCombo(fuel, onDone, n),
-        });
-      }
-    }
-
-    const prompt = `${n} ${foes}! Your attack is ${E.effectiveAttack(s)}.`;
-
-    // Clear first, then scare, then offer the choices. Emptying the list is what
-    // makes the flash safe: the previous step's buttons are gone, so nothing can
-    // be clicked and the global number keys have nothing to find while it plays.
-    renderActions([]);
-    // Stage two: the wall cracks as the sting lands. Only for the break-in —
-    // this.breachDir is set by zombieDoorPhase and null for a card fight, and
-    // the difference between "they are here" and "they came through THERE" is
-    // the whole reason the stages exist.
-    if (this.breachDir) breakInCracks(this.breachDir);
-    // Sometimes the picture does not come. Seeded from its own stream, so a
-    // shared run is startled in the same places — and the actions still land
-    // after the beat either way, so the input gating is untouched.
-    const silent = E.rollSilentScare(this.state);
-    // A break-in scare comes through the wall it is breaking. A card fight
-    // passes nothing and keeps the centred burst — that difference is the
-    // point, so this must never be a default.
-    jumpScare(n, silent, { from: this.breachDir || null }).then(() => {
-      // Never leave the keyboard's default resting on a choice that kills while
-      // a survivable one is on the table. The lethal card stays clickable — it
-      // just stops being the thing you hit by reflex.
-      const fatal = (a) => a.cost && a.cost.hp < 0 && -a.cost.hp >= s.health;
-      const survivable = acts.find((a) => !fatal(a));
-      if (survivable && acts.some((a) => a.primary && fatal(a))) {
-        for (const a of acts) a.primary = false;
-        survivable.primary = true;
-      }
-      // Explicitly not flooded: at this point the wall is still there, and the
-      // whole point of the flood is that a moment later it is not.
-      startMurmur(n, { flood: false });
-      renderActions(acts, prompt, { pack: n, health: s.health });
-      // Stage three: it keeps pounding while you decide. Mounted after the
-      // choices, so a wall that is coming in is the last thing added and the
-      // first thing the eye catches.
-      if (this.breachDir) breakInPressure();
-    });
-  }
-
-  doFight(n, weapon, onDone) {
-    // If the risen broke in, the blow comes from that wall. Read once and
-    // cleared: a stale direction would tilt the next card fight for no reason.
-    damageCameFrom(this.breachDir || null);
-    this.breachDir = null;
-    // Which weapon actually swings, asked of the same picker resolveCombat uses
-    // — and asked before it runs, since a chainsaw spends a use on the way
-    // through. The auto-fight card passes null; it still has a weapon in hand.
-    const swung = E.chooseWeapon(this.state, weapon);
-    combatHit(n, swung);
-    this.tally.putDown += n;
-    const r = E.resolveCombat(this.state, n, { weapon });
-    log(
-      `You fight ${n} ${this.word("monsters")} — ${swung ? "with the " + this.itemName(swung) : "bare-handed"} — and take ${r.damage} damage.`,
-      r.damage >= 3 ? "bad" : ""
-    );
-    // The engine is already done. What follows only delays the next render, so
-    // the pack visibly goes down before the window moves on. Clearing the cards
-    // first is what makes the pause safe: mashed number keys find nothing.
-    stopMurmur();
-    unduck();
-    clearChoices();
-    resolveBeat({ icon: swung ? `item-${swung}` : null }).then(() => {
-      // refresh drives the hit flash, so the damage lands after the swing
-      // rather than alongside it — and after the beat, never racing the veil.
-      this.refresh();
-      if (this.state.status === "lost") return this.gameOver();
-      onDone();
-    });
-  }
-
-  doFlee(move, useOil, onDone) {
-    // The parting swipe comes from the door you are going through.
-    damageCameFrom(move.dir);
-    Bd.moveTo(this.board, move.dir);
-    E.flee(this.state, { useOil });
-    this.fled = true;
-    log(
-      useOil
-        ? `You hurl the ${this.itemName("oil")} and slip away, unscathed.`
-        : "You flee, taking a parting swipe (-1 HP)."
-    );
-    // Fleeing gets a lunge, not the full sequence — you did not kill anything,
-    // and the walk into the next room is the beat that matters here.
-    stopMurmur();
-    unduck();
-    breakInClear();
-    clearChoices();
-    resolveBeat({ mode: "flee" }).then(() => {
-      this.refresh();
-      animateEntry(move.dir);
-      if (this.state.status === "lost") return this.gameOver();
-      onDone();
-    });
-  }
-
-  doCombo(fuel, onDone, n = 0) {
-    E.useCandleCombo(this.state, fuel);
-    this.tally.putDown += n;
-    log(
-      fuel === "oil"
-        ? `You torch the room — every one of the ${this.word("monsters")} drops.`
-        : "Whoomph — the room ignites. All clear.",
-      "good"
-    );
-    stopMurmur();
-    unduck();
-    clearChoices();
-    resolveBeat({ icon: `item-${fuel}` }).then(() => {
-      this.refresh();
-      onDone();
-    });
-  }
-
-  // ---- Step 6: the tile's own instructions --------------------------------
-  proceed(ctx) {
+  // ---- Arrival -------------------------------------------------------------
+  // Nothing is drawn. The event pool is not designed, so arriving somewhere is
+  // just arriving: the room's own instructions, then the end of the turn.
+  arrive() {
     if (this.state.status !== "playing") return this.gameOver();
+    this.refresh();
+    this.roomEffect();
+  }
 
-    if (ctx && ctx.second) {
-      const tile = Bd.currentTile(this.board);
-      if (ctx.kind === "temple" && !this.fled && tile.def.onResolve === "SECOND_CARD_THEN_GAIN_TOTEM") {
-        E.gainTotem(this.state);
-        relicFound();
-        log(`Among the bones, the ${this.word("relic")}. It is yours.`, "good");
-      }
-      if (ctx.kind === "graveyard" && !this.fled && this.state.totem) {
-        E.buryTotem(this.state);
-      }
+  // The two rooms that still do something.
+  //
+  // PLACEHOLDER, and deliberately a loud one: the rulebook leaves the cost of
+  // both rites open — "a turn each, an event each, or both" — so this build
+  // charges nothing for either. Standing in the room is enough. That is not a
+  // ruling on the cost, it is the absence of one, and it exists only so the map
+  // has a goal to be tested against. Fix it when the rites are designed.
+  roomEffect() {
+    const onr = Bd.currentTile(this.board).def.onResolve;
+    if (onr === "SECOND_CARD_THEN_GAIN_TOTEM" && !this.state.totem) {
+      E.gainTotem(this.state);
+      relicFound();
+      this.tally.found += 1;
+      log(`Among the coffins, the ${this.word("relic")}. It is yours.`, "good");
+      this.refresh();
+    } else if (onr === "SECOND_CARD_THEN_BURY_TOTEM" && this.state.totem) {
+      E.buryTotem(this.state);
       this.refresh();
       if (this.state.status === "won") return this.gameOver();
-      return this.deadEndCheck();
-    }
-
-    return this.afterCardSpecial();
-  }
-
-  afterCardSpecial() {
-    if (this.fled) return this.deadEndCheck();
-    const onr = Bd.currentTile(this.board).def.onResolve;
-    if (onr === "BONUS_ITEM") return this.offerBonusItem();
-    if (onr === "SECOND_CARD_THEN_GAIN_TOTEM") {
-      const here = this.tileName(Bd.currentTile(this.board).id);
-      return this.drawSecond("temple", `You start searching the ${here}…`);
-    }
-    if (onr === "SECOND_CARD_THEN_BURY_TOTEM") {
-      return this.drawSecond("graveyard", "You break ground, and begin the burial…");
     }
     return this.deadEndCheck();
   }
 
-  offerBonusItem() {
-    renderActions(
-      [
-        {
-          kind: "item",
-          label: "Rummage for an item",
-          sub: "costs the next card",
-          primary: true,
-          onClick: () => {
-            const c = E.drawCard(this.state);
-            if (this.state.status !== "playing" || c == null) return this.gameOver();
-            this.takeItemFlow(this.state.cardsById[c].item, () => this.deadEndCheck());
-          },
-        },
-        { kind: "item", label: "Leave empty-handed", sub: "no cost", onClick: () => this.deadEndCheck() },
-      ],
-      `The ${this.tileName(Bd.currentTile(this.board).id)} — worth a rummage?`
-    );
-  }
-
-  // The Reliquary and Family Plot resolve a second card. The designer ruled the
-  // gap between the two "behaves like an ordinary fresh turn", so you may cower
-  // there — and that allowance is its own, separate from the end-of-turn one.
-  drawSecond(kind, msg) {
-    log(msg);
-    E.openCowerWindow(this.state);
-    this.promptSecondCard(kind);
-  }
-
-  promptSecondCard(kind) {
-    if (this.state.status !== "playing") return this.gameOver();
-    const acts = [
-      {
-        kind: "draw",
-        // The two choices the whole run is for. A tier above primary, because
-        // primary is also what "Next turn" gets.
-        pivotal: true,
-        icon: "ui-relic",
-        label: kind === "graveyard" ? "Dig on — draw the burial card" : "Search on — draw the second card",
-        sub: kind === "graveyard" ? "the burial itself" : "the search itself",
-        primary: true,
-        onClick: () => this.doDrawSecond(kind),
-      },
-    ];
-    if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
-      acts.push({ kind: "rest", label: "Cower first", sub: "burns a card",
-        cost: { hp: E.RULES.COWER_HEAL },
-        onClick: () => this.doCowerBeforeSecond(kind) });
-    }
-    renderActions(acts, "One more card to face. Take a breath first?");
-  }
-
-  doCowerBeforeSecond(kind) {
-    const r = E.cower(this.state);
-    if (!r.ok) return this.promptSecondCard(kind);
-    log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
-    clearChoices();
-    const outdoors = Bd.currentTile(this.board).world === "outdoor";
-    cowerScene(outdoors).then(() => {
-      this.refresh();
-      // Burning that card can empty the deck, turn the hour, and even end the run.
-      if (this.state.status !== "playing") return this.gameOver();
-      this.promptSecondCard(kind);
-    });
-  }
-
-  doDrawSecond(kind) {
-    // The staging wraps the draw; the draw itself is unchanged. Choices go
-    // first so a mashed key during the digging finds nothing — and the cower
-    // choice is untouched, because it was offered and taken before this point.
-    clearChoices();
-    buryBeat(kind).then(() => {
-      const c = E.drawCard(this.state);
-      if (this.state.status !== "playing" || c == null) return this.gameOver();
-      this.refresh();
-      // If the card is the risen, the scare lands mid-dig, which is the best
-      // timing this game has to offer and costs nothing to arrange.
-      this.presentCard(c, { second: true, kind });
-    });
-  }
-
-  takeItemFlow(item, done) {
-    if (E.hasItemSpace(this.state)) {
-      E.pickUpItem(this.state, item);
-      this.tally.found += 1;
-      log(`You take the ${this.itemName(item)}.`, "good");
-      this.refresh();
-      return done();
-    }
-    const acts = this.state.items.map((held) => ({
-      kind: "item",
-      icon: `item-${item}`,
-      sub: `lose the ${this.itemName(held)}`,
-      label: `Drop ${this.itemName(held)}, take ${this.itemName(item)}`,
-      onClick: () => {
-        E.pickUpItem(this.state, item, held);
-        this.tally.found += 1;
-        log(`Dropped the ${this.itemName(held)}, took the ${this.itemName(item)}.`);
-        this.refresh();
-        done();
-      },
-    }));
-    acts.push({ kind: "item", label: `Leave the ${this.itemName(item)}`, sub: "keep what you carry", onClick: done });
-    renderActions(acts, `Your hands are full. Make room for the ${this.itemName(item)}?`);
-  }
-
-  // ---- Step 7: dead-end / zombie door -------------------------------------
+  // ---- Dead ends -----------------------------------------------------------
+  // A room with no way on still has to be leavable, or every tile behind it is
+  // stranded and the crypt or the grave may never reach the table. With nothing
+  // left in the game to break the wall, the wall simply gives way: no fight, no
+  // telegraph, no cost. Pure topology, kept because it is load-bearing for
+  // placement — see the seed sweep in tests/board.test.js.
   deadEndCheck() {
     if (this.state.status !== "playing") return this.gameOver();
-    this.refresh();
-    if (Bd.isDeadEnd(this.board)) return this.zombieDoorPhase(() => this.endTurn());
-    // The one place a phantom can fire: the card is done, no fight is coming,
-    // and the turn is about to hand back. Rolled at a fixed point in the turn
-    // rather than on a timer, because a shared seed has to hear the same house
-    // — and never while something real is happening, because a false cue is
-    // only worth anything when the honest ones are unambiguous.
-    // Not rolled at all in calm mode rather than rolled and discarded: the
-    // stream stays where it was, so switching calm on and off mid-run does not
+    if (Bd.isDeadEnd(this.board)) {
+      const wall = Bd.pickZombieDoorWall(this.board);
+      if (wall) {
+        Bd.openZombieDoor(this.board, wall);
+        log(`Nowhere on from here — until the ${DIR_WORD[wall]} wall gives way.`);
+        this.refresh();
+      }
+    }
+    // The one place a phantom can fire: the turn is done and nothing real is
+    // happening. Rolled at a fixed point rather than on a timer, because a
+    // shared seed has to hear the same house. Not rolled at all in calm mode —
+    // rather than rolled and discarded — so toggling calm mid-run does not
     // change what a seed does afterwards.
     if (!isCalm()) {
       const fear = E.dread(this.state);
@@ -588,124 +236,48 @@ class Game {
     return this.endTurn();
   }
 
-  zombieDoorPhase(onDone) {
-    log(`Dead end. Three of the ${this.word("monsters")} claw at the walls…`, "bad");
-    // The hole is punched after the fight, not before, because where it lands
-    // depends on how the fight ends: stand your ground and they come through a
-    // wall of this room; run and they follow, and break into the room you
-    // reached instead.
-    const cameFrom = Bd.currentTile(this.board);
-    // Which wall they are working on. Known before the fight because
-    // pickZombieDoorWall is a pure read — the same look-ahead the telegraph
-    // uses — and it is what leans the damage flash toward them.
-    this.breachDir = Bd.pickZombieDoorWall(this.board);
-    this.presentCombat(
-      E.RULES.ZOMBIE_DOOR_COUNT,
-      () => {
-        this.breakInWall(cameFrom);
-        onDone();
-      },
-      { allowFlee: true }
-    );
-  }
-
-  breakInWall(cameFrom) {
-    breakInClear(); // whatever was pounding, stop pounding
-    if (this.state.status !== "playing") return;
-    const here = Bd.currentTile(this.board);
-    // Compared by tile rather than this.fled, which may already be set from an
-    // earlier retreat in the same turn.
-    const ran = here !== cameFrom;
-    // Favours a wall opening onto unexplored space: the hole persists and is
-    // how you get out, so one facing tiles already placed would only lead back.
-    const wall = Bd.pickZombieDoorWall(this.board);
-    if (!wall) return; // nothing blank left to break through
-    Bd.openZombieDoor(this.board, wall);
-    this.refresh();
-    log(
-      ran
-        ? `They follow you in through the ${DIR_WORD[wall]} wall of the ${this.tileName(here.id)}.`
-        : `They come through the ${DIR_WORD[wall]} wall.`,
-      "bad"
-    );
-    // Stage four, or five. Standing your ground collapses the wall that has
-    // been cracking all fight. Running means the prediction was wrong and the
-    // whole sequence has to move: a fast knock and a crack in the room you
-    // actually reached, and then the collapse there. The board already decides
-    // where the hole goes; the staging follows it rather than the other way
-    // round.
-    if (ran) breakInReanchor(wall).then(() => breakInCollapse(wall));
-    else breakInCollapse(wall);
-  }
-
-  // ---- Steps 8–9: end of turn (heal, cower) -------------------------------
+  // ---- End of turn ---------------------------------------------------------
   endTurn() {
     if (this.state.status !== "playing") return this.gameOver();
     const tile = Bd.currentTile(this.board);
-    if (!this.fled && tile.def.onTurnEnd === "HEAL_1") {
+    if (tile.def.onTurnEnd === "HEAL_1") {
       E.changeHealth(this.state, 1);
-      // A room that heals is the game's other "not this time", so it buys the
-      // same turn of release a survived fight does. Slightly less of one: it is
-      // a kitchen, not an escape.
+      // A room that heals is the game's "not this time", so it buys a turn of
+      // release. Slightly less of one: it is a counting room, not an escape.
       E.grantRelief(this.state, 0.7);
       log(`You steady yourself here. +1 HP.`, "good");
       this.refresh();
     }
-    // Step 9 gets its own cower allowance, independent of one taken between a
-    // Reliquary / Family Plot pair.
-    E.openCowerWindow(this.state);
     this.renderEndTurn();
   }
 
-  // Split out from endTurn so cowering can re-render the choices without
-  // re-running step 8 — which would hand out the Kitchen / Herb Garden heal a
-  // second time.
   renderEndTurn() {
-    const acts = [{ kind: "draw", label: "Next turn", sub: "press on", primary: true, onClick: () => this.nextTurn() }];
-    if (!(E.HOUSE_RULES.COWER_ONCE_PER_TURN && this.state.coweredThisTurn)) {
-      acts.unshift({ kind: "rest", label: "Cower", sub: "burns a card",
-        cost: { hp: E.RULES.COWER_HEAL }, onClick: () => this.doCower() });
-    }
-    renderActions(acts, "The room is quiet. Rest, or press on?");
-  }
-
-  doCower() {
-    const r = E.cower(this.state);
-    if (!r.ok) return this.renderEndTurn();
-    log("You hole up and breathe. +3 HP — a card slips away unseen.", "good");
-    // The engine has already resolved: the card is spent and the health is
-    // banked. What follows is the hour you spent in the corner, and the health
-    // is only shown on the way out of it, with the exhale.
-    clearChoices();
-    const outdoors = Bd.currentTile(this.board).world === "outdoor";
-    cowerScene(outdoors).then(() => {
-      this.refresh();
-      if (this.state.status === "lost") return this.gameOver();
-      this.renderEndTurn();
-    });
+    renderActions(
+      [{ kind: "draw", label: "Next turn", sub: "six minutes", primary: true,
+         onClick: () => this.nextTurn() }],
+      "The room is quiet."
+    );
   }
 
   nextTurn() {
     // A turn later, the dust in last turn's hole has settled. The gouges and
     // the dark stay — those are what the house keeps.
     settleDust();
+    // The turn IS the clock, so this is where the night moves. Turn 31 is not a
+    // turn: it is midnight, and advanceTurn ends the run rather than granting
+    // one. The duel that should happen there is not designed yet.
+    E.advanceTurn(this.state);
+    if (this.state.status !== "playing") return this.gameOver();
     E.beginTurn(this.state);
-    this.fled = false;
     this.refresh();
     this.renderMoves();
   }
-
   // ---- End states ----------------------------------------------------------
   gameOver() {
     this.refresh();
     renderActions([]);
-    // A run that ended mid-break-in must not leave a wall pounding under the
-    // verdict card.
-    breakInClear();
-    // The house stops breathing when the run does. Both beds go before the
-    // verdict sting, so the ending has the room to itself.
-    stopMurmur();
-    unduck();
+    // The house stops breathing when the run does, before the verdict sting,
+    // so the ending has the room to itself.
     stopAmbience();
     keepAwake(false);
     // The verdicts carry their own stings; the score is never played over them.
@@ -790,7 +362,6 @@ function startNewGame(seed) {
   keepAwake(true);
   // A new run gets the wind back, and never a second copy of it — startAmbience
   // is idempotent, so restarting mid-run is safe.
-  stopMurmur();
   startAmbience();
   game = new Game(data, seed != null ? { seed } : {});
   window.__game = game; // handy for debugging

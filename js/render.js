@@ -330,7 +330,8 @@ function drawPips(c) {
   row.className = "pips";
   for (let i = 0; i < c.perHour; i++) {
     const pip = document.createElement("span");
-    // Pips stand for draws still available, so they go out left to right.
+    // Pips stand for turns still standing in this band, so they go out left
+    // to right as the band is spent.
     pip.className = `pip${i < c.left ? "" : " pip--spent"}`;
     row.appendChild(pip);
   }
@@ -338,8 +339,8 @@ function drawPips(c) {
 }
 
 function cardsLeftPhrase(c) {
-  if (c.left === 0) return "the next card turns the hour";
-  return `${c.left} card${c.left === 1 ? "" : "s"} until the hour turns`;
+  if (c.left === 0) return "the next turn tolls the hour";
+  return `${c.left} turn${c.left === 1 ? "" : "s"} until the hour turns`;
 }
 
 // The last hour, called out. The ambient palette shift is handled by the hour
