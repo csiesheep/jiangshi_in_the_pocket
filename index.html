@@ -20,7 +20,7 @@
        Grave Errand's copy, so indexing would compete with the real one. Drop
        this line from all five pages together once their rewrite lands. -->
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#0a0b0d">
+  <meta name="theme-color" content="#070a10">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -37,15 +37,15 @@
        a new filename rather than a new picture at the old one — scrapers cache
        by URL, so replacing the image in place would leave every link that has
        ever been shared showing the old card. -->
-  <meta property="og:image" content="https://games.csiesheep.com/jiangshi_in_the_pocket/assets/social.png">
+  <meta property="og:image" content="https://games.csiesheep.com/jiangshi_in_the_pocket/assets/social-jiangshi.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="A dark house at night, lit windows and an open door, under the title Grave Errand.">
+  <meta property="og:image:alt" content="The gate of a walled village at night under a cold moon, two red lanterns burning either side of it, under the title 殭屍在口袋 — Jiangshi in the Pocket.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Jiangshi in the Pocket — a solo hopping-vampire board game in your browser">
   <meta name="twitter:description" content="One night, one village, one thing in a coffin that has waited too long. Lay him to rest, or meet him at midnight. Free, no install, one player.">
-  <meta name="twitter:image" content="https://games.csiesheep.com/jiangshi_in_the_pocket/assets/social.png">
-  <meta name="twitter:image:alt" content="A dark house at night, lit windows and an open door, under the title Grave Errand.">
+  <meta name="twitter:image" content="https://games.csiesheep.com/jiangshi_in_the_pocket/assets/social-jiangshi.png">
+  <meta name="twitter:image:alt" content="The gate of a walled village at night under a cold moon, two red lanterns burning either side of it, under the title 殭屍在口袋 — Jiangshi in the Pocket.">
 
   <script type="application/ld+json">
   {
@@ -72,95 +72,156 @@
   </script>
 </head>
 <body class="coldopen">
-  <!-- The 義莊 at the end of the village, once, inline. The game's sprite is
-       100KB and this page needs one shape out of it — the sprite conventions
-       without the sprite. Two roof tiers behind a compound wall, the gate you
-       came through, and the only two lights still burning. -->
+  <!-- The gate of the village, once, inline. The game's sprite is 100KB and this
+       page needs one shape out of it.
+
+       Composed for the band that is actually on screen. preserveAspectRatio
+       xMidYMax slice fills the box by the larger scale and anchors to the
+       bottom, so at every size the viewer sees roughly y=74 down. Anything
+       drawn above that is cropped, which is how an earlier draft lost a whole
+       roof tier and left a lit window apparently floating on the tiles. -->
   <div class="titlescene" aria-hidden="true">
     <svg class="titlehouse" viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice">
       <defs>
         <radialGradient id="ti-lantern" cx=".5" cy=".5" r=".5">
-          <stop offset="0" stop-color="#ff9a3c" stop-opacity=".5"/>
+          <stop offset="0" stop-color="#ff9a3c" stop-opacity=".55"/>
           <stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/>
         </radialGradient>
         <linearGradient id="ti-door" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#5a3f18"/>
-          <stop offset="1" stop-color="#1a1108"/>
+          <stop offset="0" stop-color="#6b4a1c"/>
+          <stop offset="1" stop-color="#140d06"/>
+        </linearGradient>
+        <linearGradient id="ti-wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#0e1218"/>
+          <stop offset="1" stop-color="#07090c"/>
         </linearGradient>
       </defs>
 
-      <!-- the far ridge, so the roofs have something to cut into -->
-      <path d="M0 152l34-14 26 8 30-12 34 10 32-14 30 12 28-8 34 14 32-6 20 8v30H0z" fill="#0a0e13"/>
-
-      <!-- the hall roof, two tiers, eaves swept up at the tips -->
-      <path d="M96 88 C112 78 130 66 145 63 L175 63 C190 66 208 78 224 88 Z" fill="#0c0f13"/>
-      <path d="M96 88q-9 1-14-3 9-3 16 0z" fill="#0c0f13"/>
-      <path d="M224 88q9 1 14-3-9-3-16 0z" fill="#0c0f13"/>
-      <rect x="141" y="60" width="38" height="4" fill="#11161c"/>
-
-      <path d="M34 122 C56 108 84 92 106 87 L214 87 C236 92 264 108 286 122 Z" fill="#080a0c"/>
-      <path d="M34 122q-12 1-18-4 12-4 21 0z" fill="#080a0c"/>
-      <path d="M286 122q12 1 18-4-12-4-21 0z" fill="#080a0c"/>
-      <rect x="100" y="83" width="120" height="5" fill="#0d1116"/>
-      <g fill="#0b0e12">
-        <path d="M104 87l-14 35h4l14-35z"/><path d="M136 87l-6 35h4l6-35z"/>
-        <path d="M184 87l6 35h-4l-6-35z"/><path d="M216 87l14 35h-4l-14-35z"/>
+      <!-- the tree line beyond the walls, two depths of it -->
+      <g fill="#0c1219">
+        <path d="M0 116l10-9 7 5 9-11 8 8 11-9 9 10 8-6 10 9v10H0z"/>
+        <path d="M236 114l9-8 8 6 10-10 9 9 8-7 10 8 9-5 11 9v9H236z"/>
       </g>
-      <!-- one window still lit, high in the hall -->
-      <rect x="150" y="96" width="20" height="14" rx="1.5" fill="#3a2a12"/>
-      <rect x="153" y="99" width="14" height="8" fill="#6b4a1c"/>
-      <g fill="#1a1108">
-        <rect x="159" y="96" width="2" height="14"/><rect x="150" y="102" width="20" height="1.8"/>
+      <g fill="#090e14">
+        <path d="M0 120l14-8 12 7 16-9 14 8 15-6 13 9v8H0z"/>
+        <path d="M228 118l13-7 14 8 15-8 13 7 16-6 12 8v7H228z"/>
       </g>
 
-      <!-- the compound wall, with its coping course -->
-      <rect x="0" y="134" width="320" height="46" fill="#0a0c0f"/>
-      <rect x="0" y="130" width="320" height="5" fill="#10141a"/>
-      <rect x="0" y="129" width="320" height="1.6" fill="#171d25"/>
+      <!-- the hall roof: ridge, swept eaves, and the tile courses running down -->
+      <path d="M22 118 C50 108 84 92 108 87 L212 87 C236 92 270 108 298 118 Z" fill="#080a0c"/>
+      <path d="M22 118q-13 1-19-4 13-4 22 0z" fill="#080a0c"/>
+      <path d="M298 118q13 1 19-4-13-4-22 0z" fill="#080a0c"/>
+      <rect x="102" y="83" width="116" height="5" fill="#0e1319"/>
+      <rect x="102" y="83" width="116" height="1.4" fill="#161d26"/>
+      <g fill="#0c1015">
+        <path d="M96 87l-2 31h3l2-31z"/><path d="M120 87l-1 31h3l1-31z"/>
+        <path d="M144 87v31h3V87z"/><path d="M168 87v31h3V87z"/>
+        <path d="M192 87l1 31h3l-1-31z"/><path d="M216 87l2 31h3l-2-31z"/>
+      </g>
+      <g fill="#101720" opacity=".8">
+        <path d="M108 87h104l1 3H107z"/>
+      </g>
+      <!-- ridge finials, the little upturned horns at each end -->
+      <path d="M102 83q-5-2-6-6 6 1 8 5z" fill="#0e1319"/>
+      <path d="M218 83q5-2 6-6-6 1-8 5z" fill="#0e1319"/>
+
+      <!-- the compound wall, its coping course, and the brick behind the render -->
+      <rect x="0" y="118" width="320" height="62" fill="url(#ti-wall)"/>
+      <rect x="0" y="115" width="320" height="4" fill="#12171e"/>
+      <rect x="0" y="114" width="320" height="1.4" fill="#1b222c"/>
+      <g fill="#0a0e13">
+        <rect x="0" y="127" width="320" height="1"/><rect x="0" y="137" width="320" height="1"/>
+        <rect x="0" y="147" width="320" height="1"/><rect x="0" y="157" width="320" height="1"/>
+      </g>
+      <g fill="#10161d" opacity=".55">
+        <rect x="14" y="128" width="26" height="8"/><rect x="52" y="138" width="30" height="8"/>
+        <rect x="250" y="128" width="28" height="8"/><rect x="286" y="148" width="26" height="8"/>
+      </g>
+      <!-- damp climbing out of the ground, the way it does on every indoor tile -->
+      <g fill="#060809" opacity=".55">
+        <path d="M0 180v-22q22 6 44 0t44 4 46-6 44 6 46-4 44 2 52-2v22z"/>
+      </g>
+
+      <!-- two windows still lit, flanking the gate -->
+      <g>
+        <rect x="60" y="130" width="22" height="15" rx="1.5" fill="#2e2110"/>
+        <rect x="62.4" y="132.4" width="17.2" height="10.2" fill="#5e4118"/>
+        <g fill="#12100a">
+          <rect x="70" y="130" width="2" height="15"/><rect x="60" y="136.6" width="22" height="1.8"/>
+        </g>
+        <rect x="238" y="132" width="20" height="13" rx="1.5" fill="#241a0d"/>
+        <rect x="240.2" y="134.2" width="15.6" height="8.6" fill="#3f2c11"/>
+        <g fill="#12100a">
+          <rect x="247" y="132" width="2" height="13"/><rect x="238" y="137.6" width="20" height="1.6"/>
+        </g>
+      </g>
 
       <!-- the gate you came through, and the dark inside it -->
-      <path d="M120 130 C134 120 148 111 158 109 L162 109 C172 111 186 120 200 130 Z" fill="#070909"/>
-      <path d="M120 130q-10 1-15-3 10-3 17 0z" fill="#070909"/>
-      <path d="M200 130q10 1 15-3-10-3-17 0z" fill="#070909"/>
-      <rect x="146" y="106" width="28" height="4" fill="#0d1116"/>
-      <rect x="126" y="130" width="68" height="50" fill="#080a0d"/>
-      <path d="M146 180v-38h28v38z" fill="url(#ti-door)" opacity=".55"/>
-      <path d="M152 180v-32h6v32z" fill="#7a5624" opacity=".5"/>
+      <path d="M112 130 C128 120 144 111 156 109 L164 109 C176 111 192 120 208 130 Z" fill="#06080a"/>
+      <path d="M112 130q-11 1-16-3 11-3 18 0z" fill="#06080a"/>
+      <path d="M208 130q11 1 16-3-11-3-18 0z" fill="#06080a"/>
+      <rect x="146" y="106" width="28" height="4" fill="#0e1319"/>
+      <rect x="146" y="106" width="28" height="1.2" fill="#1b222c"/>
+      <rect x="120" y="130" width="80" height="50" fill="#080a0d"/>
+      <rect x="120" y="130" width="80" height="2" fill="#11161d"/>
+      <path d="M142 180v-40h36v40z" fill="url(#ti-door)" opacity=".5"/>
+      <path d="M148 180v-34h7v34z" fill="#8a6128" opacity=".45"/>
+      <g fill="#0d1014">
+        <rect x="158" y="140" width="4" height="40"/>
+      </g>
 
       <!-- two lanterns, the only things still burning -->
-      <g>
-        <ellipse cx="131" cy="140" rx="16" ry="17" fill="url(#ti-lantern)"/>
-        <ellipse cx="189" cy="140" rx="16" ry="17" fill="url(#ti-lantern)"/>
-        <path d="M131 130v4" stroke="#3a2a16" stroke-width="1.4"/>
-        <path d="M189 130v4" stroke="#3a2a16" stroke-width="1.4"/>
-        <ellipse cx="131" cy="140" rx="5.4" ry="6.8" fill="#8e2723"/>
-        <ellipse cx="189" cy="140" rx="5.4" ry="6.8" fill="#8e2723"/>
-        <ellipse cx="130.2" cy="139" rx="3.2" ry="4.4" fill="#d4553f"/>
-        <ellipse cx="188.2" cy="139" rx="3.2" ry="4.4" fill="#d4553f"/>
-        <ellipse cx="130.6" cy="139.6" rx="1.5" ry="2.6" fill="#ffc07a" opacity=".7"/>
-        <ellipse cx="188.6" cy="139.6" rx="1.5" ry="2.6" fill="#ffc07a" opacity=".7"/>
+      <g class="lanterns">
+        <ellipse cx="128" cy="146" rx="18" ry="19" fill="url(#ti-lantern)"/>
+        <ellipse cx="192" cy="146" rx="18" ry="19" fill="url(#ti-lantern)"/>
+        <path d="M128 132v6" stroke="#3a2a16" stroke-width="1.4"/>
+        <path d="M192 132v6" stroke="#3a2a16" stroke-width="1.4"/>
+        <ellipse cx="128" cy="146" rx="6" ry="7.4" fill="#8e2723"/>
+        <ellipse cx="192" cy="146" rx="6" ry="7.4" fill="#8e2723"/>
+        <ellipse cx="127" cy="145" rx="3.6" ry="4.8" fill="#d4553f"/>
+        <ellipse cx="191" cy="145" rx="3.6" ry="4.8" fill="#d4553f"/>
+        <ellipse cx="127.4" cy="145.6" rx="1.7" ry="2.8" fill="#ffc07a" opacity=".75"/>
+        <ellipse cx="191.4" cy="145.6" rx="1.7" ry="2.8" fill="#ffc07a" opacity=".75"/>
         <g fill="#c9a35e">
-          <rect x="127.4" y="132.4" width="7.2" height="1.6"/><rect x="185.4" y="132.4" width="7.2" height="1.6"/>
-          <rect x="127.4" y="146.4" width="7.2" height="1.6"/><rect x="185.4" y="146.4" width="7.2" height="1.6"/>
+          <rect x="124.4" y="137.6" width="7.6" height="1.7"/><rect x="188.4" y="137.6" width="7.6" height="1.7"/>
+          <rect x="124.4" y="152.6" width="7.6" height="1.7"/><rect x="188.4" y="152.6" width="7.6" height="1.7"/>
         </g>
         <g fill="#8e2723">
-          <rect x="130.2" y="148" width="1.6" height="6"/><rect x="188.2" y="148" width="1.6" height="6"/>
+          <rect x="127.2" y="154.3" width="1.7" height="7"/><rect x="191.2" y="154.3" width="1.7" height="7"/>
         </g>
       </g>
 
-      <!-- bamboo at both edges, closest thing to the viewer -->
-      <g fill="#070b09">
-        <rect x="6" y="72" width="6" height="108"/><rect x="18" y="88" width="5" height="92"/>
-        <rect x="299" y="80" width="6" height="100"/><rect x="310" y="98" width="5" height="82"/>
+      <!-- bamboo at both edges, the nearest thing to the viewer, and the only
+           part of the drawing the wind is allowed to move -->
+      <g class="bamboo bamboo--l" fill="#070b09">
+        <rect x="8" y="74" width="6" height="106"/>
+        <rect x="21" y="86" width="4.6" height="94"/>
+        <rect x="31" y="96" width="3.6" height="84"/>
       </g>
-      <g fill="#0d130f">
-        <path d="M12 96q13-6 20 1-12 4-20-1z"/><path d="M6 128q-13-6-20 1 12 4 20-1z"/>
-        <path d="M305 108q13-6 20 1-12 4-20-1z"/><path d="M299 140q-13-6-20 1 12 4 20-1z"/>
-        <path d="M23 116q12-5 18 1-11 4-18-1z"/>
+      <g class="bamboo bamboo--l" fill="#0e150f">
+        <path d="M14 100q14-7 21 1-13 4-21-1z"/><path d="M8 128q-14-7-21 1 13 4 21-1z"/>
+        <path d="M25.6 112q13-6 19 1-12 4-19-1z"/><path d="M14 152q14-6 20 2-13 4-20-2z"/>
+      </g>
+      <g class="bamboo bamboo--r" fill="#070b09">
+        <rect x="306" y="80" width="6" height="100"/>
+        <rect x="294" y="92" width="4.6" height="88"/>
+        <rect x="286" y="104" width="3.6" height="76"/>
+      </g>
+      <g class="bamboo bamboo--r" fill="#0e150f">
+        <path d="M306 108q-14-7-21 1 13 4 21-1z"/><path d="M312 136q14-7 21 1-13 4-21-1z"/>
+        <path d="M294 120q-13-6-19 1 12 4 19-1z"/><path d="M306 160q-14-6-20 2 13 4 20-2z"/>
       </g>
     </svg>
     <div class="fog fog--near"></div>
     <div class="fog fog--far"></div>
+    <!-- The wind, as ten leaves. Purely decorative and the first thing dropped
+         under prefers-reduced-motion. -->
+    <div class="leaves" aria-hidden="true">
+      <span class="leaf"></span><span class="leaf"></span><span class="leaf"></span>
+      <span class="leaf"></span><span class="leaf"></span><span class="leaf"></span>
+      <span class="leaf"></span><span class="leaf"></span><span class="leaf"></span>
+      <span class="leaf"></span>
+    </div>
   </div>
 
   <main class="menu">
@@ -171,17 +232,47 @@
     <p class="tagline">It is nine at night. At the third watch he comes for you.
       Lay him to rest, or be standing when he arrives.</p>
 
-    <nav>
-      <a class="btn btn--primary" href="game.html">Start</a>
-      <a class="btn" href="rulebook.html">Rulebook</a>
-      <a class="btn" href="tiles.html">The Tiles</a>
-      <a class="btn" href="credits.html">Credits</a>
-      <a class="btn" href="https://csiesheep.com" target="_blank" rel="noopener">About me</a>
+    <!-- Four charms, each read left to right the way a 橫批 is: the head mark,
+         the name, the seal at the end, and the body script running behind it
+         all. The red is dark until you reach for one. -->
+    <nav class="talismans">
+      <a class="talisman talisman--primary" href="game.html">
+        <span class="talisman-frame" aria-hidden="true"></span>
+        <svg class="talisman-body" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path d="M22 6q10 8 0 14t2 14M60 5q-9 9 1 15t-2 14M104 7q11 7 1 13t3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M150 5v30M144 12h12M144 22h12M138 30h24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M196 6q-10 8 0 14t-2 14M238 5q9 9-1 15t2 14M276 7q-11 7-1 13t-3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg class="talisman-mark" viewBox="0 0 20 30" aria-hidden="true"><path d="M4 4h12M6 9.5h8M8 15h4M10 15v11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <span class="talisman-script" lang="zh-Hant">開始</span>
+        <span class="talisman-label">Start</span>
+        <svg class="talisman-seal" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="1" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 6h8M5 9h8M5 12h8M9 6v6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </a>
+      <a class="talisman" href="rulebook.html">
+        <span class="talisman-frame" aria-hidden="true"></span>
+        <svg class="talisman-body" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path d="M22 6q10 8 0 14t2 14M60 5q-9 9 1 15t-2 14M104 7q11 7 1 13t3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M150 5v30M144 12h12M144 22h12M138 30h24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M196 6q-10 8 0 14t-2 14M238 5q9 9-1 15t2 14M276 7q-11 7-1 13t-3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg class="talisman-mark" viewBox="0 0 20 30" aria-hidden="true"><path d="M4 4h12M6 9.5h8M8 15h4M10 15v11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <span class="talisman-script" lang="zh-Hant">規則</span>
+        <span class="talisman-label">Rulebook</span>
+        <svg class="talisman-seal" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="1" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 6h8M5 9h8M5 12h8M9 6v6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </a>
+      <a class="talisman" href="tiles.html">
+        <span class="talisman-frame" aria-hidden="true"></span>
+        <svg class="talisman-body" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path d="M22 6q10 8 0 14t2 14M60 5q-9 9 1 15t-2 14M104 7q11 7 1 13t3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M150 5v30M144 12h12M144 22h12M138 30h24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M196 6q-10 8 0 14t-2 14M238 5q9 9-1 15t2 14M276 7q-11 7-1 13t-3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg class="talisman-mark" viewBox="0 0 20 30" aria-hidden="true"><path d="M4 4h12M6 9.5h8M8 15h4M10 15v11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <span class="talisman-script" lang="zh-Hant">圖板</span>
+        <span class="talisman-label">The Tiles</span>
+        <svg class="talisman-seal" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="1" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 6h8M5 9h8M5 12h8M9 6v6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </a>
+      <a class="talisman" href="https://csiesheep.com" target="_blank" rel="noopener">
+        <span class="talisman-frame" aria-hidden="true"></span>
+        <svg class="talisman-body" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path d="M22 6q10 8 0 14t2 14M60 5q-9 9 1 15t-2 14M104 7q11 7 1 13t3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M150 5v30M144 12h12M144 22h12M138 30h24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M196 6q-10 8 0 14t-2 14M238 5q9 9-1 15t2 14M276 7q-11 7-1 13t-3 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg class="talisman-mark" viewBox="0 0 20 30" aria-hidden="true"><path d="M4 4h12M6 9.5h8M8 15h4M10 15v11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <span class="talisman-script" lang="zh-Hant">關於</span>
+        <span class="talisman-label">About me</span>
+        <svg class="talisman-seal" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="1" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 6h8M5 9h8M5 12h8M9 6v6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </a>
     </nav>
 
     <p class="footnote">A free solo board game in the browser. The rules come
       from a print-and-play original; the village, the night and everything in
-      it are ours — see Credits.</p>
+      it are ours.</p>
   </main>
   <script type="module" src="js/menu.js"></script>
 </body>

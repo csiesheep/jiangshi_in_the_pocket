@@ -241,61 +241,165 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 .menu .tagline { color: var(--muted); margin: 0 0 40px; max-width: 40ch; }
 .menu nav { display: flex; flex-direction: column; gap: 14px; width: min(320px, 90vw); }
 
-/* ---- The menu buttons -------------------------------------------------------
-   These are used on the menu and nowhere else, so they are allowed to belong to
-   the gate rather than to the rest of the interface: a lacquered board, a
-   hairline the colour of old wood, and the lantern light rising from under the
-   bottom edge when you reach for one.
+/* ---- The menu, as talismans -------------------------------------------------
+   Used on the menu and nowhere else, so they can be objects out of the game
+   rather than buttons: 符咒, read left to right the way a 橫批 over a door is.
+   Aged ochre paper, a double red rule inset from the edge, the 符頭 at the
+   head, the name, a seal at the tail, and the body script running faint behind
+   the whole thing. The tail is cut to a swallowtail, which is what the bottom
+   of a real charm looks like.
 
-   They used to hover --accent, which is Grave Errand's sickly green and has no
-   business in this village. The palette here is the one the scene already uses:
-   gold, cinnabar, lamp-flame. */
-.btn {
-  position: relative;
-  display: block;
-  padding: 15px 22px;
-  border: 1px solid #3a2f22;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #191510 0%, #12100c 100%);
-  color: color-mix(in srgb, var(--text) 92%, transparent);
-  font-family: var(--font-display);
-  font-size: 1.14rem;
-  letter-spacing: .06em;
-  text-decoration: none;
-  cursor: pointer;
-  overflow: hidden;
-  transition: border-color .18s, color .18s;
+   Lighting one does not brighten it — it drops the paper into shadow so the
+   red is the only thing left burning. Bright red on ochre measures 1.09:1 and
+   all but disappears; on the darkened paper it reads as a flame. The English
+   label lifts with it and never drops below 4.5:1. */
+.talismans {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+  width: auto;
 }
-/* The glow is its own layer rather than a background swap, so it can rise from
-   the bottom edge the way lamplight does instead of flooding the whole panel. */
-.btn::after {
+.talisman {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: min(340px, 88vw);
+  padding: 12px 16px 12px 15px;
+  text-decoration: none;
+  color: #33240d;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08) 0 22%, rgba(0,0,0,0) 60%),
+    linear-gradient(178deg, #c6a763 0%, #b6944f 58%, #a3843f 100%);
+  /* the swallowtail, cut into the tail end */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 50%, 100% 100%, 0 100%);
+  box-shadow: 0 6px 18px -10px #000;
+  overflow: hidden;
+  transition: transform .2s;
+}
+/* Paper is never clean. Fixed stains, not random ones: a menu that reshuffles
+   its own texture on reload reads as a bug. */
+.talisman::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(80% 120% at 50% 118%, rgba(255, 168, 74, .22), transparent 70%);
-  opacity: 0;
-  transition: opacity .18s;
+  background:
+    radial-gradient(30% 40% at 18% 34%, rgba(90, 64, 22, .11), transparent 70%),
+    radial-gradient(24% 34% at 74% 66%, rgba(90, 64, 22, .09), transparent 72%),
+    radial-gradient(40% 50% at 96% 50%, rgba(60, 42, 14, .13), transparent 70%);
+  transition: background .22s;
   pointer-events: none;
 }
-.btn:hover, .btn:focus-visible {
-  border-color: color-mix(in srgb, var(--gold) 60%, #3a2f22);
-  color: #f0e2c2;
+/* The double rule, inset from the edge the way it is printed on a real charm. */
+.talisman-frame {
+  position: absolute;
+  inset: 4px 19px 4px 4px;
+  border: 1px solid rgba(142, 39, 35, .32);
+  pointer-events: none;
+  transition: border-color .22s;
 }
-.btn:hover::after, .btn:focus-visible::after { opacity: 1; }
-.btn:active { transform: translateY(1px); }
+.talisman-frame::after {
+  content: "";
+  position: absolute;
+  inset: 2.5px;
+  border: 1px solid rgba(142, 39, 35, .16);
+}
+/* The body script, stretched behind the words. Decorative, so it distorts
+   happily — it is texture, not writing anyone is meant to read. */
+.talisman-body {
+  position: absolute;
+  inset: 7px 22px 7px 7px;
+  width: auto;
+  height: auto;
+  color: #8e2723;
+  opacity: .09;
+  pointer-events: none;
+  transition: opacity .22s, color .22s;
+}
+.talisman-mark {
+  width: 15px;
+  height: 22px;
+  flex: none;
+  color: #7d2a22;
+  opacity: .7;
+  transition: color .2s, opacity .2s, filter .2s;
+}
+.talisman-script {
+  font-family: var(--font-cjk);
+  font-size: 1.46rem;
+  letter-spacing: .08em;
+  color: #4f1511;
+  transition: color .2s, filter .2s;
+}
+.talisman-label {
+  font-family: var(--font-body);
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #2e200b;
+  transition: color .2s;
+}
+.talisman-seal {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  margin-left: auto;
+  margin-right: 9px;
+  color: #8e2723;
+  opacity: .48;
+  transition: color .2s, opacity .2s, filter .2s;
+}
+
+.talisman:hover, .talisman:focus-visible { transform: translateY(-2px); }
+.talisman:hover::before, .talisman:focus-visible::before {
+  background:
+    radial-gradient(30% 40% at 18% 34%, rgba(90, 64, 22, .20), transparent 70%),
+    radial-gradient(24% 34% at 74% 66%, rgba(90, 64, 22, .16), transparent 72%),
+    radial-gradient(40% 50% at 96% 50%, rgba(60, 42, 14, .22), transparent 70%),
+    linear-gradient(180deg, rgba(18, 10, 4, .64), rgba(26, 15, 6, .70));
+}
+.talisman:hover .talisman-script,
+.talisman:focus-visible .talisman-script {
+  color: #ff4a30;
+  filter: drop-shadow(0 0 5px rgba(255, 74, 48, .85)) drop-shadow(0 0 14px rgba(255, 74, 48, .45));
+}
+.talisman:hover .talisman-mark, .talisman:focus-visible .talisman-mark,
+.talisman:hover .talisman-seal, .talisman:focus-visible .talisman-seal {
+  color: #ff5638;
+  opacity: 1;
+  filter: drop-shadow(0 0 5px rgba(255, 86, 56, .8));
+}
+.talisman:hover .talisman-body, .talisman:focus-visible .talisman-body {
+  color: #ff4a30;
+  opacity: .26;
+}
+.talisman:hover .talisman-frame, .talisman:focus-visible .talisman-frame {
+  border-color: rgba(255, 86, 56, .75);
+}
+.talisman:hover .talisman-label, .talisman:focus-visible .talisman-label { color: #e8d4a8; }
+.talisman:active { transform: translateY(0); }
 /* Specific enough to beat the shared focus ring further down the file, which is
    green for the game's own controls and should stay that way. */
-.menu .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.menu .talisman:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
-/* Start is the seal on the door: cinnabar rather than gold, and already warm
-   before anyone touches it. */
-.btn--primary { border-color: #6e2420; color: #f4e6cb; }
-.btn--primary::after {
-  opacity: .5;
-  background: radial-gradient(80% 120% at 50% 118%, rgba(226, 98, 66, .30), transparent 70%);
+/* Start is the one already burning, so the eye lands there first. It signals
+   that with a glow rather than a lighter red: lightening it was costing
+   contrast and left the primary the least legible charm of the four, which is
+   backwards. Dark enough to read at 4.69:1, and lit anyway. */
+.talisman--primary .talisman-script {
+  color: #6e1710;
+  filter: drop-shadow(0 0 4px rgba(214, 62, 38, .55));
 }
-.btn--primary:hover, .btn--primary:focus-visible { border-color: #a8302a; color: #fff2dc; }
-.btn--primary:hover::after, .btn--primary:focus-visible::after { opacity: 1; }
+.talisman--primary .talisman-mark,
+.talisman--primary .talisman-seal {
+  color: #a8302a;
+  opacity: .92;
+  filter: drop-shadow(0 0 3px rgba(214, 62, 38, .5));
+}
+.talisman--primary .talisman-body { opacity: .13; }
+.talisman--primary .talisman-frame { border-color: rgba(168, 48, 42, .55); }
 
 .footnote { margin-top: 36px; color: var(--muted); font-size: 0.8rem; max-width: 44ch; }
 
@@ -2468,6 +2572,63 @@ body.coldopen { position: relative; overflow: hidden; }
   70%      { opacity: .78; }
 }
 
+/* ---- The wind ---------------------------------------------------------------
+   Ten leaves and a lean on the bamboo. The leaves fall on three staggered
+   paths rather than ten bespoke ones — at this opacity nobody counts them, and
+   three keyframe sets cost a third of the compositing.
+
+   Every leaf is its own layer with a transform animation only, so this stays
+   off the main thread. */
+.leaves { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.leaf {
+  position: absolute;
+  top: -6%;
+  width: 9px;
+  height: 6px;
+  background: #4a3a1e;
+  border-radius: 0 100% 0 100%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+@keyframes leaffall-a {
+  0%   { transform: translate3d(0, -8vh, 0) rotate(0deg);      opacity: 0; }
+  8%   { opacity: .55; }
+  92%  { opacity: .5; }
+  100% { transform: translate3d(14vw, 108vh, 0) rotate(520deg); opacity: 0; }
+}
+@keyframes leaffall-b {
+  0%   { transform: translate3d(0, -8vh, 0) rotate(0deg);       opacity: 0; }
+  10%  { opacity: .42; }
+  90%  { opacity: .38; }
+  100% { transform: translate3d(-11vw, 110vh, 0) rotate(-430deg); opacity: 0; }
+}
+@keyframes leaffall-c {
+  0%   { transform: translate3d(0, -8vh, 0) rotate(0deg);      opacity: 0; }
+  12%  { opacity: .6; }
+  88%  { opacity: .45; }
+  100% { transform: translate3d(22vw, 106vh, 0) rotate(680deg); opacity: 0; }
+}
+.leaf:nth-child(1) { left:  6%; animation: leaffall-a 15s linear -2s infinite; }
+.leaf:nth-child(2) { left: 17%; animation: leaffall-c 21s linear -9s infinite; transform: scale(.8); }
+.leaf:nth-child(3) { left: 28%; animation: leaffall-b 18s linear -14s infinite; }
+.leaf:nth-child(4) { left: 39%; animation: leaffall-a 24s linear -5s infinite; transform: scale(.7); }
+.leaf:nth-child(5) { left: 48%; animation: leaffall-c 17s linear -19s infinite; }
+.leaf:nth-child(6) { left: 59%; animation: leaffall-b 26s linear -11s infinite; transform: scale(.85); }
+.leaf:nth-child(7) { left: 68%; animation: leaffall-a 19s linear -23s infinite; }
+.leaf:nth-child(8) { left: 78%; animation: leaffall-c 23s linear -6s infinite; transform: scale(.75); }
+.leaf:nth-child(9) { left: 87%; animation: leaffall-b 16s linear -16s infinite; }
+.leaf:nth-child(10){ left: 94%; animation: leaffall-a 28s linear -27s infinite; transform: scale(.9); }
+
+/* The same wind, on the only part of the drawing that would show it. Hinged at
+   the root, so the tips move and the base does not. */
+.bamboo { transform-origin: 50% 100%; }
+.bamboo--l { animation: bamboolean 11s ease-in-out infinite; }
+.bamboo--r { animation: bamboolean 13.5s ease-in-out -4s infinite reverse; }
+@keyframes bamboolean {
+  0%, 100% { transform: rotate(-.5deg); }
+  50%      { transform: rotate(.9deg); }
+}
+
 @keyframes fogdrift {
   from { transform: translateX(-12%); }
   to   { transform: translateX(12%); }
@@ -2505,6 +2666,10 @@ body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.5s both; }
   /* Static silhouette, no drift, everything simply there. */
   .fog { animation: none; }
   .titlehouse ellipse[fill="url(#ti-lantern)"] { animation: none; opacity: .92; }
+  /* The wind is the first thing to go: it is decoration and it never stops. */
+  .leaves { display: none; }
+  .bamboo { animation: none; }
+  .talisman { transition: none; }
   body.coldopen .menu h1,
   body.coldopen .menu .tagline,
   body.coldopen .menu .whisper,
