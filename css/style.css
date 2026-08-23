@@ -217,6 +217,27 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
   margin: 0 0 6px;
   letter-spacing: 0.02em;
 }
+/* The title is a lockup, not a line: the Chinese is the name and the English
+   is the gloss under it. IM Fell has no CJK, so the two halves take different
+   faces on purpose rather than one of them falling back mid-word. */
+.menu h1.title { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 0 10px; }
+.title-cjk {
+  font-family: var(--font-cjk);
+  font-size: clamp(2.4rem, 8vw, 4.2rem);
+  line-height: 1.05;
+  letter-spacing: .16em;
+  /* the indent that letter-spacing adds after the last glyph, taken back */
+  text-indent: .16em;
+  color: var(--text);
+}
+.title-latin {
+  font-family: var(--font-display);
+  font-size: clamp(.82rem, 2.4vw, 1.05rem);
+  letter-spacing: .3em;
+  text-indent: .3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--gold) 80%, var(--muted));
+}
 .menu .tagline { color: var(--muted); margin: 0 0 40px; max-width: 40ch; }
 .menu nav { display: flex; flex-direction: column; gap: 14px; width: min(320px, 90vw); }
 
@@ -2357,11 +2378,15 @@ body.coldopen { position: relative; overflow: hidden; }
   pointer-events: none;   /* the Start link is never behind the theatrics */
   overflow: hidden;
   background:
-    /* the low warm spill from the doorway */
-    radial-gradient(120% 80% at 50% 108%, rgba(232, 176, 112, .12), transparent 62%),
-    /* moonlight sitting on the horizon, so the roof has something to cut into */
-    radial-gradient(150% 62% at 50% 100%, rgba(96, 108, 132, .30), transparent 72%),
-    linear-gradient(180deg, #0a0b0d 0%, #0c0d10 46%, #14161b 100%);
+    /* the moon, high and to the right, which is where it is on every outdoor
+       tile — the menu and the board agree about where the light comes from */
+    radial-gradient(30% 22% at 78% 14%, rgba(220, 233, 247, .30), transparent 70%),
+    radial-gradient(70% 46% at 78% 14%, rgba(150, 178, 208, .13), transparent 72%),
+    /* the two lanterns at the gate, low and warm, fighting it */
+    radial-gradient(50% 34% at 50% 96%, rgba(232, 140, 80, .16), transparent 66%),
+    /* cold air pooling on the ground for the roofline to cut into */
+    radial-gradient(150% 56% at 50% 100%, rgba(96, 116, 146, .26), transparent 74%),
+    linear-gradient(180deg, #070a10 0%, #0a0d13 44%, #12161d 100%);
 }
 .titlehouse {
   position: absolute;
@@ -2393,6 +2418,17 @@ body.coldopen { position: relative; overflow: hidden; }
   background: radial-gradient(55% 100% at 60% 100%, rgba(150, 152, 160, .07), transparent 74%);
   animation: fogdrift 113s linear infinite reverse;
 }
+/* The lanterns are the only live flame on the page, so they are the only thing
+   that moves besides the fog. Slow and shallow: paper over a wick in still air,
+   not a candle in a draught. Two speeds so they do not pulse in unison. */
+.titlehouse ellipse[fill="url(#ti-lantern)"] { animation: lanternbreath 6.5s ease-in-out infinite; transform-origin: center; }
+.titlehouse ellipse[fill="url(#ti-lantern)"]:nth-of-type(2) { animation-duration: 8.2s; animation-delay: -2.4s; }
+@keyframes lanternbreath {
+  0%, 100% { opacity: .85; }
+  45%      { opacity: 1; }
+  70%      { opacity: .78; }
+}
+
 @keyframes fogdrift {
   from { transform: translateX(-12%); }
   to   { transform: translateX(12%); }
@@ -2429,6 +2465,7 @@ body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.5s both; }
 @media (prefers-reduced-motion: reduce) {
   /* Static silhouette, no drift, everything simply there. */
   .fog { animation: none; }
+  .titlehouse ellipse[fill="url(#ti-lantern)"] { animation: none; opacity: .92; }
   body.coldopen .menu h1,
   body.coldopen .menu .tagline,
   body.coldopen .menu .whisper,
