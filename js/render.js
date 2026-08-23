@@ -69,10 +69,18 @@ export async function loadIcons() {
 // Exported for the tile gallery, which needs the same sprite handling.
 export function icon(kind, id, cls) {
   const symbol = `${kind}-${ICON_ALIAS[id] || id}`;
-  if (!document.getElementById(symbol)) return null;
+  const sym = document.getElementById(symbol);
+  if (!sym) return null;
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", cls);
-  svg.setAttribute("viewBox", "0 0 24 24");
+  // Inherit the symbol's own viewBox. The line-art icons are 24x24, but the
+  // painted scenes are 96x96 — hardcoding 24 scaled a scene into a quarter of
+  // the box, and worse, a 24 outer box around a 96 symbol referenced across
+  // the sprite boundary dropped the scenes' gradient paint servers, so the oil
+  // lamp glow and the vignette vanished and every indoor tile went flat. The
+  // old line art carried no gradients, which is why the mismatch stayed hidden
+  // until the twenty new scenes.
+  svg.setAttribute("viewBox", sym.getAttribute("viewBox") || "0 0 24 24");
   svg.setAttribute("aria-hidden", "true");
   const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
   use.setAttribute("href", `#${symbol}`);
