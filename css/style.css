@@ -241,22 +241,61 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 .menu .tagline { color: var(--muted); margin: 0 0 40px; max-width: 40ch; }
 .menu nav { display: flex; flex-direction: column; gap: 14px; width: min(320px, 90vw); }
 
+/* ---- The menu buttons -------------------------------------------------------
+   These are used on the menu and nowhere else, so they are allowed to belong to
+   the gate rather than to the rest of the interface: a lacquered board, a
+   hairline the colour of old wood, and the lantern light rising from under the
+   bottom edge when you reach for one.
+
+   They used to hover --accent, which is Grave Errand's sickly green and has no
+   business in this village. The palette here is the one the scene already uses:
+   gold, cinnabar, lamp-flame. */
 .btn {
+  position: relative;
   display: block;
-  padding: 14px 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 1.1rem;
+  padding: 15px 22px;
+  border: 1px solid #3a2f22;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #191510 0%, #12100c 100%);
+  color: color-mix(in srgb, var(--text) 92%, transparent);
+  font-family: var(--font-display);
+  font-size: 1.14rem;
+  letter-spacing: .06em;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color .15s, transform .05s, background .15s;
+  overflow: hidden;
+  transition: border-color .18s, color .18s;
 }
-.btn:hover { border-color: var(--accent); background: var(--bg-2); }
+/* The glow is its own layer rather than a background swap, so it can rise from
+   the bottom edge the way lamplight does instead of flooding the whole panel. */
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 120% at 50% 118%, rgba(255, 168, 74, .22), transparent 70%);
+  opacity: 0;
+  transition: opacity .18s;
+  pointer-events: none;
+}
+.btn:hover, .btn:focus-visible {
+  border-color: color-mix(in srgb, var(--gold) 60%, #3a2f22);
+  color: #f0e2c2;
+}
+.btn:hover::after, .btn:focus-visible::after { opacity: 1; }
 .btn:active { transform: translateY(1px); }
-.btn--primary { border-color: var(--accent); }
-.btn--primary:hover { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
+/* Specific enough to beat the shared focus ring further down the file, which is
+   green for the game's own controls and should stay that way. */
+.menu .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Start is the seal on the door: cinnabar rather than gold, and already warm
+   before anyone touches it. */
+.btn--primary { border-color: #6e2420; color: #f4e6cb; }
+.btn--primary::after {
+  opacity: .5;
+  background: radial-gradient(80% 120% at 50% 118%, rgba(226, 98, 66, .30), transparent 70%);
+}
+.btn--primary:hover, .btn--primary:focus-visible { border-color: #a8302a; color: #fff2dc; }
+.btn--primary:hover::after, .btn--primary:focus-visible::after { opacity: 1; }
 
 .footnote { margin-top: 36px; color: var(--muted); font-size: 0.8rem; max-width: 44ch; }
 
