@@ -17,22 +17,46 @@
 // engine has no I/O and tests can inject fixtures.
 
 export const RULES = {
-  START_HEALTH: 6,
-  START_ATTACK: 1,
-  HEALTH_CAP: null, // no cap by default; v1.75 hard mode caps at 6
-  // The clock is the turn, not a deck. Thirty turns of six minutes: turn 1
-  // begins at 9:00 PM and turn 30 ends at midnight, in three bands of ten.
-  START_HOUR: 21, // 9 PM
-  FINAL_HOUR: 23, // 11 PM — the last band
+  // ---- clock ---------------------------------------------------------------
+  // Spec §1 spells these TURNS_TOTAL / TURN_MINUTES / TURNS_PER_HOUR. The values
+  // are identical; the names are left as they are because render.js and the
+  // clock suite read them, and reshuffling three identifiers across three files
+  // buys nothing a reader of either document would notice.
+  START_HOUR: 21, // 9 PM; bands are 21 / 22 / 23
+  FINAL_HOUR: 23,
   TOTAL_TURNS: 30,
   TURNS_PER_BAND: 10,
   MINUTES_PER_TURN: 6,
+
+  // ---- player --------------------------------------------------------------
+  START_HEALTH: 10,
+  // A hard cap now, not the old optional one. Nothing exceeds it: the night is
+  // 27-30 event draws against these 10 points, and the cap is what keeps that
+  // finite rather than a race between healing and damage.
+  HEALTH_CAP: 10,
+  // Bare-handed is ZERO, and weapons are absolute rather than bonuses. The
+  // source game started you at 1 and added the weapon on top; here the sword IS
+  // your attack, so an unarmed caretaker takes a pack of four full in the face.
+  START_ATTACK: 0,
+  MAX_ITEMS: 6, // the tablet is exempt
+  // You start with three rice, which is three of the six slots. The pack begins
+  // full of consumables and converts, rice by rice, into equipment.
+  START_ITEMS: { "sticky-rice": 3 },
+
+  // ---- cowering ------------------------------------------------------------
+  // A charge SKIPS THE EVENT and heals nothing. Its whole value is being the
+  // only event-free turn in the game, which makes a charge worth the expected
+  // damage of whatever you did not draw — so charges are worth hoarding for the
+  // eleven o'clock band, and no rule has to say so.
+  COWER_CHARGES: 3,
+
+  // ---- combat --------------------------------------------------------------
   MAX_COMBAT_DAMAGE: 4,
   MIN_COMBAT_DAMAGE: 0,
-  MAX_ITEMS: 2, // the totem is exempt
-  COWER_HEAL: 3,
-  RUN_AWAY_DAMAGE: 1,
-  CHAINSAW_FUEL: 2, // fights per fill
+  RUN_AWAY_DAMAGE: 1, // generic flee, to an adjacent explored tile
+
+  // ---- poison --------------------------------------------------------------
+  POISON_PER_TURN: 1, // ticks at the START of a turn; does not stack
 };
 
 // House rules, baked in as the defaults. Only the one that still has anything
@@ -103,9 +127,17 @@ export function newGame(data, opts = {}) {
     // speaks in hours and has no business doing the division itself.
     turn: 1,
     hour: RULES.START_HOUR,
-    items: [], // carried item ids, length <= MAX_ITEMS
-    chainsawFuel: 0, // fuel remaining while a chainsaw is carried
-    totem: false, // slotless
+    // The pack is {id: count}, not a list. 硃砂 is the only thing in the game
+    // that creates duplicates by rule, and a count is the honest shape for that
+    // — see slotsUsed for why a count is not the same as a slot.
+    items: { ...RULES.START_ITEMS },
+    // Three charges, and the one the Incense Hall gives back. Tracked here
+    // rather than on the tile because it is the player who is out of nerve.
+    cowerCharges: RULES.COWER_CHARGES,
+    cowerRestored: false,
+    // 中毒. A flag, not a counter: it does not stack, and only rice clears it.
+    poisoned: false,
+    totem: false, // the tablet — slotless, never counted against MAX_ITEMS
     status: "playing", // playing | won | lost
     lossReason: null,
     foughtThisHour: 0, // risen put down since the hour turned; feeds dread()
@@ -373,8 +405,8 @@ export function rollSilentScare(state) {
 }
 
 // ---- Health ----------------------------------------------------------------
-// For events, heals, cower, kitchen/garden. Respects the (optional) cap and
-// triggers a loss at 0. NOT used for combat (see combatDamage/resolveCombat).
+// Every route into the health pool: events, medicine, the HEAL_1 tiles, poison.
+// Respects the cap in both directions and triggers a loss at 0.
 export function changeHealth(state, delta) {
   state.health += delta;
   if (state.healthCap != null && state.health > state.healthCap) {
@@ -388,24 +420,151 @@ export function changeHealth(state, delta) {
   return state;
 }
 
+// ---- 中毒 --------------------------------------------------------------------
+// A flag rather than a counter: poison does not stack, so a second dose is
+// nothing at all. Only 糯米 lifts it — the charm does not, because poison is not
+// damage and the charm only ever reduces a blow.
+export function poison(state) {
+  state.poisoned = true;
+  return state;
+}
+
+// Step 1 of the turn, and it is first for a reason: a turn spent eating rice
+// still pays that turn's tick. Putting the tick before the action is what makes
+// that true without a special case anywhere.
+export function poisonTick(state) {
+  if (state.status !== "playing" || !state.poisoned) return 0;
+  changeHealth(state, -RULES.POISON_PER_TURN);
+  return RULES.POISON_PER_TURN;
+}
+
+// ---- The pack ---------------------------------------------------------------
+// Inventory is {id: count}. The count and the SLOT are different quantities and
+// that is the whole subtlety: 硃砂 duplicates a talisman, so a talisman is held
+// as a stack, and a stack of any size is one slot. Everything else costs a slot
+// per unit — the three 糯米 you start with really are three of your six.
+//
+// Scoped deliberately to cat "magic". The rule exists because of 硃砂, the only
+// thing in the game that creates duplicates by rule, and it has no business
+// leaking to swords or rice.
+export function slotsUsed(state) {
+  let n = 0;
+  for (const [id, count] of Object.entries(state.items)) {
+    if (count <= 0) continue;
+    const def = state.itemsById[id];
+    n += def && def.cat === "magic" ? 1 : count;
+  }
+  return n;
+}
+
+export function freeSlots(state) {
+  return Math.max(0, RULES.MAX_ITEMS - slotsUsed(state));
+}
+
+// What one more of this id would cost. Zero for a talisman already held — it
+// joins the stack — and one for anything else.
+export function slotCost(state, itemId) {
+  const def = state.itemsById[itemId];
+  if (def && def.cat === "magic" && (state.items[itemId] || 0) > 0) return 0;
+  return 1;
+}
+
+export function held(state, itemId) {
+  return (state.items[itemId] || 0) > 0;
+}
+
+export function heldCount(state, itemId) {
+  return state.items[itemId] || 0;
+}
+
+// Every id in the pack, once each. For anything walking the pack without
+// knowing its shape — the HUD, the epilogue, the weapon picker.
+export function heldIds(state) {
+  return Object.keys(state.items).filter((id) => state.items[id] > 0);
+}
+
+export function hasItemSpace(state, itemId = null) {
+  const cost = itemId ? slotCost(state, itemId) : 1;
+  return slotsUsed(state) + cost <= RULES.MAX_ITEMS;
+}
+
+// Take one. `dropId` makes room when the pack is full. The tablet is not an
+// item and never comes through here — see gainTotem().
+export function pickUpItem(state, itemId, dropId = null) {
+  const def = state.itemsById[itemId];
+  if (!def) return { ok: false, reason: "unknown-item" };
+  // Uniques are one to a customer. A search that turns one up while you hold it
+  // finds nothing, per the search rules; this is that rule stated where the
+  // pack is, so it holds however the item arrives.
+  if (def.unique && held(state, itemId)) return { ok: false, reason: "duplicate" };
+  if (!hasItemSpace(state, itemId)) {
+    if (!dropId) return { ok: false, reason: "full" };
+    dropItem(state, dropId);
+    if (!hasItemSpace(state, itemId)) return { ok: false, reason: "full" };
+  }
+  state.items[itemId] = (state.items[itemId] || 0) + 1;
+  return { ok: true };
+}
+
+// Put one down. Drops the id entirely when the last of it goes, so a zero count
+// never lingers to confuse slotsUsed or heldIds.
+export function dropItem(state, itemId, n = 1) {
+  const have = state.items[itemId] || 0;
+  if (have <= 0) return state;
+  const left = have - n;
+  if (left > 0) state.items[itemId] = left;
+  else delete state.items[itemId];
+  return state;
+}
+
+// Eat it. 糯米 both heals and lifts poison. 金丹's coin-flip is rolled from the
+// search stream and belongs to the search issue, so it is not handled here.
+export function useMedicine(state, itemId) {
+  const def = state.itemsById[itemId];
+  if (!def || !held(state, itemId)) return { ok: false, reason: "not-held" };
+  if (def.heal) changeHealth(state, def.heal);
+  if (def.cures === "POISON") state.poisoned = false;
+  if (def.consumed) dropItem(state, itemId);
+  return { ok: true, healed: def.heal || 0, cured: def.cures === "POISON" };
+}
+
+// ---- Cowering ---------------------------------------------------------------
+// Spend a charge to skip the event. It heals nothing — that is the point, and
+// the reason a charge is worth more at eleven than at nine: what it buys is the
+// expected damage of a draw you did not make.
+export function cower(state) {
+  if (state.status !== "playing") return { ok: false, reason: "not-playing" };
+  if (state.cowerCharges <= 0) return { ok: false, reason: "no-charges" };
+  state.cowerCharges -= 1;
+  return { ok: true, charges: state.cowerCharges };
+}
+
+// 香堂, once per run. The gate lives on the player rather than the tile because
+// what is spent is the coil: you only burn it once, however many times you walk
+// back through the room.
+export function restoreCowerCharge(state) {
+  if (state.cowerRestored) return { ok: false, reason: "spent" };
+  state.cowerRestored = true;
+  state.cowerCharges += 1;
+  return { ok: true, charges: state.cowerCharges };
+}
+
 // ---- Combat ----------------------------------------------------------------
-// Damage is arithmetic, clamped to [0, 4]. Attack never stacks: the caller (or
-// chooseWeapon) picks the single best weapon; there is no summing.
-export function combatDamage(zombies, attack) {
-  const raw = zombies - attack;
+// Damage is arithmetic, clamped to [0, 4].
+export function combatDamage(n, attack) {
+  const raw = n - attack;
   return Math.max(RULES.MIN_COMBAT_DAMAGE, Math.min(RULES.MAX_COMBAT_DAMAGE, raw));
 }
 
-// Usable weapons carried right now (an empty chainsaw is unusable but kept).
 export function usableWeapons(state) {
-  return state.items.filter((id) => {
+  return heldIds(state).filter((id) => {
     const d = state.itemsById[id];
     return d && d.cat === "weapon";
   });
 }
 
-// The weapon that would be used: an explicit preference if usable, else the
-// best bonus available.
+// The sword that would swing: an explicit preference if held, else the best.
+// Only one sword ever counts — they are never summed.
 export function chooseWeapon(state, preferId = null) {
   const usable = usableWeapons(state);
   if (preferId && usable.includes(preferId)) return preferId;
@@ -416,20 +575,19 @@ export function chooseWeapon(state, preferId = null) {
   return best;
 }
 
-// Effective attack score for display/preview (1 + best usable weapon bonus).
+// Your attack right now. The sword IS the number — bare-handed is START_ATTACK,
+// which is zero. Adding a talisman on top is the additive formula and belongs
+// to the combat issue; this is the sword half only.
 export function effectiveAttack(state) {
   const w = chooseWeapon(state);
-  return RULES.START_ATTACK + (w ? state.itemsById[w].attack : 0);
+  return w ? state.itemsById[w].attack : RULES.START_ATTACK;
 }
 
-// Fight `zombies`. Consumes a chainsaw use if the chainsaw is the weapon used.
-export function resolveCombat(state, zombies, choices = {}) {
+export function resolveCombat(state, n, choices = {}) {
   const weaponId = chooseWeapon(state, choices.weapon);
-  const bonus = weaponId ? state.itemsById[weaponId].attack : 0;
-  const attack = RULES.START_ATTACK + bonus;
-  if (weaponId === "chainsaw") state.chainsawFuel -= 1;
-  const damage = combatDamage(zombies, attack);
-  state.foughtThisHour += zombies;
+  const attack = weaponId ? state.itemsById[weaponId].attack : RULES.START_ATTACK;
+  const damage = combatDamage(n, attack);
+  state.foughtThisHour += n;
   state.health -= damage;
   if (state.health <= 0) {
     state.health = 0;
@@ -444,79 +602,16 @@ export function resolveCombat(state, zombies, choices = {}) {
   return { weaponId, attack, damage };
 }
 
-// ---- Items -----------------------------------------------------------------
-export function hasItemSpace(state) {
-  return state.items.length < RULES.MAX_ITEMS;
-}
-
-// Pick up an item, optionally dropping one to make room. Returns {ok}. The
-// totem is not an item — use gainTotem().
-export function pickUpItem(state, itemId, dropId = null) {
-  if (!state.itemsById[itemId]) return { ok: false, reason: "unknown-item" };
-  if (state.items.includes(itemId)) return { ok: false, reason: "already-held" };
-  if (!hasItemSpace(state)) {
-    if (!dropId) return { ok: false, reason: "full" };
-    dropItem(state, dropId);
-  }
-  state.items.push(itemId);
-  if (itemId === "chainsaw") state.chainsawFuel = RULES.CHAINSAW_FUEL;
-  return { ok: true };
-}
-
-// Drop an item. A dropped chainsaw loses its fuel; a spent chainsaw is only
-// ever dropped explicitly (never automatically).
-export function dropItem(state, itemId) {
-  const i = state.items.indexOf(itemId);
-  if (i >= 0) state.items.splice(i, 1);
-  if (itemId === "chainsaw") state.chainsawFuel = 0;
-  return state;
-}
-
-// Drink the soda: +2 health (respects cap), consumes it.
-export function useHealItem(state, itemId = "can-of-soda") {
-  const def = state.itemsById[itemId];
-  if (!state.items.includes(itemId) || !def || !def.heal) return { ok: false };
-  changeHealth(state, def.heal);
-  dropItem(state, itemId);
-  return { ok: true };
-}
-
-// ---- Combos ----------------------------------------------------------------
-// Candle + Oil/Gasoline: kill every zombie on the tile, no damage. Candle is a
-// reusable enabler; the fuel is one-use.
-export function useCandleCombo(state, fuelId) {
-  if (!state.items.includes("candle")) return { ok: false, reason: "no-candle" };
-  if (!state.items.includes(fuelId) || (fuelId !== "oil" && fuelId !== "gasoline")) {
-    return { ok: false, reason: "no-fuel" };
-  }
-  dropItem(state, fuelId);
-  return { ok: true };
-}
-
-// Gasoline + Chainsaw: +2 chainsaw uses. One-use gasoline.
-export function refuelChainsaw(state) {
-  if (!state.items.includes("chainsaw") || !state.items.includes("gasoline")) {
-    return { ok: false };
-  }
-  dropItem(state, "gasoline");
-  state.chainsawFuel += RULES.CHAINSAW_FUEL;
-  return { ok: true };
-}
-
 // ---- Fleeing ---------------------------------------------------------------
-// Leave into an already-explored tile instead of fighting. -1 Health, or none
-// if you throw Oil (one use). No card is drawn for the tile fled into (the
-// caller handles the move). Board enforces adjacency.
-export function flee(state, { useOil = false } = {}) {
-  if (useOil && state.items.includes("oil")) {
-    dropItem(state, "oil");
-  } else {
-    changeHealth(state, -RULES.RUN_AWAY_DAMAGE);
-  }
+// Leave into an already-explored tile instead of fighting: a flat -1. The oil
+// that used to buy a clean escape is not in this game; 黑狗血 escapes a fight
+// now, and it belongs to the combat issue.
+export function flee(state) {
+  changeHealth(state, -RULES.RUN_AWAY_DAMAGE);
   return state;
 }
 
-// ---- Totem / win -----------------------------------------------------------
+// ---- Tablet / win -----------------------------------------------------------
 export function gainTotem(state) {
   state.totem = true;
   return state;
@@ -528,7 +623,11 @@ export function buryTotem(state) {
 }
 
 // ---- Turn boundary ---------------------------------------------------------
+// Step 1 of a turn, in order: the poison tick comes before the player is given
+// an action, which is what makes "curing still pays this turn's tick" fall out
+// of the sequence rather than needing a rule of its own.
 export function beginTurn(state) {
   decayRelief(state);
+  poisonTick(state);
   return state;
 }

@@ -1,6 +1,6 @@
 // Rendering — reflects game + board state into the DOM. No game logic here.
 
-import { RULES, effectiveAttack, clockTime, dread } from "./engine.js";
+import { RULES, effectiveAttack, clockTime, dread, heldIds, heldCount } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
@@ -145,8 +145,11 @@ export function renderHud(game) {
   renderRelic(game.state);
 
   // Which slots are new has to be worked out before the panel is rebuilt.
-  const arrived = game.state.items.filter((id) => !lastItems.includes(id));
-  lastItems = game.state.items.slice();
+  // The pack is {id: count} now, so ask the engine for the ids rather than
+  // treating it as a list — a talisman stack is one id however deep it is.
+  const nowHeld = heldIds(game.state);
+  const arrived = nowHeld.filter((id) => !lastItems.includes(id));
+  lastItems = nowHeld.slice();
   renderBackpack(game);
   // The sound goes with the pickup, not with the animation — reduced motion
   // skips the flare, and a player who turned sound on still hears the find.
@@ -477,14 +480,32 @@ function renderRelic(s) {
 // The backpack: one row per carry slot, empty ones included so the two-item
 // limit is visible rather than implied. Effects are derived from items.json, so
 // a re-theme or a stat change needs no edit here.
+// The pack expanded into one entry per slot, in the order the engine charges
+// them: a magic stack takes a single row, everything else takes one row per
+// unit. Provisional presentation — the backpack UI issue owns what a row
+// actually shows (counts, charges, the elixir's gamble).
+function slotRows(state) {
+  const rows = [];
+  for (const id of heldIds(state)) {
+    const def = state.itemsById[id];
+    const n = def && def.cat === "magic" ? 1 : heldCount(state, id);
+    for (let i = 0; i < n; i++) rows.push(id);
+  }
+  return rows;
+}
+
 function renderBackpack(game) {
   const s = game.state;
   const el = document.getElementById("hud-items");
   if (!el) return;
   el.textContent = "";
 
+  // One row per SLOT, and a slot is not a unit: a talisman stack fills one row
+  // whatever its count, while three rice fill three. slotRows spells that out
+  // so the panel and slotsUsed() can never disagree about how full you are.
+  const rows = slotRows(s);
   for (let i = 0; i < RULES.MAX_ITEMS; i++) {
-    const id = s.items[i];
+    const id = rows[i];
     const row = document.createElement("div");
     row.className = "slot" + (id ? "" : " slot--empty");
 

@@ -11,11 +11,33 @@ const game = (opts) => E.newGame(DATA, opts);
 // ---- Setup -----------------------------------------------------------------
 test("setup: starting stats", () => {
   const s = game({ seed: 1 });
-  eq(s.health, 6, "health");
+  eq(s.health, 10, "health");
   eq(s.hour, 21, "hour");
-  eq(s.items, [], "items");
-  eq(s.totem, false, "totem");
+  eq(s.totem, false, "the tablet");
+  eq(s.poisoned, false, "not poisoned");
   eq(s.status, "playing", "status");
+});
+
+// The DoD's setup check, spelled out: ten health, bare hands, three charges,
+// and a pack that begins three-sixths full of rice.
+test("setup: 10 HP, attack 0, 3 charges, 3 rice in 3 of 6 slots", () => {
+  const s = game({ seed: 1 });
+  eq(s.health, E.RULES.START_HEALTH);
+  eq(s.health, 10);
+  eq(E.effectiveAttack(s), 0, "bare-handed is zero, not one");
+  eq(s.cowerCharges, 3);
+  eq(E.heldCount(s, "sticky-rice"), 3, "three rice");
+  eq(E.slotsUsed(s), 3, "and they cost three slots, one each");
+  eq(E.freeSlots(s), 3, "of six");
+});
+
+test("setup: the starting pack is a copy, not the constant itself", () => {
+  const a = game({ seed: 1 });
+  const b = game({ seed: 2 });
+  E.dropItem(a, "sticky-rice");
+  eq(E.heldCount(a, "sticky-rice"), 2, "eaten in this run");
+  eq(E.heldCount(b, "sticky-rice"), 3, "and untouched in the next");
+  eq(E.RULES.START_ITEMS["sticky-rice"], 3, "the constant is not mutated");
 });
 
 test("setup: the night starts on turn 1 at nine o'clock", () => {
@@ -152,9 +174,15 @@ test("dread: the worst the game gets is worse than any single thing", () => {
 
 test("dread: health matters most at the bottom, which is where it is felt", () => {
   const at = (hp) => { const s = game({ seed: 1 }); s.health = hp; return E.dread(s); };
-  const sixToFive = at(5) - at(6);
-  const twoToOne = at(1) - at(2);
-  assert(twoToOne > sixToFive * 2, "losing your last heart should count for more than your first");
+  // Anchored to the top of the scale rather than to a literal, because the
+  // literals were 6 and 5 — the first heart of a six-point bar. On a ten-point
+  // one that pair sits in the middle of the curve, where it is neither the
+  // first heart nor the last and the comparison stops meaning anything.
+  const full = E.RULES.START_HEALTH;
+  const firstHeart = at(full - 1) - at(full);
+  const lastHeart = at(1) - at(2);
+  assert(lastHeart > firstHeart * 2,
+    `losing your last heart (${lastHeart}) should count for more than your first (${firstHeart})`);
 });
 
 test("dread: pure, and deterministic under a seed", () => {
@@ -425,13 +453,14 @@ test("changeHealth: 0 is a loss", () => {
   eq(s.lossReason, "health");
 });
 
-test("changeHealth: no cap by default", () => {
+test("changeHealth: the cap is hard, and it is ten", () => {
   const s = game({ seed: 1 });
-  E.changeHealth(s, +5);
-  eq(s.health, 11);
+  eq(s.healthCap, 10);
+  E.changeHealth(s, 50);
+  eq(s.health, 10, "nothing exceeds the cap");
 });
 
-test("changeHealth: v1.75 cap clamps gains", () => {
+test("changeHealth: a run may still be given a lower cap", () => {
   const s = game({ seed: 1, healthCap: 6 });
   E.changeHealth(s, +5);
   eq(s.health, 6);
@@ -446,25 +475,26 @@ test("combatDamage: clamps to [0,4]", () => {
 
 test("resolveCombat: applies damage", () => {
   const s = game({ seed: 1 });
-  const r = E.resolveCombat(s, 3); // attack 1 -> 2 damage
-  eq(r.damage, 2);
-  eq(s.health, 4);
+  const r = E.resolveCombat(s, 3); // bare-handed: attack 0 -> 3 damage
+  eq(r.attack, 0, "no sword, no attack");
+  eq(r.damage, 3);
+  eq(s.health, 7);
 });
 
 test("resolveCombat: lethal fight loses with reason combat", () => {
   const s = game({ seed: 1 });
-  s.health = 2;
-  E.resolveCombat(s, 6); // 4 damage
+  s.health = 3;
+  E.resolveCombat(s, 6); // clamped to 4 damage
   eq(s.health, 0);
   eq(s.status, "lost");
   eq(s.lossReason, "combat");
 });
 
-test("attack never stacks: best weapon only", () => {
+test("attack is the sword itself, and only the best one", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "peachwood-sword"); // +1
-  E.pickUpItem(s, "coin-sword"); // +2
-  eq(E.effectiveAttack(s), 3, "1 + best(2), not 1+1+2");
+  E.pickUpItem(s, "peachwood-sword"); // attack 1
+  E.pickUpItem(s, "coin-sword"); // attack 2
+  eq(E.effectiveAttack(s), 2, "the sword IS the number — not 1 + a bonus, not 1+2");
   eq(E.chooseWeapon(s), "coin-sword");
 });
 
@@ -475,23 +505,65 @@ test("chooseWeapon: honours an explicit weapon", () => {
   eq(E.chooseWeapon(s, "peachwood-sword"), "peachwood-sword");
 });
 
-// ---- Items -----------------------------------------------------------------
-test("items: 2-slot limit, drop to make room", () => {
-  const s = game({ seed: 1 });
+// ---- The pack --------------------------------------------------------------
+test("pack: six slots, one per unit, drop to make room", () => {
+  const s = game({ seed: 1 }); // starts with 3 rice in 3 slots
   eq(E.pickUpItem(s, "coin-sword").ok, true);
   eq(E.pickUpItem(s, "precept-knife").ok, true);
+  eq(E.pickUpItem(s, "peachwood-sword").ok, true);
+  eq(E.slotsUsed(s), 6, "full");
   eq(E.pickUpItem(s, "sevenstar-sword").ok, false, "full without a drop");
-  eq(E.pickUpItem(s, "sevenstar-sword", "coin-sword").ok, true, "drop then pick up");
-  eq(s.items, ["precept-knife", "sevenstar-sword"]);
+  eq(E.pickUpItem(s, "sevenstar-sword", "sticky-rice").ok, true, "a rice makes room");
+  eq(E.heldCount(s, "sticky-rice"), 2, "one rice gone");
+  eq(E.slotsUsed(s), 6);
 });
 
-test("totem: slotless, and wins only when held", () => {
+// The rule that makes the pack shape worth having. It is scoped to cat magic
+// and nothing else, so this checks both halves: a talisman stack stays one
+// slot, and rice does not.
+test("pack: only talismans stack into one slot", () => {
+  const s = game({ seed: 1 });
+  eq(E.slotsUsed(s), 3, "three rice, three slots");
+
+  E.pickUpItem(s, "truefire-talisman");
+  eq(E.slotsUsed(s), 4);
+  eq(E.slotCost(s, "truefire-talisman"), 0, "a second of the same joins the stack");
+  E.pickUpItem(s, "truefire-talisman");
+  E.pickUpItem(s, "truefire-talisman");
+  eq(E.heldCount(s, "truefire-talisman"), 3, "three deep");
+  eq(E.slotsUsed(s), 4, "and still one slot");
+
+  eq(E.slotCost(s, "sticky-rice"), 1, "rice never stacks");
+  E.pickUpItem(s, "sticky-rice");
+  eq(E.slotsUsed(s), 5, "a fourth rice is a fourth slot");
+});
+
+test("pack: a unique already held is refused", () => {
+  const s = game({ seed: 1 });
+  eq(E.pickUpItem(s, "coin-sword").ok, true);
+  const again = E.pickUpItem(s, "coin-sword");
+  eq(again.ok, false);
+  eq(again.reason, "duplicate");
+  eq(E.heldCount(s, "coin-sword"), 1);
+});
+
+test("pack: dropping the last of an id removes it entirely", () => {
+  const s = game({ seed: 1 });
+  E.dropItem(s, "sticky-rice", 3);
+  eq(E.held(s, "sticky-rice"), false);
+  eq(E.heldIds(s), [], "no zero-count ghosts left behind");
+  eq(E.slotsUsed(s), 0);
+});
+
+test("the tablet: slotless, and wins only when held", () => {
   const s = game({ seed: 1 });
   E.pickUpItem(s, "coin-sword");
   E.pickUpItem(s, "precept-knife");
-  E.gainTotem(s); // full on items, totem still allowed
+  E.pickUpItem(s, "peachwood-sword"); // six of six
+  eq(E.slotsUsed(s), 6, "pack full");
+  E.gainTotem(s);
   eq(s.totem, true);
-  eq(s.items.length, 2, "totem took no slot");
+  eq(E.slotsUsed(s), 6, "the tablet took no slot");
   const noTotem = game({ seed: 1 });
   E.buryTotem(noTotem);
   eq(noTotem.status, "playing", "no win without the totem");
@@ -499,23 +571,116 @@ test("totem: slotless, and wins only when held", () => {
   eq(s.status, "won");
 });
 
-test("medicine: heals and is consumed; respects cap", () => {
+test("medicine: heals, is consumed, respects the cap", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "sticky-rice");
-  E.useHealItem(s, "sticky-rice");
-  eq(s.health, 9, "6 + the rice's 3");
-  assert(!s.items.includes("sticky-rice"), "rice consumed");
-  const capped = game({ seed: 1, healthCap: 6 });
-  E.pickUpItem(capped, "sticky-rice");
-  E.useHealItem(capped, "sticky-rice");
-  eq(capped.health, 6, "capped");
+  s.health = 4;
+  E.useMedicine(s, "sticky-rice");
+  eq(s.health, 7, "4 + the rice's 3");
+  eq(E.heldCount(s, "sticky-rice"), 2, "one rice eaten");
+  const capped = game({ seed: 1 });
+  E.useMedicine(capped, "sticky-rice");
+  eq(capped.health, 10, "already full: capped, not overflowing");
 });
 
 // ---- Fleeing ---------------------------------------------------------------
 test("flee: costs 1 health", () => {
   const s = game({ seed: 1 });
   E.flee(s);
-  eq(s.health, 5);
+  eq(s.health, 9);
+});
+
+// ---- 中毒 --------------------------------------------------------------------
+test("poison: a flag, not a counter, and only rice lifts it", () => {
+  const s = game({ seed: 1 });
+  eq(s.poisoned, false);
+  E.poison(s);
+  E.poison(s); // a second dose is nothing at all
+  eq(s.poisoned, true);
+  E.useMedicine(s, "sticky-rice");
+  eq(s.poisoned, false, "rice cures");
+});
+
+test("poison: the charm does not cure it — poison is not damage", () => {
+  const s = game({ seed: 1 });
+  E.poison(s);
+  E.pickUpItem(s, "protective-charm");
+  E.poisonTick(s);
+  eq(s.poisoned, true, "still poisoned with the charm on");
+  eq(s.health, 9, "and it still took its point");
+});
+
+// The DoD's tick-order check. Poison is step 1 of the turn, before the action,
+// which is exactly what makes curing on the turn you were poisoned still pay
+// that turn's tick — no special case, just the order.
+test("poison: curing on the same turn still pays that turn's tick", () => {
+  const s = game({ seed: 1 });
+  E.poison(s);
+  eq(s.health, 10);
+
+  E.beginTurn(s); // step 1: the tick
+  eq(s.health, 9, "the tick lands first");
+  E.useMedicine(s, "sticky-rice"); // the action: eat the rice
+  eq(s.poisoned, false, "cured");
+  eq(s.health, 10, "healed back to the cap");
+
+  E.beginTurn(s); // next turn: nothing to tick
+  eq(s.health, 10, "no further ticks once cured");
+});
+
+test("poison: a tick can kill, and it is a health loss", () => {
+  const s = game({ seed: 1 });
+  s.health = 1;
+  E.poison(s);
+  E.beginTurn(s);
+  eq(s.health, 0);
+  eq(s.status, "lost");
+  eq(s.lossReason, "health");
+});
+
+test("poison: no tick for a run already over", () => {
+  const s = game({ seed: 1 });
+  E.poison(s);
+  s.status = "won";
+  eq(E.poisonTick(s), 0);
+  eq(s.health, 10);
+});
+
+// ---- Cowering ---------------------------------------------------------------
+// The DoD's cower check: a charge is spent, nothing is healed, and there is no
+// event to draw because cowering is the one turn that does not draw one.
+test("cower: spends a charge, heals nothing, and runs out", () => {
+  const s = game({ seed: 1 });
+  s.health = 5;
+  eq(s.cowerCharges, 3);
+
+  const r = E.cower(s);
+  eq(r.ok, true);
+  eq(r.charges, 2);
+  eq(s.health, 5, "cowering heals nothing — that is the whole point");
+
+  E.cower(s);
+  E.cower(s);
+  eq(s.cowerCharges, 0);
+  const empty = E.cower(s);
+  eq(empty.ok, false, "illegal at zero");
+  eq(empty.reason, "no-charges");
+  eq(s.cowerCharges, 0, "and a refused cower costs nothing");
+});
+
+test("cower: there is no COWER_HEAL to find", () => {
+  eq(E.RULES.COWER_HEAL, undefined, "healing left with the source game");
+});
+
+test("cower: the incense gives one charge back, once a night", () => {
+  const s = game({ seed: 1 });
+  E.cower(s);
+  eq(s.cowerCharges, 2);
+  eq(E.restoreCowerCharge(s).ok, true);
+  eq(s.cowerCharges, 3, "the coil is lit");
+  const twice = E.restoreCowerCharge(s);
+  eq(twice.ok, false, "and it burns out");
+  eq(twice.reason, "spent");
+  eq(s.cowerCharges, 3);
 });
 
 // ---- Cowering --------------------------------------------------------------

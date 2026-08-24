@@ -11,7 +11,7 @@
 // Every fragment lives in theme.json with the rest of the writing, so a
 // re-theme changes what the house says about you along with everything else.
 
-import { RULES } from "./engine.js";
+import { RULES, heldIds } from "./engine.js";
 import { distanceTo } from "./board.js";
 
 // A run needs a fair few zombies at once for this to read as a swarm rather
@@ -36,7 +36,7 @@ function fill(text, values) {
 // end, which is not always the one that failed you.
 function bestWeapon(state) {
   let best = null;
-  for (const id of state.items) {
+  for (const id of heldIds(state)) {
     const def = state.itemsById[id];
     if (!def || def.cat !== "weapon") continue;
     if (!best || def.attack > best.def.attack) best = { id, def };
@@ -68,9 +68,9 @@ function openKey(state, won) {
 
 function handKey(state, weapon) {
   if (!weapon) return "bare";
-  // The saw is the one weapon that can be present and useless, and saying so is
-  // more interesting than naming it.
-  if (weapon.id === "chainsaw" && state.chainsawFuel <= 0) return "dry";
+  // "dry" was the chainsaw out of fuel — the one weapon that could be present
+  // and useless. Nothing in this set has that state: a sword is a sword. The
+  // fragment stays in the skin, unused, until something earns it again.
   return weapon.def.attack >= 2 ? "armed" : "tool";
 }
 
