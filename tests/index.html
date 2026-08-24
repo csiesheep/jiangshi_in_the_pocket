@@ -20,7 +20,8 @@
     // then report once. The same list goes to report(), which re-reads each
     // file off disk and warns if fewer tests registered than exist — a static
     // import cannot be cache-busted, so a stale suite is otherwise invisible.
-    const SUITES = ["data.test.js", "engine.test.js", "board.test.js", "seo.test.js"];
+    const SUITES = ["data.test.js", "engine.test.js", "board.test.js",
+                    "invariants.test.js", "fuzz.test.js", "seo.test.js"];
     for (const name of SUITES) await import(`./${name}`);
     const { report } = await import("./harness.js");
     await report(SUITES);
