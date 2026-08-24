@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Bots — win rates by policy</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0a0b0d; color: #e6e3dc;
+           padding: 24px; max-width: 1000px; margin: 0 auto; line-height: 1.5; }
+    h1 { font-size: 1.3rem; margin: 0 0 4px; }
+    p.sub { color: #9aa0aa; font-size: .86rem; margin: 0 0 22px; }
+    table { border-collapse: collapse; width: 100%; font-size: .86rem;
+            font-family: ui-monospace, monospace; }
+    th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid #1c2027; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: #9aa0aa; font-weight: 600; }
+    tr:hover td { background: #12151a; }
+    .win { color: #7fb539; }
+    .none { color: #6a707a; }
+    pre { background: #0d0f12; border: 1px solid #1c2027; padding: 12px;
+          border-radius: 6px; font-size: .8rem; overflow-x: auto; }
+    #status { color: #e8b33a; }
+  </style>
+</head>
+<body>
+  <h1>Bots — win rates by policy</h1>
+  <p class="sub">Four policies over 1000 seeds each, deterministic by seed. Numbers the design
+     derived by hand and never measured.</p>
+  <p id="status">Running…</p>
+  <div id="out"></div>
+
+  <script type="module">
+    import { loadData, run, POLICY_NAMES } from "./bots.js";
+
+    const data = await loadData("..");
+    const SEEDS = Number(new URLSearchParams(location.search).get("seeds") || 1000);
+    const rows = [];
+    for (const name of POLICY_NAMES) {
+      rows.push(run(data, name, SEEDS));
+      document.getElementById("status").textContent = `Running… ${name} done`;
+    }
+
+    const cols = [
+      ["policy", "policy"], ["winRate", "win %"], ["WIN_BURIAL", "burial"], ["WIN_SEAL", "seal"],
+      ["SURVIVED", "survived"], ["LOSS_HEALTH", "died"], ["LOSS_KING", "king"],
+      ["midnightRate", "reached midnight %"], ["avgAttackAtMidnight", "avg atk @ midnight"],
+      ["avgTurns", "avg turns"], ["everHeldBanner", "ever held banner %"],
+      ["avgBestAttack", "avg best attack"], ["runsWithAGift", "villager gift %"],
+    ];
+    const t = document.createElement("table");
+    t.innerHTML = "<tr>" + cols.map(([, h]) => `<th>${h}</th>`).join("") + "</tr>";
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = cols.map(([k]) => {
+        const v = r[k];
+        const cls = k === "winRate" ? (v > 0 ? "win" : "none") : "";
+        return `<td class="${cls}">${v}</td>`;
+      }).join("");
+      t.appendChild(tr);
+    }
+    const out = document.getElementById("out");
+    out.appendChild(t);
+
+    const pre = document.createElement("pre");
+    pre.textContent = JSON.stringify(rows, null, 2);
+    out.appendChild(pre);
+    document.getElementById("status").textContent = `Done — ${SEEDS} seeds per policy.`;
+    window.__botRows = rows;
+  </script>
+</body>
+</html>
