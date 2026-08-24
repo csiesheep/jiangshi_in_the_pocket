@@ -1585,7 +1585,7 @@
     <rect width="96" height="96" fill="url(#ji-vig-out)"/>
   </g>
 
-  <!-- The cast the board applies. Kept lighter than Grave Errand .2 because
+  <!-- The cast the board applies. Kept lighter than the old .2 because
        these scenes already carry their own temperature. -->
   <g id="ji-cast" stroke="none">
     <rect width="96" height="96" fill="currentColor" opacity=".13" style="mix-blend-mode:color"/>

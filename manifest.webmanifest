@@ -1,18 +1,40 @@
 {
-  "name": "Grave Errand",
-  "short_name": "Grave Errand",
-  "description": "A solo zombie survival board game. Find the relic, bury it in the family plot before midnight.",
+  "name": "Jiangshi in the Pocket",
+  "short_name": "Jiangshi",
+  "description": "A solo horror board game. Find the ancestral tablet and bury it in the mass grave before the third watch, or be standing and armed when he comes for you.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0a0b0d",
   "theme_color": "#0a0b0d",
-  "categories": ["games"],
+  "categories": [
+    "games"
+  ],
   "icons": [
-    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "assets/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

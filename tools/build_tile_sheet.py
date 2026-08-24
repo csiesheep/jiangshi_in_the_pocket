@@ -9,7 +9,7 @@ import io, json, re, sys
 ROOT = "."
 SPRITE = f"{ROOT}/assets/icons.svg"
 TILES  = f"{ROOT}/data/tiles.json"
-THEME  = f"{ROOT}/data/modes/jiangshi/theme.json"
+THEME  = f"{ROOT}/data/theme.json"
 
 sprite = io.open(SPRITE, encoding="utf-8").read()
 tiles  = json.load(io.open(TILES, encoding="utf-8"))
