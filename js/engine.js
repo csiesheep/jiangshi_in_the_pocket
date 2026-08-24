@@ -63,6 +63,13 @@ export const RULES = {
 
   // ---- poison --------------------------------------------------------------
   POISON_PER_TURN: 1, // ticks at the START of a turn; does not stack
+
+  // ---- the King ------------------------------------------------------------
+  // What your attack must reach at midnight. Carrying the 神主牌 lowers it by
+  // one, which is the tablet's second job and the reason a burial run that
+  // fails still leaves you better off than one that never went looking.
+  KING_THRESHOLD: 12,
+  KING_THRESHOLD_WITH_TABLET: 11,
 };
 
 // House rules, baked in as the defaults. Only the one that still has anything
@@ -165,7 +172,9 @@ export function newGame(data, opts = {}) {
     // suppresses this turn's HEAL_1 and cancels the breach — you are not in the
     // dead end any more.
     fled: false,
-    totem: false, // the tablet — slotless, never counted against MAX_ITEMS
+    tablet: false, // 神主牌 — slotless, never counted against MAX_ITEMS
+    // Which of the five endings this was. Written only by finish().
+    outcome: null,
     status: "playing", // playing | won | lost
     lossReason: null,
     foughtThisHour: 0, // risen put down since the hour turned; feeds dread()
@@ -292,7 +301,7 @@ export function dread(state) {
   const hurt = (1 - hp) ** 2;
   const fought = Math.min(1, (state.foughtThisHour || 0) / FOUGHT_FULL);
   const running = c.perHour > 0 ? 1 - c.left / c.perHour : 0;
-  const carrying = state.totem ? 1 : 0;
+  const carrying = state.tablet ? 1 : 0;
 
   const w = DREAD_WEIGHTS;
   const score =
@@ -442,8 +451,8 @@ export function changeHealth(state, delta) {
   }
   if (state.health <= 0) {
     state.health = 0;
-    state.status = "lost";
     state.lossReason = state.lossReason || "health";
+    finish(state, OUTCOMES.LOSS_HEALTH);
   }
   return state;
 }
@@ -517,7 +526,7 @@ export function hasItemSpace(state, itemId = null) {
 }
 
 // Take one. `dropId` makes room when the pack is full. The tablet is not an
-// item and never comes through here — see gainTotem().
+// item and never comes through here — the tablet is taken by completeRite().
 export function pickUpItem(state, itemId, dropId = null) {
   const def = state.itemsById[itemId];
   if (!def) return { ok: false, reason: "unknown-item" };
@@ -793,8 +802,8 @@ export function resolveCombat(state, n, use = {}) {
   state.health -= damage;
   if (state.health <= 0) {
     state.health = 0;
-    state.status = "lost";
     state.lossReason = "combat";
+    finish(state, OUTCOMES.LOSS_HEALTH);
   } else {
     // Survived it. The set-piece is over, and the room is allowed to breathe
     // out before the next one — a fight that ends with the dial still climbing
@@ -903,15 +912,135 @@ export function breachAfterEvent(state, { deadEnd = false, fled = false } = {}) 
   return breachCount(state);
 }
 
-// ---- Tablet / win -----------------------------------------------------------
-export function gainTotem(state) {
-  state.totem = true;
+// ---- How a night ends ---------------------------------------------------------
+// Five outcomes and no sixth. There is NO LOSS TO THE CLOCK: reaching midnight
+// is not failure, it is the appointment — what happens there decides it.
+//
+// `status` stays the three-state field everything already reads (playing / won
+// / lost / over) and `outcome` is the real answer. Two fields for one fact is
+// normally a footgun, so the rule is that only finish() writes either, and it
+// writes both together.
+export const OUTCOMES = {
+  WIN_BURIAL: "WIN_BURIAL", // survived the rite at 亂葬崗 holding the tablet
+  WIN_SEAL: "WIN_SEAL", // met the King at or above the threshold
+  SURVIVED: "SURVIVED", // stood in running water at midnight; neither win nor loss
+  LOSS_HEALTH: "LOSS_HEALTH", // health reached 0 — combat, event, or a poison tick
+  LOSS_KING: "LOSS_KING", // met him under the threshold
+};
+
+const STATUS_FOR = {
+  WIN_BURIAL: "won",
+  WIN_SEAL: "won",
+  SURVIVED: "over",
+  LOSS_HEALTH: "lost",
+  LOSS_KING: "lost",
+};
+
+export function finish(state, outcome) {
+  if (state.outcome) return state; // the first ending is the ending
+  state.outcome = outcome;
+  state.status = STATUS_FOR[outcome] || "over";
+  if (state.status === "lost") state.lossReason = state.lossReason || outcome;
   return state;
 }
 
-export function buryTotem(state) {
-  if (state.totem && state.status === "playing") state.status = "won";
-  return state;
+// ---- The rites ----------------------------------------------------------------
+// Both goal rooms are TWO EVENTS IN ONE TURN: the room's own, then one more for
+// the rite itself — drawn at the moment you least want it, standing over the
+// grave with the tablet in your hands. Neither win is free.
+//
+// The sequence is deliberately split so the caller can resolve the extra event
+// however it resolves any other, including offering the flee that aborts it:
+//
+//     ev = riteEvent(state)          -> draw the rite's own event
+//     ...resolve it like any other...
+//     completeRite(state, kind)      -> only now does the rite take
+export function riteEvent(state) {
+  return drawEvent(state);
+}
+
+// Take or bury, AFTER the extra event has been survived. Fleeing that event
+// aborts the rite — the source's rule was that the totem was only gained if you
+// were still standing there, and it carries over. You may walk back and retry;
+// what it costs you is the turn and whatever the next event is.
+export function completeRite(state, kind) {
+  if (state.status !== "playing") return { ok: false, reason: "not-playing" };
+  if (state.fled) return { ok: false, reason: "fled" }; // aborted, may be retried
+
+  if (kind === "TAKE_TABLET") {
+    if (state.tablet) return { ok: false, reason: "already-held" };
+    state.tablet = true;
+    return { ok: true, tablet: true };
+  }
+
+  if (kind === "BURY_TABLET") {
+    // Standing on the ground without it is not a rite at all — nothing to bury,
+    // so no extra event should have been drawn either. riteDraws() is what the
+    // caller asks first.
+    if (!state.tablet) return { ok: false, reason: "no-tablet" };
+    finish(state, OUTCOMES.WIN_BURIAL);
+    return { ok: true, outcome: OUTCOMES.WIN_BURIAL };
+  }
+
+  return { ok: false, reason: "not-a-rite" };
+}
+
+// Does this room have a rite to perform right now? The grave with no tablet in
+// your hands does not — and that is the difference between a room that costs
+// you an extra event and one that does not.
+export function riteDraws(state, goal) {
+  if (goal === "TAKE_TABLET") return !state.tablet;
+  if (goal === "BURY_TABLET") return !!state.tablet;
+  return false;
+}
+
+// ---- Midnight -----------------------------------------------------------------
+// ONE STRIKE, BINARY. He has no rounds, no health pool and no abilities, and
+// 黑狗血 does not work on him. You either come to the threshold or you do not.
+//
+// 🤫 The threshold is a HIDDEN ENDING. This returns the numbers because the
+// verdict card of a player killed at midnight is the one place they may ever
+// appear — that single line is the whole discovery mechanism. Everywhere else
+// they are not to be shown, which is a rule about presentation and binding on
+// it (spec §9); the engine's part is only to make the card possible.
+export function kingThreshold(state) {
+  return state.tablet ? RULES.KING_THRESHOLD_WITH_TABLET : RULES.KING_THRESHOLD;
+}
+
+export function midnight(state, { runningWater = false, use = {} } = {}) {
+  if (state.status !== "playing") return { outcome: state.outcome };
+
+  // 活水. He will not cross it, so there is no exchange at all — not a win, not
+  // a loss, and the only ending in the game that costs nothing and proves
+  // nothing.
+  if (runningWater) {
+    finish(state, OUTCOMES.SURVIVED);
+    return { outcome: OUTCOMES.SURVIVED };
+  }
+
+  const threshold = kingThreshold(state);
+  const attack = attackWith(state, use);
+
+  // Spent whether or not it was enough. Bringing the banner and falling short
+  // is still bringing the banner.
+  const tal = use.talisman ? state.itemsById[use.talisman] : null;
+  // 血符 is paid first, and it can kill you on the doorstep. If it does, you
+  // never made the strike — the same rule resolveCombat applies, and the same
+  // reason: you cannot spend blood you no longer have.
+  if (tal && tal.costHp) {
+    changeHealth(state, -tal.costHp);
+    if (state.status !== "playing") {
+      return { outcome: state.outcome, attack: 0, threshold, diedPaying: true };
+    }
+  }
+
+  const spent = [];
+  if (use.banner && held(state, "soul-banner")) { dropItem(state, "soul-banner"); spent.push("soul-banner"); }
+  if (tal && tal.consumed && held(state, use.talisman)) { dropItem(state, use.talisman); spent.push(use.talisman); }
+
+  const outcome = attack >= threshold ? OUTCOMES.WIN_SEAL : OUTCOMES.LOSS_KING;
+  finish(state, outcome);
+  return { outcome, attack, threshold, spent };
 }
 
 // ---- Turn boundary ---------------------------------------------------------

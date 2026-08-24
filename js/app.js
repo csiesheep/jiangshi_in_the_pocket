@@ -143,7 +143,9 @@ class Game {
   // keeps a way on into unexplored space, and is deterministic so a shared seed
   // still replays move for move.
   doExplore(dir) {
-    const revealed = this.board.decks[this.board.player.world][0];
+    // peekTile, not decks[0]: an answered prayer brings a tile up from inside
+    // the stack, and the line in the log has to name the room actually placed.
+    const revealed = Bd.peekTile(this.board, this.board.player.world);
     const rot = Bd.pickExploreRotation(this.board, dir);
     const r = Bd.explore(this.board, dir, rot);
     if (!r.ok) return this.renderMoves();
@@ -200,14 +202,14 @@ class Game {
   // has a goal to be tested against. Fix it when the rites are designed.
   roomEffect() {
     const goal = Bd.currentTile(this.board).def.goal;
-    if (goal === "TAKE_TABLET" && !this.state.totem) {
-      E.gainTotem(this.state);
+    if (goal === "TAKE_TABLET" && !this.state.tablet) {
+      E.completeRite(this.state, "TAKE_TABLET");
       relicFound();
       this.tally.found += 1;
       log(`Among the coffins, the ${this.word("relic")}. It is yours.`, "good");
       this.refresh();
-    } else if (goal === "BURY_TABLET" && this.state.totem) {
-      E.buryTotem(this.state);
+    } else if (goal === "BURY_TABLET" && this.state.tablet) {
+      E.completeRite(this.state, "BURY_TABLET");
       this.refresh();
       if (this.state.status === "won") return this.gameOver();
     }
@@ -342,7 +344,8 @@ class Game {
       recordVerdict(won);
     }
 
-    // A win is always a burial — buryTotem is the only thing that sets it — so
+    // A win is always a burial in this build — completeRite is the only thing
+    // that sets it — so
     // this is the moment the digging has been building to. One silent beat
     // before the dawn: the release is the silence, not the sting.
     if (won && !this.verdictHeld) {
@@ -365,7 +368,7 @@ class Game {
       `${this.tally.found} ${this.tally.found === 1 ? "item" : "items"} found`,
       won
         ? `The ${this.word("relic")} is buried`
-        : this.state.totem
+        : this.state.tablet
           ? `The ${this.word("relic")} was on you, unburied`
           : `The ${this.word("relic")} was never found`,
       `Seed ${this.seed}`,

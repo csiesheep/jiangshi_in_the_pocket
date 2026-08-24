@@ -1,6 +1,6 @@
 // Board model — the dual grid (indoor + outdoor), tile placement, rotation,
-// adjacency, the exterior-door seam between the two worlds, and zombie-door
-// dead ends.
+// adjacency, the exterior-door seam between the two worlds, the shrine's
+// prayer, and zombie-door dead ends.
 // Pure logic, no DOM. Shares the seeded RNG with the engine.
 
 import { makeRng, shuffle } from "./engine.js";
@@ -80,6 +80,12 @@ export function createBoard(data, opts = {}) {
     outsideId: outdoorStart.id,
     seamPlaced: false,
     seam: null,
+    // The shrine's prayer. `prayerTarget` is the tile it is holding open for —
+    // null once the prayer has been answered — and `prayerSpent` is the
+    // once-per-night budget, which is not the same thing: a prayer made and
+    // answered leaves the first null and the second true.
+    prayerTarget: null,
+    prayerSpent: false,
     player: { world: "indoor", x: 0, y: 0 },
   };
 
@@ -97,6 +103,43 @@ export function currentTile(board) {
   return tileAt(board, p.world, p.x, p.y);
 }
 
+// Which tile this stack would turn over next. Normally the top one — but an
+// answered prayer reaches into the stack and brings its tile up instead, and
+// everything that has to know what is coming (the legal rotations, the
+// auto-placement, the line in the log) must ask the same question, or the tile
+// gets validated as one room and placed as another.
+export function peekTile(board, world) {
+  const deck = board.decks[world];
+  if (board.prayerTarget) {
+    const i = deck.indexOf(board.prayerTarget);
+    if (i >= 0) return deck[i];
+  }
+  return deck[0];
+}
+
+// The same choice, made for real. Splicing rather than reshuffling: the prayer
+// moves one tile to the front and leaves the rest of the night in the order it
+// was already in.
+function drawTile(board, world) {
+  const deck = board.decks[world];
+  const want = board.prayerTarget;
+  if (want) {
+    const i = deck.indexOf(want);
+    if (i >= 0) {
+      board.prayerTarget = null;
+      return deck.splice(i, 1)[0];
+    }
+    // Not in this stack. The promise is for the next tile you place *that this
+    // stack could answer with* — pray outdoors and then wander back into the
+    // village, and the village cannot spend it. Only a tile that is in no stack
+    // at all cancels the prayer, and then it is already on the table.
+    if (!board.decks.indoor.includes(want) && !board.decks.outdoor.includes(want)) {
+      board.prayerTarget = null;
+    }
+  }
+  return deck.shift();
+}
+
 // Rotations that let a freshly drawn tile be entered from `moveDir`. A normal
 // (door) move needs an exit facing back; a hole move places the tile
 // wall-to-wall, so any rotation is legal.
@@ -105,7 +148,7 @@ export function validExploreRotations(board, moveDir) {
   const throughHole = tile.holes.includes(moveDir) && !tile.exits.includes(moveDir);
   const deck = board.decks[tile.world];
   if (deck.length === 0) return [];
-  const def = board.byId[deck[0]];
+  const def = board.byId[peekTile(board, tile.world)];
   const need = opposite(moveDir);
   const out = [];
   for (let r = 0; r < 4; r++) {
@@ -133,7 +176,7 @@ export function pickExploreRotation(board, moveDir) {
   if (rots.length <= 1) return rots[0] ?? 0;
 
   const tile = currentTile(board);
-  const def = board.byId[board.decks[tile.world][0]];
+  const def = board.byId[peekTile(board, tile.world)];
   const [nx, ny] = inDir(tile.x, tile.y, moveDir);
   const back = opposite(moveDir);
 
@@ -292,7 +335,7 @@ export function explore(board, moveDir, rotation) {
   const [nx, ny] = inDir(tile.x, tile.y, moveDir);
   if (tileAt(board, tile.world, nx, ny)) return { ok: false, reason: "occupied" };
 
-  const id = deck.shift();
+  const id = drawTile(board, tile.world);
   const placed = makeTile(board.byId, id, tile.world, nx, ny, rotation);
   // A breach has two sides. Exploring through one puts a room on the far side
   // of it, and that room has to carry the matching hole — otherwise the way
@@ -329,6 +372,53 @@ export function goOutside(board) {
   board.seamPlaced = true;
   board.player = { world: "outdoor", x: 0, y: 0 };
   return { ok: true, tile: landing };
+}
+
+// ---- The shrine's prayer -----------------------------------------------------
+// 土地廟: pray, and the next unexplored OUTDOOR tile you place is 亂葬崗. Once
+// per night. The land god knows where the dead are buried.
+//
+// Outdoor falls out of the geometry rather than needing a check: the burial
+// ground is an outdoor tile, so the indoor stack can never answer the prayer
+// and pray-then-wander-inside cannot spend it.
+//
+// It steers the stack rather than teleporting anyone — the grave still has to
+// be walked to, and still goes down against a real edge at a legal rotation.
+// That is what keeps it a shortcut through the *draw* and not through the map.
+
+// What the land god knows: where the dead are buried. Asked of the data rather
+// than named here, so the burial ground can be renamed without this noticing.
+function burialTileId(board) {
+  for (const def of Object.values(board.byId)) {
+    if (def.goal === "BURY_TABLET") return def.id;
+  }
+  return null;
+}
+
+// Asked by the UI before it offers the button, and it has to agree with pray()
+// exactly — an offered prayer that refuses is a bug the player sees. Kept in
+// step by testing them together rather than by one calling the other: pray()
+// has to answer *why* it refused, and canPray only ever needs to know whether.
+export function canPray(board) {
+  const tile = currentTile(board);
+  if (!tile || tile.def.action !== "PRAY_ONCE") return false;
+  if (board.prayerSpent) return false;
+  const want = burialTileId(board);
+  // Nothing left to summon: the ground is already on the table.
+  return !!want && board.decks[tile.world].includes(want);
+}
+
+export function pray(board) {
+  const tile = currentTile(board);
+  if (!tile || tile.def.action !== "PRAY_ONCE") return { ok: false, reason: "not-a-shrine" };
+  if (board.prayerSpent) return { ok: false, reason: "spent" };
+  const want = burialTileId(board);
+  if (!want || !board.decks[tile.world].includes(want)) {
+    return { ok: false, reason: "already-placed" };
+  }
+  board.prayerSpent = true;
+  board.prayerTarget = want;
+  return { ok: true, target: want };
 }
 
 // Choose which wall the risen come through at a dead end. The hole is not

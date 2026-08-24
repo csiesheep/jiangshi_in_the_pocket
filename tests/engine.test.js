@@ -20,7 +20,7 @@ test("setup: starting stats", () => {
   const s = game({ seed: 1 });
   eq(s.health, 10, "health");
   eq(s.hour, 21, "hour");
-  eq(s.totem, false, "the tablet");
+  eq(s.tablet, false, "the tablet");
   eq(s.poisoned, false, "not poisoned");
   eq(s.status, "playing", "status");
 });
@@ -156,7 +156,7 @@ test("dread: every term pushes it up, and none of them pull it down", () => {
   const deep = base();
   deep.turn = 10; // late in the band, with the hour about to turn
   const carrying = base();
-  carrying.totem = true;
+  carrying.tablet = true;
 
   for (const [name, s] of [["hurt", hurt], ["late", late], ["bloody", bloody],
                            ["deep into the band", deep], ["carrying the relic", carrying]]) {
@@ -169,7 +169,7 @@ test("dread: the worst the game gets is worse than any single thing", () => {
   E.setTurn(s, 30);
   s.health = 1;
   s.foughtThisHour = 12;
-  s.totem = true;
+  s.tablet = true;
   const worst = E.dread(s);
   assert(worst > 0.85, `a 1 HP relic-carrying midnight should be near the top, got ${worst}`);
   eq(worst <= 1, true, "and never above 1");
@@ -328,7 +328,7 @@ test("relief: it never undoes the hour", () => {
   E.setTurn(early, 1);
   // A frightened nine o'clock: hurt, carrying, and mid-hour.
   early.health = 2;
-  early.totem = true;
+  early.tablet = true;
   assert(E.dread(late) > 0, "eleven with full relief is still not calm");
   assert(E.dread(late) >= E.dread(early) * 0.5,
     "the hour keeps its weight through any amount of relief");
@@ -530,13 +530,13 @@ test("the tablet: slotless, and wins only when held", () => {
   E.pickUpItem(s, "precept-knife");
   E.pickUpItem(s, "peachwood-sword"); // six of six
   eq(E.slotsUsed(s), 6, "pack full");
-  E.gainTotem(s);
-  eq(s.totem, true);
+  E.completeRite(s, "TAKE_TABLET");
+  eq(s.tablet, true);
   eq(E.slotsUsed(s), 6, "the tablet took no slot");
-  const noTotem = game({ seed: 1 });
-  E.buryTotem(noTotem);
-  eq(noTotem.status, "playing", "no win without the totem");
-  E.buryTotem(s);
+  const empty = game({ seed: 1 });
+  eq(E.completeRite(empty, "BURY_TABLET").reason, "no-tablet", "nothing to bury");
+  eq(empty.status, "playing", "and no win for standing there");
+  E.completeRite(s, "BURY_TABLET");
   eq(s.status, "won");
 });
 
@@ -1154,4 +1154,213 @@ test("breach: a dead-end goal room is legal as three fights in one turn", () => 
   const n = E.breachAfterEvent(s, { deadEnd: true });
   eq(n, 5, "and then the wall goes");
   assert(s.status === "lost" || s.health < 10, "it costs what it costs");
+});
+
+// ---- The five endings ----------------------------------------------------------
+// There is NO LOSS TO THE CLOCK. Reaching midnight is not failure — it is the
+// appointment, and what happens there decides it. These five are the whole set.
+
+// A kit that reaches 12: 七星劍 + 真火符 + banner + 五雷符 → (3+1)×2 + 4.
+function sealKit(s) {
+  E.pickUpItem(s, "sevenstar-sword");
+  E.pickUpItem(s, "truefire-talisman");
+  E.buffSword(s, "sevenstar-sword");
+  E.pickUpItem(s, "soul-banner");
+  E.pickUpItem(s, "fivethunder-talisman");
+  return { banner: true, talisman: "fivethunder-talisman" };
+}
+
+test("outcome: WIN_BURIAL — survive the rite holding the tablet", () => {
+  const s = game({ seed: 1 });
+  E.completeRite(s, "TAKE_TABLET");
+  eq(s.tablet, true);
+  const r = E.completeRite(s, "BURY_TABLET");
+  eq(r.outcome, "WIN_BURIAL");
+  eq(s.outcome, "WIN_BURIAL");
+  eq(s.status, "won");
+});
+
+test("outcome: WIN_SEAL — meet him at the threshold", () => {
+  const s = game({ seed: 1 });
+  const use = sealKit(s);
+  const r = E.midnight(s, { use });
+  eq(r.attack, 12);
+  eq(r.threshold, 12);
+  eq(r.outcome, "WIN_SEAL");
+  eq(s.status, "won");
+});
+
+test("outcome: SURVIVED — running water, and no exchange at all", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "soul-banner");
+  const r = E.midnight(s, { runningWater: true, use: { banner: true } });
+  eq(r.outcome, "SURVIVED");
+  eq(s.status, "over", "neither a win nor a loss");
+  eq(E.held(s, "soul-banner"), true, "nothing was spent — he never came");
+});
+
+test("outcome: LOSS_HEALTH — from a fight, an event, or a poison tick", () => {
+  const byFight = game({ seed: 1 });
+  byFight.health = 2;
+  E.resolveCombat(byFight, 6);
+  eq(byFight.outcome, "LOSS_HEALTH");
+
+  const byEvent = game({ seed: 1 });
+  byEvent.health = 1;
+  E.resolveEvent(byEvent, { t: "HP", hp: -1 });
+  eq(byEvent.outcome, "LOSS_HEALTH");
+
+  const byPoison = game({ seed: 1 });
+  byPoison.health = 1;
+  E.poison(byPoison);
+  E.beginTurn(byPoison);
+  eq(byPoison.outcome, "LOSS_HEALTH", "all three roads meet here");
+});
+
+test("outcome: LOSS_KING — turn 30 resolves under the threshold", () => {
+  const s = game({ seed: 1 });
+  const r = E.midnight(s, {});
+  eq(r.attack, 0, "bare-handed");
+  eq(r.threshold, 12);
+  eq(r.outcome, "LOSS_KING");
+  eq(s.status, "lost");
+});
+
+test("outcome: there is no loss to the clock", () => {
+  const s = game({ seed: 1 });
+  for (let i = 0; i < 29; i++) E.advanceTurn(s);
+  eq(s.turn, 30);
+  eq(s.status, "playing", "turn thirty is a turn like any other");
+  // Only meeting him ends it, one way or the other.
+  E.midnight(s, {});
+  eq(s.outcome, "LOSS_KING");
+});
+
+test("outcome: the first ending is the ending", () => {
+  const s = game({ seed: 1 });
+  E.completeRite(s, "TAKE_TABLET");
+  E.completeRite(s, "BURY_TABLET");
+  eq(s.outcome, "WIN_BURIAL");
+  E.midnight(s, {}); // he never gets a turn
+  eq(s.outcome, "WIN_BURIAL", "a won run cannot be lost afterwards");
+});
+
+// ---- The threshold ---------------------------------------------------------------
+// The DoD asks for both sides of it, and this is the tablet's second job: a
+// burial run that fails still leaves you one better off than never going.
+test("midnight: the tablet lowers the threshold from 12 to 11", () => {
+  const without = game({ seed: 1 });
+  eq(E.kingThreshold(without), 12);
+  const with_ = game({ seed: 1 });
+  with_.tablet = true;
+  eq(E.kingThreshold(with_), 11);
+});
+
+test("midnight: eleven seals him with the tablet and fails without it", () => {
+  // 七星劍 + banner + 血符 → 3×2 + 5 = 11
+  const kit = (s) => {
+    E.pickUpItem(s, "sevenstar-sword");
+    E.pickUpItem(s, "soul-banner");
+    E.pickUpItem(s, "blood-talisman");
+    return { banner: true, talisman: "blood-talisman" };
+  };
+  const bare = game({ seed: 1 });
+  const r1 = E.midnight(bare, { use: kit(bare) });
+  eq(r1.attack, 11);
+  eq(r1.outcome, "LOSS_KING", "eleven is not twelve");
+
+  const carrying = game({ seed: 1 });
+  carrying.tablet = true;
+  const r2 = E.midnight(carrying, { use: kit(carrying) });
+  eq(r2.attack, 11);
+  eq(r2.threshold, 11);
+  eq(r2.outcome, "WIN_SEAL", "the same eleven, and now it is enough");
+});
+
+test("midnight: every winning line spends the banner", () => {
+  const s = game({ seed: 1 });
+  const use = sealKit(s);
+  E.midnight(s, { use });
+  eq(E.held(s, "soul-banner"), false, "攝魂幡 is the one compulsory item");
+});
+
+test("midnight: the kit is spent even when it falls short", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "soul-banner");
+  const r = E.midnight(s, { use: { banner: true } });
+  eq(r.outcome, "LOSS_KING");
+  eq(E.held(s, "soul-banner"), false, "bringing it and falling short is still bringing it");
+});
+
+test("midnight: 血符 can kill you on the doorstep, and then you never struck", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "blood-talisman");
+  s.health = 1;
+  const r = E.midnight(s, { use: { talisman: "blood-talisman" } });
+  eq(r.diedPaying, true);
+  eq(s.outcome, "LOSS_HEALTH", "not LOSS_KING — he never got the chance");
+});
+
+// The numbers exist so the verdict card of a player killed at midnight can show
+// them. That one line is the whole discovery mechanism for the hidden ending.
+test("midnight: the loss carries the numbers the verdict card needs", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword");
+  const r = E.midnight(s, {});
+  eq(r.attack, 2, "what you brought");
+  eq(r.threshold, 12, "what was needed");
+});
+
+// ---- The rites ---------------------------------------------------------------------
+test("rite: fleeing the rite's event aborts it, and you may come back", () => {
+  const s = game({ seed: 1 });
+  E.flee(s); // fled the extra event
+  const aborted = E.completeRite(s, "TAKE_TABLET");
+  eq(aborted.ok, false);
+  eq(aborted.reason, "fled");
+  eq(s.tablet, false, "nothing taken");
+
+  E.beginTurn(s); // a later turn, standing there again
+  eq(E.completeRite(s, "TAKE_TABLET").ok, true);
+  eq(s.tablet, true, "the retry works");
+});
+
+test("rite: no burial without the tablet, and no extra event either", () => {
+  const s = game({ seed: 1 });
+  eq(E.riteDraws(s, "BURY_TABLET"), false, "nothing to bury, so nothing is drawn");
+  const r = E.completeRite(s, "BURY_TABLET");
+  eq(r.ok, false);
+  eq(r.reason, "no-tablet");
+  eq(s.status, "playing");
+});
+
+test("rite: the crypt stops drawing once the tablet is yours", () => {
+  const s = game({ seed: 1 });
+  eq(E.riteDraws(s, "TAKE_TABLET"), true);
+  E.completeRite(s, "TAKE_TABLET");
+  eq(E.riteDraws(s, "TAKE_TABLET"), false, "an empty coffin costs you nothing");
+  eq(E.completeRite(s, "TAKE_TABLET").reason, "already-held");
+});
+
+test("rite: the extra event comes off the event stream, in band", () => {
+  const s = game({ seed: 9 });
+  const ev = E.riteEvent(s);
+  assert(ev && ev.t, "a real event");
+  const b = game({ seed: 9 });
+  eq(E.riteEvent(b).t, ev.t, "same seed, same rite");
+});
+
+// The §8 edge case the DoD names: a dead-end goal room is three fights in one
+// turn, and none of it is a bug.
+test("rite: a dead-end goal room can be three fights in one turn", () => {
+  const s = game({ seed: 1 });
+  E.setTurn(s, 21); // eleven o'clock
+  s.health = 10;
+  s.tablet = true;
+  E.resolveCombat(s, 4); // 1. the room's own event
+  E.resolveCombat(s, 4); // 2. the rite's extra event
+  const breach = E.breachAfterEvent(s, { deadEnd: true });
+  eq(breach, 5, "3. and then the wall goes");
+  if (s.status === "playing") E.resolveCombat(s, breach);
+  assert(s.health < 10, "it costs what it costs, and it is legal");
 });

@@ -465,16 +465,16 @@ function hand(NS, kind, length, angle) {
 function renderRelic(s) {
   const el = statBox("hud-totem");
   if (!el) return;
-  if (s.totem) {
+  if (s.tablet) {
     const art = uiIcon("relic", "staticon relic relic--held");
     if (art) el.appendChild(art);
   }
   const text = document.createElement("span");
-  text.className = "statnum" + (s.totem ? " statnum--buffed" : "");
-  text.textContent = s.totem ? "Held" : "Not yet";
+  text.className = "statnum" + (s.tablet ? " statnum--buffed" : "");
+  text.textContent = s.tablet ? "Held" : "Not yet";
   text.setAttribute("aria-hidden", "true");
   el.appendChild(text);
-  el.appendChild(srOnly(s.totem ? "held" : "not found yet"));
+  el.appendChild(srOnly(s.tablet ? "held" : "not found yet"));
 }
 
 // The backpack: one row per carry slot, empty ones included so the two-item
@@ -2132,7 +2132,7 @@ export function settleDust() {
 // I going" without being asked.
 function tileBadges(game, tile) {
   const def = (tile && tile.def) || {};
-  const held = game.state.totem;
+  const held = game.state.tablet;
   const out = [];
   if (def.goal === "TAKE_TABLET" && !held) {
     out.push({ kind: "relic", kindName: "ui", id: "relic", say: "The relic rests here." });

@@ -76,7 +76,7 @@ function handKey(state, weapon) {
 
 function closeKey(state, won, distance) {
   if (won) return "buried";
-  if (state.totem) {
+  if (state.tablet) {
     if (distance === null) return "carrying-lost";
     // Zero is not a distance, it is a place. Sent through the same phrasing as
     // the rest it produced "standing on it from the Family Plot", which is the
