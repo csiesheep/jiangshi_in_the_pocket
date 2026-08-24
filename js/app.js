@@ -1,15 +1,20 @@
 // Game page controller — orchestrates the turn, wiring user input -> engine +
 // board -> render. Owns the RNG seed.
 //
-// TILE-EXPLORING BUILD. One action a turn — move or stay — then the room's own
-// instructions, then six minutes off the clock. No cards are drawn, so no
-// events, items, searches or fights can happen; see the note at the top of
-// engine.js.
+// The turn, in the order §8 sets out: the poison tick, one action — move or
+// stay — then the room answers with an event, then the rite if this room has
+// one, then the breach if there is nowhere on, then the search, then six
+// minutes off the clock.
+//
+// Most of that is arithmetic and lives in the engine. Two things are not: a
+// fight and a villager come back from resolveEvent unresolved, because both are
+// decisions, and decisions belong to whoever is talking to the player. This
+// file is where they are asked.
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
 import { isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
-         startAmbience, stopAmbience, stopScore } from "./audio.js";
+         startAmbience, stopAmbience, stopScore, itemPickup } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -36,6 +41,16 @@ import {
   itemName as iName,
   showDropDialog,
   onPackUse,
+  caption,
+  jumpScare,
+  resolveBeat,
+  damageCameFrom,
+  breakInTelegraph,
+  breakInCracks,
+  breakInPressure,
+  breakInCollapse,
+  breakInClear,
+  buryBeat,
 } from "./render.js";
 
 import { registerWorker, wireFullscreen, keepAwake, wireSleep } from "./shell.js";
@@ -65,6 +80,35 @@ const EMPTY_HANDED = [
   "You put your hands into the dark and find the dark.",
   "Nothing here but the room.",
 ];
+
+// The room's own beat, between walking in and the room answering. The event
+// line is read in this gap; without it the sentence and the damage land
+// together and the sentence is the half that gets skipped.
+const EVENT_BEAT_MS = 780;
+
+// And after a result, before the turn moves on. Shorter — by then the HUD has
+// already shown the number and this is only stopping it being instant.
+const RESULT_BEAT_MS = 620;
+
+// The wall coming in, staged. Four beats: the knock, the cracks, something
+// leaning on it, and the collapse. The counts are the engine's (3/4/5 by band);
+// these are only how long each stage is given.
+const BREACH_KNOCK_MS = 1250;
+const BREACH_CRACK_MS = 900;
+const BREACH_PRESS_MS = 950;
+
+function wait(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// The event's line, by type and band. HP splits by the sign of hp — one
+// sentence cannot serve both a cold room that bites and a stub of incense still
+// warm — which is why the theme keys those apart when the engine does not.
+function eventKey(ev) {
+  if (!ev) return "NOTHING";
+  if (ev.t === "HP") return ev.hp < 0 ? "HP_LOSS" : "HP_GAIN";
+  return ev.t;
+}
 
 // `no-cache` forces a revalidation rather than a blind cache hit: it still
 // costs only a 304 when nothing changed, but it means a re-theme or a rules fix
@@ -207,80 +251,493 @@ class Game {
   // ---- Arrival -------------------------------------------------------------
   // Nothing is drawn. The event pool is not designed, so arriving somewhere is
   // just arriving: the room's own instructions, then the end of the turn.
-  arrive() {
+  // ---- Steps 3 to 5: what the room does about you --------------------------
+  // In order, and the order is load-bearing (§8): the room's own event, then
+  // the rite if this room has one to perform, then the breach if there is
+  // nowhere on from here. A dead-end goal room can therefore be three fights in
+  // one turn, and nothing about that is a bug — it is the worst square on the
+  // board being the worst square on the board.
+  //
+  // Running cuts the rest of it short at whatever point it happens. You are not
+  // standing here any more: there is no rite left to finish, no wall to come
+  // through at you, no room to rummage and no quiet corner to steady yourself
+  // in. Checked after every step rather than once, because any of them can be
+  // the one you ran from.
+  async arrive() {
     if (this.state.status !== "playing") return this.gameOver();
     this.refresh();
-    this.roomEffect();
+
+    await this.eventBeat();
+    if (this.state.status !== "playing") return this.gameOver();
+    if (this.state.fled) return this.renderEndTurn();
+
+    await this.riteBeat();
+    if (this.state.status !== "playing") return this.gameOver();
+    if (this.state.fled) return this.renderEndTurn();
+
+    await this.breachBeat();
+    if (this.state.status !== "playing") return this.gameOver();
+    if (this.state.fled) return this.renderEndTurn();
+
+    return this.endTurn(this.ghostBeat());
   }
 
-  // The two rooms that still do something.
+  // Both registers at once. The log is a screen-reader live region and carries
+  // no pixels; the caption is over the board and is aria-hidden precisely
+  // because the log already said it. Neither is optional — dropping either one
+  // loses the line for half the players.
   //
-  // PLACEHOLDER, and deliberately a loud one: the rulebook leaves the cost of
-  // both rites open — "a turn each, an event each, or both" — so this build
-  // charges nothing for either. Standing in the room is enough. That is not a
-  // ruling on the cost, it is the absence of one, and it exists only so the map
-  // has a goal to be tested against. Fix it when the rites are designed.
-  roomEffect() {
+  // Reserved for the writing, not the arithmetic: numbers go to log() alone,
+  // because the HUD already shows those and a caption repeating them is a
+  // second copy of something nobody missed.
+  tell(line, tone = "") {
+    if (!line) return;
+    log(line, tone);
+    caption(line, tone);
+  }
+
+  eventLine(ev) {
+    const table = (this.data.theme.events || {})[eventKey(ev)] || {};
+    return table[E.bandKey(this.state)] || "";
+  }
+
+  // ---- Step 3: the room answers --------------------------------------------
+  // Drawn with replacement, so the same thing can happen twice in a row and
+  // nothing is ever used up — it is a distribution, not a deck.
+  async eventBeat() {
+    if (this.state.status !== "playing") return;
+    const ev = E.drawEvent(this.state);
+    if (!ev) return;
+
+    this.tell(this.eventLine(ev));
+    await wait(EVENT_BEAT_MS);
+
+    // The villager is asked before anything is resolved: whether you give the
+    // rice is an input to resolveEvent, not a reaction to it.
+    if (ev.t === "VILLAGER") return this.villagerBeat(ev);
+
+    // Read before resolving: resolveEvent is what sets the flag, so asking
+    // afterwards can only ever answer "yes".
+    const wasPoisoned = this.state.poisoned;
+    const res = E.resolveEvent(this.state, ev);
+    if (res.type === "FIGHT") return this.fightBeat(res.n);
+    if (res.type === "POISON") return this.poisonBeat(wasPoisoned);
+    if (res.type === "HP") {
+      this.refresh(); // the hearts move, and a loss flashes the board on its own
+      log(res.hp > 0 ? `+${res.hp} health.` : `${res.hp} health.`, res.hp > 0 ? "good" : "bad");
+      if (this.state.status !== "playing") return;
+      return wait(RESULT_BEAT_MS);
+    }
+    return wait(RESULT_BEAT_MS);
+  }
+
+  // 中毒 arrives once and does not stack, so the onset line is only true the
+  // first time. Already poisoned, the draw is a nothing — and saying "屍毒 is in
+  // your blood now" to someone who has been grey for six turns would be the
+  // game losing track of its own fiction.
+  async poisonBeat(wasPoisoned) {
+    if (wasPoisoned) {
+      this.refresh();
+      return wait(RESULT_BEAT_MS);
+    }
+    this.refresh();
+    this.tell((this.data.theme.poison || {}).onset || "");
+    return wait(RESULT_BEAT_MS);
+  }
+
+  // ---- The rites -----------------------------------------------------------
+  // Taking the tablet and burying it are what the map is for, and each costs an
+  // extra event drawn where you stand. That is the price the rulebook left open
+  // and the spec closed: not a turn — an event. So a rite at nine o'clock is
+  // usually a held breath, and the same rite at eleven is a real risk.
+  //
+  // riteDraws() is asked first, and it is what keeps standing on the grave
+  // without the tablet free: there is nothing to bury, so there is no rite, so
+  // nothing is drawn at you for it.
+  async riteBeat() {
     const goal = Bd.currentTile(this.board).def.goal;
-    if (goal === "TAKE_TABLET" && !this.state.tablet) {
-      E.completeRite(this.state, "TAKE_TABLET");
+    if (!goal || !E.riteDraws(this.state, goal)) return;
+
+    this.tell(
+      goal === "BURY_TABLET"
+        ? "You kneel and begin to dig. The ground here gives too easily."
+        : "The lid is not nailed down. Something in the room objects."
+    );
+    await wait(EVENT_BEAT_MS);
+
+    await this.eventBeat();
+    if (this.state.status !== "playing") return;
+    // Running from the rite's own event aborts it — the source's rule was that
+    // you only came away with it if you were still standing there when it was
+    // over. Retryable: walk back and pay for another event.
+    if (this.state.fled) {
+      this.tell("You ran. What you came here to do is still undone.");
+      return;
+    }
+
+    const r = E.completeRite(this.state, goal);
+    if (!r.ok) return;
+
+    if (goal === "TAKE_TABLET") {
       relicFound();
       this.tally.found += 1;
-      log(`Among the coffins, the ${this.word("relic")}. It is yours.`, "good");
+      this.tell(`Among the coffins, the ${this.word("relic")}. It is yours.`, "good");
       this.refresh();
-    } else if (goal === "BURY_TABLET" && this.state.tablet) {
-      E.completeRite(this.state, "BURY_TABLET");
-      this.refresh();
-      if (this.state.status === "won") return this.gameOver();
+      return wait(RESULT_BEAT_MS);
     }
-    return this.deadEndCheck();
+    // A burial ends the run. gameOver is reached from arrive(), which checks
+    // status the moment this returns; the beat here is the spade going in.
+    this.refresh();
+    return buryBeat("graveyard");
   }
 
-  // ---- Dead ends -----------------------------------------------------------
-  // A room with no way on still has to be leavable, or every tile behind it is
-  // stranded and the crypt or the grave may never reach the table. With nothing
-  // left in the game to break the wall, the wall simply gives way: no fight, no
-  // telegraph, no cost. Pure topology, kept because it is load-bearing for
-  // placement — see the seed sweep in tests/board.test.js.
-  deadEndCheck() {
-    if (this.state.status !== "playing") return this.gameOver();
-    if (Bd.isDeadEnd(this.board)) {
-      const wall = Bd.pickZombieDoorWall(this.board);
+  // ---- 破牆, the breach -----------------------------------------------------
+  // Two separate things happen at a dead end and it is worth keeping them
+  // apart. The wall opening is TOPOLOGY: without it every tile behind this one
+  // is stranded and the crypt or the grave may never reach the table, so it
+  // happens whatever else does. What comes through the hole is the EVENT, and
+  // it scales with the band — the same corner is three of them at nine and five
+  // at eleven.
+  //
+  // The engine owns "and so what": breachAfterEvent returns 0 when you ran,
+  // which is the whole reason fleeing a dead end works. The board owns "is this
+  // a dead end". This only stages what the two of them already decided.
+  async breachBeat() {
+    if (this.state.status !== "playing") return;
+    if (!Bd.isDeadEnd(this.board)) return;
+
+    const wall = Bd.pickZombieDoorWall(this.board);
+    const n = E.breachAfterEvent(this.state, { deadEnd: true, fled: this.state.fled });
+
+    // Nowhere on and nothing coming: the wall still has to give, or the run is
+    // stuck standing here. No telegraph for it — nothing is arriving.
+    if (!n) {
       if (wall) {
         Bd.openZombieDoor(this.board, wall);
-        log(`Nowhere on from here — until the ${DIR_WORD[wall]} wall gives way.`);
+        this.tell(`Nowhere on from here — until the ${DIR_WORD[wall]} wall gives way.`);
         this.refresh();
+        await wait(RESULT_BEAT_MS);
+      }
+      return;
+    }
+
+    if (!wall) return; // no wall to give: nothing can come through one
+
+    // The knock, the cracks, something leaning on it, and then the wall. Said
+    // out loud one beat before it happens, which is the difference between a
+    // stat event and a horror beat.
+    this.tell(`Something is working at the ${DIR_WORD[wall]} wall.`);
+    breakInTelegraph(wall);
+    await wait(BREACH_KNOCK_MS);
+    breakInCracks(wall);
+    await wait(BREACH_CRACK_MS);
+    breakInPressure();
+    await wait(BREACH_PRESS_MS);
+
+    Bd.openZombieDoor(this.board, wall);
+    this.refresh();
+    breakInCollapse(wall);
+    breakInClear();
+
+    return this.fightBeat(n, { from: wall });
+  }
+
+  // The turn is done and nothing real is happening — the one place a phantom is
+  // allowed to fire. Rolled at a fixed point rather than on a timer, because a
+  // shared seed has to hear the same house.
+  //
+  // Returns whether anything was mounted ONTO THE BOARD, which matters because
+  // the next turn rebuilds .focus from nothing: a phantom lives inside a
+  // half-room and the standing figure inside an empty slot, so both are
+  // destroyed by the very next render. The guttering candle is not counted — it
+  // is a class on <body> and survives the rebuild on its own.
+  ghostBeat() {
+    // Not rolled at all in calm mode, rather than rolled and discarded, so
+    // toggling calm mid-run does not change what a seed does afterwards.
+    if (isCalm()) return false;
+    let cued = false;
+    const fear = E.dread(this.state);
+    const dir = E.rollPhantom(this.state, fear);
+    if (dir) { phantom(dir); cued = true; }
+    // The candle fails on its own schedule, and always when a phantom fires:
+    // the two together are one event — something moved, and the light went with
+    // it — where separately they are two effects.
+    if (dir || E.rollGutter(this.state, fear)) candleGutter();
+    // Once a run at the outside, and never on the same beat as a phantom: two
+    // unexplained things at once is a haunting, and one is a doubt. standing()
+    // returns true only when it actually put a figure in a dark slot — it
+    // declines in calm mode, under reduced motion, and when every slot already
+    // has a room in it. Only a figure that exists needs a beat.
+    if (!dir && E.rollStanding(this.state, fear) && standing()) cued = true;
+    return cued;
+  }
+
+  // ---- The fight -----------------------------------------------------------
+  // A JIANGSHI event comes back unresolved because it is a decision: which
+  // blade, whether to burn the banner, whether to write a talisman in your own
+  // blood, or whether to simply be somewhere else. attackWith() prices every
+  // one of those for free, so the window can show what each costs in hearts
+  // before anything is spent, and resolveCombat() is the one call that spends.
+  //
+  // Opening this window consumes nothing. A player who reads every option and
+  // takes the free one has spent exactly nothing, which is the property the
+  // whole preview/commit split exists to protect.
+  fightBeat(n, opts = {}) {
+    return new Promise((resolve) => {
+      damageCameFrom(opts.from || null);
+      // The scare deposits them and the window is what it leaves behind.
+      // Choices are cleared first so a key mashed during it finds nothing —
+      // the same rule the dark door and the search beat follow.
+      clearChoices();
+      jumpScare(n, false, { from: opts.from || null }).then(() => {
+        if (this.state.status !== "playing") return resolve();
+        this.paintFight(n, opts, resolve);
+      });
+    });
+  }
+
+  // Every loadout worth offering, priced. Built by crossing (banner or not)
+  // with (each talisman, or none), then dropping the ones that spend strictly
+  // more for no less damage.
+  //
+  // That filter is what makes the window honest rather than merely complete.
+  // Damage is clamped to 0..4, so loadouts collide constantly: if the sword
+  // alone already takes you to nothing, then burning 五雷符 on top of it also
+  // takes you to nothing, and listing both is offering a trap dressed as a
+  // choice. An option survives only when no cheaper one — spending a strict
+  // subset of the same things — matches or beats it.
+  //
+  // 硃砂 is excluded by having no `attack`: it copies a talisman rather than
+  // being one, and there is nothing to throw.
+  fightOptions(n) {
+    const s = this.state;
+    const charm = E.hasCharm(s);
+    const talismans = E.heldIds(s).filter((id) => {
+      const d = s.itemsById[id];
+      return d && d.cat === "magic" && d.attack != null;
+    });
+    const banners = E.held(s, "soul-banner") ? [false, true] : [false];
+
+    const raw = [];
+    for (const banner of banners) {
+      for (const talisman of [null, ...talismans]) {
+        const use = {};
+        if (banner) use.banner = true;
+        if (talisman) use.talisman = talisman;
+        const def = talisman ? s.itemsById[talisman] : null;
+        // 血符 is paid in blood on top of whatever the pack does to you, so the
+        // hearts on the card have to carry both or the card is lying.
+        const blood = def && def.costHp ? def.costHp : 0;
+        const attack = E.attackWith(s, use);
+        raw.push({
+          use,
+          attack,
+          blood,
+          spends: [...(banner ? ["soul-banner"] : []), ...(talisman ? [talisman] : [])],
+          damage: E.combatDamage(n, attack, charm) + blood,
+        });
       }
     }
-    // The one place a phantom can fire: the turn is done and nothing real is
-    // happening. Rolled at a fixed point rather than on a timer, because a
-    // shared seed has to hear the same house. Not rolled at all in calm mode —
-    // rather than rolled and discarded — so toggling calm mid-run does not
-    // change what a seed does afterwards.
-    // Whether anything was mounted ONTO THE BOARD this turn. It matters because
-    // the next turn rebuilds .focus from nothing: a phantom lives inside a
-    // half-room and the standing figure inside an empty slot, so both are
-    // destroyed by the very next render. While the turn ended on a button they
-    // got their two seconds from the player's own pause. Nothing pauses now, so
-    // the beat has to be asked for. The guttering candle is not counted — it is
-    // a class on <body> and survives the rebuild on its own.
-    let cued = false;
-    if (!isCalm()) {
-      const fear = E.dread(this.state);
-      const dir = E.rollPhantom(this.state, fear);
-      if (dir) { phantom(dir); cued = true; }
-      // The candle fails on its own schedule, and always when a phantom fires:
-      // the two together are one event — something moved, and the light went
-      // with it — where separately they are two effects.
-      if (dir || E.rollGutter(this.state, fear)) candleGutter();
-      // Once a run at the outside, and never on the same beat as a phantom:
-      // two unexplained things at once is a haunting, and one is a doubt.
-      // standing() returns true only when it actually put a figure in a dark
-      // slot — it declines in calm mode, under reduced motion, and when every
-      // slot already has a room in it. Only a figure that exists needs a beat.
-      if (!dir && E.rollStanding(this.state, fear) && standing()) cued = true;
+
+    const kept = raw.filter(
+      (o) =>
+        !raw.some(
+          (b) =>
+            b !== o &&
+            b.damage <= o.damage &&
+            b.spends.length < o.spends.length &&
+            b.spends.every((id) => o.spends.includes(id))
+        )
+    );
+    // Spending nothing first, then the upgrades by how much they buy you.
+    // Sorting by damage instead would put the seductive nothing-touches-you
+    // card at the top and bury the free one at the bottom, which is a strange
+    // thing for the list to recommend when the sword was always going to be the
+    // default — it is also what `primary` and the 1 key point at.
+    return kept.sort((a, b) => a.spends.length - b.spends.length || a.damage - b.damage);
+  }
+
+  loadoutLabel(o, sword) {
+    const spent = o.spends.map((id) => this.itemName(id));
+    if (!spent.length) {
+      return sword ? `Fight with the ${this.itemName(sword)}` : "Fight bare-handed";
     }
-    return this.endTurn(cued);
+    return spent.join(" and ");
+  }
+
+  paintFight(n, opts, done) {
+    const s = this.state;
+    const sword = E.bestSword(s);
+
+    const acts = this.fightOptions(n).map((o) => ({
+      kind: "fight",
+      label: this.loadoutLabel(o, sword),
+      // The arithmetic, said out loud. Combat is fully deterministic, so there
+      // is nothing to hide and no reason to make anyone do it in their head.
+      sub: o.blood ? `attack ${o.attack} · ${o.blood} of it your own` : `attack ${o.attack}`,
+      icon: sword ? `item-${sword}` : null,
+      cost: { hp: -o.damage },
+      primary: o.spends.length === 0,
+      onClick: () => this.doFight(n, o, opts, done),
+    }));
+
+    // 黑狗血: no damage, no blade, and they simply do not find you. Strictly
+    // better than running, which is correct — that is what the item is for.
+    if (E.held(s, "black-dog-blood")) {
+      acts.push({
+        kind: "escape",
+        label: this.itemName("black-dog-blood"),
+        sub: "they lose you entirely",
+        cost: { hp: 0 },
+        onClick: () => this.doEscape(done),
+      });
+    }
+
+    // Running: one step, through a real connection, into somewhere already
+    // known. The 1 HP is a price rather than a wound, which is why 護身符 does
+    // not touch it.
+    for (const m of Bd.listMoves(this.board)) {
+      if (m.type !== "move" && m.type !== "cross") continue;
+      const to = this.board.worlds[m.to.world].get(Bd.cellKey(m.to.x, m.to.y));
+      acts.push({
+        kind: "flee",
+        dir: m.dir,
+        label: `Run ${m.dir} — ${this.tileName(to.id)}`,
+        sub: "the turn ends where you land",
+        cost: { hp: -E.RULES.RUN_AWAY_DAMAGE },
+        onClick: () => this.doFlee(m.dir, done),
+      });
+    }
+
+    // `health` is what marks a card lethal, and it is read here rather than
+    // baked in above: it can move mid-window, and a card that would kill you
+    // has to say so at the moment you are looking at it.
+    renderActions(acts, `${n} of them.`, { pack: n, health: s.health });
+  }
+
+  async doFight(n, o, opts, done) {
+    const s = this.state;
+    clearChoices();
+    damageCameFrom(opts.from || null);
+    const r = E.resolveCombat(s, n, o.use);
+
+    // 血符 is written in your own blood and paid before the blow lands. When it
+    // takes the last of you there is no fight at all — you never made the
+    // strike, and the pack is still standing when the run ends.
+    if (r.diedPaying) {
+      this.refresh();
+      this.tell(
+        `You write the ${this.itemName("blood-talisman")} and there is not enough of you left to finish it.`,
+        "toll"
+      );
+      await wait(RESULT_BEAT_MS);
+      return done();
+    }
+
+    await resolveBeat({ icon: r.weaponId ? `item-${r.weaponId}` : null });
+    this.refresh();
+    for (const id of r.spent) log(`${this.itemName(id)} is spent.`);
+    log(r.damage ? `${r.damage} damage.` : "They do not touch you.", r.damage ? "bad" : "good");
+    if (s.status !== "playing") return done();
+    await wait(RESULT_BEAT_MS);
+    return done();
+  }
+
+  async doEscape(done) {
+    clearChoices();
+    const r = E.escapeFight(this.state, { vsKing: false });
+    if (!r.ok) return done(); // nothing held: the card should not have been there
+    await resolveBeat({ mode: "flee" });
+    this.refresh();
+    this.tell(`You break the ${this.itemName("black-dog-blood")} over the floor. They lose you in it.`);
+    await wait(RESULT_BEAT_MS);
+    return done();
+  }
+
+  async doFlee(dir, done) {
+    clearChoices();
+    // The hit comes from the way you turned your back on.
+    damageCameFrom(dir);
+    E.flee(this.state);
+    await resolveBeat({ mode: "flee" });
+    const from = Bd.currentTile(this.board).world;
+    Bd.moveTo(this.board, dir);
+    if (Bd.currentTile(this.board).world !== from) seamCross();
+    this.refresh();
+    if (this.state.status !== "playing") return done();
+    animateEntry(dir);
+    this.tell(`You run ${DIR_WORD[dir]}, into the ${this.tileName(Bd.currentTile(this.board).id)}.`);
+    await wait(RESULT_BEAT_MS);
+    return done();
+  }
+
+  // ---- The villager --------------------------------------------------------
+  // The one event that asks a question. Rice buys the stranger; refusing leaves
+  // you with whatever was chasing them — the band's worst pack.
+  //
+  // There is deliberately no drop prompt on the gift, and it is worth saying
+  // why rather than guarding for a case that cannot arise: the rice you just
+  // gave away was one slot, and the thanks costs one, or none at all when it is
+  // a talisman you already hold. Giving is exactly what makes the room for it.
+  async villagerBeat(ev) {
+    const t = this.data.theme.villager || {};
+
+    // No rice, no question. The engine would refuse the gift anyway, and asking
+    // something whose only answer is no is worse than not asking.
+    if (!E.held(this.state, "sticky-rice")) {
+      const res = E.resolveEvent(this.state, ev, { giveRice: false });
+      this.tell("You have nothing to give them.");
+      await wait(RESULT_BEAT_MS);
+      return this.fightBeat(res.n);
+    }
+
+    const give = await this.askVillager(ev, t);
+    const res = E.resolveEvent(this.state, ev, { giveRice: give });
+
+    if (res.type === "GIFT") {
+      itemPickup(res.id);
+      this.refresh();
+      this.tally.found += 1;
+      this.tell(String(t.gave || "").replace("{gift}", this.itemName(res.id)), "good");
+      return wait(RESULT_BEAT_MS);
+    }
+
+    this.tell(t.refused || "");
+    await wait(RESULT_BEAT_MS);
+    return this.fightBeat(res.n);
+  }
+
+  askVillager(ev, t) {
+    return new Promise((resolve) => {
+      // What refusing costs, as you stand — no spends, current blade. It is the
+      // honest floor rather than a promise: the fight that follows still lets
+      // you burn something to bring it down.
+      const bare = E.combatDamage(
+        ev.turnsInto,
+        E.effectiveAttack(this.state),
+        E.hasCharm(this.state)
+      );
+      renderActions(
+        [
+          {
+            kind: "give",
+            label: t.give || "Give the rice",
+            sub: `spends one ${this.itemName("sticky-rice")}`,
+            primary: true,
+            onClick: () => { clearChoices(); resolve(true); },
+          },
+          {
+            kind: "refuse",
+            label: t.refuse || "Keep it",
+            sub: `${ev.turnsInto} of them, as you stand`,
+            cost: { hp: -bare },
+            onClick: () => { clearChoices(); resolve(false); },
+          },
+        ],
+        t.ask || "",
+        { health: this.state.health }
+      );
+    });
   }
 
   // ---- End of turn ---------------------------------------------------------
@@ -303,6 +760,9 @@ class Game {
   // room's event — so it belongs here, between the event and the clock.
   endTurnChoices() {
     const choices = [];
+    // You arrived here running and the turn is already over (§8): no event was
+    // drawn where you landed, so there is nothing to have rummaged after.
+    if (this.state.fled) return choices;
     const tile = Bd.currentTile(this.board);
     const table = tile && tile.def && tile.def.search;
     // One search per turn. Rummaging the same room again is what STAY is for,
