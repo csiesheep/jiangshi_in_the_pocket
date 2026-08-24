@@ -42,6 +42,12 @@ import { epilogue } from "./epilogue.js";
 
 const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
 
+// How long the turn holds when something unexplained was put on the board. The
+// cues themselves live longer than this — the phantom 2.6s, the figure 9s — but
+// they are mounted inside the board, and the next turn rebuilds it. This is the
+// window in which they are actually visible, so it is the number that matters.
+const CUE_BEAT_MS = 1500;
+
 // `no-cache` forces a revalidation rather than a blind cache hit: it still
 // costs only a 304 when nothing changed, but it means a re-theme or a rules fix
 // actually reaches players who already have the old data cached.
@@ -223,23 +229,34 @@ class Game {
     // shared seed has to hear the same house. Not rolled at all in calm mode —
     // rather than rolled and discarded — so toggling calm mid-run does not
     // change what a seed does afterwards.
+    // Whether anything was mounted ONTO THE BOARD this turn. It matters because
+    // the next turn rebuilds .focus from nothing: a phantom lives inside a
+    // half-room and the standing figure inside an empty slot, so both are
+    // destroyed by the very next render. While the turn ended on a button they
+    // got their two seconds from the player's own pause. Nothing pauses now, so
+    // the beat has to be asked for. The guttering candle is not counted — it is
+    // a class on <body> and survives the rebuild on its own.
+    let cued = false;
     if (!isCalm()) {
       const fear = E.dread(this.state);
       const dir = E.rollPhantom(this.state, fear);
-      if (dir) phantom(dir);
+      if (dir) { phantom(dir); cued = true; }
       // The candle fails on its own schedule, and always when a phantom fires:
       // the two together are one event — something moved, and the light went
       // with it — where separately they are two effects.
       if (dir || E.rollGutter(this.state, fear)) candleGutter();
       // Once a run at the outside, and never on the same beat as a phantom:
       // two unexplained things at once is a haunting, and one is a doubt.
-      if (!dir && E.rollStanding(this.state, fear)) standing();
+      // standing() returns true only when it actually put a figure in a dark
+      // slot — it declines in calm mode, under reduced motion, and when every
+      // slot already has a room in it. Only a figure that exists needs a beat.
+      if (!dir && E.rollStanding(this.state, fear) && standing()) cued = true;
     }
-    return this.endTurn();
+    return this.endTurn(cued);
   }
 
   // ---- End of turn ---------------------------------------------------------
-  endTurn() {
+  endTurn(cued = false) {
     if (this.state.status !== "playing") return this.gameOver();
     const tile = Bd.currentTile(this.board);
     if (tile.def.onTurnEnd === "HEAL_1") {
@@ -250,12 +267,37 @@ class Game {
       log(`You steady yourself here. +1 HP.`, "good");
       this.refresh();
     }
-    this.renderEndTurn();
+    this.renderEndTurn(cued);
   }
 
-  renderEndTurn() {
+  // What the end of a turn is still worth stopping for. Empty in this build:
+  // cowering, the rites and the searches all went with the card system, so
+  // there is nothing here to decide. It is a list rather than a boolean because
+  // the moment any of them come back this is where they go, and the choice
+  // between prompting and not should follow from whether a choice exists.
+  endTurnChoices() {
+    return [];
+  }
+
+  renderEndTurn(cued = false) {
+    const choices = this.endTurnChoices();
+    // Nothing to decide, so do not ask. A prompt whose only answer is "yes,
+    // continue" is a button that reads the player's mind wrong every single
+    // turn — thirty of them a night, and none of them a decision. Fall
+    // straight through into the next turn instead.
+    if (!choices.length) {
+      // Choices cleared first: during the beat below there must be nothing on
+      // screen to click, exactly as during the other staged pauses.
+      renderActions([]);
+      if (!cued) return this.nextTurn();
+      // Something is standing in a doorway or crossing one. The next render
+      // destroys it, so let it be seen first. Long enough to register and
+      // short enough that a rare event does not become a wait.
+      return void setTimeout(() => this.nextTurn(), CUE_BEAT_MS);
+    }
     renderActions(
-      [{ kind: "draw", label: "Next turn", sub: "six minutes", primary: true,
+      [...choices,
+       { kind: "draw", label: "Next turn", sub: "six minutes", primary: true,
          onClick: () => this.nextTurn() }],
       "The room is quiet."
     );
