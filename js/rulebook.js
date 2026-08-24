@@ -18,17 +18,34 @@ const main = document.querySelector("main");
 const english = main ? main.innerHTML : "";
 let chinese = null;
 
+// Two paths for one file, because production rewrites one of them.
+//
+// The static-asset handler 307s any `.html` request to its extensionless form,
+// so in production this fetch is a redirect the Worker then has to re-prefix.
+// It works — verified end to end — but it costs a round trip and it leans on
+// that re-prefixing continuing to happen. Locally there is no rewriting at all
+// and only the `.html` name resolves. So: ask for the name that works locally,
+// and fall back to the name production redirects to.
+const FRAGMENTS = ["data/rulebook.zh-TW.html", "data/rulebook.zh-TW"];
+
 async function fragmentFor(lang) {
   if (lang === L.BASE) return english;
   if (chinese) return chinese;
-  try {
-    const res = await fetch("data/rulebook.zh-TW.html", { cache: "no-cache" });
-    if (!res.ok) return null;
-    chinese = await res.text();
-    return chinese;
-  } catch {
-    return null; // the English is already on screen; leave it there
+  for (const url of FRAGMENTS) {
+    try {
+      const res = await fetch(url, { cache: "no-cache" });
+      if (!res.ok) continue;
+      chinese = await res.text();
+      return chinese;
+    } catch {
+      /* try the other name */
+    }
   }
+  // Falling back to English is the right BEHAVIOUR and a terrible silence: the
+  // page looks fine and is simply in the wrong language, which is exactly the
+  // kind of failure that survives for months. Say so where a maintainer looks.
+  console.warn("jiangshi: the Chinese rulebook did not load; staying in English");
+  return null;
 }
 
 async function apply(lang) {
