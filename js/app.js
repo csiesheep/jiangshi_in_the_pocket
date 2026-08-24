@@ -110,6 +110,13 @@ function wait(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// The sprite id for an item, or nothing. Bare-handed has no art and must pass
+// null rather than "item-", which would send render.js looking up a symbol
+// whose id is the empty string.
+function itemArt(id) {
+  return id ? `item-${id}` : null;
+}
+
 // The event's line, by type and band. HP splits by the sign of hp — one
 // sentence cannot serve both a cold room that bites and a stub of incense still
 // warm — which is why the theme keys those apart when the engine does not.
@@ -634,7 +641,11 @@ class Game {
       // The arithmetic, said out loud. Combat is fully deterministic, so there
       // is nothing to hide and no reason to make anyone do it in their head.
       sub: o.blood ? `attack ${o.attack} · ${o.blood} of it your own` : `attack ${o.attack}`,
-      icon: sword ? `item-${sword}` : null,
+      // The card shows what the card is about. Every loadout swings the sword,
+      // so the sword is the right mark only when nothing else is being spent —
+      // a card headed 五雷符 with a blade on it is answering a question nobody
+      // asked. The banner outranks a talisman: it is the rarer thing to burn.
+      icon: itemArt(o.spends[0] || sword),
       cost: { hp: -o.damage },
       primary: o.spends.length === 0,
       onClick: () => this.doFight(n, o, opts, done),
@@ -1150,7 +1161,7 @@ class Game {
           ? o.spends.map((id) => this.itemName(id)).join(" and ")
           : sword ? `Just the ${this.itemName(sword)}` : "Nothing but your hands",
         sub: `attack ${o.attack}`,
-        icon: sword ? `item-${sword}` : null,
+        icon: itemArt(o.spends[0] || sword),
         primary: i === 0,
         // 血符 is written in your own blood before the strike, and at one heart
         // it kills the hand writing it — the same diedPaying rule as everywhere
