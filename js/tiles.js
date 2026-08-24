@@ -3,6 +3,7 @@
 // hand-copying it would guarantee it drifts the first time a tile changes.
 
 import { loadIcons, icon } from "./render.js";
+import * as L from "./lang.js";
 
 const DIRS = ["N", "E", "S", "W"];
 
@@ -309,11 +310,16 @@ function up(word) {
 async function main() {
   const host = document.getElementById("gallery");
   try {
-    const [tiles, theme] = await Promise.all([
+    const [tiles, base] = await Promise.all([
       fetch("data/tiles.json").then((r) => r.json()),
       fetch("data/theme.json").then((r) => r.json()),
       loadIcons(),
     ]);
+    // Same preference the game keeps, so the choice is the reader's and not the
+    // page's. The overlay falls through to English per key, exactly as there.
+    const lang = L.preferred();
+    L.stampDocument(lang);
+    const theme = await L.themeFor(base, lang);
     host.textContent = "";
 
     // The standfirst counts the real set. It said "sixteen rooms" for a while

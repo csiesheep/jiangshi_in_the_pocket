@@ -60,6 +60,7 @@ import {
 import { registerWorker, wireFullscreen, keepAwake, wireSleep } from "./shell.js";
 import { recordVerdict } from "./tally.js";
 import { epilogue } from "./epilogue.js";
+import * as L from "./lang.js";
 
 // How long the turn holds when something unexplained was put on the board. The
 // cues themselves live longer than this — the phantom 2.6s, the figure 9s — but
@@ -142,7 +143,7 @@ async function loadData() {
   // event pool by band (§5), and item definitions. Nothing draws a card any
   // more, so nothing fetches one.
   const names = ["tiles", "items", "search", "events", "theme"];
-  const [tiles, items, search, events, theme] = await Promise.all(
+  const [tiles, items, search, events, base] = await Promise.all(
     names.map((name) =>
       fetch(`data/${name}.json`, FETCH_OPTS).then((r) => {
         if (!r.ok) throw new Error(`data/${name}.json -> HTTP ${r.status}`);
@@ -150,7 +151,13 @@ async function loadData() {
       })
     )
   );
-  return { tiles, items, search, events, theme };
+  // The base theme is complete and is the fallback for every language; a
+  // language file is merged over it. See lang.js — the overlay is what lets a
+  // translation land in pieces without the game ever showing a missing key.
+  const lang = L.preferred();
+  L.stampDocument(lang);
+  const theme = await L.themeFor(base, lang, FETCH_OPTS);
+  return { tiles, items, search, events, theme, baseTheme: base, lang };
 }
 
 class Game {
@@ -232,7 +239,8 @@ class Game {
     const acts = Bd.listMoves(this.board).map((m) => {
       if (m.type === "explore") {
         return { kind: "move", dir: m.dir,
-          label: this.ui("explore", { dir: m.dir }), sub: this.ui("explore-sub"),
+          label: this.ui("explore", { dir: m.dir, dirWord: this.dirWord(m.dir) }),
+          sub: this.ui("explore-sub"),
           primary: true, onClick: () => this.doExplore(m.dir) };
       }
       if (m.type === "outside") {
@@ -242,7 +250,7 @@ class Game {
       }
       const to = this.board.worlds[m.to.world].get(Bd.cellKey(m.to.x, m.to.y));
       return { kind: "move", dir: m.dir,
-        label: this.ui("walk", { dir: m.dir, room: this.tileName(to.id) }),
+        label: this.ui("walk", { dir: m.dir, dirWord: this.dirWord(m.dir), room: this.tileName(to.id) }),
         icon: `tile-${to.id}`, onClick: () => this.doMove(m.dir) };
     });
     // kind "stay", not "rest": render.js draws this one on the board with the
@@ -707,7 +715,7 @@ class Game {
       acts.push({
         kind: "flee",
         dir: m.dir,
-        label: this.ui("run", { dir: m.dir, room: this.tileName(to.id) }),
+        label: this.ui("run", { dir: m.dir, dirWord: this.dirWord(m.dir), room: this.tileName(to.id) }),
         sub: this.ui("run-sub"),
         cost: { hp: -E.RULES.RUN_AWAY_DAMAGE },
         onClick: () => this.doFlee(m.dir, done),
@@ -1489,6 +1497,53 @@ function wireControls() {
     if (location.search) history.replaceState(null, "", location.pathname);
     startNewGame();
   });
+
+  const lang = document.getElementById("btn-lang");
+  if (lang) lang.addEventListener("click", () => cycleLanguage());
+}
+
+// ---- Language ----------------------------------------------------------------
+// Two languages, so the control is a toggle rather than a menu. It cycles the
+// list, which is why adding a third needs no change here.
+//
+// Switching mid-run does NOT restart the night. The theme is swapped underneath
+// the run and everything visible is drawn again from it — the board, the panel,
+// and the choice window when it is safe to redraw. The log is left alone: it is
+// the narration already spoken, it is screen-reader-only, and rewriting history
+// into another language would be a stranger thing to do than leaving it.
+async function cycleLanguage() {
+  if (!data) return;
+  const order = Object.keys(L.LANGS);
+  const next = order[(order.indexOf(data.lang) + 1) % order.length];
+  await useLanguage(next);
+}
+
+async function useLanguage(lang) {
+  L.remember(lang);
+  L.stampDocument(lang);
+  data.lang = lang;
+  data.theme = await L.themeFor(data.baseTheme, lang, FETCH_OPTS);
+  paintLangToggle();
+  if (!game) return;
+  game.data.theme = data.theme;
+  game.refresh();
+  // Only the move step is safe to redraw from scratch: it is regenerated from
+  // the board every turn anyway. A fight or a dialog is holding a promise that
+  // a re-render would strand, so those keep the language they opened in and the
+  // next window arrives in the new one.
+  if (document.querySelector(".doorway")) game.renderMoves();
+}
+
+function paintLangToggle() {
+  const btn = document.getElementById("btn-lang");
+  if (!btn || !data) return;
+  const order = Object.keys(L.LANGS);
+  const next = L.LANGS[order[(order.indexOf(data.lang) + 1) % order.length]];
+  // The button says what you would get, not what you have — a control named for
+  // its current state reads as a label rather than a thing to press.
+  btn.title = `${next.name}`;
+  const label = document.getElementById("lang-label");
+  if (label) label.textContent = next.name;
 }
 
 async function main() {
@@ -1502,6 +1557,7 @@ async function main() {
     paintSoundToggle();
     paintCalmToggle();
     paintCopyIcon();
+    paintLangToggle();
     // Size the board off its pane before the first render, and keep it sized as
     // the pane changes — the sidebar growing counts, not just the window.
     watchBoardSize();

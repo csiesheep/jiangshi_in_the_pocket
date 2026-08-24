@@ -1,0 +1,36 @@
+{
+  "_note": "繁體中文 overlay — PARTIAL AND DELIBERATELY SO. Merged over data/theme.json key by key (see js/lang.js), so anything absent here falls through to English rather than breaking. Naming follows the vault glossary: 中毒 is the state, 屍毒 the substance, and the two win verdicts must stay equal in register in both languages.",
+  "title": "口袋裡的殭屍",
+  "tagline": "夜裡九點。三更時分，他來找你。",
+  "ui": {
+    "dir-N": "北",
+    "dir-E": "東",
+    "dir-S": "南",
+    "dir-W": "西",
+    "stay": "留在原地",
+    "stay-sub": "一樣要花六分鐘",
+    "explore": "往{dirWord} — 探索",
+    "explore-sub": "還沒去過",
+    "walk": "往{dirWord} — {room}",
+    "move-prompt": "走、留、或躲——都是六分鐘。",
+    "next-turn": "下一回合",
+    "next-turn-sub": "六分鐘",
+    "quiet-prompt": "房裡很安靜。",
+    "search": "搜索這個房間",
+    "slot-empty": "空的",
+    "use": "使用",
+    "fight-prompt": "{n}隻。",
+    "fight-bare": "空手迎上去",
+    "fight-with": "用{item}",
+    "attack": "攻擊力 {n}",
+    "run": "往{dirWord}跑 — {room}"
+  },
+  "lines": {
+    "wait": "你在{room}裡等著。",
+    "move": "你走進{room}。",
+    "reveal": "你推開門，是{room}。",
+    "damage": "受了{n}點傷。",
+    "untouched": "他們沒碰到你。",
+    "third-watch": "三更。鼓聲響過，之後什麼都不響了。"
+  }
+}

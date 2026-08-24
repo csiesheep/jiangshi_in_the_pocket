@@ -5,6 +5,7 @@
 import { tollBell, isMuted } from "./audio.js";
 import { houseLine } from "./tally.js";
 import { wireSleep } from "./shell.js";
+import * as L from "./lang.js";
 
 // Far enough apart to be a house settling rather than a metronome.
 const BELL_MS = 20000;
@@ -53,7 +54,11 @@ async function rememberYou() {
   let tallyTable = null;
   try {
     const res = await fetch("data/theme.json", { cache: "no-cache" });
-    if (res.ok) tallyTable = (await res.json()).tallyLine;
+    if (!res.ok) return;
+    const lang = L.preferred();
+    L.stampDocument(lang);
+    const theme = await L.themeFor(await res.json(), lang, { cache: "no-cache" });
+    tallyTable = theme.tallyLine;
   } catch {
     return; // no theme, no sentence; the menu is complete without it
   }

@@ -14,7 +14,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-v13";
+const CACHE = "jiangshi-v14";
 
 // Everything needed to open the game with no network. Relative paths on
 // purpose: this ships under a subpath (…/jiangshi_in_the_pocket/) and absolute
@@ -39,6 +39,7 @@ const SHELL = [
   "js/shell.js",
   "js/tally.js",
   "js/epilogue.js",
+  "js/lang.js",
   "assets/icons.svg",
   "assets/fonts/imfellenglish-latin.woff2",
   "assets/icons/icon-192.png",
