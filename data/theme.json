@@ -170,7 +170,9 @@
     "king": "殭屍王 the Jiangshi King",
     "seal": "鎮屍 the seal",
     "midnight": "三更 the third watch",
-    "threshold": "門檻 threshold"
+    "threshold": "門檻 threshold",
+    "yours": "your attack",
+    "needed": "needed"
   },
   "setting": {
     "_note": "The place, for flavour text. 屍毒 is the substance and 中毒 the state of having it — see poison.",
@@ -186,7 +188,16 @@
     "WIN_SEAL": "鎮屍 The paper is on his forehead",
     "SURVIVED": "見到天亮 You saw the night out",
     "LOSS_HEALTH": "傷重不治 You did not last the night",
-    "LOSS_KING": "王帶走了你 The King took you"
+    "LOSS_KING": "王帶走了你 The King took you",
+    "subs": {
+      "_note": "The line under each verdict title. WIN_BURIAL and WIN_SEAL are held to the same register AND the same length on purpose (§9): the seal is the hidden ending, not the better one, and a longer or louder sentence would be the game congratulating you for finding it. Nothing here explains the seal, and nothing anywhere else mentions it.",
+      "WIN_BURIAL": "You filled the hole in before the light came.",
+      "WIN_SEAL": "He did not take another step after that.",
+      "SURVIVED": "The water ran all night between you and him.",
+      "LOSS_KING": "You met him at the third watch, and came up short.",
+      "LOSS_HEALTH_combat": "The dead pulled you under.",
+      "LOSS_HEALTH_health": "Your wounds were too deep."
+    }
   },
   "note": {
     "_note": "The first-run letter. Diegetic, in the same voice as the event lines, and it teaches the burial and nothing else: where the tablet is, where it has to go, the one way out of the village, and that the night is short. The King is named as a deadline, never as a second way to win — that ending is hidden and the letter is the last place it should leak.",
@@ -200,7 +211,7 @@
     "dismiss": "Fold it away"
   },
   "epilogue": {
-    "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}.",
+    "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}. NOTE both wins share open.won / open.won-hurt word for word and differ only in the close clause: that is the §9 equal-register rule made structural rather than merely intended.",
     "open": {
       "won": "You walked out at first light",
       "won-hurt": "You walked out at first light on your last heart",
@@ -208,7 +219,9 @@
       "combat-swarmed": "They came through the wall at {hour} and did not stop",
       "health": "You bled out at {hour}",
       "health-worn": "The village wore you through by {hour}",
-      "midnight": "The third watch found you still inside"
+      "midnight": "The third watch found you still inside",
+      "king": "He came for you at the third watch",
+      "water": "You stood in running water until the sky went grey"
     },
     "hand": {
       "armed": "{weapon} in hand",
@@ -223,7 +236,8 @@
       "carrying-far": "the {relic} on you and the {goal} still {rooms} away",
       "carrying-lost": "the {relic} on you and no way through to the {goal}",
       "never": "the {relic} never found",
-      "never-close": "the {relic} never found, {rooms} from the {goal}"
+      "never-close": "the {relic} never found, {rooms} from the {goal}",
+      "sealed": "and the paper still on his forehead where you put it"
     },
     "rooms": {
       "1": "one room",

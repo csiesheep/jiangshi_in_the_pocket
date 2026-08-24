@@ -15,7 +15,7 @@
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
 import { isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
-         startAmbience, stopAmbience, stopScore, itemPickup } from "./audio.js";
+         startAmbience, stopAmbience, stopScore, itemPickup, tollBell } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -96,6 +96,11 @@ const RESULT_BEAT_MS = 620;
 // The wall coming in, staged. Four beats: the knock, the cracks, something
 // leaning on it, and the collapse. The counts are the engine's (3/4/5 by band);
 // these are only how long each stage is given.
+// The drum, and the silence after it. Longer than any other beat in the game
+// on purpose: this is the appointment the whole night has been walking toward,
+// and it is the one moment nothing is being asked of the player.
+const MIDNIGHT_TOLL_MS = 2100;
+
 const BREACH_KNOCK_MS = 1250;
 const BREACH_CRACK_MS = 900;
 const BREACH_PRESS_MS = 950;
@@ -1002,9 +1007,12 @@ class Game {
     // A turn later, the dust in last turn's hole has settled. The gouges and
     // the dark stay — those are what the house keeps.
     settleDust();
-    // The turn IS the clock, so this is where the night moves. Turn 31 is not a
-    // turn: it is midnight, and advanceTurn ends the run rather than granting
-    // one. The duel that should happen there is not designed yet.
+    // Turn 31 is not a turn: it is 三更, and this is where the night stops
+    // rather than moves. The set-piece intercepts here, which is what makes the
+    // backstop inside advanceTurn unreachable — it used to end the run as a
+    // clock-death, and there is no loss to the clock in this game (§10).
+    if (this.state.turn >= E.RULES.TOTAL_TURNS) return void this.midnightBeat();
+    // The turn IS the clock, so this is where the night moves.
     E.advanceTurn(this.state);
     if (this.state.status !== "playing") return this.gameOver();
     // beginTurn ticks the poison, and it does it before the player is given an
@@ -1028,6 +1036,111 @@ class Game {
     }
     this.renderMoves();
   }
+  // ---- 三更 -----------------------------------------------------------------
+  // The appointment. Not a failure state and not a timer running out — reaching
+  // midnight is the thing the whole night has been walking toward, and what
+  // happens here decides it.
+  //
+  // ONE STRIKE, BINARY. He has no rounds, no health and no abilities, 黑狗血
+  // does not work on him, and there is nothing to flee to. You present what you
+  // brought, once.
+  async midnightBeat() {
+    this.state.hour = E.RULES.FINAL_HOUR;
+    this.refresh();
+    clearChoices();
+
+    // He arrives whether or not you are ready, and the room says so first.
+    tollBell();
+    this.tell("三更. The drum goes, and then nothing goes at all.", "toll");
+    await wait(MIDNIGHT_TOLL_MS);
+
+    // 活水. He will not cross it, so there is no exchange at all — the only
+    // ending in the game that costs nothing and proves nothing, and it gets a
+    // quiet card rather than a triumphant one.
+    const tile = Bd.currentTile(this.board);
+    const water = ((tile.def && tile.def.flags) || []).includes("RUNNING_WATER");
+    if (water) {
+      this.tell("He stops at the bank. Whatever he is, it will not cross running water.");
+      E.midnight(this.state, { runningWater: true });
+      await wait(RESULT_BEAT_MS);
+      return this.gameOver();
+    }
+
+    await jumpScare(1, false, {});
+    if (this.state.status !== "playing") return this.gameOver();
+
+    const use = await this.askKit();
+    // The one consuming call. Everything named in `use` is spent here whether
+    // or not it was enough — bringing the banner and falling short is still
+    // bringing the banner.
+    const r = E.midnight(this.state, { use });
+    // Kept for the verdict card, which is the only place either number is ever
+    // allowed to appear.
+    this.king = r;
+    this.refresh();
+    await wait(RESULT_BEAT_MS);
+    return this.gameOver();
+  }
+
+  // What you can present, and what each comes to. Every combination is offered
+  // rather than filtered: nothing is worth saving past this point, so there is
+  // no dominated option to protect anyone from — the only real question is
+  // whether to pay 血符's blood, and that one is priced in hearts like any
+  // other.
+  //
+  // 🤫 The cards show YOUR attack and never whether it is enough. That is the
+  // §9 rule and it is load-bearing: a "this will do it" marker here would give
+  // the threshold away before the strike and cost the game its hidden ending.
+  kitOptions() {
+    const s = this.state;
+    const talismans = E.heldIds(s).filter((id) => {
+      const d = s.itemsById[id];
+      return d && d.cat === "magic" && d.attack != null;
+    });
+    const banners = E.held(s, "soul-banner") ? [false, true] : [false];
+    const out = [];
+    for (const banner of banners) {
+      for (const talisman of [null, ...talismans]) {
+        const use = {};
+        if (banner) use.banner = true;
+        if (talisman) use.talisman = talisman;
+        const def = talisman ? s.itemsById[talisman] : null;
+        out.push({
+          use,
+          attack: E.attackWith(s, use),
+          blood: def && def.costHp ? def.costHp : 0,
+          spends: [...(banner ? ["soul-banner"] : []), ...(talisman ? [talisman] : [])],
+        });
+      }
+    }
+    // Hardest first. More is simply better here — there is no next turn to have
+    // saved anything for — so the order is the only advice the window gives,
+    // and it gives it without naming a number to beat.
+    return out.sort((a, b) => b.attack - a.attack || a.blood - b.blood);
+  }
+
+  askKit() {
+    return new Promise((resolve) => {
+      const sword = E.bestSword(this.state);
+      const acts = this.kitOptions().map((o, i) => ({
+        kind: "kit",
+        label: o.spends.length
+          ? o.spends.map((id) => this.itemName(id)).join(" and ")
+          : sword ? `Just the ${this.itemName(sword)}` : "Nothing but your hands",
+        sub: `attack ${o.attack}`,
+        icon: sword ? `item-${sword}` : null,
+        primary: i === 0,
+        // 血符 is written in your own blood before the strike, and at one heart
+        // it kills the hand writing it — the same diedPaying rule as everywhere
+        // else, and the card has to say so.
+        cost: o.blood ? { hp: -o.blood } : null,
+        onClick: () => { clearChoices(); resolve(o.use); },
+      }));
+      renderActions(acts, "He is in the doorway. One strike — what do you show him?",
+        { pack: 1, health: this.state.health });
+    });
+  }
+
   // ---- End states ----------------------------------------------------------
   gameOver() {
     this.refresh();
@@ -1038,20 +1151,26 @@ class Game {
     keepAwake(false);
     // The verdicts carry their own stings; the score is never played over them.
     stopScore();
+
+    const O = E.OUTCOMES;
+    const outcome = this.state.outcome;
     const won = this.state.status === "won";
 
     // Counted once, and the guard is load-bearing: the win path re-enters
     // gameOver after the silent beat below, so without it every escape would
     // be recorded twice and every one of those runs would look like two.
+    //
+    // Status rather than outcome, and that is the whole of the ranking policy:
+    // BOTH WINS COUNT THE SAME, because "won" is true for both and the tally
+    // has no third counter to rank them with. 見到天亮 is neither win nor loss,
+    // and goes down as having got out — the house did not keep you.
     if (!this.tallied) {
       this.tallied = true;
-      recordVerdict(won);
+      recordVerdict(this.state.status !== "lost");
     }
 
-    // A win is always a burial in this build — completeRite is the only thing
-    // that sets it — so
-    // this is the moment the digging has been building to. One silent beat
-    // before the dawn: the release is the silence, not the sting.
+    // One silent beat before the dawn on a win: the release is the silence,
+    // not the sting.
     if (won && !this.verdictHeld) {
       this.verdictHeld = true;
       return void setTimeout(() => this.gameOver(), 700);
@@ -1070,38 +1189,60 @@ class Game {
       `Lasted until ${formatHour(this.state.hour)}`,
       `${this.tally.putDown} of the ${this.word("monsters")} put down`,
       `${this.tally.found} ${this.tally.found === 1 ? "item" : "items"} found`,
-      won
-        ? `The ${this.word("relic")} is buried`
-        : this.state.tablet
-          ? `The ${this.word("relic")} was on you, unburied`
-          : `The ${this.word("relic")} was never found`,
+      this.relicLine(outcome),
       `Seed ${this.seed}`,
     ];
 
     // The sentence somebody might actually screenshot, above the rows nobody
-    // does. Composed here so both verdicts get it from one place.
+    // does. Composed here so all five verdicts get it from one place.
     const closing = epilogue(this);
+    const outs = this.data.theme.outcomes || {};
+    const subs = outs.subs || {};
 
-    if (won) {
-      showOverlay(
-        "You made it to dawn",
-        `The ${this.word("relic")} is buried. The house falls silent.`,
-        again,
-        { tone: "won", summary, epilogue: closing }
-      );
-      return;
-    }
-    const why = {
-      combat: "The dead pulled you under.",
-      health: "Your wounds were too deep.",
-      midnight: "The bell tolls midnight, and the house keeps you.",
+    // Which death this was, for the overlay's own staging. The King gets the
+    // cracked clock; the other two die their own deaths.
+    const reasonFor = {
+      [O.LOSS_KING]: "midnight",
+      [O.LOSS_HEALTH]: this.state.lossReason === "combat" ? "combat" : "health",
     };
-    showOverlay(
-      this.state.lossReason === "midnight" ? "Midnight" : "You are one of them now",
-      why[this.state.lossReason] || "Game over.",
-      again,
-      { tone: "lost", reason: this.state.lossReason, summary, epilogue: closing }
-    );
+
+    const title = outs[outcome] || (won ? "You made it to dawn" : "You are one of them now");
+    let sub = subs[outcome] || "";
+    if (outcome === O.LOSS_HEALTH) {
+      sub = subs[`LOSS_HEALTH_${this.state.lossReason === "combat" ? "combat" : "health"}`] || sub;
+    }
+
+    const opts = {
+      tone: won ? "won" : this.state.status === "lost" ? "lost" : "over",
+      summary,
+      epilogue: closing,
+    };
+    if (reasonFor[outcome]) opts.reason = reasonFor[outcome];
+
+    // 🤫 The only place either number is ever printed, on the card of a player
+    // he has just killed. See the note over verdict-compare in render.js: this
+    // is the discovery mechanism for 鎮屍, not a stat readout, and it appears
+    // on exactly one of the five cards.
+    if (outcome === O.LOSS_KING && this.king) {
+      const k = this.data.theme.king || {};
+      opts.compare = [
+        [k.yours || "your attack", this.king.attack],
+        [k.needed || "needed", this.king.threshold],
+      ];
+    }
+
+    showOverlay(title, sub, again, opts);
+  }
+
+  // What became of the 神主牌, said the same way for every ending that is not a
+  // burial. WIN_SEAL is deliberately in the same bucket as the losses here: you
+  // sealed him, and the tablet is still in your hands or still out there, which
+  // is a fact about the tablet and not a judgement about the ending.
+  relicLine(outcome) {
+    const relic = this.word("relic");
+    if (outcome === E.OUTCOMES.WIN_BURIAL) return `The ${relic} is buried`;
+    if (this.state.tablet) return `The ${relic} was on you, unburied`;
+    return `The ${relic} was never found`;
   }
 }
 

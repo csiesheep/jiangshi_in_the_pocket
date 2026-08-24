@@ -3075,6 +3075,29 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
     card.appendChild(line);
   }
 
+  // 🤫 The comparison. Two numbers, side by side, on the card of a player the
+  // King has just killed — and the ONLY place in the game either number is ever
+  // shown (spec §9). It is not UI copy: it is the entire discovery mechanism
+  // for the hidden ending, and a run that ends here is the one chance anybody
+  // gets to learn there was a number to reach. Remove it and 鎮屍 becomes
+  // unreachable in practice.
+  //
+  // Rendered as a table rather than a sentence because it is meant to be read
+  // as a measurement — the gap between the two is the information.
+  if (opts.compare && opts.compare.length) {
+    const cmp = document.createElement("dl");
+    cmp.className = "verdict-compare";
+    for (const [term, value] of opts.compare) {
+      const dt = document.createElement("dt");
+      dt.textContent = term;
+      const dd = document.createElement("dd");
+      dd.textContent = String(value);
+      cmp.appendChild(dt);
+      cmp.appendChild(dd);
+    }
+    card.appendChild(cmp);
+  }
+
   if (opts.summary && opts.summary.length) {
     const list = document.createElement("ul");
     list.className = "verdict-summary";
