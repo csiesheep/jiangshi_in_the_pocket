@@ -16,10 +16,10 @@ const PREFIX = "/jiangshi_in_the_pocket";
 // post-ship they must not. Both directions are real bugs and a test can only
 // catch one of them at a time, so the flag says which.
 //
-// Flipping this to true is a step on the ship checklist (#17) and must happen
-// in the same commit as removing the meta tags, or the suite goes red and
-// tells you exactly which pages you missed.
-export const SHIPPED = false;
+// Flipped on 2026-08-24, in the same commit as removing the meta tags, which is
+// the only way the suite stays green: true with the tags still present fails
+// five tests, and the tags gone with this false fails one.
+export const SHIPPED = true;
 const ORIGIN = "https://games.csiesheep.com";
 const CANONICAL = ORIGIN + PREFIX + "/";
 
