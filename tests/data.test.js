@@ -225,3 +225,49 @@ test("chrome: game.html's static words match the theme's English", async () => {
     eq(el.textContent.trim(), ui[key], `#${id} and ui.${key} disagree`);
   }
 });
+
+// ---- The rulebook against the engine -----------------------------------------
+// The page shipped saying "Attack 1, Health 6" while the engine gave 0 and 10 —
+// the fork's numbers, kept through a whole reskin because nothing compared them.
+// A rules page that teaches the wrong game is worse than no rules page, and the
+// error is invisible from inside either file.
+//
+// Only the numbers a player would act on. Prose is not asserted here: this
+// catches drift, not tone.
+const rulebookHtml = await fetch("../rulebook.html", NO_STORE).then((r) => r.text());
+const rulebookText = rulebookHtml
+  .replace(/<[^>]+>/g, " ")
+  .replace(/&[a-z]+;/g, " ")
+  .replace(/\s+/g, " ");
+
+test("rulebook: the numbers it teaches are the numbers the engine plays", async () => {
+  const { RULES } = await import("../js/engine.js");
+  const claims = [
+    [`Attack ${RULES.START_ATTACK}`, "starting attack"],
+    [`Health ${RULES.START_HEALTH}`, "starting health"],
+    [`${RULES.COWER_CHARGES} cower charges`, "cower charges"],
+    [`carry ${RULES.MAX_ITEMS} items`, "carry limit"],
+    [`${RULES.TOTAL_TURNS} turns`, "night length"],
+  ];
+  for (const [phrase, what] of claims) {
+    assert(rulebookText.includes(phrase),
+      `rulebook does not state the engine's ${what} ("${phrase}")`);
+  }
+});
+
+test("rulebook: §9 — no threshold, no kit, no tablet effect on the player page", () => {
+  // The three things the hidden ending depends on staying hidden. Checked on the
+  // shipped page rather than trusted, because it is one careless sentence away
+  // from being spoiled for everybody, permanently.
+  // The clock legitimately contains both numbers — "11 PM", turns "11–20",
+  // "22:00 → 23:00" — and none of those is a quantity to reach at midnight, so
+  // the clock comes out first and what is left is what §9 actually governs.
+  const withoutClock = rulebookText
+    .replace(/\d{1,2}:\d{2}/g, " ")
+    .replace(/\b\d{1,2}\s*(?:PM|AM)\b/g, " ")
+    .replace(/\b\d{1,2}\s*[–-]\s*\d{1,2}\b/g, " ");
+  assert(!/\b1[12]\b/.test(withoutClock),
+    "rulebook states a threshold-shaped number outside the clock");
+  assert(!/threshold|門檻/.test(rulebookText), "rulebook names the threshold");
+  assert(!/鎮屍/.test(rulebookText), "rulebook names the seal");
+});
