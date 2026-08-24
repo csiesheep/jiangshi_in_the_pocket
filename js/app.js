@@ -34,6 +34,8 @@ import {
   formatHour,
   tileName as tName,
   itemName as iName,
+  showDropDialog,
+  onPackUse,
 } from "./render.js";
 
 import { registerWorker, wireFullscreen, keepAwake, wireSleep } from "./shell.js";
@@ -47,6 +49,22 @@ const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
 // they are mounted inside the board, and the next turn rebuilds it. This is the
 // window in which they are actually visible, so it is the number that matters.
 const CUE_BEAT_MS = 1500;
+
+// How long a search result sits before the turn moves on. Shorter than a cue:
+// finding nothing is the common case and must not become a wait.
+const FIND_BEAT_MS = 850;
+
+// Coming up empty, said six ways. Picked by turn number rather than at random —
+// a replayed seed has to say the same thing in the same room, and the search
+// stream is not to be disturbed for flavour.
+const EMPTY_HANDED = [
+  "You turn the room over and come up with nothing.",
+  "Dust, and a drawer that was already open.",
+  "Somebody has been through here before you.",
+  "Nothing worth carrying.",
+  "You put your hands into the dark and find the dark.",
+  "Nothing here but the room.",
+];
 
 // `no-cache` forces a revalidation rather than a blind cache hit: it still
 // costs only a 304 when nothing changed, but it means a re-theme or a rules fix
@@ -80,6 +98,8 @@ class Game {
     this.board = Bd.createBoard(data, { seed });
     // Kept for the end-of-run verdict; the engine has no use for them.
     this.tally = { putDown: 0, found: 0 };
+    // One search per turn, and turn 1 has not had its yet.
+    this.searched = false;
   }
 
   tileName(id) { return tName(this, id); }
@@ -276,13 +296,102 @@ class Game {
     this.renderEndTurn(cued);
   }
 
-  // What the end of a turn is still worth stopping for. Empty in this build:
-  // cowering, the rites and the searches all went with the card system, so
-  // there is nothing here to decide. It is a list rather than a boolean because
-  // the moment any of them come back this is where they go, and the choice
-  // between prompting and not should follow from whether a choice exists.
+  // What the end of a turn is still worth stopping for. Search is the first of
+  // these to come back: it is free, it costs no turn, and it happens after the
+  // room's event — so it belongs here, between the event and the clock.
   endTurnChoices() {
-    return [];
+    const choices = [];
+    const tile = Bd.currentTile(this.board);
+    const table = tile && tile.def && tile.def.search;
+    // One search per turn. Rummaging the same room again is what STAY is for,
+    // and the price of it is the event that STAY draws — not the search.
+    if (table && !this.searched) {
+      const cat = this.categoryName(table);
+      choices.push({
+        kind: "search",
+        label: "搜索 Search the room",
+        sub: cat,
+        onClick: () => this.doSearch(table),
+      });
+    }
+    return choices;
+  }
+
+  // The category as the theme names it, minus the English gloss — the action
+  // card is narrow and "武器 Weapon" reads better on it than the full string.
+  categoryName(table) {
+    const named = (this.data.theme.categories || {})[table] || table;
+    return String(named).split(" ")[0];
+  }
+
+  // One draw, whatever comes of it. There is no re-roll anywhere in here: a run
+  // that finds nothing and a run that finds a sword have spent the same
+  // randomness, which is what keeps a shared seed in step.
+  doSearch(table) {
+    this.searched = true;
+    const out = E.search(this.state, table);
+    renderActions([]);
+
+    if (out.result === "TOOK") {
+      log(`You turn the room over. ${iName(this, out.id)}.`, "good");
+      this.refresh();
+      return void setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
+    }
+
+    if (out.result === "OFFER_DROP") {
+      log(`${iName(this, out.id)}, and nowhere to put it.`);
+      return showDropDialog(this, out.id, {
+        onDrop: (dropId, foundId) => this.takeInstead(foundId, dropId),
+        onDropStack: (dropId, n, foundId) => {
+          // A stack is one slot however deep it is, so dropping one of three
+          // frees nothing. The whole stack goes down, then the find comes up
+          // through the same door every other pickup uses.
+          E.dropItem(this.state, dropId, n);
+          this.takeInstead(foundId, null);
+        },
+        onLeave: (foundId) => {
+          log(`You leave ${iName(this, foundId)} where it lies.`, "muted");
+          this.refresh();
+          this.renderEndTurn();
+        },
+      });
+    }
+
+    // Nothing. Said as rummaging rather than as a readout — the odds are in the
+    // table and the player is entitled to feel them rather than read them. The
+    // line varies by turn, which is deterministic: a replayed seed says the
+    // same thing in the same room.
+    log(EMPTY_HANDED[this.state.turn % EMPTY_HANDED.length], "muted");
+    this.refresh();
+    setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
+  }
+
+  takeInstead(foundId, dropId) {
+    const got = E.pickUpItem(this.state, foundId, dropId);
+    if (got.ok) {
+      if (dropId) log(`${iName(this, dropId)} down, ${iName(this, foundId)} up.`, "good");
+      else log(`${iName(this, foundId)}.`, "good");
+    } else {
+      // The engine refused. Say so plainly rather than pretending it worked —
+      // the only ways here are a duplicate unique or a stack that freed nothing,
+      // and both are the player's business.
+      log(`No room for ${iName(this, foundId)}. It stays where it is.`, "muted");
+    }
+    this.refresh();
+    this.renderEndTurn();
+  }
+
+  // Medicine is the one thing the pack spends on its own account, outside a
+  // fight and outside the turn's action.
+  usePackItem(id) {
+    const out = E.useMedicine(this.state, id);
+    if (!out.ok) return;
+    const name = iName(this, id);
+    if (out.healed > 0) log(`${name}. +${out.healed} health.`, "good");
+    else if (out.healed < 0) log(`${name}. It was the bad half: ${out.healed} health.`, "bad");
+    else log(`${name}.`);
+    if (out.cured) log("The grey goes out of the wound. 中毒 lifted.", "good");
+    this.refresh();
   }
 
   renderEndTurn(cued = false) {
@@ -319,6 +428,9 @@ class Game {
     E.advanceTurn(this.state);
     if (this.state.status !== "playing") return this.gameOver();
     E.beginTurn(this.state);
+    // A new turn is a new chance to rummage — including a STAY spent in a room
+    // you already went through, which is exactly what STAY is for.
+    this.searched = false;
     this.refresh();
     this.renderMoves();
   }
@@ -415,6 +527,10 @@ function startNewGame(seed) {
   startAmbience();
   game = new Game(data, seed != null ? { seed } : {});
   window.__game = game; // handy for debugging
+  // The pack spends medicine on its own account, and refresh() rebuilds the
+  // panel without knowing about the turn loop — so the handler is registered
+  // against the run rather than passed down through every render.
+  onPackUse((id) => game.usePackItem(id));
   const el = document.getElementById("seed-value");
   if (el) el.textContent = game.seed;
   game.start();

@@ -462,6 +462,9 @@ function hand(NS, kind, length, angle) {
   return line;
 }
 
+// The 神主牌, which lives outside the six slots and never costs one. Shown in
+// the status panel rather than the pack for exactly that reason: putting it in
+// a slot would say it competes with a sword, and it does not.
 function renderRelic(s) {
   const el = statBox("hud-totem");
   if (!el) return;
@@ -474,7 +477,7 @@ function renderRelic(s) {
   text.textContent = s.totem ? "Held" : "Not yet";
   text.setAttribute("aria-hidden", "true");
   el.appendChild(text);
-  el.appendChild(srOnly(s.totem ? "held" : "not found yet"));
+  el.appendChild(srOnly(s.totem ? "held, and it costs no slot" : "not found yet"));
 }
 
 // The backpack: one row per carry slot, empty ones included so the two-item
@@ -505,53 +508,102 @@ function renderBackpack(game) {
   // so the panel and slotsUsed() can never disagree about how full you are.
   const rows = slotRows(s);
   for (let i = 0; i < RULES.MAX_ITEMS; i++) {
-    const id = rows[i];
-    const row = document.createElement("div");
-    row.className = "slot" + (id ? "" : " slot--empty");
-
-    if (!id) {
-      const name = document.createElement("span");
-      name.className = "slotname";
-      name.textContent = "Empty slot";
-      row.appendChild(name);
-      el.appendChild(row);
-      continue;
-    }
-
-    const art = icon("item", id, "itemicon");
-    if (art) row.appendChild(art);
-
-    const text = document.createElement("span");
-    text.className = "slottext";
-    const name = document.createElement("span");
-    name.className = "slotname";
-    name.textContent = itemName(game, id);
-    text.appendChild(name);
-
-    const effect = itemEffect(game, id);
-    if (effect) {
-      const eff = document.createElement("span");
-      eff.className = "sloteffect";
-      eff.textContent = effect;
-      text.appendChild(eff);
-    }
-    row.appendChild(text);
-    el.appendChild(row);
+    el.appendChild(rows[i] ? packSlot(game, rows[i], { onUse: packUse }) : emptySlot());
   }
+}
 
+// The pack can spend medicine, and spending is a turn-loop action — but the
+// panel is rebuilt by refresh(), which knows nothing about the turn loop. So
+// the app registers the handler once and the rows call it.
+let packUse = null;
+export function onPackUse(fn) {
+  packUse = fn;
+}
+
+function emptySlot() {
+  const row = document.createElement("div");
+  row.className = "slot slot--empty";
+  const name = document.createElement("span");
+  name.className = "slotname";
+  name.textContent = "Empty";
+  row.appendChild(name);
+  return row;
+}
+
+// One filled slot. Talismans carry a ×N because the stack is the slot; anything
+// else is one unit per row and a count there would be a lie.
+function packSlot(game, id, opts = {}) {
+  const s = game.state;
+  const def = s.itemsById[id] || {};
+  const row = document.createElement("div");
+  row.className = "slot";
+
+  const art = icon("item", id, "itemicon");
+  if (art) row.appendChild(art);
+
+  const text = document.createElement("span");
+  text.className = "slottext";
+
+  const name = document.createElement("span");
+  name.className = "slotname";
+  name.textContent = itemName(game, id);
+  const n = heldCount(s, id);
+  if (def.cat === "magic" && n > 1) {
+    const tally = document.createElement("span");
+    tally.className = "slotcount";
+    tally.textContent = `×${n}`;
+    // Said in words too: "×3" is a picture, and the pack has to be playable
+    // without seeing it.
+    tally.setAttribute("aria-label", `${n} of them, sharing one slot`);
+    name.appendChild(tally);
+  }
+  text.appendChild(name);
+
+  const effect = itemEffect(game, id);
+  if (effect) {
+    const eff = document.createElement("span");
+    eff.className = "sloteffect";
+    eff.textContent = effect;
+    text.appendChild(eff);
+  }
+  row.appendChild(text);
+
+  // Medicine is the only thing you can spend outside a fight, so it is the only
+  // thing the pack itself offers a button for. Weapons and talismans are spent
+  // by the fight that needs them.
+  if (!opts.plain && def.cat === "medicine" && typeof opts.onUse === "function") {
+    const use = document.createElement("button");
+    use.type = "button";
+    use.className = "slotuse";
+    use.textContent = "Use";
+    use.setAttribute("aria-label", `Use ${itemName(game, id)}`);
+    use.addEventListener("click", () => opts.onUse(id));
+    row.appendChild(use);
+  }
+  return row;
 }
 
 function itemEffect(game, id) {
   const it = game.state.itemsById[id];
   if (!it) return "";
-  // Provisional: enough to describe the new item shape truthfully. The backpack
-  // UI (#10) is what will actually present talisman stacks, gambles and charges.
-  if (it.attack != null) return `+${it.attack} attack`;
-  if (it.heal != null) return `+${it.heal} health`;
   const bits = [];
-  if (it.fleeNoDamage) bits.push("flee unharmed");
-  if (it.combo) bits.push("pairs with " + Object.keys(it.combo).map((k) => itemName(game, k)).join(" or "));
-  if (it.type === "enabler") bits.push("needs a fuel to use");
+  // Weapons ARE the attack, so they are stated absolutely: "attack 3", never
+  // "+3". A talisman genuinely does add, and says so.
+  if (it.cat === "weapon" && it.attack != null) bits.push(`attack ${it.attack}`);
+  else if (it.attack != null) bits.push(`fight at ${it.attack}`);
+  if (it.buffSword) bits.push(`or +${it.buffSword} to a sword, for good`);
+  if (it.costHp) bits.push(`costs ${it.costHp} health to write`);
+  if (it.effect === "DUPLICATE_TALISMAN") bits.push(`copies a talisman you hold, +${it.n || 2}`);
+  if (it.effect === "DOUBLE_SWORD") bits.push("doubles your sword, once");
+  if (it.effect === "ESCAPE_FIGHT") bits.push("leaves a fight unhurt");
+  if (it.heal != null) bits.push(`+${it.heal} health`);
+  // The gamble is named rather than averaged. A player deciding whether to
+  // swallow it needs both faces, not their mean.
+  if (it.gamble) {
+    bits.push(it.gamble.map((f) => `${f.hp > 0 ? "+" : ""}${f.hp}`).join(" or "));
+  }
+  if (it.cures === "POISON") bits.push("draws out 中毒");
+  if (it.damageReduction) bits.push(`殭屍 wounds ${it.damageReduction} less`);
   return bits.join(" · ");
 }
 
@@ -1289,6 +1341,98 @@ export function showNote(note, onClose) {
   close.addEventListener("click", done);
   document.addEventListener("keydown", onKey);
   close.focus();
+  return done;
+}
+
+// ---- The pack is full ---------------------------------------------------------
+// OFFER_DROP comes back from the engine unresolved on purpose: what to give up
+// is a decision, and the engine does not make decisions on the player's behalf.
+// This is where that decision gets asked.
+//
+// One button per SLOT, matching the panel — because a slot is what has to be
+// freed. A talisman stack is one slot however deep, so dropping it drops the
+// whole stack; that is said on the button rather than discovered afterwards.
+export function showDropDialog(game, foundId, opts = {}) {
+  const s = game.state;
+  const wrap = document.createElement("div");
+  wrap.className = "notecard dropcard";
+  wrap.setAttribute("role", "dialog");
+  wrap.setAttribute("aria-modal", "true");
+  wrap.setAttribute("aria-labelledby", "drop-title");
+
+  const sheet = document.createElement("div");
+  sheet.className = "notesheet";
+
+  const h = document.createElement("h2");
+  h.id = "drop-title";
+  h.textContent = `You found ${itemName(game, foundId)}`;
+  sheet.appendChild(h);
+
+  const lede = document.createElement("p");
+  lede.textContent = "Your hands are full. Something has to go down before it comes up.";
+  sheet.appendChild(lede);
+
+  const found = packSlot(game, foundId, { plain: true });
+  found.classList.add("slot--found");
+  sheet.appendChild(found);
+
+  const list = document.createElement("div");
+  list.className = "droplist";
+  // One entry per slot, deduplicated the way the panel is: a stack appears once.
+  const seen = new Set();
+  for (const id of slotRows(s)) {
+    const def = s.itemsById[id] || {};
+    const stacked = def.cat === "magic";
+    if (stacked && seen.has(id)) continue;
+    seen.add(id);
+    const n = heldCount(s, id);
+    const whole = stacked && n > 1;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn dropchoice";
+    const label = itemName(game, id) + (whole ? ` ×${n}` : "");
+    btn.textContent = whole ? `Drop ${label} — all of them` : `Drop ${label}`;
+    btn.addEventListener("click", () => {
+      done();
+      // A stack shares one slot, so dropping one of three frees nothing. Put
+      // the whole stack down, then take the find through the ordinary door.
+      if (whole) opts.onDropStack && opts.onDropStack(id, n, foundId);
+      else opts.onDrop && opts.onDrop(id, foundId);
+    });
+    list.appendChild(btn);
+  }
+  sheet.appendChild(list);
+
+  const leave = document.createElement("button");
+  leave.type = "button";
+  leave.className = "btn dropleave";
+  leave.textContent = "Leave it where it is";
+  sheet.appendChild(leave);
+
+  wrap.appendChild(sheet);
+  document.body.appendChild(wrap);
+
+  const done = () => {
+    if (!wrap.isConnected) return;
+    wrap.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e) => {
+    // Escape leaves it. Declining a find is a legal answer, so the dialog does
+    // not trap you into taking one.
+    if (e.key === "Escape") {
+      done();
+      if (opts.onLeave) opts.onLeave(foundId);
+    }
+  };
+  leave.addEventListener("click", () => {
+    done();
+    if (opts.onLeave) opts.onLeave(foundId);
+  });
+  document.addEventListener("keydown", onKey);
+  const first = list.querySelector("button");
+  (first || leave).focus();
   return done;
 }
 
