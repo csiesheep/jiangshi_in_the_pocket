@@ -24,8 +24,8 @@
 </head>
 <body>
   <h1>Bots — win rates by policy</h1>
-  <p class="sub">Four policies over 1000 seeds each, deterministic by seed. Numbers the design
-     derived by hand and never measured.</p>
+  <p class="sub">Five policies over 1000 seeds each, deterministic by seed. Numbers the design
+     derived by hand and never measured. <code>?seeds=N&amp;from=S</code> for a disjoint batch.</p>
   <p id="status">Running…</p>
   <div id="out"></div>
 
@@ -33,10 +33,12 @@
     import { loadData, run, POLICY_NAMES } from "./bots.js";
 
     const data = await loadData("..");
-    const SEEDS = Number(new URLSearchParams(location.search).get("seeds") || 1000);
+    const q = new URLSearchParams(location.search);
+    const SEEDS = Number(q.get("seeds") || 1000);
+    const FROM = Number(q.get("from") || 1);
     const rows = [];
     for (const name of POLICY_NAMES) {
-      rows.push(run(data, name, SEEDS));
+      rows.push(run(data, name, SEEDS, FROM));
       document.getElementById("status").textContent = `Running… ${name} done`;
     }
 
@@ -64,7 +66,7 @@
     const pre = document.createElement("pre");
     pre.textContent = JSON.stringify(rows, null, 2);
     out.appendChild(pre);
-    document.getElementById("status").textContent = `Done — ${SEEDS} seeds per policy.`;
+    document.getElementById("status").textContent = `Done — ${SEEDS} seeds per policy, batch ${FROM}..${FROM + SEEDS - 1}.`;
     window.__botRows = rows;
   </script>
 </body>
