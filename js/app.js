@@ -15,7 +15,8 @@
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
 import { isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
-         startAmbience, stopAmbience, stopScore, itemPickup, tollBell } from "./audio.js";
+         startAmbience, stopAmbience, stopScore, itemPickup, tollBell,
+         watchDrum, paperFlutter, kingArrives, combatHit } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -683,6 +684,7 @@ class Game {
     // takes the last of you there is no fight at all — you never made the
     // strike, and the pack is still standing when the run ends.
     if (r.diedPaying) {
+      paperFlutter();
       this.refresh();
       this.tell(
         `You write the ${this.itemName("blood-talisman")} and there is not enough of you left to finish it.`,
@@ -692,6 +694,16 @@ class Game {
       return done();
     }
 
+    // Paper first, then the swing. Keyed off what resolveCombat actually
+    // consumed rather than off what was chosen, so a loadout that never got to
+    // spend its talisman never rustles one.
+    if (r.spent.some((id) => (s.itemsById[id] || {}).cat === "magic")) paperFlutter();
+    // The blow itself. combatHit has existed since the fork and nothing ever
+    // called it, so every fight in this game has resolved in silence — the
+    // scare arrived, the pack fell over, and the swing made no sound at all.
+    // The weapon id picks the layer over the impact, so a 桃木劍 and a 七星劍
+    // do not land the same.
+    combatHit(n, r.weaponId);
     await resolveBeat({ icon: r.weaponId ? `item-${r.weaponId}` : null });
     this.refresh();
     for (const id of r.spent) log(`${this.itemName(id)} is spent.`);
@@ -969,6 +981,7 @@ class Game {
       onPick: (targetId) => {
         const out = E.useCinnabar(this.state, targetId);
         if (!out.ok) return;
+        paperFlutter();
         itemPickup(targetId);
         this.refresh();
         this.tell(
@@ -1050,6 +1063,11 @@ class Game {
     clearChoices();
 
     // He arrives whether or not you are ready, and the room says so first.
+    //
+    // ONE stroke, not three. The watch drum has been counting up all night and
+    // struck three at eleven when 三更 began; this is the last one anybody out
+    // there will strike, and what makes the line true is the silence after it.
+    watchDrum(1);
     tollBell();
     this.tell("三更. The drum goes, and then nothing goes at all.", "toll");
     await wait(MIDNIGHT_TOLL_MS);
@@ -1066,6 +1084,9 @@ class Game {
       return this.gameOver();
     }
 
+    // Not the pack's sting. That one rises because the question is how fast
+    // they reach you; this one falls, because there is no question.
+    kingArrives();
     await jumpScare(1, false, {});
     if (this.state.status !== "playing") return this.gameOver();
 
@@ -1073,6 +1094,7 @@ class Game {
     // The one consuming call. Everything named in `use` is spent here whether
     // or not it was enough — bringing the banner and falling short is still
     // bringing the banner.
+    if (use.talisman) paperFlutter();
     const r = E.midnight(this.state, { use });
     // Kept for the verdict card, which is the only place either number is ever
     // allowed to appear.

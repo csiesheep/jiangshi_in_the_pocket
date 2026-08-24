@@ -1,5 +1,5 @@
-Audio provenance for Grave Errand
-=================================
+Audio provenance for 口袋裡的殭屍 / Jiangshi in the Pocket
+=======================================================
 
 Twelve files, all CC0, listed in full below. Every cue NOT listed here is still
 synthesised in js/audio.js from oscillators and a noise buffer — see the cue
@@ -103,58 +103,96 @@ entry, decodes the file and plays it in place of the synthesised version. No
 manifest, a missing file, or a decode failure all fall back to synthesis, so
 the game never waits on audio and never goes silent.
 
-Cue keys the code already understands:
+Cue keys the code understands
+-----------------------------
+A key here is a name js/audio.js will look for in the manifest. A key with no
+manifest entry is not a gap — it means that cue is synthesised, which is the
+default and never a failure state.
 
   door        a hinge giving way, on entering a room
-  sting       the jump scare
+  sting       the pack arriving
+  hop         殭屍 landing, both feet together
   hit         a blow landing in combat
   bell        the hour striking eleven
-  break       the risen coming through a wall
+  drum        更鼓, the watch drum
+  paper       符咒 — a talisman found, or spent
+  king        殭屍王 arriving at 三更
+  break       them coming through a wall
   cower       a held breath let go
-  relic       the relic found
-  seam        crossing between the house and the garden
+  relic       the 神主牌 found
+  seam        crossing the 月門 between the house and the village
   win         the burial done
   death       the run lost
-  item-metal  picking up machete / golf club
-  item-wood   picking up plank / femur
-  item-engine picking up the chainsaw
-  item-liquid picking up oil / gasoline / soda
-  item-small  picking up the candle
-  step-wood   walking in, on boards  (a list of takes, chosen between)
-  step-grass  walking in, on grass   (a list of takes, chosen between)
+  item-metal  picking up 戒刀 / 銅錢劍 / 七星劍
+  item-wood   picking up 桃木劍
+  item-liquid picking up 黑狗血
+  item-small  picking up 硃砂 / 糯米 / 金丹
+  step-wood   walking indoors, on boards  (a list of takes, chosen between)
+  step-grass  walking outdoors, on earth  (a list of takes, chosen between)
   card        the event window arriving
   tick        landing on a doorway with the keyboard
-  swing-metal a billhook or a club landing   (layered over `hit`)
-  swing-wood  a plank or a femur landing     (layered over `hit`)
-  swing-saw   the petrol saw landing         (layered over `hit`)
+  swing-metal a blade landing    (layered over `hit`)
+  swing-wood  a wooden weapon landing (layered over `hit`)
+
+The talismans and the 攝魂幡 have no item cue of their own: they route to
+`paper`, because picking up a talisman and throwing one are the same material
+doing the same thing, and giving them two sounds would be inventing a
+distinction the fiction does not have.
+
+`item-engine` and `swing-saw` are gone with the petrol saw that needed them.
 
 The two held sounds — the wind bed and the pack murmur — take no cue key and
 cannot be replaced by a file. They are generated, they loop by construction,
 and the bed follows the clock: it thickens as the night draws on, which a
 recording of wind cannot do.
 
-Which cues are recorded, and which are still synthesised
--------------------------------------------------------
+Which cues are recorded, and which are synthesised
+--------------------------------------------------
 recorded:     door, break, hit, item-metal, item-wood, item-small,
               step-wood, step-grass, sting, bed-wind, murmur
-synthesised:  bell, cower, relic, seam, win, death, item-engine,
-              item-liquid, card, tick, wick, the three swing layers, the
-              murmur's growl voices (which sit under the recorded bed), and
-              the whole break-in cue set — the accelerating pounding, the
-              splinter cracks and the debris tail under the collapse.
+synthesised:  drum, hop, paper, king, bell, cower, relic, seam, win, death,
+              item-liquid, card, tick, wick, the two swing layers, the murmur's
+              growl voices (which sit under the recorded bed), and the whole
+              break-in cue set — the accelerating pounding, the splinter cracks
+              and the debris tail under the collapse.
 
-The break-in splinters are a deliberate exception to "struck cues are
-recordings". A crack that short is two envelopes and a filter; a recording of
-one is mostly the room it was recorded in, and three of them have to differ
-audibly or the wall starts sounding like a machine — which costs three files to
-do badly and one function to do well.
+The four jiangshi cues are synthesised on purpose, not for want of a pack, and
+three of them could not honestly be bought:
 
-The wind, murmur and sting keep their synthesised versions as the load-failure
-fallback, exactly as the struck cues do — a missing file costs texture, never
-silence.
+  drum   一更/二更/三更 is a specific instrument struck a specific NUMBER of
+         times, and the count is the information. A single recording would fix
+         the rhythm between strikes forever; the code strikes it two at ten,
+         three at eleven, and once more at 三更 — the last one anybody out
+         there will strike, which is what makes the silence after it mean
+         something.
+  hop    a hop is a rhythm, not an impact. What identifies a 殭屍 is that the
+         legs have set and both feet land together, and then the grave clothes
+         arrive a beat behind. That is three envelopes with a relationship
+         between them, and a library file is one envelope and the room it was
+         recorded in.
+  paper  a talisman is a piece of paper moving fast. Three short bursts, because
+         a flutter is several edges close together and one burst is a hiss.
+  king   deliberately the inverse of the pack's sting. That one RISES: a pack is
+         coming and the question is how fast. This one FALLS. He is not hurrying
+         and there is nothing to decide about whether he arrives.
 
-The synthesised ones are not an oversight. The bell is deliberate — the issue
-called it good as it is. The rest are sounds these two packs cannot serve
-honestly: a zombie snarl, a held breath, a relic found, a world changing
-temperature, an engine failing to catch. Something close-ish would be worse
-than the synth, which at least was written for the moment it plays in.
+Each of the four still checks the manifest first, exactly as every other cue
+does, so any of them can be replaced by a recording later without a caller
+changing. None of them appears in manifest.json today — a key naming a file
+that does not exist would 404 on every load and buy nothing.
+
+Calm mode
+---------
+Calm does not silence these. It takes away the assault — the faces, the blood,
+the buzzing — and keeps the information, which is the same policy the scare
+sting has always followed: a player who cannot see the pack still has to hear
+that there is one, and how many, and which wall.
+
+What it does do is take the bite out. `hop` and `king` scale to 60%, the bed
+sits lower, the score halves, and the duck after a scare is held longer. The
+drum and the paper are not assault and are not touched.
+
+The rest of the synthesised set is not an oversight. They are sounds these packs
+cannot serve honestly: a held breath, a tablet found, a world changing
+temperature. Something close-ish would be worse than a synth, which at least was
+written for the moment it plays in.

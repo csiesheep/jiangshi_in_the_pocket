@@ -390,10 +390,13 @@ export function combatHit(count = 3, weapon = null) {
 
 // Metal rings after the hit, wood cracks with it, the saw tears through. Bare
 // hands add nothing — that is the point of being bare-handed.
+// The layer over the impact, so the same recorded blow serves every sword and a
+// 七星劍 still does not land like a 桃木劍. Ids are the jiangshi set; the
+// inherited map was the other game's, which meant no sword in this game got a
+// layer at all and every blow landed identically.
 const WEAPON_TONE = {
-  machete: "metal", "golf-club": "metal",
-  "board-nails": "wood", "grisly-femur": "wood",
-  chainsaw: "saw",
+  "precept-knife": "metal", "coin-sword": "metal", "sevenstar-sword": "metal",
+  "peachwood-sword": "wood",
 };
 
 function weaponLayer(weapon) {
@@ -403,22 +406,6 @@ function weaponLayer(weapon) {
   const c = live();
   if (!c) return;
   const t = c.currentTime;
-
-  if (tone === "saw") {
-    const osc = c.createOscillator();
-    osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(240, t);
-    osc.frequency.exponentialRampToValueAtTime(90, t + 0.34);
-    const bp = c.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.Q.value = 3.5;
-    bp.frequency.value = 1500;
-    const g = envelope(c, 0.13, 0.02, 0.34);
-    osc.connect(bp).connect(g).connect(master);
-    osc.start(t);
-    osc.stop(t + 0.4);
-    return;
-  }
 
   const metal = tone === "metal";
   const osc = c.createOscillator();
@@ -452,6 +439,236 @@ export function tollBell() {
     osc.start(t);
     osc.stop(t + len + 0.05);
   }
+}
+
+// ---- The jiangshi cue set ---------------------------------------------------
+// Four sounds this setting needs that the inherited set had no word for. All
+// synthesised, and every one of them can be replaced by a recording the moment
+// the manifest names it — the same contract every other cue here honours.
+//
+// Synthesised on purpose rather than for want of a pack. Three of these four
+// are sounds a general-purpose effects library cannot serve honestly: a
+// watchman's drum is a specific instrument struck a specific number of times, a
+// hop is a rhythm rather than an impact, and a talisman is a piece of paper
+// moving fast. Something close-ish would be worse than a synth written for the
+// moment it plays in.
+
+// How much of the aggressive cues survives calm mode. Not silence: calm turns
+// off the assault — the faces, the blood, the buzzing — and keeps the
+// information, because a player who cannot see the pack still has to hear that
+// there is one. The same policy the scare sting has always followed.
+const CALM_BITE = 0.6;
+
+function bite() {
+  return calm ? CALM_BITE : 1;
+}
+
+// Long enough that two strikes are two events rather than a flam, short enough
+// that three of them are still one announcement.
+const DRUM_GAP = 0.62;
+
+// 更鼓, the watch drum. The night is divided into watches and a man walks the
+// village striking the number of the one that has begun — so this is struck N
+// times, not once, and the count IS the information.
+//
+// A drum, not a bell: skin over a shallow wooden body. The stick is a short
+// filtered click, the skin is a pitch that falls away fast, and the body is a
+// low resonance under both. Struck cues in this file are usually recordings;
+// this one is not, because a drum struck three times is three events with a
+// rhythm between them, and a single file would fix that rhythm forever.
+export function watchDrum(strikes = 1) {
+  const c = live();
+  if (!c) return;
+  const t0 = c.currentTime;
+  for (let i = 0; i < strikes; i++) {
+    if (sample("drum", 0.9, i * DRUM_GAP)) continue;
+    const t = t0 + i * DRUM_GAP;
+    // The skin: a low sine dropping about a fifth in a tenth of a second. That
+    // fall is what stops it reading as a bell — a bell holds its pitch.
+    const skin = c.createOscillator();
+    skin.type = "sine";
+    skin.frequency.setValueAtTime(96, t);
+    skin.frequency.exponentialRampToValueAtTime(58, t + 0.11);
+    const sg = c.createGain();
+    sg.gain.setValueAtTime(0.0001, t);
+    sg.gain.exponentialRampToValueAtTime(0.26, t + 0.006);
+    sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
+    skin.connect(sg).connect(master);
+    skin.start(t);
+    skin.stop(t + 0.7);
+
+    // The stick on the skin: a very short band of noise, high enough to read as
+    // wood and short enough not to become a hiss.
+    const src = c.createBufferSource();
+    src.buffer = noise(c);
+    const bp = c.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1700;
+    bp.Q.value = 0.8;
+    const ng = c.createGain();
+    ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.09, t + 0.003);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    src.connect(bp).connect(ng).connect(master);
+    src.start(t);
+    src.stop(t + 0.1);
+
+    // The body it is all happening inside.
+    const body = c.createOscillator();
+    body.type = "triangle";
+    body.frequency.value = 150;
+    const bg = c.createGain();
+    bg.gain.setValueAtTime(0.0001, t);
+    bg.gain.exponentialRampToValueAtTime(0.05, t + 0.012);
+    bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    body.connect(bg).connect(master);
+    body.start(t);
+    body.stop(t + 0.35);
+  }
+}
+
+// The hop. They do not walk — the limbs have set, so they come at you with both
+// feet together, and that rhythm is the whole signature of the thing.
+//
+// Two halves per hop: the landing, and the robe catching up with it a beat
+// later. Repeated per body in the pack with a little drift between them, so a
+// pack lands like a pack and not like one animal with loud feet.
+export function hopThud(count = 1, dir = null) {
+  const c = live();
+  if (!c) return;
+  const out = dir ? placed(dir, master) : master;
+  const t0 = c.currentTime;
+  const hops = Math.max(1, Math.min(count, 4));
+  const scale = bite();
+
+  for (let i = 0; i < hops; i++) {
+    // Drift, not randomness of consequence: this is texture and never touches
+    // the seeded run, the same licence noise() takes.
+    const t = t0 + i * (0.19 + Math.random() * 0.05);
+    if (sample("hop", 0.85 * scale, t - t0, out)) continue;
+
+    // The landing: dead weight onto boards. Almost no attack and no ring — a
+    // body that has stopped being able to flex does not bounce.
+    const thud = c.createOscillator();
+    thud.type = "sine";
+    thud.frequency.setValueAtTime(126, t);
+    thud.frequency.exponentialRampToValueAtTime(44, t + 0.09);
+    const tg = c.createGain();
+    tg.gain.setValueAtTime(0.0001, t);
+    tg.gain.exponentialRampToValueAtTime(0.3 * scale, t + 0.008);
+    tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+    thud.connect(tg).connect(out);
+    thud.start(t);
+    thud.stop(t + 0.3);
+
+    // The floor taking it.
+    const knock = c.createBufferSource();
+    knock.buffer = noise(c);
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 900;
+    const kg = c.createGain();
+    kg.gain.setValueAtTime(0.0001, t);
+    kg.gain.exponentialRampToValueAtTime(0.11 * scale, t + 0.004);
+    kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+    knock.connect(lp).connect(kg).connect(out);
+    knock.start(t);
+    knock.stop(t + 0.12);
+
+    // Grave clothes, arriving just after the body did.
+    const cloth = c.createBufferSource();
+    cloth.buffer = noise(c);
+    const hp = c.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 2400;
+    const cg = c.createGain();
+    const ct = t + 0.045;
+    cg.gain.setValueAtTime(0.0001, ct);
+    cg.gain.exponentialRampToValueAtTime(0.035 * scale, ct + 0.02);
+    cg.gain.exponentialRampToValueAtTime(0.0001, ct + 0.15);
+    cloth.connect(hp).connect(cg).connect(out);
+    cloth.start(ct);
+    cloth.stop(ct + 0.18);
+  }
+}
+
+// 符咒 leaving your hand: paper, moving fast. Three overlapping bursts of
+// filtered noise with very short envelopes — a flutter is not one sound, it is
+// several edges close together, and one burst reads as a hiss instead.
+//
+// Bright, dry and quiet. It has to sit under the fight rather than announce
+// itself: the talisman is what you spent, not what happened.
+export function paperFlutter() {
+  if (sample("paper", 0.8)) return;
+  const c = live();
+  if (!c) return;
+  const t0 = c.currentTime;
+  for (const [at, peak, hz] of [[0, 0.07, 3400], [0.045, 0.055, 4600], [0.085, 0.04, 2800]]) {
+    const src = c.createBufferSource();
+    src.buffer = noise(c);
+    const bp = c.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = hz;
+    bp.Q.value = 1.1;
+    const g = c.createGain();
+    const t = t0 + at;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.075);
+    src.connect(bp).connect(g).connect(master);
+    src.start(t);
+    src.stop(t + 0.09);
+  }
+}
+
+// 殭屍王, arriving. Deliberately not the combat sting: that one rises, because a
+// pack is coming at you and the question is how fast. This one falls. He is not
+// hurrying, and there is nothing to decide about whether he arrives.
+//
+// A long descending tone with a second voice under it, and a thin metallic
+// shimmer over the top that outlasts them both — the room, after the door has
+// already opened.
+export function kingArrives() {
+  if (sample("king")) return;
+  const c = live();
+  if (!c) return;
+  const t = c.currentTime;
+  const scale = bite();
+
+  for (const [from, to, gain, len] of [[300, 74, 0.13, 2.4], [212, 52, 0.08, 2.6]]) {
+    const osc = c.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(from, t);
+    osc.frequency.exponentialRampToValueAtTime(to, t + len * 0.8);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain * scale, t + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(2600, t);
+    lp.frequency.exponentialRampToValueAtTime(320, t + len);
+    osc.connect(lp).connect(g).connect(master);
+    osc.start(t);
+    osc.stop(t + len + 0.1);
+  }
+
+  // The shimmer, held past the fall. Sent to the room's reverb rather than
+  // straight out, so it arrives as something the building is doing.
+  const shine = c.createBufferSource();
+  shine.buffer = noise(c);
+  shine.loop = true;
+  const bp = c.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = 5200;
+  bp.Q.value = 6;
+  const sg = c.createGain();
+  sg.gain.setValueAtTime(0.0001, t);
+  sg.gain.exponentialRampToValueAtTime(0.025 * scale, t + 0.9);
+  sg.gain.exponentialRampToValueAtTime(0.0001, t + 3.1);
+  shine.connect(bp).connect(sg).connect(send || master);
+  shine.start(t);
+  shine.stop(t + 3.2);
 }
 
 // ---- Cues the map was missing ----------------------------------------------
@@ -629,37 +846,35 @@ export function cowerBreath() {
 // Picking something up, by class rather than by item: nine items, five sounds.
 // Metal rings, wood knocks, liquid sloshes, the saw coughs, and everything else
 // is a small dry find.
+// What each thing sounds like coming off a shelf. Every id here is a jiangshi
+// item; the inherited map was still the other game's, so a 七星劍 came up
+// sounding like a candle and every one of the thirteen fell through to the same
+// small rustle.
+//
+// 桃木劍 is wood because it IS wood — that is the entire point of a peachwood
+// sword, and it would be a strange thing for the game to say otherwise. The
+// talismans and the banner are paper and get the flutter, which is the same cue
+// that plays when one is spent: picking one up and throwing one are the same
+// material doing the same thing.
 const ITEM_CUE = {
-  machete: "metal", "golf-club": "metal",
-  "board-nails": "wood", "grisly-femur": "wood",
-  chainsaw: "engine",
-  oil: "liquid", gasoline: "liquid", "can-of-soda": "liquid",
-  candle: "small",
+  "precept-knife": "metal", "coin-sword": "metal", "sevenstar-sword": "metal",
+  "peachwood-sword": "wood",
+  "truefire-talisman": "paper", "fivethunder-talisman": "paper",
+  "blood-talisman": "paper", "protective-charm": "paper", "soul-banner": "paper",
+  "black-dog-blood": "liquid",
+  cinnabar: "small", "sticky-rice": "small", "golden-elixir": "small",
 };
 
 export function itemPickup(itemId) {
   const kind = ITEM_CUE[itemId] || "small";
   if (sample(`item-${kind}`)) return;
+  // Paper is paper. Rather than a second synthesis of the same material, this
+  // borrows the cue the talismans already have — so the sound of finding one
+  // and the sound of spending one agree with each other.
+  if (kind === "paper") return void paperFlutter();
   const c = live();
   if (!c) return;
   const t = c.currentTime;
-
-  if (kind === "engine") {
-    // A sputter that fails to catch: pulsing saw under a lowpass.
-    const osc = c.createOscillator();
-    osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(78, t);
-    osc.frequency.linearRampToValueAtTime(120, t + 0.1);
-    osc.frequency.linearRampToValueAtTime(64, t + 0.34);
-    const lp = c.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 900;
-    const g = envelope(c, 0.15, 0.02, 0.34);
-    osc.connect(lp).connect(g).connect(master);
-    osc.start(t);
-    osc.stop(t + 0.4);
-    return;
-  }
 
   if (kind === "liquid") {
     const src = c.createBufferSource();
