@@ -199,3 +199,29 @@ test("languages: §9 holds in both — the threshold is nowhere in the strings",
     }
   }
 });
+
+// The static chrome in game.html is written over at runtime from the theme, so
+// the two have to agree: if someone edits the HTML and not the theme, English
+// silently reverts on the next render and nobody notices, because English is
+// what they were looking at anyway.
+//
+// This is the half of the page a language sweep cannot see — it caught nothing
+// while 25 strings sat untranslated, because they were static nodes and the
+// sweep only looked at what the game draws.
+test("chrome: game.html's static words match the theme's English", async () => {
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const ui = themeEn.ui;
+  // id in the page -> key in the theme. Both directions matter: a page node
+  // with no key never gets translated, and a key with no node is dead weight.
+  const PAIRS = [
+    ["brand", "brand"], ["nav-rulebook", "nav-rulebook"], ["nav-menu", "nav-menu"],
+    ["page-title", "page-title"], ["backpack", "backpack"], ["seed-label", "seed-label"],
+    ["note-again", "note-again"], ["copy-replay", "copy-replay"],
+  ];
+  for (const [id, key] of PAIRS) {
+    const el = doc.getElementById(id);
+    assert(el, `game.html has no #${id} for the theme to write`);
+    eq(el.textContent.trim(), ui[key], `#${id} and ui.${key} disagree`);
+  }
+});

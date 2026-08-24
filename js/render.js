@@ -291,9 +291,10 @@ function renderAttack(game) {
   // What is in your hand, said in full: which blade, and whether a 真火符 is
   // burnt into it. Bare-handed is zero and the sword IS the number, so there is
   // no bonus to describe — only a blade, or the absence of one.
-  const held0 = swordId
-    ? `${itemName(game, swordId)}${buffed ? ", with 真火符 burnt into it" : ""}, attack ${attack}`
-    : "bare-handed, attack 0";
+  const held0 = !swordId
+    ? ui(game, "attack-bare")
+    : ui(game, buffed ? "attack-buffed" : "attack-held",
+         { item: itemName(game, swordId), n: attack });
 
   const top = attackCeiling(game);
   if (top.attack > attack) {
@@ -303,8 +304,9 @@ function renderAttack(game) {
     more.textContent = ui(game, "attack-ceiling", { n: top.attack });
     el.appendChild(more);
     const spent = top.spends.map((id) => itemName(game, id)).join(" and ");
-    el.title = `${held0}. Up to ${top.attack} spending ${spent}.`;
-    el.appendChild(srOnly(`${held0}. Up to ${top.attack} if you spend ${spent}.`));
+    const said = ui(game, "attack-upto", { held: held0, n: top.attack, spent });
+    el.title = said;
+    el.appendChild(srOnly(said));
     return;
   }
   el.title = held0;
@@ -332,8 +334,9 @@ function renderCower(s) {
   el.appendChild(
     srOnly(
       s.cowerCharges === 0
-        ? "no cower charges left"
-        : `${s.cowerCharges} cower ${s.cowerCharges === 1 ? "charge" : "charges"} of ${slots}`
+        ? ui(drawing, "cower-said-none")
+        : ui(drawing, s.cowerCharges === 1 ? "cower-said-one" : "cower-said-many",
+             { n: s.cowerCharges, of: slots })
     )
   );
 }
@@ -393,7 +396,8 @@ function renderHour(s) {
   // Built from the same reading as the visible text, so the two cannot drift,
   // and carrying what the pips show — a hand position is not something to
   // announce as a shape.
-  el.appendChild(srOnly(`${reading}, ${cardsLeftPhrase(c)}`));
+  el.appendChild(srOnly(ui(drawing, "clock-said",
+    { time: reading, phrase: cardsLeftPhrase(c) })));
 
   // The light now follows the minute hand, not the hour: one number out to CSS
   // and every dial in the light model moves with it, a sliver per card drawn.
@@ -479,8 +483,12 @@ function drawPips(c) {
 }
 
 function cardsLeftPhrase(c) {
-  if (c.left === 0) return "the next turn tolls the hour";
-  return `${c.left} turn${c.left === 1 ? "" : "s"} until the hour turns`;
+  if (c.left === 0) return ui(drawing, "turns-left-none");
+  // Two keys, not a suffix: English pluralises and Chinese does not, and a
+  // format string cannot serve both without one of them reading wrong.
+  return c.left === 1
+    ? ui(drawing, "turns-left-one")
+    : ui(drawing, "turns-left-many", { n: c.left });
 }
 
 // The last hour, called out. The ambient palette shift is handled by the hour
@@ -605,7 +613,7 @@ function renderRelic(s) {
   }
   const text = document.createElement("span");
   text.className = "statnum" + (s.tablet ? " statnum--buffed" : "");
-  text.textContent = s.tablet ? "Held" : "Not yet";
+  text.textContent = ui(drawing, s.tablet ? "relic-held" : "relic-not-yet");
   text.setAttribute("aria-hidden", "true");
   el.appendChild(text);
   el.appendChild(srOnly(ui(drawing, s.tablet ? "tablet-held" : "tablet-missing")));

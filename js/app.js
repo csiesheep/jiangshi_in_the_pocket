@@ -57,7 +57,7 @@ import {
   showCinnabarDialog,
 } from "./render.js";
 
-import { registerWorker, wireFullscreen, keepAwake, wireSleep } from "./shell.js";
+import { registerWorker, wireFullscreen, keepAwake, wireSleep, repaintFullscreen } from "./shell.js";
 import { recordVerdict } from "./tally.js";
 import { epilogue } from "./epilogue.js";
 import * as L from "./lang.js";
@@ -111,8 +111,8 @@ function itemArt(id) {
 // starts and outlive every one of them, so they cannot reach through `game`
 // unconditionally. This falls back to the key, which is the same contract the
 // instance helpers keep.
-function uiWord(g, key, values) {
-  const table = (g && g.data && g.data.theme && g.data.theme.ui) || {};
+function uiWord(key, values) {
+  const table = (data && data.theme && data.theme.ui) || {};
   return fill(table[key] || key, values);
 }
 
@@ -1373,20 +1373,20 @@ async function copyReplayLink(btn) {
     await navigator.clipboard.writeText(url);
     const was = btn.title || btn.textContent;
     if (btn.title) {
-      btn.title = uiWord(game, "link-copied");
+      btn.title = uiWord("link-copied");
       btn.classList.add("utilbtn--done");
       setTimeout(() => {
         btn.title = was;
         btn.classList.remove("utilbtn--done");
       }, 1800);
     } else {
-      btn.textContent = uiWord(game, "link-copied");
+      btn.textContent = uiWord("link-copied");
       setTimeout(() => (btn.textContent = was), 1800);
     }
   } catch {
     // Clipboard refused (insecure context or denied permission) — put the link
     // in the log so it can still be copied by hand.
-    log(uiWord(game, "replay-link-fallback", { url }));
+    log(uiWord("replay-link-fallback", { url }));
   }
 }
 
@@ -1434,7 +1434,7 @@ function paintCalmToggle() {
   const on = isCalm();
   btn.setAttribute("aria-pressed", on ? "true" : "false");
   const label = document.getElementById("calm-label");
-  if (label) label.textContent = uiWord(game, on ? "calm-on" : "calm-off");
+  if (label) label.textContent = uiWord(on ? "calm-on" : "calm-off");
   const slot = document.getElementById("calm-icon");
   if (slot) {
     slot.textContent = "";
@@ -1450,7 +1450,7 @@ function paintSoundToggle() {
   const on = !isMuted();
   btn.setAttribute("aria-pressed", on ? "true" : "false");
   const label = document.getElementById("sound-label");
-  if (label) label.textContent = uiWord(game, on ? "sound-on" : "sound-off");
+  if (label) label.textContent = uiWord(on ? "sound-on" : "sound-off");
   const slot = document.getElementById("sound-icon");
   if (slot) {
     slot.textContent = "";
@@ -1524,6 +1524,12 @@ async function useLanguage(lang) {
   data.lang = lang;
   data.theme = await L.themeFor(data.baseTheme, lang, FETCH_OPTS);
   paintLangToggle();
+  // The furniture and the two toggles are static nodes: nothing redraws them,
+  // so a switch has to write them itself.
+  paintChrome();
+  paintSoundToggle();
+  paintCalmToggle();
+  repaintFullscreen();
   if (!game) return;
   game.data.theme = data.theme;
   game.refresh();
@@ -1532,6 +1538,45 @@ async function useLanguage(lang) {
   // a re-render would strand, so those keep the language they opened in and the
   // next window arrives in the new one.
   if (document.querySelector(".doorway")) game.renderMoves();
+}
+
+// The page's furniture: the nav, the panel headings, the utility buttons and
+// the aria-labels nobody sees. All static nodes in game.html, which is exactly
+// why they survived a sweep of what the game DRAWS — nothing redraws them, so
+// they have to be written once on load and again on every switch.
+function paintChrome() {
+  const text = {
+    "nav-rulebook": "nav-rulebook", "nav-menu": "nav-menu",
+    "page-title": "page-title", backpack: "backpack", "seed-label": "seed-label",
+    "note-again": "note-again", "copy-replay": "copy-replay",
+    brand: "brand",
+  };
+  for (const [id, key] of Object.entries(text)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = uiWord(key);
+  }
+  const newGame = document.getElementById("btn-new-game");
+  if (newGame) newGame.textContent = uiWord("new-game");
+
+  // Spoken, not shown. A screen reader in Chinese was getting the whole panel
+  // in English, which is the half of the page a visual sweep cannot check.
+  const aria = [
+    ["board-pane", "aria-board-pane"], ["board", "aria-board"],
+    ["actions-pop", "aria-actions"], ["log", "aria-log"],
+  ];
+  for (const [id, key] of aria) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute("aria-label", uiWord(key));
+  }
+  const titles = [
+    ["btn-sound", "title-sound"], ["btn-note", "title-note"],
+    ["btn-calm", "title-calm"], ["btn-fullscreen", "title-fullscreen"],
+    ["btn-lang", "title-lang"], ["btn-copy-seed", "title-copy"],
+  ];
+  for (const [id, key] of titles) {
+    const el = document.getElementById(id);
+    if (el) el.title = uiWord(key);
+  }
 }
 
 function paintLangToggle() {
@@ -1551,13 +1596,14 @@ async function main() {
     // Icons are decorative, so a failed sprite must not block the game.
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
-  wireFullscreen();
+  wireFullscreen(null, (key) => uiWord(key));
   wireSleep();
   registerWorker();
     paintSoundToggle();
     paintCalmToggle();
     paintCopyIcon();
     paintLangToggle();
+    paintChrome();
     // Size the board off its pane before the first render, and keep it sized as
     // the pane changes — the sidebar growing counts, not just the window.
     watchBoardSize();
@@ -1570,7 +1616,7 @@ async function main() {
     if (firstVisit()) openNote();
   } catch (err) {
     console.error(err);
-    log(uiWord(game, "start-failed"), "bad");
+    log(uiWord("start-failed"), "bad");
   }
 }
 

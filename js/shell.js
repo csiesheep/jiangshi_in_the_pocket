@@ -42,7 +42,19 @@ async function toggleFullscreen() {
   }
 }
 
-export function wireFullscreen() {
+// How the caller names things. Set by wireFullscreen's second argument so this
+// module never has to know what a theme is, and defaults to the English so a
+// page that wires it without one still says words rather than keys.
+let word = (key) => ({ fullscreen: "Fullscreen", "leave-fullscreen": "Leave fullscreen" }[key] || key);
+
+// Held so a language switch can ask for the label again. The state lives in the
+// browser rather than in any of our data, so only this closure knows both the
+// state and the word for it. Declared before wireFullscreen assigns it — a `let`
+// is hoisted but dead until its declaration runs.
+export let repaintFullscreen = () => {};
+
+export function wireFullscreen(_unused, naming) {
+  if (typeof naming === "function") word = naming;
   const btn = document.getElementById("btn-fullscreen");
   if (!btn) return;
   const el = document.documentElement;
@@ -54,15 +66,17 @@ export function wireFullscreen() {
     const on = !!fullscreenElement();
     btn.setAttribute("aria-pressed", String(on));
     const label = document.getElementById("fs-label");
-    const word = fullscreenWord(on);
-    if (label) label.textContent = word;
-    btn.title = word;
+    const said = word(on ? "leave-fullscreen" : "fullscreen");
+    if (label) label.textContent = said;
+    btn.title = said;
   };
   btn.addEventListener("click", () => toggleFullscreen().then(paint));
   document.addEventListener("fullscreenchange", paint);
   document.addEventListener("webkitfullscreenchange", paint);
+  repaintFullscreen = paint;
   paint();
 }
+
 
 // ---- Wake lock --------------------------------------------------------------
 // The screen must not sleep in the middle of a run. Held while a game is in
@@ -129,14 +143,4 @@ export function wireSleep() {
   // restored by the browser on startup — and then no visibilitychange ever
   // fires and it would animate away unseen for as long as it stayed there.
   setAsleep(document.visibilityState !== "visible");
-}
-
-// The fullscreen control outlives every run, so it reads the theme off whatever
-// game is currently loaded and falls back to the key — the same contract the
-// rest of the UI keeps.
-function fullscreenWord(on) {
-  const theme = (window.__game && window.__game.data && window.__game.data.theme) || {};
-  const table = theme.ui || {};
-  const key = on ? "leave-fullscreen" : "fullscreen";
-  return table[key] || key;
 }

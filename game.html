@@ -60,10 +60,10 @@
 </head>
 <body class="app">
   <header class="topnav">
-    <a class="brand" href="index.html">Jiangshi in the Pocket</a>
+    <a class="brand" href="index.html" id="brand">Jiangshi in the Pocket</a>
     <span class="spacer"></span>
-    <a href="rulebook.html">Rulebook</a>
-    <a href="index.html">Menu</a>
+    <a href="rulebook.html" id="nav-rulebook">Rulebook</a>
+    <a href="index.html" id="nav-menu">Menu</a>
   </header>
 
 
@@ -73,8 +73,8 @@
          screen reader both have to guess the subject of. Off-screen rather than
          drawn, because the board is the title here — the header already says the
          name and a second visible one would be furniture. -->
-    <h1 class="sr-only">Jiangshi in the Pocket — play in your browser</h1>
-    <section class="board-pane" aria-label="Board">
+    <h1 class="sr-only" id="page-title">Jiangshi in the Pocket — play in your browser</h1>
+    <section class="board-pane" id="board-pane" aria-label="Board">
       <div class="board" id="board" role="group" aria-label="Game board"></div>
       <div class="actions-pop" id="actions-pop" role="group" aria-label="Your move" hidden>
         <div id="actions"></div>
@@ -96,17 +96,17 @@
         <div class="poisonmark" id="hud-poison" hidden></div>
       </div>
       <div class="panel">
-        <h3>Backpack</h3>
+        <h3 id="backpack">Backpack</h3>
         <div class="backpack" id="hud-items"></div>
       </div>
       <div class="panel utility">
-        <p class="runline">Seed <code id="seed-value">&mdash;</code></p>
+        <p class="runline"><span id="seed-label">Seed</span> <code id="seed-value">&mdash;</code></p>
         <div class="utilrow">
-          <button class="utilbtn" type="button" id="btn-sound" aria-pressed="false" title="Sound">
+          <button class="utilbtn" type="button" id="btn-sound" aria-pressed="false" title="Sound" id="btn-sound-title">
             <span class="soundicon" id="sound-icon"></span><span class="sr-only" id="sound-label">Sound off</span>
           </button>
           <button class="utilbtn" type="button" id="btn-note" title="The note from the hall">
-            <span class="utilicon" id="note-icon">✉</span><span class="sr-only">Read the note again</span>
+            <span class="utilicon" id="note-icon">✉</span><span class="sr-only" id="note-again">Read the note again</span>
           </button>
           <button class="utilbtn" type="button" id="btn-calm" aria-pressed="false"
                   title="Calm mode — the game without the scares">
@@ -117,7 +117,7 @@
             <span class="utilicon" id="fs-icon">⛶</span><span class="sr-only" id="fs-label">Fullscreen</span>
           </button>
           <button class="utilbtn" type="button" id="btn-copy-seed" title="Copy replay link">
-            <span class="utilicon" id="copy-icon"></span><span class="sr-only">Copy replay link</span>
+            <span class="utilicon" id="copy-icon"></span><span class="sr-only" id="copy-replay">Copy replay link</span>
           </button>
           <button class="utilbtn" type="button" id="btn-lang" title="語言 / Language">
             <span class="utilicon" id="lang-icon">文</span><span class="sr-only" id="lang-label">Language</span>
