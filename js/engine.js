@@ -654,6 +654,32 @@ export function search(state, tableName) {
   return { result: "TOOK", id: pick.id };
 }
 
+// 硃砂. Ground red mineral: paint a charm twice and it works twice. It adds
+// `n` more of a talisman you ALREADY HOLD — it copies what is in the pack, so
+// it can never conjure one you have not found, and it can never reach a sword.
+//
+// Costs no extra slot, and that is not a special case here: only cat "magic"
+// stacks, and a stack of any size is one slot, so a deeper stack is free by the
+// rule that already exists. The sword cap is untouched for the same reason —
+// one 真火符 per blade is a fact about the SWORD, and this only ever multiplies
+// pack contents.
+export function useCinnabar(state, targetId) {
+  if (!held(state, "cinnabar")) return { ok: false, reason: "no-cinnabar" };
+  const target = state.itemsById[targetId];
+  if (!target || target.cat !== "magic") return { ok: false, reason: "not-a-talisman" };
+  if (targetId === "cinnabar") return { ok: false, reason: "not-itself" };
+  // "A talisman you actually hold" — zero of something is not something.
+  if (!held(state, targetId)) return { ok: false, reason: "not-held" };
+
+  const def = state.itemsById["cinnabar"];
+  const n = def.n || 2;
+  const before = slotsUsed(state);
+  dropItem(state, "cinnabar");
+  state.items[targetId] = (state.items[targetId] || 0) + n;
+  return { ok: true, id: targetId, added: n, count: heldCount(state, targetId),
+           slotsBefore: before, slotsAfter: slotsUsed(state) };
+}
+
 // ---- Cowering ---------------------------------------------------------------
 // Spend a charge to skip the event. It heals nothing — that is the point, and
 // the reason a charge is worth more at eleven than at nine: what it buys is the

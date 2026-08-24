@@ -1364,3 +1364,75 @@ test("rite: a dead-end goal room can be three fights in one turn", () => {
   if (s.status === "playing") E.resolveCombat(s, breach);
   assert(s.health < 10, "it costs what it costs, and it is legal");
 });
+
+// ---- 硃砂 -----------------------------------------------------------------------
+// Paint a charm twice and it works twice. It copies what is in the pack, which
+// is what keeps it from being a wish: it cannot conjure a talisman you never
+// found, and it cannot reach a sword.
+test("cinnabar: doubles a talisman you hold, and costs no slot", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "fivethunder-talisman");
+  E.pickUpItem(s, "cinnabar");
+  const before = E.slotsUsed(s);
+
+  const r = E.useCinnabar(s, "fivethunder-talisman");
+  eq(r.ok, true);
+  eq(r.added, 2, "n from the item definition, not a literal here");
+  eq(E.heldCount(s, "fivethunder-talisman"), 3, "one held, two painted");
+  eq(E.held(s, "cinnabar"), false, "the mineral is used up");
+  eq(E.slotsUsed(s), before - 1, "and the deeper stack is still one slot — the cinnabar's own slot is what freed up");
+});
+
+test("cinnabar: a stack of any size stays one slot", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "blood-talisman");
+  eq(E.slotsUsed(s), 4, "3 rice + 1 talisman");
+  for (let i = 0; i < 3; i++) {
+    E.pickUpItem(s, "cinnabar");
+    E.useCinnabar(s, "blood-talisman");
+  }
+  eq(E.heldCount(s, "blood-talisman"), 7, "1 + 2 + 2 + 2");
+  eq(E.slotsUsed(s), 4, "seven deep and still one slot");
+});
+
+test("cinnabar: refuses a talisman you hold none of", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "cinnabar");
+  const r = E.useCinnabar(s, "fivethunder-talisman");
+  eq(r.ok, false);
+  eq(r.reason, "not-held", "zero of something is not something");
+  eq(E.held(s, "cinnabar"), true, "and a refused use spends nothing");
+});
+
+test("cinnabar: refuses anything that is not a talisman", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "cinnabar");
+  E.pickUpItem(s, "sevenstar-sword");
+  eq(E.useCinnabar(s, "sevenstar-sword").reason, "not-a-talisman", "it cannot reach a sword");
+  eq(E.useCinnabar(s, "sticky-rice").reason, "not-a-talisman", "nor the rice you are holding three of");
+  eq(E.useCinnabar(s, "cinnabar").reason, "not-itself", "nor itself");
+  eq(E.held(s, "cinnabar"), true);
+});
+
+test("cinnabar: needs cinnabar", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "blood-talisman");
+  eq(E.useCinnabar(s, "blood-talisman").reason, "no-cinnabar");
+});
+
+// The sword cap is a fact about the SWORD, so multiplying pack contents cannot
+// touch it. Worth pinning because "paint it twice" invites exactly that guess.
+test("cinnabar: cannot push a sword past one 真火符", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "sevenstar-sword");
+  E.pickUpItem(s, "truefire-talisman");
+  E.pickUpItem(s, "cinnabar");
+  E.useCinnabar(s, "truefire-talisman");
+  eq(E.heldCount(s, "truefire-talisman"), 3, "three charms in the pack");
+
+  eq(E.buffSword(s, "sevenstar-sword").ok, true);
+  eq(E.swordAttack(s, "sevenstar-sword"), 4, "3 + 1");
+  eq(E.buffSword(s, "sevenstar-sword").reason, "already-buffed");
+  eq(E.swordAttack(s, "sevenstar-sword"), 4, "still four — the ceiling is the sword's, not the pack's");
+  eq(E.heldCount(s, "truefire-talisman"), 2, "and the spare charms are still spare");
+});
