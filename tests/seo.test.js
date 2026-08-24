@@ -15,12 +15,19 @@ import { test, assert, eq } from "./harness.js";
 
 const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits"];
 
+// no-store: these assert about files on disk, and a cached copy of the file
+// you are checking is how a fixed page keeps reporting the old fault.
+const NO_STORE = { cache: "no-store" };
+
 const html = Object.fromEntries(
   await Promise.all(
-    PUBLIC_PAGES.map(async (name) => [name, await fetch(`../${name}.html`).then((r) => r.text())]),
+    PUBLIC_PAGES.map(async (name) => [name, await fetch(`../${name}.html`, NO_STORE).then((r) => r.text())]),
   ),
 );
-const worker = await fetch("../src/index.js").then((r) => r.text());
+const worker = await fetch("../src/index.js", NO_STORE).then((r) => r.text());
+
+// Read out of the Worker source, the same way PAGES is. One flag, one place.
+const SHIPPED = /export const SHIPPED\s*=\s*true/.test(worker);
 
 const meta = (doc, name) => (doc.match(new RegExp(`name="${name}" content="([^"]*)"`)) || [])[1] || null;
 const tag = (doc, re) => (doc.match(re) || [])[1] || null;
@@ -106,10 +113,26 @@ test("seo: every page can be reached from every other", () => {
   }
 });
 
-test("seo: nothing public is held back from search", () => {
+// The noindex has two failure modes and they point opposite ways, so one
+// assertion cannot cover both: shipping WITH it leaves the game unfindable,
+// and losing it BEFORE shipping puts a duplicate of Grave Errand's copy in
+// front of the real game. Which bug is live depends only on whether the site
+// has shipped, so the flag decides which way the test reads.
+//
+// This used to assert the post-ship half unconditionally, and failed by design
+// for weeks. A suite with a permanent red teaches everyone to skim past red,
+// which costs more than the check was worth — and it very nearly did: a stale
+// two-test-short run went unquestioned on the same suite because one number
+// among the noise looked normal.
+test("seo: every public page's noindex matches the ship state", () => {
   for (const name of PUBLIC_PAGES) {
     const robots = meta(html[name], "robots") || "";
-    assert(!/noindex/.test(robots), `${name} is indexable — a noindex left in is invisible`);
+    const heldBack = /noindex/.test(robots);
+    if (SHIPPED) {
+      assert(!heldBack, `${name} still carries a noindex — the shipped site is invisible`);
+    } else {
+      assert(heldBack, `${name} has lost its noindex before ship — it will be indexed as a duplicate`);
+    }
   }
 });
 

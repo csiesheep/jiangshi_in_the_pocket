@@ -6,6 +6,20 @@
 // The public path segment is independent of the repo / Worker name — change
 // PREFIX alone to move the site to a different path.
 const PREFIX = "/jiangshi_in_the_pocket";
+
+// Has this actually shipped? One flag, one place, and it is deliberately next
+// to PREFIX because both answer "where does this site stand in the world".
+//
+// It exists because the seo suite needs to know which way round to check the
+// noindex. Pre-ship the pages MUST carry it — indexing a half-built reskin
+// would put a byte-for-byte duplicate in front of the real game — and
+// post-ship they must not. Both directions are real bugs and a test can only
+// catch one of them at a time, so the flag says which.
+//
+// Flipping this to true is a step on the ship checklist (#17) and must happen
+// in the same commit as removing the meta tags, or the suite goes red and
+// tells you exactly which pages you missed.
+export const SHIPPED = false;
 const ORIGIN = "https://games.csiesheep.com";
 const CANONICAL = ORIGIN + PREFIX + "/";
 
