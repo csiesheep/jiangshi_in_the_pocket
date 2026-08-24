@@ -14,7 +14,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-v10";
+const CACHE = "jiangshi-v11";
 
 // Everything needed to open the game with no network. Relative paths on
 // purpose: this ships under a subpath (…/jiangshi_in_the_pocket/) and absolute
@@ -43,6 +43,11 @@ const SHELL = [
   "assets/fonts/imfellenglish-latin.woff2",
   "assets/icons/icon-192.png",
   "assets/icons/icon-512.png",
+  // Both shapes, not just the plain pair. An installed app that goes offline
+  // and re-reads its icon should find the one the launcher actually uses, and
+  // a maskable icon is what every Android launcher asks for first.
+  "assets/icons/icon-192-maskable.png",
+  "assets/icons/icon-512-maskable.png",
 ];
 
 // Data and audio are fetched at runtime and cached as they are used, rather
