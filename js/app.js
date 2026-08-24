@@ -1,10 +1,11 @@
 // Game page controller — orchestrates the turn, wiring user input -> engine +
 // board -> render. Owns the RNG seed.
 //
-// The turn, in the order §8 sets out: the poison tick, one action — move or
-// stay — then the room answers with an event, then the rite if this room has
-// one, then the breach if there is nowhere on, then the search, then six
-// minutes off the clock.
+// The turn, in the order §8 sets out: the poison tick, one action — move, stay
+// or cower — then the room answers with an event, then the rite if this room
+// has one, then the breach if there is nowhere on, then the search, then six
+// minutes off the clock. Cowering is the exception that proves the order: it
+// ends the turn where it stands, buying the one event-free turn in the game.
 //
 // Most of that is arithmetic and lives in the engine. Two things are not: a
 // fight and a villager come back from resolveEvent unresolved, because both are
@@ -51,6 +52,8 @@ import {
   breakInCollapse,
   breakInClear,
   buryBeat,
+  cowerScene,
+  showCinnabarDialog,
 } from "./render.js";
 
 import { registerWorker, wireFullscreen, keepAwake, wireSleep } from "./shell.js";
@@ -144,6 +147,9 @@ class Game {
     this.tally = { putDown: 0, found: 0 };
     // One search per turn, and turn 1 has not had its yet.
     this.searched = false;
+    // Set by 躲藏, cleared with it. A cowered turn draws nothing, so there is
+    // nothing to search after and nothing to heal from.
+    this.cowered = false;
   }
 
   tileName(id) { return tName(this, id); }
@@ -170,9 +176,11 @@ class Game {
   }
 
   // ---- Step 1: choose an action --------------------------------------------
-  // MOVE or STAY. Movement is optional in this game, unlike the source it came
-  // from — but standing still costs a turn exactly like walking does, so there
-  // is no free turn and STAY is always on the table, dead end or not.
+  // MOVE, STAY or COWER. Movement is optional in this game, unlike the source
+  // it came from — but standing still costs a turn exactly like walking does,
+  // so there is no free turn and STAY is always on the table, dead end or not.
+  // All three are drawn on the board rather than in the panel: they are the
+  // same rank of choice and belong in the same place.
   renderMoves() {
     if (this.state.status !== "playing") return this.gameOver();
     const acts = Bd.listMoves(this.board).map((m) => {
@@ -192,7 +200,52 @@ class Game {
     // doorways, and "rest" would send the whole step to the action panel.
     acts.push({ kind: "stay", label: "Stay where you are", sub: "costs the turn",
       primary: acts.length === 0, onClick: () => this.doStay() });
-    renderActions(acts, "Move on, or stay put — either spends six minutes.");
+
+    // 躲藏. Offered every turn, including with nothing left to spend — then it
+    // is inert and says why. What it buys is the only event-free turn in the
+    // game, which is worth more the later it gets, and a player who never sees
+    // the control has no way to learn that.
+    const charges = this.state.cowerCharges;
+    const slots = E.RULES.COWER_CHARGES + (this.state.cowerRestored ? 1 : 0);
+    acts.push({
+      kind: "cower",
+      label: this.actionWord("COWER"),
+      sub: charges > 0
+        ? `skips this room's event · ${charges} left`
+        : "no charges left — the incense is out",
+      disabled: charges <= 0,
+      charges,
+      slots,
+      onClick: () => this.doCower(),
+    });
+    renderActions(acts, "Move on, stay put, or hide — each spends six minutes.");
+  }
+
+  // The theme's name for a mechanic, minus the English gloss: the controls are
+  // narrow and "躲藏" reads better on one than the full "躲藏 Cower" string.
+  actionWord(key) {
+    const named = (this.data.theme.actions || {})[key] || key;
+    return String(named).split(" ")[0];
+  }
+
+  // Cowering is a whole action and ends the turn, but it is the one action that
+  // draws no event — that IS the item. So it skips the room's answer and goes
+  // straight to the end of the turn: no event, no rite, no breach.
+  doCower() {
+    const r = E.cower(this.state);
+    if (!r.ok) return this.renderMoves(); // no charges: the control was inert
+    clearChoices();
+    this.refresh();
+    const outdoors = Bd.currentTile(this.board).world === "outdoor";
+    this.tell(`You put yourself in a corner of the ${this.tileName(Bd.currentTile(this.board).id)} and go still.`);
+    cowerScene(outdoors).then(() => {
+      log(`Whatever was coming went past. ${r.charges} ${r.charges === 1 ? "charge" : "charges"} left.`);
+      if (this.state.status !== "playing") return this.gameOver();
+      // Straight to the end of the turn. Nothing was drawn, so there is nothing
+      // to have rummaged after either — the same rule running follows.
+      this.cowered = true;
+      this.renderEndTurn();
+    });
   }
 
   // STAY is a whole action. It ends in the same place every other one does, so
@@ -760,9 +813,11 @@ class Game {
   // room's event — so it belongs here, between the event and the clock.
   endTurnChoices() {
     const choices = [];
-    // You arrived here running and the turn is already over (§8): no event was
-    // drawn where you landed, so there is nothing to have rummaged after.
-    if (this.state.fled) return choices;
+    // Nothing to rummage after. Running means no event was drawn where you
+    // landed (§8); cowering means no event was drawn at all (§7). Either way
+    // the turn is already over — and cowering explicitly buys no healing
+    // either, which is why it never reaches endTurn().
+    if (this.state.fled || this.cowered) return choices;
     const tile = Bd.currentTile(this.board);
     const table = tile && tile.def && tile.def.search;
     // One search per turn. Rummaging the same room again is what STAY is for,
@@ -776,7 +831,50 @@ class Game {
         onClick: () => this.doSearch(table),
       });
     }
+
+    // The two rooms that do something for you, free and once per run. They cost
+    // no turn on purpose (§8): both are already gated twice over — once by the
+    // once, once by the walk it took to get here — so charging a turn on top
+    // would tax the same thing twice and make a late detour never worth making.
+    const action = tile && tile.def && tile.def.action;
+    if (action === "RESTORE_COWER_ONCE" && !this.state.cowerRestored) {
+      choices.push({
+        kind: "tileaction",
+        label: `${this.actionWord("COWER")} — light the coil`,
+        sub: "one more charge, once tonight",
+        onClick: () => this.doRestoreCower(),
+      });
+    }
+    // canPray answers for the whole thing: the right room, unspent, and the
+    // ground still in the stack. Asked rather than re-derived, so an offered
+    // prayer never refuses.
+    if (action === "PRAY_ONCE" && Bd.canPray(this.board)) {
+      choices.push({
+        kind: "tileaction",
+        label: "祈求 Ask the land god",
+        sub: "the next ground you turn up is the grave",
+        onClick: () => this.doPray(),
+      });
+    }
     return choices;
+  }
+
+  doRestoreCower() {
+    const r = E.restoreCowerCharge(this.state);
+    if (!r.ok) return this.renderEndTurn();
+    relicFound();
+    this.refresh();
+    this.tell("You light the last coil. It will buy you one more corner to hide in.", "good");
+    this.renderEndTurn();
+  }
+
+  doPray() {
+    const r = Bd.pray(this.board);
+    if (!r.ok) return this.renderEndTurn();
+    relicFound();
+    this.refresh();
+    this.tell(`You ask, and the land god answers. The next ground you turn up outside is the ${this.tileName(r.target)}.`, "good");
+    this.renderEndTurn();
   }
 
   // The category as the theme names it, minus the English gloss — the action
@@ -846,6 +944,8 @@ class Game {
   // Medicine is the one thing the pack spends on its own account, outside a
   // fight and outside the turn's action.
   usePackItem(id) {
+    // 硃砂 is the one pack item that needs a target, so it asks before it acts.
+    if (id === "cinnabar") return this.useCinnabar();
     const out = E.useMedicine(this.state, id);
     if (!out.ok) return;
     const name = iName(this, id);
@@ -854,6 +954,24 @@ class Game {
     else log(`${name}.`);
     if (out.cured) log("The grey goes out of the wound. 中毒 lifted.", "good");
     this.refresh();
+  }
+
+  // 硃砂 over a talisman you already hold: it copies, so a stack goes deeper
+  // and the pack gets no fuller — a stack of any size is still one slot, and
+  // grinding the 硃砂 away actually frees the one it was sitting in.
+  useCinnabar() {
+    showCinnabarDialog(this, {
+      onPick: (targetId) => {
+        const out = E.useCinnabar(this.state, targetId);
+        if (!out.ok) return;
+        itemPickup(targetId);
+        this.refresh();
+        this.tell(
+          `You grind the ${this.itemName("cinnabar")} and paint it again. ${this.itemName(targetId)} ×${out.count}.`,
+          "good"
+        );
+      },
+    });
   }
 
   renderEndTurn(cued = false) {
@@ -889,11 +1007,25 @@ class Game {
     // one. The duel that should happen there is not designed yet.
     E.advanceTurn(this.state);
     if (this.state.status !== "playing") return this.gameOver();
+    // beginTurn ticks the poison, and it does it before the player is given an
+    // action — which is what makes "curing still pays this turn's tick" fall
+    // out of the order rather than needing a rule. It reports nothing, so the
+    // tick is read off the health either side of it.
+    const grey = this.state.poisoned;
+    const before = this.state.health;
     E.beginTurn(this.state);
+    const ticked = grey && this.state.health < before;
     // A new turn is a new chance to rummage — including a STAY spent in a room
     // you already went through, which is exactly what STAY is for.
     this.searched = false;
+    this.cowered = false;
     this.refresh();
+    // Said after the refresh, so the hearts have already moved and the board
+    // has already flashed by the time the sentence lands on it.
+    if (ticked) {
+      this.tell((this.data.theme.poison || {}).tick || "", "bad");
+      if (this.state.status !== "playing") return this.gameOver();
+    }
     this.renderMoves();
   }
   // ---- End states ----------------------------------------------------------

@@ -1,6 +1,7 @@
 // Rendering — reflects game + board state into the DOM. No game logic here.
 
-import { RULES, effectiveAttack, clockTime, dread, heldIds, heldCount } from "./engine.js";
+import { RULES, effectiveAttack, clockTime, dread, heldIds, heldCount,
+         attackWith, bestSword, held } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
@@ -140,7 +141,9 @@ export function renderHud(game) {
   );
 
   renderHealth(game.state);
-  renderAttack(game.state);
+  renderAttack(game);
+  renderCower(game.state);
+  renderPoison(game.state);
   renderHour(game.state);
   renderRelic(game.state);
 
@@ -223,11 +226,43 @@ function renderHealth(s) {
   el.appendChild(srOnly(String(s.health)));
 }
 
-function renderAttack(s) {
+// The best you could reach without spending anything you do not hold, and what
+// it would cost you to reach it. attackWith() is free, so this is allowed to
+// ask it once per talisman on every render — that is the whole reason the
+// engine split preview from commit.
+//
+// Reported as a ceiling rather than a recommendation. The fight window is where
+// the real arithmetic is priced against a real pack; this only answers the
+// question the panel is for, which is "how hard can I hit if it comes to it".
+function attackCeiling(game) {
+  const s = game.state;
+  const talismans = heldIds(s).filter((id) => {
+    const d = s.itemsById[id];
+    return d && d.cat === "magic" && d.attack != null;
+  });
+  const banner = held(s, "soul-banner");
+  let best = { attack: effectiveAttack(s), spends: [] };
+  for (const b of banner ? [false, true] : [false]) {
+    for (const t of [null, ...talismans]) {
+      const use = {};
+      if (b) use.banner = true;
+      if (t) use.talisman = t;
+      const attack = attackWith(s, use);
+      if (attack > best.attack) {
+        best = { attack, spends: [...(b ? ["soul-banner"] : []), ...(t ? [t] : [])] };
+      }
+    }
+  }
+  return best;
+}
+
+function renderAttack(game) {
+  const s = game.state;
   const el = statBox("hud-attack");
   if (!el) return;
   const attack = effectiveAttack(s);
-  const buffed = attack > RULES.START_ATTACK;
+  const swordId = bestSword(s);
+  const buffed = swordId ? !!s.buffed[swordId] : false;
 
   const sword = icon("stat", "sword", "staticon sword" + (buffed ? " sword--buffed" : ""));
   if (sword) el.appendChild(sword);
@@ -236,7 +271,78 @@ function renderAttack(s) {
   n.textContent = String(attack);
   n.setAttribute("aria-hidden", "true");
   el.appendChild(n);
-  el.appendChild(srOnly(buffed ? `${attack}, boosted by a weapon` : String(attack)));
+
+  // What is in your hand, said in full: which blade, and whether a 真火符 is
+  // burnt into it. Bare-handed is zero and the sword IS the number, so there is
+  // no bonus to describe — only a blade, or the absence of one.
+  const held0 = swordId
+    ? `${itemName(game, swordId)}${buffed ? ", with 真火符 burnt into it" : ""}, attack ${attack}`
+    : "bare-handed, attack 0";
+
+  const top = attackCeiling(game);
+  if (top.attack > attack) {
+    const more = document.createElement("span");
+    more.className = "statmore";
+    more.setAttribute("aria-hidden", "true");
+    more.textContent = `up to ${top.attack}`;
+    el.appendChild(more);
+    const spent = top.spends.map((id) => itemName(game, id)).join(" and ");
+    el.title = `${held0}. Up to ${top.attack} spending ${spent}.`;
+    el.appendChild(srOnly(`${held0}. Up to ${top.attack} if you spend ${spent}.`));
+    return;
+  }
+  el.title = held0;
+  el.appendChild(srOnly(held0));
+}
+
+// 躲藏, as pips rather than a number: three of them is a thing you can see at a
+// glance and a thing you can watch go out, where "3" is a fact you have to
+// read. The fourth arrives from 香堂 and is drawn the same — a charge is a
+// charge, however it was come by.
+function renderCower(s) {
+  const el = statBox("hud-cower");
+  if (!el) return;
+  // The baseline is the run's own ceiling, not the rule's: once 香堂 has given
+  // its coil the row is four wide for the rest of the night, so the pips do not
+  // silently re-scale under the player halfway through.
+  const slots = Math.max(s.cowerCharges, RULES.COWER_CHARGES + (s.cowerRestored ? 1 : 0));
+  for (let i = 0; i < slots; i++) {
+    const pip = document.createElement("span");
+    pip.className = "pip" + (i < s.cowerCharges ? " pip--lit" : "");
+    pip.setAttribute("aria-hidden", "true");
+    el.appendChild(pip);
+  }
+  el.classList.toggle("statval--spent", s.cowerCharges <= 0);
+  el.appendChild(
+    srOnly(
+      s.cowerCharges === 0
+        ? "no cower charges left"
+        : `${s.cowerCharges} cower ${s.cowerCharges === 1 ? "charge" : "charges"} of ${slots}`
+    )
+  );
+}
+
+// 中毒: shown only while it is true. The tick itself is announced by the turn
+// loop — this is the standing reminder that it has not stopped, which is the
+// part a number in a log cannot do.
+function renderPoison(s) {
+  const el = document.getElementById("hud-poison");
+  if (!el) return;
+  el.textContent = "";
+  const on = !!s.poisoned && s.status === "playing";
+  el.hidden = !on;
+  if (!on) return;
+  const mark = document.createElement("span");
+  mark.className = "poisonglyph";
+  mark.setAttribute("aria-hidden", "true");
+  mark.textContent = "中毒";
+  el.appendChild(mark);
+  const rate = document.createElement("span");
+  rate.className = "poisonrate";
+  rate.setAttribute("aria-hidden", "true");
+  rate.textContent = `−${RULES.POISON_PER_TURN} each turn`;
+  el.appendChild(rate);
+  el.appendChild(srOnly(`中毒: losing ${RULES.POISON_PER_TURN} health at the start of every turn until it is drawn out`));
 }
 
 // The hand sweeps round when the hour actually turns, which is the only time
@@ -466,7 +572,7 @@ function hand(NS, kind, length, angle) {
 // the status panel rather than the pack for exactly that reason: putting it in
 // a slot would say it competes with a sword, and it does not.
 function renderRelic(s) {
-  const el = statBox("hud-totem");
+  const el = statBox("hud-tablet");
   if (!el) return;
   if (s.tablet) {
     const art = uiIcon("relic", "staticon relic relic--held");
@@ -566,19 +672,106 @@ function packSlot(game, id, opts = {}) {
   }
   row.appendChild(text);
 
-  // Medicine is the only thing you can spend outside a fight, so it is the only
-  // thing the pack itself offers a button for. Weapons and talismans are spent
-  // by the fight that needs them.
-  if (!opts.plain && def.cat === "medicine" && typeof opts.onUse === "function") {
+  // What the pack itself can spend: medicine, and 硃砂. Both are used outside a
+  // fight and neither has anything to do with one — the weapons and talismans
+  // are spent by the fight that needs them, in the window that prices them.
+  //
+  // 硃砂 needs a target, so its button opens a picker rather than resolving.
+  // It is greyed with a reason when there is nothing to paint: grinding it over
+  // an empty pack would be a wasted item and a surprise.
+  const isCinnabar = id === "cinnabar";
+  const canUse = isCinnabar ? cinnabarTargets(game).length > 0 : def.cat === "medicine";
+  if (!opts.plain && (isCinnabar || def.cat === "medicine") && typeof opts.onUse === "function") {
     const use = document.createElement("button");
     use.type = "button";
     use.className = "slotuse";
     use.textContent = "Use";
-    use.setAttribute("aria-label", `Use ${itemName(game, id)}`);
+    use.disabled = !canUse;
+    use.setAttribute(
+      "aria-label",
+      canUse
+        ? `Use ${itemName(game, id)}`
+        : `${itemName(game, id)} — no talisman to copy`
+    );
+    if (!canUse) use.title = "No talisman to copy";
     use.addEventListener("click", () => opts.onUse(id));
     row.appendChild(use);
   }
   return row;
+}
+
+// What 硃砂 can be ground over: a talisman you actually hold, and not itself.
+// The same two rules useCinnabar enforces, asked before the button is offered
+// so an offered use never refuses.
+export function cinnabarTargets(game) {
+  const s = game.state;
+  return heldIds(s).filter((id) => {
+    const d = s.itemsById[id];
+    return d && d.cat === "magic" && id !== "cinnabar";
+  });
+}
+
+// The 硃砂 picker. Same sheet as the drop dialog, and a dismissal that costs
+// nothing: choosing not to grind it is a real answer, so Escape and the way out
+// both leave the item in the pack.
+export function showCinnabarDialog(game, opts = {}) {
+  const wrap = document.createElement("div");
+  wrap.className = "notecard dropcard";
+  wrap.setAttribute("role", "dialog");
+  wrap.setAttribute("aria-modal", "true");
+  wrap.setAttribute("aria-labelledby", "cinnabar-title");
+
+  const sheet = document.createElement("div");
+  sheet.className = "notesheet";
+
+  const h = document.createElement("h2");
+  h.id = "cinnabar-title";
+  h.textContent = `Grind the ${itemName(game, "cinnabar")}`;
+  sheet.appendChild(h);
+
+  const lede = document.createElement("p");
+  const n = (game.state.itemsById["cinnabar"] || {}).n || 2;
+  lede.textContent = `Paint a charm twice and it works twice. Which one — you will have ${n} more of it, and a stack is still one slot.`;
+  sheet.appendChild(lede);
+
+  const list = document.createElement("div");
+  list.className = "droplist";
+  for (const id of cinnabarTargets(game)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn dropchoice";
+    const have = heldCount(game.state, id);
+    btn.textContent = `${itemName(game, id)} — ${have} now, ${have + n} after`;
+    btn.addEventListener("click", () => {
+      done();
+      if (opts.onPick) opts.onPick(id);
+    });
+    list.appendChild(btn);
+  }
+  sheet.appendChild(list);
+
+  const leave = document.createElement("button");
+  leave.type = "button";
+  leave.className = "btn dropleave";
+  leave.textContent = "Keep it for now";
+  sheet.appendChild(leave);
+
+  wrap.appendChild(sheet);
+  document.body.appendChild(wrap);
+
+  const done = () => {
+    if (!wrap.isConnected) return;
+    wrap.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape") { done(); if (opts.onLeave) opts.onLeave(); }
+  };
+  leave.addEventListener("click", () => { done(); if (opts.onLeave) opts.onLeave(); });
+  document.addEventListener("keydown", onKey);
+  const first = list.querySelector("button");
+  (first || leave).focus();
+  return done;
 }
 
 function itemEffect(game, id) {
@@ -831,6 +1024,49 @@ function mountDoorways(boardEl) {
     face.textContent = "···"; // waiting, not going anywhere
     hot.appendChild(face);
     hot.addEventListener("click", stay.onClick);
+    hot.addEventListener("focus", doorwayTick);
+    group.appendChild(hot);
+  }
+
+  // 躲藏, under the standing figure: the other way to spend a turn without
+  // going anywhere. It is rendered even with no charges left, disabled and
+  // saying why — a control that vanishes at zero teaches nothing, and a player
+  // who never sees it has no idea the game had that in it.
+  const cower = pendingMoves.find((m) => m.kind === "cower");
+  if (cower) {
+    const hot = document.createElement("button");
+    hot.type = "button";
+    hot.className = "doorway doorway--cower";
+    hot.dataset.kind = "cower";
+    hot.disabled = !!cower.disabled;
+    hot.setAttribute("aria-label", cower.label + (cower.sub ? `. ${cower.sub}` : ""));
+    if (cower.disabled && cower.sub) hot.title = cower.sub;
+    if (!cower.disabled) {
+      const n = pendingMoves.indexOf(cower);
+      if (n < 9) {
+        const k = document.createElement("kbd");
+        k.textContent = String(n + 1);
+        k.setAttribute("aria-hidden", "true");
+        hot.appendChild(k);
+      }
+    }
+    const face = document.createElement("span");
+    face.className = "doorway-face doorway-face--cower";
+    face.setAttribute("aria-hidden", "true");
+    face.textContent = "躲";
+    hot.appendChild(face);
+    // The charges, on the control that spends them, so the cost is where the
+    // decision is rather than only across the panel in the HUD.
+    const pips = document.createElement("span");
+    pips.className = "doorway-pips";
+    pips.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < (cower.slots || 0); i++) {
+      const pip = document.createElement("i");
+      if (i < (cower.charges || 0)) pip.className = "pip--lit";
+      pips.appendChild(pip);
+    }
+    hot.appendChild(pips);
+    hot.addEventListener("click", cower.onClick);
     hot.addEventListener("focus", doorwayTick);
     group.appendChild(hot);
   }
@@ -2597,7 +2833,13 @@ export function renderActions(actions, prompt = "", opts = {}) {
   // for the entire turn.
   const isWalk = (a) => a.kind === "move" && a.dir;
   const isStay = (a) => a.kind === "stay";
-  const boardOnly = actions.some(isWalk) && actions.every((a) => isWalk(a) || isStay(a));
+  // 躲藏 is the third action of the same rank as the other two (§8), so it is
+  // drawn on the board with them. Admitting it here matters for the same reason
+  // staying had to be admitted: one action the board cannot draw disqualifies
+  // the whole step, and the doorways go with it.
+  const isCower = (a) => a.kind === "cower";
+  const boardOnly =
+    actions.some(isWalk) && actions.every((a) => isWalk(a) || isStay(a) || isCower(a));
 
   // A decision is open: the board starts closing in. Moves are not a decision
   // in this sense — walking is what you do between them, and a push-in that
