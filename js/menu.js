@@ -45,8 +45,19 @@ for (const evt of ["pointerdown", "pointermove", "keydown", "touchstart"]) {
 // Inserted before the nav so it reads as part of the title block, and after it
 // in the fade order — the house says this while you are still looking at the
 // title, not as a fact attached to the buttons.
-function rememberYou() {
-  const line = houseLine();
+async function rememberYou() {
+  // The only thing this page needs from the theme, so it is fetched here rather
+  // than the page carrying a loader it would otherwise have no use for. Any
+  // failure means no line at all, which is the same as a first visit and is
+  // already a state this handles.
+  let tallyTable = null;
+  try {
+    const res = await fetch("data/theme.json", { cache: "no-cache" });
+    if (res.ok) tallyTable = (await res.json()).tallyLine;
+  } catch {
+    return; // no theme, no sentence; the menu is complete without it
+  }
+  const line = houseLine(tallyTable);
   if (!line) return;
   const tagline = document.querySelector(".menu .tagline");
   if (!tagline) return;

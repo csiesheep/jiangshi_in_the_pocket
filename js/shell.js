@@ -54,8 +54,9 @@ export function wireFullscreen() {
     const on = !!fullscreenElement();
     btn.setAttribute("aria-pressed", String(on));
     const label = document.getElementById("fs-label");
-    if (label) label.textContent = on ? "Leave fullscreen" : "Fullscreen";
-    btn.title = on ? "Leave fullscreen" : "Fullscreen";
+    const word = fullscreenWord(on);
+    if (label) label.textContent = word;
+    btn.title = word;
   };
   btn.addEventListener("click", () => toggleFullscreen().then(paint));
   document.addEventListener("fullscreenchange", paint);
@@ -128,4 +129,14 @@ export function wireSleep() {
   // restored by the browser on startup — and then no visibilitychange ever
   // fires and it would animate away unseen for as long as it stayed there.
   setAsleep(document.visibilityState !== "visible");
+}
+
+// The fullscreen control outlives every run, so it reads the theme off whatever
+// game is currently loaded and falls back to the key — the same contract the
+// rest of the UI keeps.
+function fullscreenWord(on) {
+  const theme = (window.__game && window.__game.data && window.__game.data.theme) || {};
+  const table = theme.ui || {};
+  const key = on ? "leave-fullscreen" : "fullscreen";
+  return table[key] || key;
 }

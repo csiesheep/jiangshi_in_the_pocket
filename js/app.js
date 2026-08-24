@@ -61,8 +61,6 @@ import { registerWorker, wireFullscreen, keepAwake, wireSleep } from "./shell.js
 import { recordVerdict } from "./tally.js";
 import { epilogue } from "./epilogue.js";
 
-const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
-
 // How long the turn holds when something unexplained was put on the board. The
 // cues themselves live longer than this — the phantom 2.6s, the figure 9s — but
 // they are mounted inside the board, and the next turn rebuilds it. This is the
@@ -72,18 +70,6 @@ const CUE_BEAT_MS = 1500;
 // How long a search result sits before the turn moves on. Shorter than a cue:
 // finding nothing is the common case and must not become a wait.
 const FIND_BEAT_MS = 850;
-
-// Coming up empty, said six ways. Picked by turn number rather than at random —
-// a replayed seed has to say the same thing in the same room, and the search
-// stream is not to be disturbed for flavour.
-const EMPTY_HANDED = [
-  "You turn the room over and come up with nothing.",
-  "Dust, and a drawer that was already open.",
-  "Somebody has been through here before you.",
-  "Nothing worth carrying.",
-  "You put your hands into the dark and find the dark.",
-  "Nothing here but the room.",
-];
 
 // The room's own beat, between walking in and the room answering. The event
 // line is read in this gap; without it the sentence and the damage land
@@ -115,6 +101,24 @@ function wait(ms) {
 // whose id is the empty string.
 function itemArt(id) {
   return id ? `item-${id}` : null;
+}
+
+// {braced} placeholders, the convention villager.gave and the epilogue fragments
+// already use. An unknown placeholder is left standing rather than blanked, for
+// the same reason a missing key returns itself — visible beats silent.
+// The page-level controls — sound, calm, the copy button — exist before any run
+// starts and outlive every one of them, so they cannot reach through `game`
+// unconditionally. This falls back to the key, which is the same contract the
+// instance helpers keep.
+function uiWord(g, key, values) {
+  const table = (g && g.data && g.data.theme && g.data.theme.ui) || {};
+  return fill(table[key] || key, values);
+}
+
+function fill(text, values) {
+  if (!values) return text;
+  return String(text).replace(/\{(\w+)\}/g, (whole, k) =>
+    values[k] === undefined ? whole : values[k]);
 }
 
 // The event's line, by type and band. HP splits by the sign of hp — one
@@ -168,6 +172,35 @@ class Game {
   tileName(id) { return tName(this, id); }
   itemName(id) { return iName(this, id); }
 
+  // ---- What anything player-visible is called ------------------------------
+  // Every sentence and every label comes through one of these two, so adding a
+  // language is a data change and never a code change. The key is the moment,
+  // not the caller — `line("move")` rather than `line("doMove")` — because the
+  // person translating this file does not have the source open beside them.
+  //
+  // A missing key returns the key itself rather than empty: a screen reading
+  // "search-took" is a bug anyone can see and report, where a blank line is one
+  // nobody notices until it matters.
+  line(key, values) { return fill((this.data.theme.lines || {})[key] || key, values); }
+  ui(key, values) { return fill((this.data.theme.ui || {})[key] || key, values); }
+
+  // The compass, spoken. In the theme with every other player-visible noun,
+  // because "north" is a word on the screen and not a fact about the board —
+  // the board's own name for that wall is "N" and stays "N".
+  dirWord(dir) { return this.ui(`dir-${dir}`); }
+
+  verdictLine(key, values) {
+    return fill((this.data.theme.verdict || {})[key] || key, values);
+  }
+
+  // A count of cower charges, said properly. Two keys rather than one format
+  // string, because English needs "charge" to become "charges" and Chinese
+  // needs a measure word and no plural at all — one template cannot serve both,
+  // and this is the small version of the problem epilogue.js has whole.
+  charges(n) {
+    return n === 1 ? this.line("cower-charges-one") : this.line("cower-charges-many", { n });
+  }
+
   // Themed nouns, so nothing player-visible is hardcoded to one setting.
   word(key) { return (this.data.theme.words && this.data.theme.words[key]) || key; }
 
@@ -180,11 +213,11 @@ class Game {
     // Both rooms named from the data: where you are standing, and the one tile
     // that carries the burial. Nothing here knows what either is called.
     const goal = this.data.tiles.outdoor.find((d) => d.goal === "BURY_TABLET");
-    log(
-      `You wake in the ${this.tileName(Bd.currentTile(this.board).id)}. Find the ${this.word("relic")}` +
-        (goal ? `, bury it in the ${this.tileName(goal.id)}` : "") +
-        ` before midnight.`
-    );
+    log(this.line("wake", {
+      room: this.tileName(Bd.currentTile(this.board).id),
+      relic: this.word("relic"),
+      goal: goal ? this.line("wake-goal", { goal: this.tileName(goal.id) }) : "",
+    }));
     this.renderMoves();
   }
 
@@ -198,20 +231,23 @@ class Game {
     if (this.state.status !== "playing") return this.gameOver();
     const acts = Bd.listMoves(this.board).map((m) => {
       if (m.type === "explore") {
-        return { kind: "move", dir: m.dir, label: `Go ${m.dir} — explore`, sub: "unexplored",
+        return { kind: "move", dir: m.dir,
+          label: this.ui("explore", { dir: m.dir }), sub: this.ui("explore-sub"),
           primary: true, onClick: () => this.doExplore(m.dir) };
       }
       if (m.type === "outside") {
-        return { kind: "move", dir: m.dir, label: "Step out through the moon gate", sub: "the way out",
+        return { kind: "move", dir: m.dir,
+          label: this.ui("moon-gate"), sub: this.ui("moon-gate-sub"),
           primary: true, onClick: () => this.doOutside(m.dir) };
       }
       const to = this.board.worlds[m.to.world].get(Bd.cellKey(m.to.x, m.to.y));
-      return { kind: "move", dir: m.dir, label: `Go ${m.dir} — ${this.tileName(to.id)}`,
+      return { kind: "move", dir: m.dir,
+        label: this.ui("walk", { dir: m.dir, room: this.tileName(to.id) }),
         icon: `tile-${to.id}`, onClick: () => this.doMove(m.dir) };
     });
     // kind "stay", not "rest": render.js draws this one on the board with the
     // doorways, and "rest" would send the whole step to the action panel.
-    acts.push({ kind: "stay", label: "Stay where you are", sub: "costs the turn",
+    acts.push({ kind: "stay", label: this.ui("stay"), sub: this.ui("stay-sub"),
       primary: acts.length === 0, onClick: () => this.doStay() });
 
     // 躲藏. Offered every turn, including with nothing left to spend — then it
@@ -224,14 +260,14 @@ class Game {
       kind: "cower",
       label: this.actionWord("COWER"),
       sub: charges > 0
-        ? `skips this room's event · ${charges} left`
-        : "no charges left — the incense is out",
+        ? this.ui("cower-sub", { n: charges })
+        : this.ui("cower-spent"),
       disabled: charges <= 0,
       charges,
       slots,
       onClick: () => this.doCower(),
     });
-    renderActions(acts, "Move on, stay put, or hide — each spends six minutes.");
+    renderActions(acts, this.ui("move-prompt"));
   }
 
   // The theme's name for a mechanic, minus the English gloss: the controls are
@@ -250,9 +286,9 @@ class Game {
     clearChoices();
     this.refresh();
     const outdoors = Bd.currentTile(this.board).world === "outdoor";
-    this.tell(`You put yourself in a corner of the ${this.tileName(Bd.currentTile(this.board).id)} and go still.`);
+    this.tell(this.line("cower", { room: this.tileName(Bd.currentTile(this.board).id) }));
     cowerScene(outdoors).then(() => {
-      log(`Whatever was coming went past. ${r.charges} ${r.charges === 1 ? "charge" : "charges"} left.`);
+      log(this.line("cower-passed", { n: this.charges(r.charges) }));
       if (this.state.status !== "playing") return this.gameOver();
       // Straight to the end of the turn. Nothing was drawn, so there is nothing
       // to have rummaged after either — the same rule running follows.
@@ -264,7 +300,7 @@ class Game {
   // STAY is a whole action. It ends in the same place every other one does, so
   // the room's own instructions and the end of the turn still run.
   doStay() {
-    log(`You wait in the ${this.tileName(Bd.currentTile(this.board).id)}.`);
+    log(this.line("wait", { room: this.tileName(Bd.currentTile(this.board).id) }));
     this.arrive();
   }
 
@@ -279,7 +315,7 @@ class Game {
     const rot = Bd.pickExploreRotation(this.board, dir);
     const r = Bd.explore(this.board, dir, rot);
     if (!r.ok) return this.renderMoves();
-    log(`You reveal the ${this.tileName(revealed)} and step inside.`);
+    log(this.line("reveal", { room: this.tileName(revealed) }));
 
     // The engine has already placed the room. What waits is the sight of it:
     // the door opens onto black, holds, and only then does the light get there.
@@ -299,7 +335,7 @@ class Game {
     const from = Bd.currentTile(this.board).world;
     Bd.moveTo(this.board, dir);
     if (Bd.currentTile(this.board).world !== from) seamCross();
-    log(`You move to the ${this.tileName(Bd.currentTile(this.board).id)}.`);
+    log(this.line("move", { room: this.tileName(Bd.currentTile(this.board).id) }));
     this.refresh();
     animateEntry(dir);
     this.arrive();
@@ -308,7 +344,7 @@ class Game {
   doOutside(dir) {
     const out = Bd.goOutside(this.board);
     seamCross();
-    log(`You step out onto the ${this.tileName(out.tile.id)}. Night air, and worse.`);
+    log(this.line("step-out", { room: this.tileName(out.tile.id) }));
     this.refresh();
     if (dir) animateEntry(dir);
     this.arrive();
@@ -390,7 +426,8 @@ class Game {
     if (res.type === "POISON") return this.poisonBeat(wasPoisoned);
     if (res.type === "HP") {
       this.refresh(); // the hearts move, and a loss flashes the board on its own
-      log(res.hp > 0 ? `+${res.hp} health.` : `${res.hp} health.`, res.hp > 0 ? "good" : "bad");
+      log(res.hp > 0 ? this.line("hp-gain", { n: res.hp }) : this.line("hp-loss", { n: res.hp }),
+          res.hp > 0 ? "good" : "bad");
       if (this.state.status !== "playing") return;
       return wait(RESULT_BEAT_MS);
     }
@@ -424,11 +461,7 @@ class Game {
     const goal = Bd.currentTile(this.board).def.goal;
     if (!goal || !E.riteDraws(this.state, goal)) return;
 
-    this.tell(
-      goal === "BURY_TABLET"
-        ? "You kneel and begin to dig. The ground here gives too easily."
-        : "The lid is not nailed down. Something in the room objects."
-    );
+    this.tell(this.line(goal === "BURY_TABLET" ? "rite-bury" : "rite-take"));
     await wait(EVENT_BEAT_MS);
 
     await this.eventBeat();
@@ -437,7 +470,7 @@ class Game {
     // you only came away with it if you were still standing there when it was
     // over. Retryable: walk back and pay for another event.
     if (this.state.fled) {
-      this.tell("You ran. What you came here to do is still undone.");
+      this.tell(this.line("rite-aborted"));
       return;
     }
 
@@ -447,7 +480,7 @@ class Game {
     if (goal === "TAKE_TABLET") {
       relicFound();
       this.tally.found += 1;
-      this.tell(`Among the coffins, the ${this.word("relic")}. It is yours.`, "good");
+      this.tell(this.line("relic-found", { relic: this.word("relic") }), "good");
       this.refresh();
       return wait(RESULT_BEAT_MS);
     }
@@ -480,7 +513,7 @@ class Game {
     if (!n) {
       if (wall) {
         Bd.openZombieDoor(this.board, wall);
-        this.tell(`Nowhere on from here — until the ${DIR_WORD[wall]} wall gives way.`);
+        this.tell(this.line("dead-end", { dir: this.dirWord(wall) }));
         this.refresh();
         await wait(RESULT_BEAT_MS);
       }
@@ -492,7 +525,7 @@ class Game {
     // The knock, the cracks, something leaning on it, and then the wall. Said
     // out loud one beat before it happens, which is the difference between a
     // stat event and a horror beat.
-    this.tell(`Something is working at the ${DIR_WORD[wall]} wall.`);
+    this.tell(this.line("breach-working", { dir: this.dirWord(wall) }));
     breakInTelegraph(wall);
     await wait(BREACH_KNOCK_MS);
     breakInCracks(wall);
@@ -626,7 +659,7 @@ class Game {
   loadoutLabel(o, sword) {
     const spent = o.spends.map((id) => this.itemName(id));
     if (!spent.length) {
-      return sword ? `Fight with the ${this.itemName(sword)}` : "Fight bare-handed";
+      return sword ? this.ui("fight-with", { item: this.itemName(sword) }) : this.ui("fight-bare");
     }
     return spent.join(" and ");
   }
@@ -640,7 +673,9 @@ class Game {
       label: this.loadoutLabel(o, sword),
       // The arithmetic, said out loud. Combat is fully deterministic, so there
       // is nothing to hide and no reason to make anyone do it in their head.
-      sub: o.blood ? `attack ${o.attack} · ${o.blood} of it your own` : `attack ${o.attack}`,
+      sub: o.blood
+        ? this.ui("attack-blood", { n: o.attack, blood: o.blood })
+        : this.ui("attack", { n: o.attack }),
       // The card shows what the card is about. Every loadout swings the sword,
       // so the sword is the right mark only when nothing else is being spent —
       // a card headed 五雷符 with a blade on it is answering a question nobody
@@ -657,7 +692,7 @@ class Game {
       acts.push({
         kind: "escape",
         label: this.itemName("black-dog-blood"),
-        sub: "they lose you entirely",
+        sub: this.ui("escape-sub"),
         cost: { hp: 0 },
         onClick: () => this.doEscape(done),
       });
@@ -672,8 +707,8 @@ class Game {
       acts.push({
         kind: "flee",
         dir: m.dir,
-        label: `Run ${m.dir} — ${this.tileName(to.id)}`,
-        sub: "the turn ends where you land",
+        label: this.ui("run", { dir: m.dir, room: this.tileName(to.id) }),
+        sub: this.ui("run-sub"),
         cost: { hp: -E.RULES.RUN_AWAY_DAMAGE },
         onClick: () => this.doFlee(m.dir, done),
       });
@@ -682,7 +717,7 @@ class Game {
     // `health` is what marks a card lethal, and it is read here rather than
     // baked in above: it can move mid-window, and a card that would kill you
     // has to say so at the moment you are looking at it.
-    renderActions(acts, `${n} of them.`, { pack: n, health: s.health });
+    renderActions(acts, this.ui("fight-prompt", { n }), { pack: n, health: s.health });
   }
 
   async doFight(n, o, opts, done) {
@@ -697,10 +732,7 @@ class Game {
     if (r.diedPaying) {
       paperFlutter();
       this.refresh();
-      this.tell(
-        `You write the ${this.itemName("blood-talisman")} and there is not enough of you left to finish it.`,
-        "toll"
-      );
+      this.tell(this.line("died-paying", { item: this.itemName("blood-talisman") }), "toll");
       await wait(RESULT_BEAT_MS);
       return done();
     }
@@ -717,8 +749,9 @@ class Game {
     combatHit(n, r.weaponId);
     await resolveBeat({ icon: r.weaponId ? `item-${r.weaponId}` : null });
     this.refresh();
-    for (const id of r.spent) log(`${this.itemName(id)} is spent.`);
-    log(r.damage ? `${r.damage} damage.` : "They do not touch you.", r.damage ? "bad" : "good");
+    for (const id of r.spent) log(this.line("spent", { item: this.itemName(id) }));
+    log(r.damage ? this.line("damage", { n: r.damage }) : this.line("untouched"),
+        r.damage ? "bad" : "good");
     if (s.status !== "playing") return done();
     await wait(RESULT_BEAT_MS);
     return done();
@@ -730,7 +763,7 @@ class Game {
     if (!r.ok) return done(); // nothing held: the card should not have been there
     await resolveBeat({ mode: "flee" });
     this.refresh();
-    this.tell(`You break the ${this.itemName("black-dog-blood")} over the floor. They lose you in it.`);
+    this.tell(this.line("blood-escape", { item: this.itemName("black-dog-blood") }));
     await wait(RESULT_BEAT_MS);
     return done();
   }
@@ -747,7 +780,10 @@ class Game {
     this.refresh();
     if (this.state.status !== "playing") return done();
     animateEntry(dir);
-    this.tell(`You run ${DIR_WORD[dir]}, into the ${this.tileName(Bd.currentTile(this.board).id)}.`);
+    this.tell(this.line("ran", {
+      dir: this.dirWord(dir),
+      room: this.tileName(Bd.currentTile(this.board).id),
+    }));
     await wait(RESULT_BEAT_MS);
     return done();
   }
@@ -767,7 +803,7 @@ class Game {
     // something whose only answer is no is worse than not asking.
     if (!E.held(this.state, "sticky-rice")) {
       const res = E.resolveEvent(this.state, ev, { giveRice: false });
-      this.tell("You have nothing to give them.");
+      this.tell(this.line("villager-empty-handed"));
       await wait(RESULT_BEAT_MS);
       return this.fightBeat(res.n);
     }
@@ -802,15 +838,15 @@ class Game {
         [
           {
             kind: "give",
-            label: t.give || "Give the rice",
-            sub: `spends one ${this.itemName("sticky-rice")}`,
+            label: t.give || this.ui("give"),
+            sub: this.ui("give-sub", { item: this.itemName("sticky-rice") }),
             primary: true,
             onClick: () => { clearChoices(); resolve(true); },
           },
           {
             kind: "refuse",
-            label: t.refuse || "Keep it",
-            sub: `${ev.turnsInto} of them, as you stand`,
+            label: t.refuse || this.ui("refuse"),
+            sub: this.ui("refuse-sub", { n: ev.turnsInto }),
             cost: { hp: -bare },
             onClick: () => { clearChoices(); resolve(false); },
           },
@@ -830,7 +866,7 @@ class Game {
       // A room that heals is the game's "not this time", so it buys a turn of
       // release. Slightly less of one: it is a counting room, not an escape.
       E.grantRelief(this.state, 0.7);
-      log(`You steady yourself here. +1 HP.`, "good");
+      log(this.line("heal-tile"), "good");
       this.refresh();
     }
     this.renderEndTurn(cued);
@@ -854,7 +890,7 @@ class Game {
       const cat = this.categoryName(table);
       choices.push({
         kind: "search",
-        label: "搜索 Search the room",
+        label: this.ui("search"),
         sub: cat,
         onClick: () => this.doSearch(table),
       });
@@ -868,8 +904,8 @@ class Game {
     if (action === "RESTORE_COWER_ONCE" && !this.state.cowerRestored) {
       choices.push({
         kind: "tileaction",
-        label: `${this.actionWord("COWER")} — light the coil`,
-        sub: "one more charge, once tonight",
+        label: this.ui("coil", { cower: this.actionWord("COWER") }),
+        sub: this.ui("coil-sub"),
         onClick: () => this.doRestoreCower(),
       });
     }
@@ -879,8 +915,8 @@ class Game {
     if (action === "PRAY_ONCE" && Bd.canPray(this.board)) {
       choices.push({
         kind: "tileaction",
-        label: "祈求 Ask the land god",
-        sub: "the next ground you turn up is the grave",
+        label: this.ui("pray"),
+        sub: this.ui("pray-sub"),
         onClick: () => this.doPray(),
       });
     }
@@ -892,7 +928,7 @@ class Game {
     if (!r.ok) return this.renderEndTurn();
     relicFound();
     this.refresh();
-    this.tell("You light the last coil. It will buy you one more corner to hide in.", "good");
+    this.tell(this.line("coil-lit"), "good");
     this.renderEndTurn();
   }
 
@@ -901,7 +937,7 @@ class Game {
     if (!r.ok) return this.renderEndTurn();
     relicFound();
     this.refresh();
-    this.tell(`You ask, and the land god answers. The next ground you turn up outside is the ${this.tileName(r.target)}.`, "good");
+    this.tell(this.line("prayer-answered", { room: this.tileName(r.target) }), "good");
     this.renderEndTurn();
   }
 
@@ -921,13 +957,13 @@ class Game {
     renderActions([]);
 
     if (out.result === "TOOK") {
-      log(`You turn the room over. ${iName(this, out.id)}.`, "good");
+      log(this.line("search-took", { item: iName(this, out.id) }), "good");
       this.refresh();
       return void setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
     }
 
     if (out.result === "OFFER_DROP") {
-      log(`${iName(this, out.id)}, and nowhere to put it.`);
+      log(this.line("search-nowhere", { item: iName(this, out.id) }));
       return showDropDialog(this, out.id, {
         onDrop: (dropId, foundId) => this.takeInstead(foundId, dropId),
         onDropStack: (dropId, n, foundId) => {
@@ -938,7 +974,7 @@ class Game {
           this.takeInstead(foundId, null);
         },
         onLeave: (foundId) => {
-          log(`You leave ${iName(this, foundId)} where it lies.`, "muted");
+          log(this.line("search-left", { item: iName(this, foundId) }), "muted");
           this.refresh();
           this.renderEndTurn();
         },
@@ -949,7 +985,12 @@ class Game {
     // table and the player is entitled to feel them rather than read them. The
     // line varies by turn, which is deterministic: a replayed seed says the
     // same thing in the same room.
-    log(EMPTY_HANDED[this.state.turn % EMPTY_HANDED.length], "muted");
+    // Picked by turn number rather than at random — a replayed seed has to say
+    // the same thing in the same room, and the search stream is not to be
+    // disturbed for flavour. Modulo the list's own length, so a language may
+    // offer a different number of ways to find nothing.
+    const empty = (this.data.theme.lines || {})["empty-handed"] || [];
+    if (empty.length) log(empty[this.state.turn % empty.length], "muted");
     this.refresh();
     setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
   }
@@ -957,13 +998,14 @@ class Game {
   takeInstead(foundId, dropId) {
     const got = E.pickUpItem(this.state, foundId, dropId);
     if (got.ok) {
-      if (dropId) log(`${iName(this, dropId)} down, ${iName(this, foundId)} up.`, "good");
-      else log(`${iName(this, foundId)}.`, "good");
+      if (dropId) log(this.line("search-swap", {
+        dropped: iName(this, dropId), found: iName(this, foundId) }), "good");
+      else log(this.line("search-kept", { item: iName(this, foundId) }), "good");
     } else {
       // The engine refused. Say so plainly rather than pretending it worked —
       // the only ways here are a duplicate unique or a stack that freed nothing,
       // and both are the player's business.
-      log(`No room for ${iName(this, foundId)}. It stays where it is.`, "muted");
+      log(this.line("search-no-room", { item: iName(this, foundId) }), "muted");
     }
     this.refresh();
     this.renderEndTurn();
@@ -977,10 +1019,10 @@ class Game {
     const out = E.useMedicine(this.state, id);
     if (!out.ok) return;
     const name = iName(this, id);
-    if (out.healed > 0) log(`${name}. +${out.healed} health.`, "good");
-    else if (out.healed < 0) log(`${name}. It was the bad half: ${out.healed} health.`, "bad");
-    else log(`${name}.`);
-    if (out.cured) log("The grey goes out of the wound. 中毒 lifted.", "good");
+    if (out.healed > 0) log(this.line("use-heal", { item: name, n: out.healed }), "good");
+    else if (out.healed < 0) log(this.line("use-bad-half", { item: name, n: out.healed }), "bad");
+    else log(this.line("use-plain", { item: name }));
+    if (out.cured) log(this.line("cured"), "good");
     this.refresh();
   }
 
@@ -995,10 +1037,11 @@ class Game {
         paperFlutter();
         itemPickup(targetId);
         this.refresh();
-        this.tell(
-          `You grind the ${this.itemName("cinnabar")} and paint it again. ${this.itemName(targetId)} ×${out.count}.`,
-          "good"
-        );
+        this.tell(this.line("cinnabar-painted", {
+          item: this.itemName("cinnabar"),
+          target: this.itemName(targetId),
+          n: out.count,
+        }), "good");
       },
     });
   }
@@ -1021,9 +1064,9 @@ class Game {
     }
     renderActions(
       [...choices,
-       { kind: "draw", label: "Next turn", sub: "six minutes", primary: true,
-         onClick: () => this.nextTurn() }],
-      "The room is quiet."
+       { kind: "draw", label: this.ui("next-turn"), sub: this.ui("next-turn-sub"),
+         primary: true, onClick: () => this.nextTurn() }],
+      this.ui("quiet-prompt")
     );
   }
 
@@ -1080,7 +1123,7 @@ class Game {
     // there will strike, and what makes the line true is the silence after it.
     watchDrum(1);
     tollBell();
-    this.tell("三更. The drum goes, and then nothing goes at all.", "toll");
+    this.tell(this.line("third-watch"), "toll");
     await wait(MIDNIGHT_TOLL_MS);
 
     // 活水. He will not cross it, so there is no exchange at all — the only
@@ -1089,7 +1132,7 @@ class Game {
     const tile = Bd.currentTile(this.board);
     const water = ((tile.def && tile.def.flags) || []).includes("RUNNING_WATER");
     if (water) {
-      this.tell("He stops at the bank. Whatever he is, it will not cross running water.");
+      this.tell(this.line("running-water"));
       E.midnight(this.state, { runningWater: true });
       await wait(RESULT_BEAT_MS);
       return this.gameOver();
@@ -1159,8 +1202,8 @@ class Game {
         kind: "kit",
         label: o.spends.length
           ? o.spends.map((id) => this.itemName(id)).join(" and ")
-          : sword ? `Just the ${this.itemName(sword)}` : "Nothing but your hands",
-        sub: `attack ${o.attack}`,
+          : sword ? this.ui("kit-only", { item: this.itemName(sword) }) : this.ui("kit-bare"),
+        sub: this.ui("attack", { n: o.attack }),
         icon: itemArt(o.spends[0] || sword),
         primary: i === 0,
         // 血符 is written in your own blood before the strike, and at one heart
@@ -1169,8 +1212,7 @@ class Game {
         cost: o.blood ? { hp: -o.blood } : null,
         onClick: () => { clearChoices(); resolve(o.use); },
       }));
-      renderActions(acts, "He is in the doorway. One strike — what do you show him?",
-        { pack: 1, health: this.state.health });
+      renderActions(acts, this.ui("kit-prompt"), { pack: 1, health: this.state.health });
     });
   }
 
@@ -1211,19 +1253,21 @@ class Game {
     verdictSting(won);
 
     const again = [
-      { label: "Play again", primary: true, onClick: () => startNewGame() },
-      { label: "Replay this seed", onClick: () => startNewGame(this.seed) },
+      { label: this.ui("play-again"), primary: true, onClick: () => startNewGame() },
+      { label: this.ui("replay-seed"), onClick: () => startNewGame(this.seed) },
       // A finished run is exactly when someone wants to hand the seed on.
-      { label: "Copy replay link", onClick: (btn) => copyReplayLink(btn) },
-      { label: "Menu", href: "index.html" },
+      { label: this.ui("copy-link"), onClick: (btn) => copyReplayLink(btn) },
+      { label: this.ui("menu"), href: "index.html" },
     ];
 
     const summary = [
-      `Lasted until ${formatHour(this.state.hour)}`,
-      `${this.tally.putDown} of the ${this.word("monsters")} put down`,
-      `${this.tally.found} ${this.tally.found === 1 ? "item" : "items"} found`,
+      this.verdictLine("lasted", { hour: formatHour(this.state.hour) }),
+      this.verdictLine("put-down", { n: this.tally.putDown, monsters: this.word("monsters") }),
+      this.tally.found === 1
+        ? this.verdictLine("found-one")
+        : this.verdictLine("found-many", { n: this.tally.found }),
       this.relicLine(outcome),
-      `Seed ${this.seed}`,
+      this.verdictLine("seed", { seed: this.seed }),
     ];
 
     // The sentence somebody might actually screenshot, above the rows nobody
@@ -1239,7 +1283,8 @@ class Game {
       [O.LOSS_HEALTH]: this.state.lossReason === "combat" ? "combat" : "health",
     };
 
-    const title = outs[outcome] || (won ? "You made it to dawn" : "You are one of them now");
+    const title = outs[outcome] ||
+      this.verdictLine(won ? "won-fallback" : "lost-fallback");
     let sub = subs[outcome] || "";
     if (outcome === O.LOSS_HEALTH) {
       sub = subs[`LOSS_HEALTH_${this.state.lossReason === "combat" ? "combat" : "health"}`] || sub;
@@ -1273,9 +1318,9 @@ class Game {
   // is a fact about the tablet and not a judgement about the ending.
   relicLine(outcome) {
     const relic = this.word("relic");
-    if (outcome === E.OUTCOMES.WIN_BURIAL) return `The ${relic} is buried`;
-    if (this.state.tablet) return `The ${relic} was on you, unburied`;
-    return `The ${relic} was never found`;
+    if (outcome === E.OUTCOMES.WIN_BURIAL) return this.verdictLine("relic-buried", { relic });
+    if (this.state.tablet) return this.verdictLine("relic-carried", { relic });
+    return this.verdictLine("relic-lost", { relic });
   }
 }
 
@@ -1320,20 +1365,20 @@ async function copyReplayLink(btn) {
     await navigator.clipboard.writeText(url);
     const was = btn.title || btn.textContent;
     if (btn.title) {
-      btn.title = "Link copied";
+      btn.title = uiWord(game, "link-copied");
       btn.classList.add("utilbtn--done");
       setTimeout(() => {
         btn.title = was;
         btn.classList.remove("utilbtn--done");
       }, 1800);
     } else {
-      btn.textContent = "Link copied";
+      btn.textContent = uiWord(game, "link-copied");
       setTimeout(() => (btn.textContent = was), 1800);
     }
   } catch {
     // Clipboard refused (insecure context or denied permission) — put the link
     // in the log so it can still be copied by hand.
-    log("Replay link: " + url);
+    log(uiWord(game, "replay-link-fallback", { url }));
   }
 }
 
@@ -1381,7 +1426,7 @@ function paintCalmToggle() {
   const on = isCalm();
   btn.setAttribute("aria-pressed", on ? "true" : "false");
   const label = document.getElementById("calm-label");
-  if (label) label.textContent = on ? "Calm mode on" : "Calm mode off";
+  if (label) label.textContent = uiWord(game, on ? "calm-on" : "calm-off");
   const slot = document.getElementById("calm-icon");
   if (slot) {
     slot.textContent = "";
@@ -1397,7 +1442,7 @@ function paintSoundToggle() {
   const on = !isMuted();
   btn.setAttribute("aria-pressed", on ? "true" : "false");
   const label = document.getElementById("sound-label");
-  if (label) label.textContent = on ? "Sound on" : "Sound off";
+  if (label) label.textContent = uiWord(game, on ? "sound-on" : "sound-off");
   const slot = document.getElementById("sound-icon");
   if (slot) {
     slot.textContent = "";
@@ -1469,7 +1514,7 @@ async function main() {
     if (firstVisit()) openNote();
   } catch (err) {
     console.error(err);
-    log("Failed to start the game — see console.", "bad");
+    log(uiWord(game, "start-failed"), "bad");
   }
 }
 

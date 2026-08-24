@@ -13,7 +13,6 @@ import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, 
 const DIR_CLASS = { N: "n", E: "e", S: "s", W: "w" };
 const DIRS = ["N", "E", "S", "W"];
 const DELTA = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
-const DIR_WORD = { N: "north", E: "east", S: "south", W: "west" };
 const ARROW = { N: "↑", E: "→", S: "↓", W: "←" };
 const ARROW_KEY = { ArrowUp: "N", ArrowRight: "E", ArrowDown: "S", ArrowLeft: "W" };
 
@@ -127,9 +126,15 @@ let pendingMoves = [];
 let movePrompt = "";
 let lastHealth = null;
 let lastItems = [];
+// The run currently being drawn. Set on every HUD render, which happens before
+// anything else here draws, so the handful of leaf functions that build a
+// fragment without being handed `game` can still look a word up. Threading it
+// down through six layers to reach one aria-label would be the worse trade.
+let drawing = null;
 const LOW_HEALTH = 2;
 
 export function renderHud(game) {
+  drawing = game;
   const health = game.state.health;
   if (lastHealth != null && health < lastHealth) damageFeedback();
   lastHealth = health;
@@ -285,7 +290,7 @@ function renderAttack(game) {
     const more = document.createElement("span");
     more.className = "statmore";
     more.setAttribute("aria-hidden", "true");
-    more.textContent = `up to ${top.attack}`;
+    more.textContent = ui(game, "attack-ceiling", { n: top.attack });
     el.appendChild(more);
     const spent = top.spends.map((id) => itemName(game, id)).join(" and ");
     el.title = `${held0}. Up to ${top.attack} spending ${spent}.`;
@@ -471,7 +476,8 @@ function cardsLeftPhrase(c) {
 // The last hour, called out. The ambient palette shift is handled by the hour
 // class; this is the punctuation on top of it.
 function strikeEleven(face) {
-  const line = "Eleven. The last hour — when the deck runs dry, it is midnight.";
+  const table = (drawing && drawing.data && drawing.data.theme && drawing.data.theme.lines) || {};
+  const line = table["strike-eleven"] || "strike-eleven";
   log(line, "bad");
   // The one line the issue insists must stay visible, and rightly: it is the
   // moment the game tells you how it ends.
@@ -592,7 +598,7 @@ function renderRelic(s) {
   text.textContent = s.tablet ? "Held" : "Not yet";
   text.setAttribute("aria-hidden", "true");
   el.appendChild(text);
-  el.appendChild(srOnly(s.tablet ? "held, and it costs no slot" : "not found yet"));
+  el.appendChild(srOnly(ui(drawing, s.tablet ? "tablet-held" : "tablet-missing")));
 }
 
 // The pack expanded into one entry per slot, in the order the engine charges
@@ -638,7 +644,7 @@ function emptySlot() {
   row.className = "slot slot--empty";
   const name = document.createElement("span");
   name.className = "slotname";
-  name.textContent = "Empty";
+  name.textContent = ui(drawing, "slot-empty");
   row.appendChild(name);
   return row;
 }
@@ -667,7 +673,7 @@ function packSlot(game, id, opts = {}) {
     tally.textContent = `×${n}`;
     // Said in words too: "×3" is a picture, and the pack has to be playable
     // without seeing it.
-    tally.setAttribute("aria-label", `${n} of them, sharing one slot`);
+    tally.setAttribute("aria-label", ui(game, "slot-stack", { n }));
     name.appendChild(tally);
   }
   text.appendChild(name);
@@ -694,15 +700,15 @@ function packSlot(game, id, opts = {}) {
     const use = document.createElement("button");
     use.type = "button";
     use.className = "slotuse";
-    use.textContent = "Use";
+    use.textContent = ui(game, "use");
     use.disabled = !canUse;
     use.setAttribute(
       "aria-label",
       canUse
-        ? `Use ${itemName(game, id)}`
-        : `${itemName(game, id)} — no talisman to copy`
+        ? ui(game, "use-item", { item: itemName(game, id) })
+        : ui(game, "use-blocked", { item: itemName(game, id) })
     );
-    if (!canUse) use.title = "No talisman to copy";
+    if (!canUse) use.title = ui(game, "use-blocked-title");
     use.addEventListener("click", () => opts.onUse(id));
     row.appendChild(use);
   }
@@ -735,12 +741,12 @@ export function showCinnabarDialog(game, opts = {}) {
 
   const h = document.createElement("h2");
   h.id = "cinnabar-title";
-  h.textContent = `Grind the ${itemName(game, "cinnabar")}`;
+  h.textContent = ui(game, "cinnabar-title", { item: itemName(game, "cinnabar") });
   sheet.appendChild(h);
 
   const lede = document.createElement("p");
   const n = (game.state.itemsById["cinnabar"] || {}).n || 2;
-  lede.textContent = `Paint a charm twice and it works twice. Which one — you will have ${n} more of it, and a stack is still one slot.`;
+  lede.textContent = ui(game, "cinnabar-lede", { n });
   sheet.appendChild(lede);
 
   const list = document.createElement("div");
@@ -750,7 +756,8 @@ export function showCinnabarDialog(game, opts = {}) {
     btn.type = "button";
     btn.className = "btn dropchoice";
     const have = heldCount(game.state, id);
-    btn.textContent = `${itemName(game, id)} — ${have} now, ${have + n} after`;
+    btn.textContent = ui(game, "cinnabar-choice",
+      { item: itemName(game, id), have, after: have + n });
     btn.addEventListener("click", () => {
       done();
       if (opts.onPick) opts.onPick(id);
@@ -762,7 +769,7 @@ export function showCinnabarDialog(game, opts = {}) {
   const leave = document.createElement("button");
   leave.type = "button";
   leave.className = "btn dropleave";
-  leave.textContent = "Keep it for now";
+  leave.textContent = ui(game, "cinnabar-leave");
   sheet.appendChild(leave);
 
   wrap.appendChild(sheet);
@@ -789,22 +796,23 @@ function itemEffect(game, id) {
   const bits = [];
   // Weapons ARE the attack, so they are stated absolutely: "attack 3", never
   // "+3". A talisman genuinely does add, and says so.
-  if (it.cat === "weapon" && it.attack != null) bits.push(`attack ${it.attack}`);
-  else if (it.attack != null) bits.push(`fight at ${it.attack}`);
-  if (it.buffSword) bits.push(`or +${it.buffSword} to a sword, for good`);
-  if (it.costHp) bits.push(`costs ${it.costHp} health to write`);
-  if (it.effect === "DUPLICATE_TALISMAN") bits.push(`copies a talisman you hold, +${it.n || 2}`);
-  if (it.effect === "DOUBLE_SWORD") bits.push("doubles your sword, once");
-  if (it.effect === "ESCAPE_FIGHT") bits.push("leaves a fight unhurt");
-  if (it.heal != null) bits.push(`+${it.heal} health`);
+  const eff = (k, v) => fill(((game.data.theme.effects || {})[k]) || k, v);
+  if (it.cat === "weapon" && it.attack != null) bits.push(eff("weapon-attack", { n: it.attack }));
+  else if (it.attack != null) bits.push(eff("talisman-attack", { n: it.attack }));
+  if (it.buffSword) bits.push(eff("buff-sword", { n: it.buffSword }));
+  if (it.costHp) bits.push(eff("cost-hp", { n: it.costHp }));
+  if (it.effect === "DUPLICATE_TALISMAN") bits.push(eff("duplicate", { n: it.n || 2 }));
+  if (it.effect === "DOUBLE_SWORD") bits.push(eff("double-sword"));
+  if (it.effect === "ESCAPE_FIGHT") bits.push(eff("escape"));
+  if (it.heal != null) bits.push(eff("heal", { n: it.heal }));
   // The gamble is named rather than averaged. A player deciding whether to
   // swallow it needs both faces, not their mean.
   if (it.gamble) {
-    bits.push(it.gamble.map((f) => `${f.hp > 0 ? "+" : ""}${f.hp}`).join(" or "));
+    bits.push(it.gamble.map((f) => `${f.hp > 0 ? "+" : ""}${f.hp}`).join(eff("gamble-join")));
   }
-  if (it.cures === "POISON") bits.push("draws out 中毒");
-  if (it.damageReduction) bits.push(`殭屍 wounds ${it.damageReduction} less`);
-  return bits.join(" · ");
+  if (it.cures === "POISON") bits.push(eff("cures-poison"));
+  if (it.damageReduction) bits.push(eff("damage-reduction", { n: it.damageReduction }));
+  return bits.join(eff("join"));
 }
 
 // What each wall of the room you're standing in is currently doing. Passability
@@ -963,7 +971,7 @@ function mountDoorways(boardEl) {
   const group = document.createElement("div");
   group.className = "doorways";
   group.setAttribute("role", "group");
-  group.setAttribute("aria-label", movePrompt || "Choose a way out");
+  group.setAttribute("aria-label", movePrompt || ui(drawing, "ways-out"));
 
   for (const dir of DIRS) {
     const move = pendingMoves.find((m) => m.dir === dir);
@@ -1614,11 +1622,11 @@ export function showDropDialog(game, foundId, opts = {}) {
 
   const h = document.createElement("h2");
   h.id = "drop-title";
-  h.textContent = `You found ${itemName(game, foundId)}`;
+  h.textContent = ui(game, "drop-title", { item: itemName(game, foundId) });
   sheet.appendChild(h);
 
   const lede = document.createElement("p");
-  lede.textContent = "Your hands are full. Something has to go down before it comes up.";
+  lede.textContent = ui(game, "drop-lede");
   sheet.appendChild(lede);
 
   const found = packSlot(game, foundId, { plain: true });
@@ -1640,8 +1648,9 @@ export function showDropDialog(game, foundId, opts = {}) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn dropchoice";
-    const label = itemName(game, id) + (whole ? ` ×${n}` : "");
-    btn.textContent = whole ? `Drop ${label} — all of them` : `Drop ${label}`;
+    btn.textContent = whole
+      ? ui(game, "drop-stack", { item: itemName(game, id), n })
+      : ui(game, "drop-one", { item: itemName(game, id) });
     btn.addEventListener("click", () => {
       done();
       // A stack shares one slot, so dropping one of three frees nothing. Put
@@ -1656,7 +1665,7 @@ export function showDropDialog(game, foundId, opts = {}) {
   const leave = document.createElement("button");
   leave.type = "button";
   leave.className = "btn dropleave";
-  leave.textContent = "Leave it where it is";
+  leave.textContent = ui(game, "drop-leave");
   sheet.appendChild(leave);
 
   wrap.appendChild(sheet);
@@ -2528,13 +2537,13 @@ function tileBadges(game, tile) {
   const held = game.state.tablet;
   const out = [];
   if (def.goal === "TAKE_TABLET" && !held) {
-    out.push({ kind: "relic", kindName: "ui", id: "relic", say: "The relic rests here." });
+    out.push({ kind: "relic", kindName: "ui", id: "relic", say: ui(game, "badge-take") });
   }
   if (def.goal === "BURY_TABLET" && held) {
-    out.push({ kind: "relic", kindName: "ui", id: "relic", say: "Bury the relic here." });
+    out.push({ kind: "relic", kindName: "ui", id: "relic", say: ui(game, "badge-bury") });
   }
   if (def.onTurnEnd === "HEAL_1") {
-    out.push({ kind: "hearth", kindName: "stat", id: "heart", say: "Resting here heals you." });
+    out.push({ kind: "hearth", kindName: "stat", id: "heart", say: ui(game, "badge-heal") });
   }
   return out;
 }
@@ -2627,33 +2636,34 @@ function edgeMark(dir, edge, world) {
 // One sentence covering the room and all four walls, so the board is playable
 // without seeing it.
 function describeRoom(game, tile, edges) {
-  const parts = [`${tileName(game, tile.id)}, you are here.`];
+  const parts = [roomWord(game, "here", { room: tileName(game, tile.id) })];
   // The badges are aria-hidden pictures; this is where they are actually said.
   for (const b of tileBadges(game, tile)) parts.push(b.say);
   for (const dir of DIRS) {
     const e = edges[dir];
-    const where = DIR_WORD[dir];
+    const where = dirWord(game, dir);
     if (e.state === "wall") {
       // The one transient thing this sentence reports. A wall being broken
       // through is a fact about the room and it decides what the player does
       // next, so it is said — unlike the phantoms, which are not facts.
-      parts.push(
-        breakIn.dir === dir && breakIn.wall
-          ? `To the ${where}, a wall giving way — they are coming through it.`
-          : `To the ${where}, a wall.`
-      );
+      parts.push(roomWord(game,
+        breakIn.dir === dir && breakIn.wall ? "wall-failing" : "wall", { dir: where }));
     } else if (e.state === "outside") {
-      parts.push(`To the ${where}, the arrow door leading outside.`);
+      parts.push(roomWord(game, "outside", { dir: where }));
     } else if (e.state === "open") {
-      const thing = e.kind === "broken" ? "a broken wall" : e.arrow ? "the arrow door" : "an open door";
-      const room = e.neighbour ? tileName(game, e.neighbour.id) : "somewhere explored";
-      parts.push(`To the ${where}, ${thing} into the ${room}${e.crossesWorld ? ", across the threshold" : ""}.`);
+      const thing = roomWord(game,
+        e.kind === "broken" ? "thing-broken" : e.arrow ? "thing-arrow" : "thing-open");
+      const room = e.neighbour ? tileName(game, e.neighbour.id) : roomWord(game, "somewhere");
+      parts.push(roomWord(game, "open", {
+        dir: where, thing, room,
+        cross: e.crossesWorld ? roomWord(game, "crossing") : "",
+      }));
     } else if (e.state === "blocked") {
-      const thing = e.kind === "broken" ? "a broken wall" : "a door";
-      parts.push(`To the ${where}, ${thing} that leads nowhere.`);
+      const thing = roomWord(game, e.kind === "broken" ? "thing-broken" : "thing-door");
+      parts.push(roomWord(game, "blocked", { dir: where, thing }));
     } else {
-      const thing = e.kind === "broken" ? "a broken wall" : "a shut door";
-      parts.push(`To the ${where}, ${thing}, unexplored beyond.`);
+      const thing = roomWord(game, e.kind === "broken" ? "thing-broken" : "thing-shut");
+      parts.push(roomWord(game, "unexplored", { dir: where, thing }));
     }
   }
   return parts.join(" ");
@@ -2710,7 +2720,7 @@ function costRow(hp) {
   row.setAttribute("aria-hidden", "true");
 
   if (hp === 0) {
-    row.textContent = "unharmed";
+    row.textContent = ui(drawing, "unharmed");
     return row;
   }
   const n = document.createElement("span");
@@ -2732,14 +2742,14 @@ function lethalRow() {
   row.setAttribute("aria-hidden", "true");
   const sk = icon("ui", "skull", "action-skull");
   if (sk) row.appendChild(sk);
-  row.appendChild(document.createTextNode("this kills you"));
+  row.appendChild(document.createTextNode(ui(drawing, "kills-you")));
   return row;
 }
 
 function costSentence(hp) {
-  if (hp === 0) return "you take no damage";
-  if (hp > 0) return `you gain ${hp} health`;
-  return `you will take ${Math.abs(hp)} damage`;
+  if (hp === 0) return ui(drawing, "cost-none");
+  if (hp > 0) return ui(drawing, "cost-gain", { n: hp });
+  return ui(drawing, "cost-loss", { n: Math.abs(hp) });
 }
 
 // The window's fixed header. Created once and emptied per render, so the pack
@@ -2958,7 +2968,7 @@ export function renderActions(actions, prompt = "", opts = {}) {
       b.appendChild(
         srOnly(
           fatal
-            ? `${costSentence(a.cost.hp)} — this would kill you`
+            ? ui(drawing, "cost-lethal", { sentence: costSentence(a.cost.hp) })
             : costSentence(a.cost.hp)
         )
       );
@@ -3157,6 +3167,30 @@ export function tileName(game, id) {
 }
 export function itemName(game, id) {
   return (game.data.theme.items && game.data.theme.items[id]) || id;
+}
+
+// The same contract app.js keeps: one lookup per surface, keyed on the moment,
+// and a missing key returns itself so a gap is visible rather than blank. These
+// take `game` because render's functions are not methods — the module draws for
+// whichever run it is handed.
+function fill(text, values) {
+  if (!values) return text;
+  return String(text).replace(/\{(\w+)\}/g, (whole, k) =>
+    values[k] === undefined ? whole : values[k]);
+}
+
+function ui(game, key, values) {
+  const table = (game && game.data && game.data.theme && game.data.theme.ui) || {};
+  return fill(table[key] || key, values);
+}
+
+function roomWord(game, key, values) {
+  const table = (game && game.data && game.data.theme && game.data.theme.room) || {};
+  return fill(table[key] || key, values);
+}
+
+function dirWord(game, dir) {
+  return ui(game, `dir-${dir}`);
 }
 
 function set(id, val) {

@@ -6,88 +6,92 @@ import { loadIcons, icon } from "./render.js";
 
 const DIRS = ["N", "E", "S", "W"];
 
-// Plain words for the behaviour flags. Keyed off the same fields the engine
-// reads, so a tile cannot gain a power the gallery quietly omits — anything
-// unrecognised is surfaced rather than dropped (see noteFor).
+// The behaviour notes live in data/theme.json now, keyed off the same fields the
+// engine reads — so a tile cannot gain a power the gallery quietly omits, and a
+// translation of this page is a data change like every other. Anything
+// unrecognised is still surfaced rather than dropped (see noteFor).
+//
 // The two goal rooms are rites, not cards: each resolves the room's own event
 // and then draws ONE MORE for the rite itself, so a goal room is two events in
-// one turn and the second lands at the moment you least want it. {tablet} is
-// filled from the theme, so this page and the board cannot end up calling the
-// 神主牌 two different things.
-const GOAL = {
-  TAKE_TABLET:
-    "The {tablet} is here. Resolve the room's event, then one more for the opening of the coffin. Survive it and still be standing here, and it is yours.",
-  BURY_TABLET:
-    "Break ground, then one more for the digging. Survive that holding the {tablet} and you have won.",
+// one turn and the second lands at the moment you least want it.
+const SEARCH_KEY = {
+  weapon: "search-weapon", magic: "search-magic",
+  medicine: "search-medicine", relic: "search-relic",
 };
-const ON_TURN_END = { HEAL_1: "+1 Health if you end your turn here." };
-const ACTION = {
-  RESTORE_COWER_ONCE: "Light the incense: one cower charge back. Once per night, and it costs no turn.",
-};
-const FLAG = {
-  RUNNING_WATER: "活水 running water. 殭屍 cannot cross it, so their attacks do you no harm while you stand here.",
-};
-// The one category this room can be rummaged for. Every room sharing a category
-// rolls the identical table — there is no rarity flag, and the ★ that used to
-// sit on 經堂 and 鐵匠鋪 was flavour that had leaked into the data.
-const SEARCH = {
-  weapon: "搜索 Search here for a 武器 weapon.",
-  magic: "搜索 Search here for a 符咒 talisman.",
-  medicine: "搜索 Search here for 丹藥 medicine.",
-  relic: "搜索 Search here for the 法器 — and nowhere else in the village.",
-};
-
-const WORD = { N: "north", E: "east", S: "south", W: "west" };
 
 // A tile's display name, for the notes that have to refer to another room.
 function name(theme, id) {
   return (theme && theme.tiles && theme.tiles[id]) || id;
 }
 
-// The word for the 神主牌, taken from the theme so this page and the board
-// cannot end up calling it two different things.
-function fill(line, theme) {
+// One lookup for this page, same contract as the game's: the key comes back if
+// it is missing, so a gap is a thing you can see rather than a blank card.
+function note(theme, key, values) {
+  const table = (theme && theme.tileNotes) || {};
+  return fill(table[key] || key, values);
+}
+
+function fill(line, values) {
   if (!line) return line;
-  const tablet = (theme && theme.actions && theme.actions.tablet) || "tablet";
-  return line.replace("{tablet}", tablet);
+  return String(line).replace(/\{(\w+)\}/g, (whole, k) =>
+    values && values[k] !== undefined ? values[k] : whole);
 }
 
 function noteFor(def, world, theme) {
   const notes = [];
+  // The word for the 神主牌, taken from the theme so this page and the board
+  // cannot end up calling it two different things.
+  const tablet = (theme && theme.actions && theme.actions.tablet) || "tablet";
+
   // Both decks have a `start` tile, but they mean different things: one is
   // where the night begins, the other is what goes down the moment you step
   // outside. Two cards reading "Where you begin" would just be confusing.
   if (def.start) {
-    notes.push(
-      world === "indoor"
-        ? "Where you begin."
-        : "Set aside at setup — it goes down the moment you first step outside."
-    );
+    notes.push(note(theme, world === "indoor" ? "start-indoor" : "start-outdoor"));
   }
   if (def.search) {
     // No "best of its kind" line: every room sharing a category rolls the
     // identical table, so saying otherwise would teach a rule the game lacks.
-    notes.push(SEARCH[def.search] || `搜索 Search here for ${def.search}.`);
+    notes.push(SEARCH_KEY[def.search]
+      ? note(theme, SEARCH_KEY[def.search])
+      : note(theme, "search-other", { what: def.search }));
   }
   if (def.exteriorDoor) {
-    notes.push(
-      `Carries the 月門 moon gate — its ${WORD[def.exteriorDoor]} way out leads outside the village, not to another room.`
-    );
+    notes.push(note(theme, "moon-gate", { dir: dirWord(theme, def.exteriorDoor) }));
   }
-  if (def.seam) notes.push("Joins the village along its seam edge, the way back in.");
-  for (const f of def.flags || []) notes.push(FLAG[f] || `Special: ${f}`);
+  if (def.seam) notes.push(note(theme, "seam"));
+  for (const f of def.flags || []) {
+    notes.push(f === "RUNNING_WATER"
+      ? note(theme, "running-water")
+      : note(theme, "unknown", { what: f }));
+  }
   if (def.action) {
     // The prayer names the tile it summons rather than hinting at it, and takes
     // that name from the theme like every other room name on the page.
-    notes.push(
-      def.action === "PRAY_ONCE"
-        ? `Pray: the next unexplored outdoor tile you place is the ${name(theme, "mass-grave")}. Once per night, and it costs no turn.`
-        : ACTION[def.action] || `Special: ${def.action}`
-    );
+    if (def.action === "PRAY_ONCE") {
+      notes.push(note(theme, "pray", { room: name(theme, "mass-grave") }));
+    } else if (def.action === "RESTORE_COWER_ONCE") {
+      notes.push(note(theme, "restore-cower"));
+    } else {
+      notes.push(note(theme, "unknown", { what: def.action }));
+    }
   }
-  if (def.goal) notes.push(fill(GOAL[def.goal], theme) || `Special: ${def.goal}`);
-  if (def.onTurnEnd) notes.push(ON_TURN_END[def.onTurnEnd] || `Special: ${def.onTurnEnd}`);
+  if (def.goal) {
+    const key = def.goal === "TAKE_TABLET" ? "take-tablet"
+      : def.goal === "BURY_TABLET" ? "bury-tablet" : null;
+    notes.push(key ? note(theme, key, { tablet }) : note(theme, "unknown", { what: def.goal }));
+  }
+  if (def.onTurnEnd) {
+    notes.push(def.onTurnEnd === "HEAL_1"
+      ? note(theme, "heal-1")
+      : note(theme, "unknown", { what: def.onTurnEnd }));
+  }
   return notes;
+}
+
+// The compass, spoken, from the theme like every other player-visible word.
+function dirWord(theme, dir) {
+  return ((theme && theme.ui) || {})[`dir-${dir}`] || dir;
 }
 
 // A compass of the tile's own doors. Not per rotation — the game turns tiles
@@ -201,11 +205,14 @@ function card(def, theme, count, world, n) {
   const doors = document.createElement("p");
   doors.className = "tilecard-doors";
   doors.appendChild(doorCompass(def));
-  const named = def.exits.map((d) => WORD[d]);
+  const named = def.exits.map((d) => dirWord(theme, d));
   const text = document.createElement("span");
   text.textContent =
-    (named.length === 4 ? "Doors on all four walls" : `Doors ${named.join(", ")}`) +
-    (def.seam ? `, ${WORD[def.seam]} seam` : "") + ".";
+    (named.length === 4
+      ? note(theme, "doors-all")
+      : note(theme, "doors-some", { dirs: named.join(note(theme, "doors-join")) })) +
+    (def.seam ? note(theme, "doors-seam", { dir: dirWord(theme, def.seam) }) : "") +
+    note(theme, "doors-end");
   doors.appendChild(text);
   body.appendChild(doors);
 
@@ -344,7 +351,7 @@ async function main() {
       "Sky, the same moon in the same corner, hills on the horizon, cold ground and a band of mist.");
   } catch (err) {
     console.error(err);
-    host.textContent = "Could not load the tile set.";
+    host.textContent = "Could not load the tile set."; // pre-theme: the theme is what failed to load
   }
 }
 
