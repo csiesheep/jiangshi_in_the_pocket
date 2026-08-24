@@ -215,16 +215,27 @@ export function setTurn(state, turn) {
   return state;
 }
 
-// Spend a turn. Turn 31 is not a turn: it is midnight, and the night is over.
+// Spend a turn. Turn 31 is not a turn: it is 三更, and the night is resolved
+// there by midnight(), not by the clock running out.
+//
+// Asking for a thirty-first turn is a bug in the caller, and it fails here
+// rather than being absorbed. It used to end the run quietly — status "lost",
+// lossReason "midnight" — which is the one ending this design abolished: there
+// is no loss to the clock (§10). Nothing reaches it today, because every caller
+// stops at TOTAL_TURNS and hands off, and that is exactly the reason it must
+// not stay quiet: a refactor that reopened a path past turn 30 would otherwise
+// ship a fabricated clock-death wearing the clothes of a real ending.
+//
+// A night that is already over is not a bug — it just does not move.
 export function advanceTurn(state) {
   if (state.status !== "playing") return state;
-  state.turn += 1;
-  if (state.turn > RULES.TOTAL_TURNS) {
-    state.hour = RULES.FINAL_HOUR;
-    state.status = "lost";
-    state.lossReason = "midnight";
-    return state;
+  if (state.turn >= RULES.TOTAL_TURNS) {
+    throw new Error(
+      `advanceTurn: turn ${state.turn} of ${RULES.TOTAL_TURNS} is the last one; ` +
+      `midnight is resolved by midnight(), and there is no loss to the clock`
+    );
   }
+  state.turn += 1;
   const hour = hourForTurn(state.turn);
   if (hour !== state.hour) {
     state.hour = hour;

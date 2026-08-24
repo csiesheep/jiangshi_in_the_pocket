@@ -99,25 +99,44 @@ test("advanceTurn: the hour turns on the eleventh and twenty-first turns", () =>
   eq(E.clockTime(s).label, "11:00");
 });
 
-test("advanceTurn: the thirtieth turn ends the night at midnight", () => {
+test("advanceTurn: the thirtieth is the last, and asking for one more is a bug", () => {
   const s = game({ seed: 1 });
   for (let i = 1; i < 30; i++) E.advanceTurn(s);
   eq(s.turn, 30, "thirty turns are granted");
   eq(s.status, "playing", "and the thirtieth is one of them");
   eq(E.clockTime(s).label, "11:54");
 
-  E.advanceTurn(s); // the turn that does not exist
-  eq(s.status, "lost");
-  eq(s.lossReason, "midnight");
-  eq(E.clockTime(s).label, "12:00", "the face reads midnight");
-  eq(E.clockTime(s).elapsed, 3, "the whole night spent");
+  // The turn that does not exist. This used to end the run quietly as a
+  // clock-death, which is the one ending the design abolished — so what is
+  // being pinned here is that it fails where a caller can see it rather than
+  // inventing an outcome. Every real caller stops at TOTAL_TURNS and hands off
+  // to midnight(); reaching this line at all means one of them stopped doing so.
+  let threw = null;
+  try { E.advanceTurn(s); } catch (err) { threw = err; }
+  assert(threw, "advancing past the last turn must not pass silently");
+  assert(/midnight/i.test(threw.message), `and it should say why, got: ${threw && threw.message}`);
+
+  eq(s.turn, 30, "the clock is left where it was");
+  eq(s.status, "playing", "no ending is invented");
+  eq(s.lossReason, null, "least of all a loss to the clock");
 });
 
-test("advanceTurn: a finished night does not keep ticking", () => {
+test("advanceTurn: a finished night does not keep ticking, and does not throw either", () => {
   const s = game({ seed: 1 });
+  for (let i = 1; i < 30; i++) E.advanceTurn(s);
+  s.status = "lost"; // however it ended — the clock is not what ended it
   for (let i = 0; i < 40; i++) E.advanceTurn(s);
-  eq(s.turn, E.RULES.TOTAL_TURNS + 1, "it stops at the one past the last");
-  eq(E.clockTime(s).label, "12:00");
+  eq(s.turn, 30, "a night that is over does not move");
+  eq(s.status, "lost", "and is not disturbed by being asked");
+});
+
+test("clockTime: the face still reads midnight past the last turn", () => {
+  // setTurn clamps to TOTAL_TURNS + 1, so the midnight face is reachable for
+  // display even though no turn is ever spent to get there.
+  const s = game({ seed: 1 });
+  E.setTurn(s, E.RULES.TOTAL_TURNS + 1);
+  eq(E.clockTime(s).label, "12:00", "the face reads midnight");
+  eq(E.clockTime(s).elapsed, 3, "the whole night spent");
 });
 
 test("clockTime: the pips count the turns left in the band", () => {
