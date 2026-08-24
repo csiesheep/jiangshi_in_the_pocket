@@ -6,8 +6,15 @@
 // stranded on a stale shell. That is the failure mode worth designing against —
 // a cache-first worker with one immortal cache name means players keep a build
 // forever and every later fix is invisible to them.
+//
+// The prefix has to be unique per game, and that is not cosmetic. Every game on
+// games.csiesheep.com shares one origin, and Cache Storage is partitioned by
+// origin rather than by path — so the sibling's worker sees this cache in
+// caches.keys() too. Since activate deletes every name that is not its own, two
+// games sharing a prefix would evict each other on every visit: offline play
+// broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "grave-errand-v31";
+const CACHE = "jiangshi-v1";
 
 // Everything needed to open the game with no network. Relative paths on
 // purpose: this ships under a subpath (…/jiangshi_in_the_pocket/) and absolute
