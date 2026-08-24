@@ -55,6 +55,12 @@ export const RULES = {
   MIN_COMBAT_DAMAGE: 0,
   RUN_AWAY_DAMAGE: 1, // generic flee, to an adjacent explored tile
 
+  // 破牆. The dead-end breach scales with the band, so the same corner is
+  // three of them at nine o'clock and five at eleven.
+  BREACH_COUNT: { "9": 3, "10": 4, "11": 5 },
+  // 護身符 takes this much off a blow, AFTER the clamp, and only in combat.
+  CHARM_REDUCTION: 1,
+
   // ---- poison --------------------------------------------------------------
   POISON_PER_TURN: 1, // ticks at the START of a turn; does not stack
 };
@@ -124,11 +130,16 @@ export function newGame(data, opts = {}) {
     // whatever else the night did, and sharing the game's rng would let an
     // unrelated draw shift every find after it.
     searchRng: makeRng((seed ^ 0x1b873593) >>> 0),
+    // A seventh, for the event draw. Separate from the search stream as well as
+    // from the game's: a night where you rummaged twice more must still meet
+    // the same events, or two players comparing a seed are comparing nothing.
+    eventRng: makeRng((seed ^ 0xcc9e2d51) >>> 0),
     seed,
     itemsById,
     // The §4 tables, by name. Kept on state rather than reached for at call
     // time so the engine still has no I/O and a test can inject its own.
     searchTables: data.search || {},
+    eventTables: data.events || {},
     health: RULES.START_HEALTH,
     // The clock, in two forms. `turn` is the truth — 1..30, and 31 the moment
     // the night is over. `hour` is derived from it and kept in step, because
@@ -146,6 +157,14 @@ export function newGame(data, opts = {}) {
     cowerRestored: false,
     // 中毒. A flag, not a counter: it does not stack, and only rice clears it.
     poisoned: false,
+    // Which swords have a 真火符 burned into them. Permanent, one per sword,
+    // and kept beside the pack rather than inside it because a count of swords
+    // is not the same question as which one is on fire.
+    buffed: {},
+    // Set by fleeing or by 黑狗血, cleared at the top of the next turn. It
+    // suppresses this turn's HEAL_1 and cancels the breach — you are not in the
+    // dead end any more.
+    fled: false,
     totem: false, // the tablet — slotless, never counted against MAX_ITEMS
     status: "playing", // playing | won | lost
     lossReason: null,
@@ -647,13 +666,73 @@ export function restoreCowerCharge(state) {
   return { ok: true, charges: state.cowerCharges };
 }
 
-// ---- Combat ----------------------------------------------------------------
-// Damage is arithmetic, clamped to [0, 4].
-export function combatDamage(n, attack) {
-  const raw = n - attack;
-  return Math.max(RULES.MIN_COMBAT_DAMAGE, Math.min(RULES.MAX_COMBAT_DAMAGE, raw));
+// ---- Attack -----------------------------------------------------------------
+// THE CENTRAL DEPARTURE FROM THE SOURCE: a sword and a talisman ADD. The source
+// allowed one weapon and one weapon only, so its whole arms race was "find a
+// bigger stick". Here the two halves multiply the decision instead — what you
+// swing, and what you burn while swinging it.
+//
+//     attack = (bestSword × 2 if 攝魂幡) + talisman
+//
+// The banner doubles the SWORD HALF ONLY. That is not an implementation detail
+// to be tidied away: it is what stops 攝魂幡 + 五雷符 being the single correct
+// endgame every time, and the worked examples in spec §6 exist to pin it.
+
+// A sword's attack including any 真火符 baked into it. The buff is permanent
+// and stored on the sword rather than recomputed, so a talisman spent on a
+// blade you later drop is a talisman spent.
+export function swordAttack(state, id) {
+  const def = state.itemsById[id];
+  if (!def || def.cat !== "weapon") return 0;
+  return (def.attack || 0) + (state.buffed[id] ? 1 : 0);
 }
 
+// The one sword that counts — the best held, never summed. Ties go to the first
+// found, which cannot matter: two swords of equal attack are equal.
+export function bestSword(state) {
+  let best = null;
+  let bestN = -1;
+  for (const id of heldIds(state)) {
+    const def = state.itemsById[id];
+    if (!def || def.cat !== "weapon") continue;
+    const n = swordAttack(state, id);
+    if (n > bestN) { bestN = n; best = id; }
+  }
+  return best;
+}
+
+// Burn a 真火符 into a sword. Permanent, and ONE PER SWORD — so the ceiling is
+// 七星劍 3 + 1 = 4, and 硃砂 cannot be used to pump a blade past it.
+export function buffSword(state, swordId) {
+  const sword = state.itemsById[swordId];
+  if (!sword || sword.cat !== "weapon") return { ok: false, reason: "not-a-sword" };
+  if (!held(state, swordId)) return { ok: false, reason: "not-held" };
+  if (state.buffed[swordId]) return { ok: false, reason: "already-buffed" };
+  if (!held(state, "truefire-talisman")) return { ok: false, reason: "no-talisman" };
+  dropItem(state, "truefire-talisman");
+  state.buffed[swordId] = true;
+  return { ok: true, attack: swordAttack(state, swordId) };
+}
+
+// What you would hit for with a given loadout. `use.banner` spends 攝魂幡 and
+// `use.talisman` names one to throw; neither is consumed here, because this is
+// the question the UI asks four times while the player is deciding.
+export function attackWith(state, use = {}) {
+  const swordId = use.sword && held(state, use.sword) ? use.sword : bestSword(state);
+  let sword = swordId ? swordAttack(state, swordId) : RULES.START_ATTACK;
+  if (use.banner) sword *= 2;
+  const tal = use.talisman ? state.itemsById[use.talisman] : null;
+  return sword + (tal ? tal.attack || 0 : 0);
+}
+
+// The HUD number: what you are carrying, with nothing spent. Bare-handed is
+// START_ATTACK, which is zero — the sword IS the number, never a bonus on top.
+export function effectiveAttack(state) {
+  const id = bestSword(state);
+  return id ? swordAttack(state, id) : RULES.START_ATTACK;
+}
+
+// Kept for the weapon picker in the UI.
 export function usableWeapons(state) {
   return heldIds(state).filter((id) => {
     const d = state.itemsById[id];
@@ -661,30 +740,55 @@ export function usableWeapons(state) {
   });
 }
 
-// The sword that would swing: an explicit preference if held, else the best.
-// Only one sword ever counts — they are never summed.
 export function chooseWeapon(state, preferId = null) {
-  const usable = usableWeapons(state);
-  if (preferId && usable.includes(preferId)) return preferId;
-  let best = null;
-  for (const id of usable) {
-    if (!best || state.itemsById[id].attack > state.itemsById[best].attack) best = id;
+  if (preferId && held(state, preferId)) {
+    const d = state.itemsById[preferId];
+    if (d && d.cat === "weapon") return preferId;
   }
-  return best;
+  return bestSword(state);
 }
 
-// Your attack right now. The sword IS the number — bare-handed is START_ATTACK,
-// which is zero. Adding a talisman on top is the additive formula and belongs
-// to the combat issue; this is the sword half only.
-export function effectiveAttack(state) {
-  const w = chooseWeapon(state);
-  return w ? state.itemsById[w].attack : RULES.START_ATTACK;
+// ---- Damage -----------------------------------------------------------------
+// Arithmetic, clamped, and THEN the charm. The order matters: 護身符 takes its
+// point off after the clamp, so it is worth a full point against the worst
+// packs in the game rather than being swallowed by the ceiling.
+//
+// 護身符 IS COMBAT-ONLY. It does not soften an HP event, it does not touch
+// poison, and it does not pay for fleeing. Its damageReduction is read here and
+// nowhere else, which keeps its scope sayable in one line: the things that claw
+// at you hit softer, and nothing else changes.
+export function combatDamage(n, attack, hasCharm = false) {
+  let d = Math.max(RULES.MIN_COMBAT_DAMAGE, Math.min(RULES.MAX_COMBAT_DAMAGE, n - attack));
+  if (hasCharm) d = Math.max(0, d - (RULES.CHARM_REDUCTION || 1));
+  return d;
 }
 
-export function resolveCombat(state, n, choices = {}) {
-  const weaponId = chooseWeapon(state, choices.weapon);
-  const attack = weaponId ? state.itemsById[weaponId].attack : RULES.START_ATTACK;
-  const damage = combatDamage(n, attack);
+export function hasCharm(state) {
+  return held(state, "protective-charm");
+}
+
+// Fight `n` of them. `use` may name a sword, spend the banner, and throw one
+// talisman; everything spent is consumed here and not before, so a player who
+// backs out of the window has spent nothing.
+export function resolveCombat(state, n, use = {}) {
+  const swordId = use.sword && held(state, use.sword) ? use.sword : bestSword(state);
+  const attack = attackWith(state, { ...use, sword: swordId });
+
+  // 血符 is written in your own blood and costs what it says it costs. Paid on
+  // use, before the blow lands — it can kill you, and that is the item.
+  const tal = use.talisman ? state.itemsById[use.talisman] : null;
+  if (tal && tal.costHp) {
+    changeHealth(state, -tal.costHp);
+    if (state.status !== "playing") {
+      return { attack, damage: 0, spent: [], diedPaying: true };
+    }
+  }
+
+  const spent = [];
+  if (use.banner && held(state, "soul-banner")) { dropItem(state, "soul-banner"); spent.push("soul-banner"); }
+  if (tal && tal.consumed && held(state, use.talisman)) { dropItem(state, use.talisman); spent.push(use.talisman); }
+
+  const damage = combatDamage(n, attack, hasCharm(state));
   state.foughtThisHour += n;
   state.health -= damage;
   if (state.health <= 0) {
@@ -697,16 +801,106 @@ export function resolveCombat(state, n, choices = {}) {
     // has nowhere left to climb to.
     grantRelief(state);
   }
-  return { weaponId, attack, damage };
+  return { weaponId: swordId, attack, damage, spent };
 }
 
-// ---- Fleeing ---------------------------------------------------------------
-// Leave into an already-explored tile instead of fighting: a flat -1. The oil
-// that used to buy a clean escape is not in this game; 黑狗血 escapes a fight
-// now, and it belongs to the combat issue.
+// ---- Getting out of a fight --------------------------------------------------
+// Two ways, and the blood is strictly better, which is correct — that is what
+// the item is for. Neither works against the King.
+
+// 黑狗血: no damage, consumed, barred against the King.
+export function escapeFight(state, { vsKing = false } = {}) {
+  if (!held(state, "black-dog-blood")) return { ok: false, reason: "not-held" };
+  const def = state.itemsById["black-dog-blood"];
+  if (vsKing && def.notVsKing) return { ok: false, reason: "not-vs-king" };
+  dropItem(state, "black-dog-blood");
+  state.fled = true;
+  return { ok: true };
+}
+
+// Generic flee: one step, through a legal connection, into somewhere already
+// known — the board enforces that half. The 1 HP is a PRICE, not a wound, so
+// 護身符 does not reduce it, on the same reasoning that keeps it off HP events.
+//
+// `fled` is what suppresses this turn's HEAL_1 and cancels the breach: you are
+// not standing in the dead end any more, so nothing breaks in on you.
 export function flee(state) {
   changeHealth(state, -RULES.RUN_AWAY_DAMAGE);
+  state.fled = true;
   return state;
+}
+
+// ---- Events ------------------------------------------------------------------
+// Drawn per band WITH REPLACEMENT — it is a distribution, not a deck, so the
+// same event may fire twice in a row and nothing is "used up". Its own stream,
+// for the same reason searches have one: a shared seed must meet the same night.
+export function drawEvent(state) {
+  const table = (state.eventTables || {})[bandKey(state)];
+  if (!table) return null;
+  return weightedPick(table, state.eventRng);
+}
+
+// Apply one. JIANGSHI is handed back rather than resolved: a fight is a decision
+// — which sword, whether to burn the banner, whether to run — and decisions
+// belong to whoever is talking to the player. Everything else is arithmetic and
+// resolves here.
+export function resolveEvent(state, ev, choices = {}) {
+  if (!ev) return { type: "NOTHING" };
+  switch (ev.t) {
+    case "NOTHING":
+      return { type: "NOTHING" };
+    case "HP":
+      // No charm here. A cold room is not a claw.
+      changeHealth(state, ev.hp);
+      return { type: "HP", hp: ev.hp };
+    case "POISON":
+      poison(state);
+      return { type: "POISON" };
+    case "JIANGSHI":
+      return { type: "FIGHT", n: ev.n };
+    case "VILLAGER":
+      return resolveVillager(state, ev, choices.giveRice);
+    default:
+      return { type: "NOTHING", reason: `unknown:${ev.t}` };
+  }
+}
+
+// Someone is still alive in here, and hurt. Rice buys them; refusing leaves you
+// with whatever was chasing them — the band's worst pack.
+//
+// This is the ONLY source of 護身符 in the game: it is in no search table, so a
+// player who never spends rice on a stranger never sees the charm at all.
+export function resolveVillager(state, ev, giveRice) {
+  if (!giveRice || !held(state, "sticky-rice")) {
+    return { type: "FIGHT", n: ev.turnsInto, refused: true };
+  }
+  // The gift always fits, and it is worth saying why rather than guarding for a
+  // case that cannot arise: the rice you just gave away was one slot (only
+  // talismans stack, so rice is one slot per unit), and the gift costs one — or
+  // zero, if it is a talisman you already hold. Spending the rice is exactly
+  // what makes the room for the thanks. An OFFER_DROP branch here would be
+  // unreachable code pretending to be careful.
+  dropItem(state, "sticky-rice");
+  pickUpItem(state, ev.gift);
+  return { type: "GIFT", id: ev.gift };
+}
+
+// ---- 破牆, the breach ----------------------------------------------------------
+// Checked AFTER the room's own event, and only if you are still standing in the
+// dead end — which is exactly why fleeing cancels it. Scales with the band, so
+// the same corner is three at nine o'clock and five at eleven.
+//
+// The board owns "is this a dead end"; this owns "and so what". Given both
+// facts it answers with a number, and 0 means nothing comes through.
+export function breachCount(state) {
+  return (RULES.BREACH_COUNT || {})[bandKey(state)] || 0;
+}
+
+export function breachAfterEvent(state, { deadEnd = false, fled = false } = {}) {
+  if (state.status !== "playing") return 0;
+  if (fled || state.fled) return 0; // you left; there is no one here to trap
+  if (!deadEnd) return 0;
+  return breachCount(state);
 }
 
 // ---- Tablet / win -----------------------------------------------------------
@@ -726,6 +920,10 @@ export function buryTotem(state) {
 // of the sequence rather than needing a rule of its own.
 export function beginTurn(state) {
   decayRelief(state);
+  // Last turn's running is over. Cleared here rather than at the end of the
+  // turn that set it, so anything still resolving that turn — the HEAL_1 it
+  // suppresses, the breach it cancels — can still see it.
+  state.fled = false;
   poisonTick(state);
   return state;
 }

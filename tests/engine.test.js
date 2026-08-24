@@ -7,11 +7,12 @@ import { test, assert, eq } from "./harness.js";
 const NO_STORE = { cache: "no-store" };
 
 // Load the real game data so tests run against the shipped tables.
-const [items, search] = await Promise.all([
+const [items, search, events] = await Promise.all([
   fetch("../data/items.json", NO_STORE).then((r) => r.json()),
   fetch("../data/search.json", NO_STORE).then((r) => r.json()),
+  fetch("../data/events.json", NO_STORE).then((r) => r.json()),
 ]);
-const DATA = { items, search };
+const DATA = { items, search, events };
 const game = (opts) => E.newGame(DATA, opts);
 
 // ---- Setup -----------------------------------------------------------------
@@ -473,44 +474,6 @@ test("changeHealth: a run may still be given a lower cap", () => {
 });
 
 // ---- Combat ----------------------------------------------------------------
-test("combatDamage: clamps to [0,4]", () => {
-  eq(E.combatDamage(3, 1), 2, "normal");
-  eq(E.combatDamage(6, 1), 4, "capped at 4");
-  eq(E.combatDamage(2, 5), 0, "never negative / no heal");
-});
-
-test("resolveCombat: applies damage", () => {
-  const s = game({ seed: 1 });
-  const r = E.resolveCombat(s, 3); // bare-handed: attack 0 -> 3 damage
-  eq(r.attack, 0, "no sword, no attack");
-  eq(r.damage, 3);
-  eq(s.health, 7);
-});
-
-test("resolveCombat: lethal fight loses with reason combat", () => {
-  const s = game({ seed: 1 });
-  s.health = 3;
-  E.resolveCombat(s, 6); // clamped to 4 damage
-  eq(s.health, 0);
-  eq(s.status, "lost");
-  eq(s.lossReason, "combat");
-});
-
-test("attack is the sword itself, and only the best one", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "peachwood-sword"); // attack 1
-  E.pickUpItem(s, "coin-sword"); // attack 2
-  eq(E.effectiveAttack(s), 2, "the sword IS the number — not 1 + a bonus, not 1+2");
-  eq(E.chooseWeapon(s), "coin-sword");
-});
-
-test("chooseWeapon: honours an explicit weapon", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "peachwood-sword");
-  E.pickUpItem(s, "coin-sword");
-  eq(E.chooseWeapon(s, "peachwood-sword"), "peachwood-sword");
-});
-
 // ---- The pack --------------------------------------------------------------
 test("pack: six slots, one per unit, drop to make room", () => {
   const s = game({ seed: 1 }); // starts with 3 rice in 3 slots
@@ -589,12 +552,6 @@ test("medicine: heals, is consumed, respects the cap", () => {
 });
 
 // ---- Fleeing ---------------------------------------------------------------
-test("flee: costs 1 health", () => {
-  const s = game({ seed: 1 });
-  E.flee(s);
-  eq(s.health, 9);
-});
-
 // ---- 中毒 --------------------------------------------------------------------
 test("poison: a flag, not a counter, and only rice lifts it", () => {
   const s = game({ seed: 1 });
@@ -842,4 +799,359 @@ test("golden-elixir: it is consumed either way, and respects the cap", () => {
   const r = E.useMedicine(s, "golden-elixir");
   eq(E.held(s, "golden-elixir"), false, "drunk, good or bad");
   if (r.healed > 0) eq(s.health, 10, "a good flip cannot exceed the cap");
+});
+
+// ---- Attack -------------------------------------------------------------------
+// THE DoD TABLE. These five rows are spec §6's worked examples, transcribed
+// verbatim, and they are the reason the banner's scope is written down: every
+// one of them turns on the banner doubling the sword half and NOT the talisman.
+// If someone "simplifies" attack() to double the total, four of these five move.
+test("attack: the spec §6 worked examples, all five", () => {
+  const kit = (swordId, opts = {}) => {
+    const s = game({ seed: 1 });
+    E.pickUpItem(s, swordId);
+    if (opts.buff) {
+      E.pickUpItem(s, "truefire-talisman");
+      eq(E.buffSword(s, swordId).ok, true);
+    }
+    if (opts.banner) E.pickUpItem(s, "soul-banner");
+    if (opts.talisman) E.pickUpItem(s, opts.talisman);
+    return s;
+  };
+
+  // 七星劍 + 真火符 in it, banner, 五雷符 → (3+1) × 2 + 4
+  eq(E.attackWith(kit("sevenstar-sword", { buff: true, banner: true, talisman: "fivethunder-talisman" }),
+    { banner: true, talisman: "fivethunder-talisman" }), 12);
+
+  // 七星劍 + 真火符 in it, banner, 血符 → (3+1) × 2 + 5
+  eq(E.attackWith(kit("sevenstar-sword", { buff: true, banner: true, talisman: "blood-talisman" }),
+    { banner: true, talisman: "blood-talisman" }), 13);
+
+  // 銅錢劍 + 真火符 in it, banner, 血符 → (2+1) × 2 + 5
+  eq(E.attackWith(kit("coin-sword", { buff: true, banner: true, talisman: "blood-talisman" }),
+    { banner: true, talisman: "blood-talisman" }), 11);
+
+  // 七星劍, banner, 五雷符 → 3 × 2 + 4
+  eq(E.attackWith(kit("sevenstar-sword", { banner: true, talisman: "fivethunder-talisman" }),
+    { banner: true, talisman: "fivethunder-talisman" }), 10);
+
+  // 七星劍 + 真火符, 五雷符, no banner → 4 + 4
+  eq(E.attackWith(kit("sevenstar-sword", { buff: true, talisman: "fivethunder-talisman" }),
+    { talisman: "fivethunder-talisman" }), 8);
+});
+
+test("attack: the banner doubles the sword and never the talisman", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword"); // 2
+  E.pickUpItem(s, "fivethunder-talisman"); // 4
+  eq(E.attackWith(s, { talisman: "fivethunder-talisman" }), 6, "2 + 4");
+  eq(E.attackWith(s, { banner: true, talisman: "fivethunder-talisman" }), 8, "(2×2) + 4, not (2+4)×2");
+});
+
+test("attack: only the best sword counts, never summed", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "precept-knife"); // 1
+  E.pickUpItem(s, "coin-sword"); // 2
+  E.pickUpItem(s, "sevenstar-sword"); // 3
+  eq(E.effectiveAttack(s), 3, "the best, not 1+2+3");
+  eq(E.bestSword(s), "sevenstar-sword");
+});
+
+test("attack: bare-handed is zero", () => {
+  const s = game({ seed: 1 });
+  eq(E.effectiveAttack(s), 0);
+  eq(E.attackWith(s, {}), 0);
+  eq(E.attackWith(s, { banner: true }), 0, "twice nothing is still nothing");
+});
+
+test("buffSword: permanent, one per sword, and it can shift which sword is best", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword"); // 2
+  E.pickUpItem(s, "truefire-talisman");
+  eq(E.buffSword(s, "coin-sword").ok, true);
+  eq(E.swordAttack(s, "coin-sword"), 3, "2 + 1, permanently");
+  eq(E.held(s, "truefire-talisman"), false, "the talisman is spent");
+
+  E.pickUpItem(s, "truefire-talisman");
+  const twice = E.buffSword(s, "coin-sword");
+  eq(twice.ok, false);
+  eq(twice.reason, "already-buffed", "one 真火符 per sword — the ceiling is real");
+  eq(E.heldCount(s, "truefire-talisman"), 1, "and a refused buff spends nothing");
+});
+
+test("buffSword: the ceiling is 七星劍 + 1 = 4", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "sevenstar-sword");
+  E.pickUpItem(s, "truefire-talisman");
+  E.buffSword(s, "sevenstar-sword");
+  eq(E.effectiveAttack(s), 4, "the highest a sword can ever read");
+});
+
+test("buffSword: refuses what is not a held sword", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "truefire-talisman");
+  eq(E.buffSword(s, "coin-sword").reason, "not-held");
+  eq(E.buffSword(s, "sticky-rice").reason, "not-a-sword");
+});
+
+// ---- Damage --------------------------------------------------------------------
+test("damage: clamped to [0,4], then the charm", () => {
+  eq(E.combatDamage(3, 0), 3);
+  eq(E.combatDamage(9, 0), 4, "clamped at four");
+  eq(E.combatDamage(2, 5), 0, "never negative, never a heal");
+  eq(E.combatDamage(9, 0, true), 3, "the charm takes its point AFTER the clamp");
+  eq(E.combatDamage(1, 1, true), 0, "and cannot push it below zero");
+});
+
+// The charm's scope is the whole point of it being sayable in one line.
+test("charm: combat only — not HP events, not poison, not the flee cost", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "protective-charm");
+
+  s.health = 10;
+  E.resolveEvent(s, { t: "HP", hp: -1 });
+  eq(s.health, 9, "an HP event is not a wound the charm can soften");
+
+  E.poison(s);
+  E.poisonTick(s);
+  eq(s.health, 8, "nor is poison");
+
+  E.flee(s);
+  eq(s.health, 7, "nor is the price of running");
+
+  E.resolveCombat(s, 4); // attack 0 -> 4, charm -> 3
+  eq(s.health, 4, "but a claw hits softer");
+});
+
+// ---- Fighting ------------------------------------------------------------------
+test("resolveCombat: spends the banner and the talisman, and only on use", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "sevenstar-sword");
+  E.pickUpItem(s, "soul-banner");
+  E.pickUpItem(s, "fivethunder-talisman");
+
+  // Asking what it would come to spends nothing.
+  eq(E.attackWith(s, { banner: true, talisman: "fivethunder-talisman" }), 10);
+  eq(E.held(s, "soul-banner"), true, "still in the pack while you decide");
+
+  const r = E.resolveCombat(s, 6, { banner: true, talisman: "fivethunder-talisman" });
+  eq(r.attack, 10);
+  eq(r.damage, 0, "six against ten is nothing");
+  eq(E.held(s, "soul-banner"), false, "the banner is one use");
+  eq(E.held(s, "fivethunder-talisman"), false, "and the talisman is thrown");
+  eq(E.held(s, "sevenstar-sword"), true, "the sword stays");
+});
+
+test("resolveCombat: 血符 costs a point of your own blood", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "blood-talisman");
+  s.health = 8;
+  const r = E.resolveCombat(s, 5, { talisman: "blood-talisman" });
+  eq(r.attack, 5, "bare-handed 0 + the talisman's 5");
+  eq(r.damage, 0);
+  eq(s.health, 7, "one paid for writing it");
+});
+
+test("resolveCombat: 血符 can kill the person writing it", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "blood-talisman");
+  s.health = 1;
+  const r = E.resolveCombat(s, 3, { talisman: "blood-talisman" });
+  eq(s.status, "lost");
+  eq(r.diedPaying, true, "the fight never happened");
+});
+
+test("resolveCombat: a lethal pack ends the run with reason combat", () => {
+  const s = game({ seed: 1 });
+  s.health = 3;
+  E.resolveCombat(s, 6);
+  eq(s.health, 0);
+  eq(s.lossReason, "combat");
+});
+
+// ---- Getting out ---------------------------------------------------------------
+test("escape: 黑狗血 costs nothing and is consumed", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "black-dog-blood");
+  s.health = 6;
+  eq(E.escapeFight(s).ok, true);
+  eq(s.health, 6, "no damage at all — strictly better than running");
+  eq(E.held(s, "black-dog-blood"), false);
+  eq(s.fled, true, "and you are not standing here any more");
+});
+
+test("escape: the blood buys nothing from the King", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "black-dog-blood");
+  const r = E.escapeFight(s, { vsKing: true });
+  eq(r.ok, false);
+  eq(r.reason, "not-vs-king");
+  eq(E.held(s, "black-dog-blood"), true, "and a refused escape spends nothing");
+});
+
+test("flee: one point, and it marks you as gone", () => {
+  const s = game({ seed: 1 });
+  E.flee(s);
+  eq(s.health, 9);
+  eq(s.fled, true);
+});
+
+test("flee: the mark clears at the top of the next turn", () => {
+  const s = game({ seed: 1 });
+  E.flee(s);
+  eq(s.fled, true);
+  E.beginTurn(s);
+  eq(s.fled, false, "cleared then, so the turn that set it can still see it");
+});
+
+// ---- Events ---------------------------------------------------------------------
+test("events: drawn with replacement, from their own stream", () => {
+  const run = (disturb) => {
+    const s = game({ seed: 55 });
+    const out = [];
+    for (let i = 0; i < 25; i++) {
+      if (disturb) {
+        for (let k = 0; k < 4; k++) s.rng();
+        s.searchTables = { t: [{ id: "sticky-rice", p: 100 }] };
+        E.search(s, "t");
+        E.rollPhantom(s, 1);
+      }
+      const ev = E.drawEvent(s);
+      out.push(ev.t + (ev.n || ""));
+    }
+    return out.join(",");
+  };
+  const plain = run(false);
+  eq(plain, run(true), "searches and unrelated draws must not move the event stream");
+  // With replacement: over 25 draws from a 7-row table something must repeat.
+  const seen = plain.split(",");
+  assert(new Set(seen).size < seen.length, "a distribution repeats; a deck would not");
+});
+
+test("events: each band draws only what that band holds", () => {
+  const s = game({ seed: 5 });
+  const seen = new Set();
+  for (let i = 0; i < 300; i++) seen.add(E.drawEvent(s).t);
+  assert(seen.has("JIANGSHI") && seen.has("NOTHING"), "the common ones show up");
+  E.setTurn(s, 21); // eleven o'clock
+  const late = new Set();
+  for (let i = 0; i < 300; i++) late.add(E.drawEvent(s).t);
+  assert(!late.has("HP_GAIN"), "no such type exists");
+  const gains = [];
+  for (let i = 0; i < 300; i++) { const e = E.drawEvent(s); if (e.t === "HP" && e.hp > 0) gains.push(e); }
+  eq(gains.length, 0, "the eleven o'clock band has no +1 HP in it at all");
+});
+
+test("events: HP, POISON and NOTHING resolve; a fight is handed back", () => {
+  const s = game({ seed: 1 });
+  s.health = 5;
+  eq(E.resolveEvent(s, { t: "HP", hp: 1 }).hp, 1);
+  eq(s.health, 6);
+  eq(E.resolveEvent(s, { t: "POISON" }).type, "POISON");
+  eq(s.poisoned, true);
+  eq(E.resolveEvent(s, { t: "NOTHING" }).type, "NOTHING");
+  const fight = E.resolveEvent(s, { t: "JIANGSHI", n: 4 });
+  eq(fight, { type: "FIGHT", n: 4 }, "a fight is a decision, not arithmetic");
+});
+
+test("events: HP respects the cap", () => {
+  const s = game({ seed: 1 });
+  E.resolveEvent(s, { t: "HP", hp: 1 });
+  eq(s.health, 10, "already full");
+});
+
+// ---- The villager ----------------------------------------------------------------
+// Both paths, per the DoD — and the charm has no other source in the game.
+test("villager: rice buys the gift", () => {
+  const s = game({ seed: 1 });
+  const ev = { t: "VILLAGER", gift: "protective-charm", turnsInto: 4 };
+  const r = E.resolveEvent(s, ev, { giveRice: true });
+  eq(r.type, "GIFT");
+  eq(r.id, "protective-charm");
+  eq(E.held(s, "protective-charm"), true);
+  eq(E.heldCount(s, "sticky-rice"), 2, "one rice given away");
+});
+
+test("villager: refusing leaves you with what was chasing them", () => {
+  const s = game({ seed: 1 });
+  const ev = { t: "VILLAGER", gift: "protective-charm", turnsInto: 4 };
+  const r = E.resolveEvent(s, ev, { giveRice: false });
+  eq(r, { type: "FIGHT", n: 4, refused: true });
+  eq(E.heldCount(s, "sticky-rice"), 3, "the rice is still yours");
+});
+
+test("villager: no rice means no choice", () => {
+  const s = game({ seed: 1 });
+  E.dropItem(s, "sticky-rice", 3);
+  const r = E.resolveEvent(s, { t: "VILLAGER", gift: "truefire-talisman", turnsInto: 5 }, { giveRice: true });
+  eq(r.type, "FIGHT", "willing is not the same as able");
+  eq(r.n, 5);
+});
+
+// Worth pinning, because it is the reason the villager needs no full-pack
+// branch at all: the rice you give away IS the room the gift goes into. One
+// slot out (rice never stacks), one slot in. It cannot fail to fit.
+test("villager: the gift fits even from a full pack, because the rice paid for it", () => {
+  const s = game({ seed: 1 }); // 3 rice
+  E.pickUpItem(s, "precept-knife");
+  E.pickUpItem(s, "coin-sword");
+  E.pickUpItem(s, "sevenstar-sword");
+  eq(E.slotsUsed(s), 6, "not a slot to spare");
+  const r = E.resolveVillager(s, { gift: "protective-charm", turnsInto: 4 }, true);
+  eq(r.type, "GIFT");
+  eq(E.held(s, "protective-charm"), true);
+  eq(E.heldCount(s, "sticky-rice"), 2, "one rice out");
+  eq(E.slotsUsed(s), 6, "one charm in — still exactly full");
+});
+
+test("villager: the charm comes from nowhere else in the game", async () => {
+  // Belt and braces against a future re-cut quietly adding it to a table.
+  const inTables = Object.values(search).some((t) => t.some((e) => e.id === "protective-charm"));
+  eq(inTables, false, "護身符 is a gift, never a find");
+  const gifts = Object.values(events).flatMap((t) => t.filter((e) => e.t === "VILLAGER").map((e) => e.gift));
+  assert(gifts.includes("protective-charm"), "and the 9 PM villager is the one who gives it");
+});
+
+// ---- 破牆 --------------------------------------------------------------------------
+test("breach: three at nine, four at ten, five at eleven", () => {
+  const s = game({ seed: 1 });
+  eq(E.breachCount(s), 3);
+  E.setTurn(s, 11);
+  eq(E.breachCount(s), 4);
+  E.setTurn(s, 21);
+  eq(E.breachCount(s), 5);
+});
+
+// THE ORDERING, per §8: the breach is checked AFTER the room's own event, and
+// only if you are still standing in the dead end.
+test("breach: fires after the room's event, in a dead end", () => {
+  const s = game({ seed: 1 });
+  eq(E.breachAfterEvent(s, { deadEnd: true }), 3, "a corner at nine o'clock");
+  eq(E.breachAfterEvent(s, { deadEnd: false }), 0, "a room with a way on is safe");
+});
+
+test("breach: fleeing the room's event cancels it — you are not there any more", () => {
+  const s = game({ seed: 1 });
+  eq(E.breachAfterEvent(s, { deadEnd: true, fled: true }), 0, "passed explicitly");
+  E.flee(s);
+  eq(E.breachAfterEvent(s, { deadEnd: true }), 0, "and read off state.fled");
+});
+
+test("breach: nothing comes through for a run already over", () => {
+  const s = game({ seed: 1 });
+  s.status = "lost";
+  eq(E.breachAfterEvent(s, { deadEnd: true }), 0);
+});
+
+// The §8 edge case, spelled out: a dead-end goal room can be three fights in one
+// turn, and none of it is a bug.
+test("breach: a dead-end goal room is legal as three fights in one turn", () => {
+  const s = game({ seed: 1 });
+  E.setTurn(s, 21); // eleven o'clock, the worst of it
+  s.health = 10;
+  E.resolveCombat(s, 5); // the room's own event
+  E.resolveCombat(s, 5); // the rite's extra event (the rite itself is #5)
+  const n = E.breachAfterEvent(s, { deadEnd: true });
+  eq(n, 5, "and then the wall goes");
+  assert(s.status === "lost" || s.health < 10, "it costs what it costs");
 });
