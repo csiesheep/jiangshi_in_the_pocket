@@ -30,6 +30,62 @@
         "8795"
       ],
       "port": 8795
+    },
+    {
+      "name": "static-be",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8801",
+        "--directory",
+        "../jiangshi_in_the_pocket-be"
+      ],
+      "port": 8801
+    },
+    {
+      "name": "static-be2",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8803",
+        "--directory",
+        "../jiangshi_in_the_pocket-be"
+      ],
+      "port": 8803
+    },
+    {
+      "name": "static-be3",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8817",
+        "--directory",
+        "../jiangshi_in_the_pocket-be"
+      ],
+      "port": 8817
+    },
+    {
+      "name": "verify-main",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8813"
+      ],
+      "port": 8813
+    },
+    {
+      "name": "verify-merge",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8821"
+      ],
+      "port": 8821
     }
   ]
 }

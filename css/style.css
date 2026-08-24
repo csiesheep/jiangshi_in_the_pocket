@@ -561,6 +561,63 @@ body.app .board-pane > .board { min-height: 0; }
 .slotname { font-size: .86rem; color: var(--text); }
 .sloteffect { font-size: .72rem; color: var(--muted); }
 .itemicon { width: 18px; height: 18px; color: var(--gold); flex: none; margin-top: 2px; }
+.slottext { flex: 1 1 auto; }
+
+/* The ×N on a talisman stack. A stack is one slot however deep it is, so the
+   count sits on the name rather than the row: it is a property of the thing,
+   not of the space it occupies. */
+.slotcount {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--border));
+  border-radius: 999px;
+  color: #dfc077;
+  font-family: var(--font-body);
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Medicine is the only thing the pack spends by itself, so it is the only row
+   that carries a button. */
+.slotuse {
+  align-self: center;
+  margin-left: auto;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: .7rem;
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.slotuse:hover { border-color: var(--flame); color: #ffd9a8; background: var(--bg-2); }
+.slotuse:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* ---- The pack is full --------------------------------------------------------
+   The drop dialog borrows the note's sheet so a modal never arrives in a second
+   visual language, and adds only what it needs: the find held apart at the top,
+   and one button per slot. */
+.dropcard .notesheet { max-width: 30rem; }
+.slot--found {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--border));
+  background: color-mix(in srgb, var(--gold) 8%, var(--bg-2));
+  margin: 4px 0 14px;
+}
+.droplist { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.dropchoice {
+  padding: 10px 13px;
+  font-size: .92rem;
+  text-align: left;
+}
+.dropleave {
+  padding: 9px 13px;
+  font-size: .86rem;
+  color: var(--muted);
+}
+.dropleave:hover { color: var(--text); }
 
 /* min-width:0 keeps a wide board from forcing the grid column open. */
 /* Edges falling away into black. Sits above the board and below the actions
