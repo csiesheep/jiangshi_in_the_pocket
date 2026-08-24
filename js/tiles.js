@@ -9,28 +9,45 @@ const DIRS = ["N", "E", "S", "W"];
 // Plain words for the behaviour flags. Keyed off the same fields the engine
 // reads, so a tile cannot gain a power the gallery quietly omits — anything
 // unrecognised is surfaced rather than dropped (see noteFor).
+// The goal rooms are rites, not cards. The ids still say CARD and TOTEM because
+// they are data and renaming them is the engine's business, but nothing the
+// player reads should mention a deck this game does not have. {tablet} is
+// filled from the theme so the tablet is called the same thing here as it is
+// everywhere else.
 const ON_RESOLVE = {
-  BONUS_ITEM:
-    "Resolve the room's card as normal, then you may draw one more and take the item on it.",
   SECOND_CARD_THEN_GAIN_TOTEM:
-    "The relic is here. Resolve the card, then draw and resolve a second — that one is the search. Survive it and the relic is yours.",
+    "The {tablet} is here. Resolve the room's event, then one more for the opening of the coffin. Survive it and still be standing here, and it is yours.",
   SECOND_CARD_THEN_BURY_TOTEM:
-    "Resolve the card, then a second for the burial. Survive it holding the relic and you have won.",
+    "Resolve the room's event, then one more for the digging. Survive that holding the {tablet} and you have won.",
 };
 const ON_TURN_END = { HEAL_1: "+1 Health if you end your turn here." };
-const ONCE = { RESTORE_COWER: "Restores one cower charge. Once per night." };
-// The one category this room can be rummaged for. The pool behind them is not
-// designed yet, so this says where a search happens and nothing about what it
-// finds.
+const ONCE = { RESTORE_COWER: "Restores one cower charge. Once per night, and it costs no turn." };
+// The one category this room can be rummaged for. Every room sharing a category
+// rolls the same table — there is no such thing as a richer room — so this says
+// where a search happens and nothing about how well it goes.
 const SEARCH = {
-  weapon: "Search here for a weapon.",
-  magic: "Search here for a charm.",
-  medicine: "Search here for medicine.",
+  weapon: "搜索 Search here for a 武器 weapon.",
+  magic: "搜索 Search here for a 符咒 talisman.",
+  medicine: "搜索 Search here for 丹藥 medicine.",
+  relic: "搜索 Search here for the 法器 — and nowhere else in the village.",
 };
 
 const WORD = { N: "north", E: "east", S: "south", W: "west" };
 
-function noteFor(def, world) {
+// A tile's display name, for the notes that have to refer to another room.
+function name(theme, id) {
+  return (theme && theme.tiles && theme.tiles[id]) || id;
+}
+
+// The word for the 神主牌, taken from the theme so this page and the board
+// cannot end up calling it two different things.
+function fill(line, theme) {
+  if (!line) return line;
+  const tablet = (theme && theme.actions && theme.actions.tablet) || "tablet";
+  return line.replace("{tablet}", tablet);
+}
+
+function noteFor(def, world, theme) {
   const notes = [];
   // Both decks have a `start` tile, but they mean different things: one is
   // where the night begins, the other is what goes down the moment you step
@@ -43,19 +60,25 @@ function noteFor(def, world) {
     );
   }
   if (def.search) {
-    const line = SEARCH[def.search] || `Search here for ${def.search}.`;
-    notes.push(def.best ? `${line} The best of its kind in the game.` : line);
+    // No "best of its kind" line: the ruleset is explicit that every room
+    // sharing a category rolls the identical table, so saying otherwise would
+    // teach a rule the game does not have.
+    notes.push(SEARCH[def.search] || `搜索 Search here for ${def.search}.`);
   }
   if (def.exteriorDoor) {
     notes.push(
-      `Carries the gate out — its ${WORD[def.exteriorDoor]} door leads outside, not to another room.`
+      `Carries the 月門 moon gate — its ${WORD[def.exteriorDoor]} way out leads outside the village, not to another room.`
     );
   }
-  if (def.seam) notes.push("Joins the house along its seam edge, the way back in.");
-  if (def.sanctuary) notes.push("Running water. Their attacks do you no harm while you stand here.");
-  if (def.pray) notes.push("Pray: the next unexplored place you put down is the one you are looking for. Once per night.");
+  if (def.seam) notes.push("Joins the village along its seam edge, the way back in.");
+  if (def.sanctuary) notes.push("活水 running water. 殭屍 cannot cross it, so their attacks do you no harm while you stand here.");
+  if (def.pray) {
+    // The shrine names its target rather than hinting at it: the prayer is not
+    // a secret, and "the one you are looking for" reads as a riddle.
+    notes.push(`Pray: the next unexplored outdoor tile you place is the ${name(theme, def.pray)}. Once per night, and it costs no turn.`);
+  }
   if (def.once) notes.push(ONCE[def.once] || `Special: ${def.once}`);
-  if (def.onResolve) notes.push(ON_RESOLVE[def.onResolve] || `Special: ${def.onResolve}`);
+  if (def.onResolve) notes.push(fill(ON_RESOLVE[def.onResolve], theme) || `Special: ${def.onResolve}`);
   if (def.onTurnEnd) notes.push(ON_TURN_END[def.onTurnEnd] || `Special: ${def.onTurnEnd}`);
   return notes;
 }
@@ -194,7 +217,7 @@ function card(def, theme, count, world, n) {
     body.appendChild(row);
   }
 
-  for (const note of noteFor(def, world)) {
+  for (const note of noteFor(def, world, theme)) {
     const p = document.createElement("p");
     p.className = "tilecard-note";
     p.textContent = note;
