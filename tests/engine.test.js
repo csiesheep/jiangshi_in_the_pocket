@@ -170,6 +170,7 @@ test("dread: the worst the game gets is worse than any single thing", () => {
   s.health = 1;
   s.foughtThisHour = 12;
   s.tablet = true;
+  s.cowerCharges = 0; // and nowhere left to hide, which is part of the worst
   const worst = E.dread(s);
   assert(worst > 0.85, `a 1 HP relic-carrying midnight should be near the top, got ${worst}`);
   eq(worst <= 1, true, "and never above 1");
@@ -192,15 +193,50 @@ test("dread: health matters most at the bottom, which is where it is felt", () =
     `losing your last heart (${lastHeart}) should count for more than your first (${firstHeart})`);
 });
 
+test("dread: out of cowers barely registers at nine and plainly does at eleven", () => {
+  const dial = (turn, charges) => {
+    const s = game({ seed: 1 });
+    E.setTurn(s, turn);
+    s.cowerCharges = charges;
+    return E.dread(s);
+  };
+  const full = E.RULES.COWER_CHARGES;
+
+  // The same empty coil, read three hours apart. The term is charges times
+  // lateness, so at a fresh nine o'clock it is worth nothing at all.
+  const nine = dial(1, 0) - dial(1, full);
+  const eleven = dial(21, 0) - dial(21, full);
+
+  assert(nine < 0.005, `empty at nine is nearly nothing, got ${nine}`);
+  assert(eleven > 0.03, `empty at eleven should be plain on the dial, got ${eleven}`);
+  // The guard on the multiply: drop it and the two become the same number.
+  assert(eleven > nine * 10, "being out of cowers has to mean more late than early");
+});
+
+test("dread: a spare cower charge is not negative fear", () => {
+  const s = game({ seed: 1 });
+  E.setTurn(s, 30);
+  const full = E.dread(s);
+  // 香堂 restores one on top of the starting three, so charges above the
+  // ceiling are reachable in an ordinary night, and the term has to clamp.
+  s.cowerCharges = E.RULES.COWER_CHARGES + 1;
+  eq(E.dread(s), full, "a fourth charge does not make midnight calmer");
+});
+
+test("dread: the weights are a whole", () => {
+  const sum = Object.values(E.DREAD_WEIGHTS).reduce((a, b) => a + b, 0);
+  assert(Math.abs(sum - 1) < 1e-9, `the dial has to be a unit, got ${sum}`);
+});
+
 test("dread: pure, and deterministic under a seed", () => {
   const a = game({ seed: 77 });
   const b = game({ seed: 77 });
   for (let i = 0; i < 4; i++) { E.advanceTurn(a); E.advanceTurn(b); }
   eq(E.dread(a), E.dread(b), "same seed, same fear");
-  const before = JSON.stringify({ h: a.health, t: a.turn, f: a.foughtThisHour });
+  const snap = (s) => JSON.stringify({ h: s.health, t: s.turn, f: s.foughtThisHour, c: s.cowerCharges });
+  const before = snap(a);
   E.dread(a);
-  eq(JSON.stringify({ h: a.health, t: a.turn, f: a.foughtThisHour }), before,
-     "reading the dial changes nothing");
+  eq(snap(a), before, "reading the dial changes nothing");
 });
 
 // ---- The unseen -------------------------------------------------------------

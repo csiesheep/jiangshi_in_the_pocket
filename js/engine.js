@@ -277,11 +277,12 @@ export function clockTime(state) {
 // The weights are a judgement, not a measurement, and they are written out
 // rather than folded together so they can be argued with:
 export const DREAD_WEIGHTS = {
-  night: 0.34, // how late it is — the one pressure that never goes down
-  hurt: 0.32, // how close to dead
-  fought: 0.16, // how violent this hour has already been
-  running: 0.1, // how little deck is left before the hour turns
+  night: 0.32, // how late it is — the one pressure that never goes down
+  hurt: 0.3, // how close to dead
+  fought: 0.15, // how violent this hour has already been
+  running: 0.09, // how little deck is left before the hour turns
   carrying: 0.08, // the relic makes you worth following
+  exposed: 0.06, // out of cowers, and late enough for that to matter
 };
 
 // Risen in an hour before that term saturates. Seven draws an hour and packs
@@ -302,6 +303,18 @@ export function dread(state) {
   const fought = Math.min(1, (state.foughtThisHour || 0) / FOUGHT_FULL);
   const running = c.perHour > 0 ? 1 - c.left / c.perHour : 0;
   const carrying = state.tablet ? 1 : 0;
+  // Cowering is the only way the game lets you skip a turn's draw, so running
+  // out is the moment the night stops having an exit. Read against the clock
+  // rather than on its own, because the same empty coil means two different
+  // things: at nine there are three hours to find 香堂 and refill it, and at
+  // eleven it is the thing you hoarded and did not have. That multiply is the
+  // whole term — at a fresh nine o'clock it contributes exactly nothing.
+  //
+  // Clamped at both ends: 香堂 can leave you one above the starting three, and
+  // a spare charge should read as "not exposed" rather than as negative fear.
+  const ceiling = RULES.COWER_CHARGES || 1;
+  const spent = Math.min(1, Math.max(0, 1 - Math.max(0, state.cowerCharges || 0) / ceiling));
+  const exposed = spent * night;
 
   const w = DREAD_WEIGHTS;
   const score =
@@ -309,7 +322,8 @@ export function dread(state) {
     hurt * w.hurt +
     fought * w.fought +
     running * w.running +
-    carrying * w.carrying;
+    carrying * w.carrying +
+    exposed * w.exposed;
 
   // Relief. Everything above ratchets up inside an hour and never comes down,
   // and tension that only rises stops being tension — there has to be a trough
