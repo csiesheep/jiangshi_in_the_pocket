@@ -1113,8 +1113,13 @@ body.app .board-pane > .board { min-height: 0; }
   z-index: 4;
 }
 .doorway--explore { color: var(--way-new); }
-/* Keyboard focus still needs a box; it is the one time drawing one is right. */
-.doorway:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px; }
+/* No ring. renderBoard re-focuses the way you came through after every render,
+   so an outline here is not a rare keyboard affordance — it is a gold box
+   parked on the north door for most of the game, which is the exact thing this
+   whole change was removing. Focus is shown on the arrow instead: full opacity,
+   a glow in its own colour, and the bob. That is a real indicator and it costs
+   the art nothing. */
+.doorway:focus-visible { outline: none; }
 
 /* The number chip loses its panel too — it was a second small box on the art.
    Just the digit, shadowed enough to hold over anything behind it. */
@@ -1221,6 +1226,11 @@ body.app .board-pane > .board { min-height: 0; }
 .doorway:focus-visible .doorway-chev {
   opacity: 1;
   animation: waybob .82s ease-in-out infinite;
+}
+/* Focus has to be visible without a pointer to explain it, so it glows where
+   hover only brightens. */
+.doorway:focus-visible .doorway-chev {
+  filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 2px rgba(0, 0, 0, .95));
 }
 @keyframes waybob {
   0%, 100% { transform: translateY(1.5px); }
