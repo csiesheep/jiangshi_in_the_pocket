@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Sweep — seal rate against banner odds</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0a0b0d; color: #e6e3dc;
+           padding: 24px; max-width: 900px; margin: 0 auto; line-height: 1.5; }
+    h1 { font-size: 1.3rem; margin: 0 0 4px; }
+    p.sub { color: #9aa0aa; font-size: .86rem; margin: 0 0 22px; }
+    table { border-collapse: collapse; width: 100%; font-size: .86rem;
+            font-family: ui-monospace, monospace; }
+    th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid #1c2027; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: #9aa0aa; font-weight: 600; }
+    .hit { color: #7fb539; }
+    #status { color: #e8b33a; }
+    pre { background: #0d0f12; border: 1px solid #1c2027; padding: 12px;
+          border-radius: 6px; font-size: .8rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Sweep — the seal against banner odds</h1>
+  <p class="sub">Duelist only. Patches the relic table in memory and replays the same seeds,
+     so every row differs from every other by exactly one number.
+     <code>?seeds=N&amp;p=15,25,40</code></p>
+  <p id="status">Running…</p>
+  <div id="out"></div>
+
+  <script type="module">
+    import { loadData, run } from "./bots.js";
+
+    const q = new URLSearchParams(location.search);
+    const SEEDS = Number(q.get("seeds") || 1000);
+    const PS = (q.get("p") || "15,25,40,60,80").split(",").map(Number);
+    const POLICY = q.get("policy") || "duelist";
+
+    // Raise the banner by taking from the blank first — a rummage that finds
+    // nothing is the cheapest thing to spend. Only once the blanks are gone
+    // does the rice start paying for it.
+    function relicTable(p) {
+      const rice = Math.min(40, 100 - p);
+      const blank = 100 - p - rice;
+      const t = [{ id: "sticky-rice", p: rice }, { id: "soul-banner", p }];
+      if (blank > 0) t.push({ id: null, p: blank });
+      return t;
+    }
+
+    // Optional counterfactual: promote another tile's search to the relic
+    // table. This is a MEASUREMENT, not a proposal — it exists so "what would
+    // a second relic tile be worth" is a number rather than an opinion.
+    const ADD = (q.get("relicAdd") || "").split(",").filter(Boolean);
+
+    const data = await loadData("..");
+    const original = new Map();
+    for (const world of ["indoor", "outdoor"]) {
+      for (const t of data.tiles[world]) if (ADD.includes(t.id)) original.set(t.id, t.search);
+    }
+    for (const world of ["indoor", "outdoor"]) {
+      for (const t of data.tiles[world]) if (ADD.includes(t.id)) t.search = "relic";
+    }
+    if (ADD.length && original.size !== ADD.length) {
+      throw new Error(`unknown tile id in relicAdd: ${ADD.filter((id) => !original.has(id))}`);
+    }
+
+    const rows = [];
+    for (const p of PS) {
+      data.search.relic = relicTable(p);
+      const r = run(data, POLICY, SEEDS);
+      const held = Math.round((r.everHeldBanner / 100) * SEEDS);
+      rows.push({
+        bannerP: p,
+        relicTiles: 1 + ADD.length,
+        table: relicTable(p).map((e) => `${e.id || "—"} ${e.p}`).join(" / "),
+        seal: r.WIN_SEAL,
+        sealPct: +((r.WIN_SEAL / SEEDS) * 100).toFixed(2),
+        burial: r.WIN_BURIAL,
+        everHeldBanner: r.everHeldBanner,
+        // The number the linear model lives or dies by: of the runs that DID
+        // hold the banner, how many converted it. If this is flat across the
+        // sweep, supply is the only lever and the rest is arithmetic.
+        sealGivenBanner: held ? +((r.WIN_SEAL / held) * 100).toFixed(2) : 0,
+        died: r.LOSS_HEALTH,
+        king: r.LOSS_KING,
+        midnightRate: r.midnightRate,
+        avgAtkAtMidnight: r.avgAttackAtMidnight,
+      });
+      document.getElementById("status").textContent = `Running… banner ${p}% done`;
+    }
+
+    const cols = Object.keys(rows[0]);
+    const t = document.createElement("table");
+    t.innerHTML = "<tr>" + cols.map((h) => `<th>${h}</th>`).join("") + "</tr>";
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = cols.map((k) => {
+        const inBand = k === "sealPct" && r[k] >= 1.5 && r[k] <= 2.5;
+        return `<td class="${inBand ? "hit" : ""}">${r[k]}</td>`;
+      }).join("");
+      t.appendChild(tr);
+    }
+    document.getElementById("out").appendChild(t);
+    const pre = document.createElement("pre");
+    pre.textContent = JSON.stringify(rows, null, 2);
+    document.getElementById("out").appendChild(pre);
+    document.getElementById("status").textContent = `Done — ${POLICY}, ${SEEDS} seeds per row.`;
+    window.__sweep = rows;
+  </script>
+</body>
+</html>
