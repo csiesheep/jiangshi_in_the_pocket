@@ -46,6 +46,52 @@ for (const evt of ["pointerdown", "pointermove", "keydown", "touchstart"]) {
 // Inserted before the nav so it reads as part of the title block, and after it
 // in the fade order — the house says this while you are still looking at the
 // title, not as a fact attached to the buttons.
+// The page's own copy, and the control that changes it. The four charms and the
+// title lockup carry both languages at once by design, so only these two
+// paragraphs move — which is why the landing needs no rebuild to switch, just
+// two textContent writes.
+let base = null;
+let currentTheme = null;
+
+async function applyLanguage(lang) {
+  L.remember(lang);
+  L.stampDocument(lang);
+  currentTheme = await L.themeFor(base, lang, { cache: "no-cache" });
+  const land = currentTheme.landing || {};
+  const tag = document.getElementById("tagline");
+  const foot = document.getElementById("footnote");
+  if (tag && land.tagline) tag.textContent = land.tagline;
+  if (foot && land.footnote) foot.textContent = land.footnote;
+  paintSwitch(lang);
+}
+
+// One control, two languages, so it names the language you would GET. Built in
+// script rather than sitting in the HTML because a page with JS off should not
+// offer a switch that cannot work.
+function paintSwitch(lang) {
+  const order = Object.keys(L.LANGS);
+  const next = order[(order.indexOf(lang) + 1) % order.length];
+  let btn = document.getElementById("lang-switch");
+  if (!btn) {
+    const foot = document.getElementById("footnote");
+    if (!foot) return;
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "lang-switch";
+    btn.className = "langswitch";
+    btn.addEventListener("click", () => applyLanguage(nextOf()));
+    foot.before(btn);
+  }
+  btn.textContent = L.LANGS[next].name;
+  btn.setAttribute("lang", L.LANGS[next].tag);
+}
+
+function nextOf() {
+  const order = Object.keys(L.LANGS);
+  const now = document.documentElement.getAttribute("lang") === L.LANGS["zh-TW"].tag ? "zh-TW" : "en";
+  return order[(order.indexOf(now) + 1) % order.length];
+}
+
 async function rememberYou() {
   // The only thing this page needs from the theme, so it is fetched here rather
   // than the page carrying a loader it would otherwise have no use for. Any
@@ -55,12 +101,11 @@ async function rememberYou() {
   try {
     const res = await fetch("data/theme.json", { cache: "no-cache" });
     if (!res.ok) return;
-    const lang = L.preferred();
-    L.stampDocument(lang);
-    const theme = await L.themeFor(await res.json(), lang, { cache: "no-cache" });
-    tallyTable = theme.tallyLine;
+    base = await res.json();
+    await applyLanguage(L.preferred());
+    tallyTable = currentTheme.tallyLine;
   } catch {
-    return; // no theme, no sentence; the menu is complete without it
+    return; // no theme, no page copy and no sentence; the menu still works
   }
   const line = houseLine(tallyTable);
   if (!line) return;

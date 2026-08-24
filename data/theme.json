@@ -140,7 +140,15 @@
     "badge-bury": "Bury the relic here.",
     "badge-heal": "Resting here heals you.",
     "fullscreen": "Fullscreen",
-    "leave-fullscreen": "Leave fullscreen"
+    "leave-fullscreen": "Leave fullscreen",
+    "stat-health": "Health",
+    "stat-attack": "Attack",
+    "stat-cower": "Cower",
+    "stat-relic": "Relic",
+    "hour": "{n} PM",
+    "clock": "{time} {half}",
+    "half-pm": "PM",
+    "half-am": "AM"
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",
@@ -347,7 +355,7 @@
     "dismiss": "Fold it away"
   },
   "epilogue": {
-    "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}. NOTE both wins share open.won / open.won-hurt word for word and differ only in the close clause: that is the §9 equal-register rule made structural rather than merely intended.",
+    "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}. NOTE both wins share open.won / open.won-hurt word for word and differ only in the close clause: that is the §9 equal-register rule made structural rather than merely intended. The clauses are joined with `join` and closed with `end`, both themeable: the anticipated per-language ASSEMBLY turned out to be two punctuation marks, because open/hand/close reads the same way round in English and Chinese and `rooms` was already a per-number table, which is measure words already solved.",
     "open": {
       "won": "You walked out at first light",
       "won-hurt": "You walked out at first light on your last heart",
@@ -395,7 +403,9 @@
       "22": "ten",
       "23": "eleven",
       "24": "the third watch"
-    }
+    },
+    "join": ", ",
+    "end": "."
   },
   "verdict": {
     "_note": "The verdict card: its title fallbacks and the summary rows beneath. Whole clauses on purpose — word order moves between languages and a template assembled from fragments would only ever be English in disguise.",
@@ -491,5 +501,10 @@
     "once": "once",
     "twice": "twice",
     "walked-out": "You have walked out {n}."
+  },
+  "landing": {
+    "_note": "The landing page's two pieces of prose. The four charms carry both languages at once by design and the title lockup is a bilingual wordmark, so neither needs a translation — only these do.",
+    "tagline": "It is nine at night. At the third watch he comes for you. Lay him to rest, or be standing when he arrives.",
+    "footnote": "A free solo board game in the browser. The rules come from a print-and-play original; the village, the night and everything in it are ours."
   }
 }

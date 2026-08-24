@@ -42,8 +42,11 @@ export function known(lang) {
 //
 // It shipped true for about an hour with a thirty-key zh file behind it, which
 // meant a zh browser met a half-English night. This flag is that mistake, made
-// impossible to repeat quietly.
-const DETECT = false;
+// impossible to repeat quietly — and it stays here, false-able, for whenever a
+// third language starts landing.
+//
+// On since 2026-08-24: 繁體中文 covers the game and the landing page completely.
+const DETECT = true;
 
 // What the reader has chosen, or — once DETECT is on — what their browser
 // implies. An explicit choice always wins and always outlives a system setting,

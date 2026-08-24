@@ -140,3 +140,62 @@ test("reachability: every item can actually be obtained", () => {
   // And the one the bug was actually about, named so a regression says so.
   assert(fromSearch.has("soul-banner"), "攝魂幡 must be findable — the seal needs it");
 });
+
+// ---- Languages ---------------------------------------------------------------
+// A translation that falls behind is not a visible failure — the overlay means a
+// missing key quietly serves English, which is the right behaviour at runtime
+// and exactly the wrong behaviour to leave unmonitored. So the suite watches it:
+// add a string to the theme without translating it and this goes red the same
+// day, rather than a zh player meeting an English sentence months later.
+//
+// It nearly happened while this was being written. A generator regenerated the
+// zh file and silently dropped eleven keys added to both themes by hand; the
+// count is what caught it.
+const [themeEn, themeZh] = await Promise.all([
+  fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
+  fetch("../data/theme.zh-TW.json", NO_STORE).then((r) => r.json()),
+]);
+
+function leafKeys(node, path = "") {
+  const out = [];
+  if (node && typeof node === "object" && !Array.isArray(node)) {
+    for (const [k, v] of Object.entries(node)) {
+      if (k === "_note") continue; // notes are for whoever edits the file, not players
+      out.push(...leafKeys(v, `${path}.${k}`));
+    }
+  } else {
+    out.push(path);
+  }
+  return out;
+}
+
+test("languages: 繁體中文 covers every string English has", () => {
+  const en = new Set(leafKeys(themeEn));
+  const zh = new Set(leafKeys(themeZh));
+  const missing = [...en].filter((k) => !zh.has(k)).sort();
+  eq(missing.length, 0, `untranslated: ${missing.slice(0, 8).join(", ")}`);
+});
+
+test("languages: the overlay invents nothing English does not have", () => {
+  // A key here that is absent there is dead weight at best and a typo at worst —
+  // it can never be reached, because the code only ever asks for English's keys.
+  const en = new Set(leafKeys(themeEn));
+  const orphans = leafKeys(themeZh).filter((k) => !en.has(k)).sort();
+  eq(orphans.length, 0, `orphaned: ${orphans.slice(0, 8).join(", ")}`);
+});
+
+test("languages: §9 holds in both — the threshold is nowhere in the strings", () => {
+  // The number lives in the engine and reaches exactly one card, at runtime, so
+  // no STRING may state it. Counting tables are exempt and have to be: the room
+  // distances, the tally's spelled numbers and the epilogue's hours legitimately
+  // contain every number there is, and none of them is a quantity to reach.
+  const COUNTING = /^\.(epilogue\.(rooms|hours)|tallyLine\.(words|times))\./;
+  for (const [name, theme] of [["en", themeEn], ["zh-TW", themeZh]]) {
+    for (const key of leafKeys(theme)) {
+      if (COUNTING.test(key + ".")) continue;
+      const value = key.split(".").slice(1).reduce((o, k) => o[k], theme);
+      if (typeof value !== "string") continue;
+      assert(!/\b1[12]\b/.test(value), `${name}${key} states a threshold-shaped number: ${value}`);
+    }
+  }
+});

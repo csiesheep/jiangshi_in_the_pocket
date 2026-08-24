@@ -102,15 +102,21 @@ export function uiIcon(name, cls) {
   return icon("ui", name, cls);
 }
 
+// The hour, in whatever the theme calls hours. English wants "11 PM"; Chinese
+// wants 十一點 and no meridiem at all, which is why the half is its own key and
+// is allowed to be empty.
 export function formatHour(hour) {
-  return `${hour - 12} PM`;
+  return ui(drawing, "hour", { n: hour - 12 });
 }
 
 // Same wording as formatHour, with the minutes the deck has spent. Midnight is
 // the one that would read wrong as PM — and midnight is where this game ends,
 // so it is worth getting right.
 export function formatClock(c) {
-  return `${c.label} ${c.hour24 >= 24 ? "AM" : "PM"}`;
+  return ui(drawing, "clock", {
+    time: c.label,
+    half: ui(drawing, c.hour24 >= 24 ? "half-am" : "half-pm"),
+  }).trim();
 }
 
 // Health has no upper bound in this ruleset — cowering adds 3 with no cap — so
@@ -146,6 +152,10 @@ export function renderHud(game) {
     health > 0 && health <= LOW_HEALTH && game.state.status === "playing"
   );
 
+  for (const id of ["stat-health", "stat-attack", "stat-cower", "stat-relic"]) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = ui(game, id);
+  }
   renderHealth(game.state);
   renderAttack(game);
   renderCower(game.state);

@@ -3217,3 +3217,24 @@ body.asleep .fog {
 /* 見到天亮 is neither win nor loss, so it gets neither dressing: no sunrise, no
    blood, no stopped clock. The stream simply kept running. */
 #overlay.overlay--over .overlay-card { border-color: var(--border); }
+
+/* ---- The language switch on the cold open ------------------------------------
+   Quiet. It names the language you would get rather than the one you have, and
+   it sits above the footnote where somebody looking for it will look — not up
+   with the charms, which are the page's one loud thing and should stay that. */
+.langswitch {
+  display: inline-block;
+  margin: 0 auto 10px;
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-cjk);
+  font-size: .8rem;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease;
+}
+.langswitch:hover,
+.langswitch:focus-visible { color: var(--gold); border-color: var(--gold); }

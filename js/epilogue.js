@@ -136,5 +136,9 @@ export function epilogue(game) {
   ].filter(Boolean);
 
   if (!parts.length) return "";
-  return `${parts.join(", ")}.`;
+  // Both from the theme. This one line is the whole of what the plan expected
+  // to need per-language assembly: the clause order survives translation, and
+  // `rooms` was always a per-number table, so measure words never needed a rule.
+  return parts.join(theme.join !== undefined ? theme.join : ", ") +
+    (theme.end !== undefined ? theme.end : ".");
 }
