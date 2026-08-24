@@ -84,13 +84,17 @@ const goalTile = (data, goal) =>
 // ---- The shared survival floor -------------------------------------------------
 // Every policy gets this. Without it a bot dies on turn five and measures
 // nothing but the first five turns — which is what the fuzz found the hard way.
-function survive(ctx) {
+function survive(ctx, plan) {
   const { state } = ctx;
-  if (state.health <= 4 && E.held(state, "sticky-rice")) E.useMedicine(state, "sticky-rice");
+  // 4 is the shared floor. A policy that means to arrive somewhere can raise
+  // it — rice heals 3, so eating at 5 is full value and eating at 8 is waste.
+  const line = plan && plan.eatAt ? plan.eatAt(state) : 4;
+  if (state.health <= line && E.held(state, "sticky-rice")) E.useMedicine(state, "sticky-rice");
   else if (state.poisoned && E.heldCount(state, "sticky-rice") > 1) E.useMedicine(state, "sticky-rice");
 }
 
-function fight(ctx, n, { hoardBanner = true } = {}) {
+function fight(ctx, n, plan = {}) {
+  const { hoardBanner = true, keepStrike = false } = plan;
   const { state, die } = ctx;
   const hurt = state.health <= 4;
   if (hurt && E.held(state, "black-dog-blood") && E.escapeFight(state).ok) return;
@@ -101,23 +105,28 @@ function fight(ctx, n, { hoardBanner = true } = {}) {
   const talismans = E.heldIds(state)
     .filter((id) => { const d = state.itemsById[id]; return d && d.cat === "magic" && d.attack; })
     .sort((a, b) => state.itemsById[b].attack - state.itemsById[a].attack);
-  if (bare >= 2 && talismans.length) {
-    const pick = talismans[0];
+  // Talismans are consumed. A policy saving one for midnight must not reach
+  // for it here — winning a corridor fight with the strike is how you arrive
+  // at the door holding nothing.
+  const reachable = keepStrike ? spendableTalismans(state) : talismans;
+  if (bare >= 2 && reachable.length) {
+    const pick = reachable[0];
     if (!(state.itemsById[pick].costHp && state.health <= 2)) use.talisman = pick;
   }
   // A duelist hoards the banner for midnight; anyone dying without one may as
   // well spend it.
   if (E.held(state, "soul-banner") && (!hoardBanner || state.health <= 3) && bare >= 3) use.banner = true;
   E.resolveCombat(state, n, use);
-  if (state.status === "playing") survive(ctx);
+  if (state.status === "playing") survive(ctx, plan);
 }
 
 // One sword is worth more than anything else you can carry, so everyone buffs
 // the best one they have as soon as they can.
-function upkeep(ctx) {
+function upkeep(ctx, plan) {
   const { state } = ctx;
   const sword = E.bestSword(state);
-  if (sword && !state.buffed[sword] && E.held(state, "truefire-talisman")) {
+  const mayBuff = !plan || !plan.buffWhen || plan.buffWhen(state);
+  if (mayBuff && sword && !state.buffed[sword] && E.held(state, "truefire-talisman")) {
     // Only if it is not the last attack talisman we hold — burning the one
     // thing that could carry a fight is worse than a slightly duller sword.
     const others = E.heldIds(state).filter((id) => {
@@ -172,6 +181,81 @@ const POLICIES = {
     return { explore: "any", hoardBanner: true };
   },
 
+  // The same line as the duelist, played by someone who knows the recipe.
+  //
+  // 七星劍 with a 真火符 burned in is 4; 攝魂幡 doubles that half to 8; a heavy
+  // talisman adds 4 or 5. Twelve or thirteen against a bar of twelve, or eleven
+  // carrying the 神主牌. Every part is findable — the only question is what each
+  // is worth in turns.
+  //
+  // Three things the first duelist never worked out, and all three are the
+  // difference:
+  //
+  //   1. Searching is not once per room. The banner is one tile in twenty
+  //      paying 15 % a rummage, so the play is to STAND on 土地廟 and keep
+  //      rummaging, not to wander hoping to cross it. Its table is also 40 %
+  //      糯米, so the camp that hunts the banner feeds the camper.
+  //   2. Talismans are consumed. Spending the heavy one to win a corridor
+  //      fight is how you reach midnight holding nothing.
+  //   3. Cower charges are worth the draw they skip, and the draws get worse
+  //      every hour, so they belong to eleven o'clock.
+  //
+  // It is not an oracle: it never reads the rng, and it plans only against
+  // tiles already on the table. Deterministic — it takes no dice of its own.
+  adept(ctx) {
+    const { board, state, data } = ctx;
+    const shrine = [...data.tiles.indoor, ...data.tiles.outdoor].find((t) => t.search === "relic");
+    const crypt = goalTile(data, "TAKE_TABLET");
+    const base = {
+      hoardBanner: true,
+      keepStrike: true,
+      smartStrike: true,
+      cowerWhen: adeptCower,
+      eatAt: (s) => (s.hour === 23 ? 6 : 5),
+      giveRice: adeptGift,
+      dropChoice: adeptDrop,
+      buffWhen: adeptBuff,
+    };
+
+    // 活水 is the one tile that turns the meeting into no meeting at all. Be
+    // anywhere else when the clock runs out.
+    const here = B.currentTile(board);
+    const inWater = here && (here.def.flags || []).includes("RUNNING_WATER");
+    if (inWater && state.turn >= E.RULES.TOTAL_TURNS - 2) {
+      return { ...base, seek: (x) => !(x.def.flags || []).includes("RUNNING_WATER") };
+    }
+
+    const want = adeptWants(state);
+    const onTable = (table) =>
+      [...board.worlds.indoor.values(), ...board.worlds.outdoor.values()]
+        .some((t) => t.def.search === table);
+
+    // The 神主牌 drops the bar from twelve to eleven, which is a whole talisman
+    // grade — worth a detour, but only while there is night left to spend it in
+    // and only if we are actually short.
+    if (!state.tablet && placed(board, crypt.id) && state.turn <= 22 &&
+        strikeNow(state) < barToClear(state)) {
+      return { ...base, doRites: "TAKE_TABLET", seek: (x) => x.id === crypt.id };
+    }
+
+    // Past the budget, the banner gets the rest of the night: it is the only
+    // part with one source and the worst rate.
+    const bannerFirst = want[0] === "relic" && state.turn >= BANNER_DEADLINE;
+    const order = bannerFirst ? want : [...want.filter((t) => t !== "relic"), ...want.filter((t) => t === "relic")];
+
+    for (const table of order) {
+      if (onTable(table)) return { ...base, seek: (x) => x.def.search === table };
+    }
+
+    // Nothing we still need has been turned over. Open new ground — outdoors if
+    // the banner is what is missing, because that is the deck the shrine is in.
+    if (want.length) return { ...base, explore: want.includes("relic") ? "outdoor" : "any" };
+
+    // The recipe is finished. Nothing left to want, so stop walking into rooms:
+    // standing still draws the same event and risks nothing extra.
+    return base;
+  },
+
   // Hide. Find the 溪澗 and stand in it until the clock runs out — the one
   // ending that costs nothing and proves nothing.
   turtle(ctx) {
@@ -192,6 +276,109 @@ const POLICIES = {
   },
 };
 
+// ---- The adept's judgement -------------------------------------------------------
+// Helpers for the one policy that is trying to play well rather than to
+// illustrate a thesis. All of them read only the pack, the clock and the tiles
+// already on the table — never the rng, never a tile that has not been turned
+// over. A practiced player knows the odds and the map's roles; that is the line
+// this stays on.
+
+const STRIKE_IDS = ["blood-talisman", "fivethunder-talisman"];
+
+const bigTalisman = (state) => STRIKE_IDS.find((id) => E.held(state, id)) || null;
+
+// What we would hit for if midnight were now, and what we would need.
+function strikeNow(state) {
+  const use = { banner: E.held(state, "soul-banner") };
+  const tal = bigTalisman(state);
+  if (tal) use.talisman = tal;
+  return E.attackWith(state, use);
+}
+const barToClear = (state) =>
+  state.tablet ? E.RULES.KING_THRESHOLD_WITH_TABLET : E.RULES.KING_THRESHOLD;
+
+// Talismans are consumed, so anything held in one copy that midnight needs is
+// not available to win a corridor fight with. 真火符 is also the buff, so the
+// last one is spoken for until the sword has it burned in.
+function spendableTalismans(state) {
+  return E.heldIds(state)
+    .filter((id) => {
+      const d = state.itemsById[id];
+      if (!d || d.cat !== "magic" || !d.attack) return false;
+      if (E.heldCount(state, id) > 1) return true; // 硃砂 bought us a spare
+      if (STRIKE_IDS.includes(id)) return false; // this one is for the King
+      if (id === "truefire-talisman") {
+        const sword = E.bestSword(state);
+        return !!(sword && state.buffed[sword]); // already burned in, so free
+      }
+      return true;
+    })
+    .sort((a, b) => state.itemsById[b].attack - state.itemsById[a].attack);
+}
+
+// The ordered list of tables still worth standing on. Empty means the recipe is
+// finished and the rest of the night is about arriving alive.
+function adeptWants(state) {
+  const want = [];
+  if (!E.held(state, "soul-banner")) want.push("relic");
+  // 七星劍 is the only blade that reaches the bar; more weapon rummages once we
+  // hold it find nothing, because a unique you carry comes back empty.
+  if (!E.held(state, "sevenstar-sword")) want.push("weapon");
+  const sword = E.bestSword(state);
+  const buffed = !!(sword && state.buffed[sword]);
+  if (!buffed && !E.held(state, "truefire-talisman")) want.push("magic");
+  if (!bigTalisman(state)) want.push("magic");
+  return want;
+}
+
+// Charges are worth exactly the draw they skip, and the draws get worse every
+// hour — so they are hoarded for eleven o'clock unless the emergency is now.
+function adeptCower(state) {
+  if (state.health <= 2) return true;
+  return state.hour === 23 && state.health <= 5;
+}
+
+// The charm is the only damage reduction in the game and the late gifts are
+// talismans. All of them beat the band's worst pack, which is what refusing
+// buys you.
+function adeptGift(state) {
+  if (!E.held(state, "sticky-rice")) return false;
+  return E.heldCount(state, "sticky-rice") > 1 || state.health >= 7;
+}
+
+// Returning null refuses the find, which is the right answer more often than
+// the default: a fourth sword is not worth the slot it would cost.
+function adeptDrop(state, incomingId) {
+  const incoming = state.itemsById[incomingId];
+  const best = E.bestSword(state);
+  const ids = E.heldIds(state);
+
+  // A blade that is not the best blade is dead weight the moment there are two.
+  const junk = ids
+    .filter((id) => state.itemsById[id].cat === "weapon" && id !== best)
+    .sort((a, b) => E.swordAttack(state, a) - E.swordAttack(state, b))[0];
+  if (junk) return junk;
+
+  if (incoming && incoming.cat === "weapon" && incoming.id !== "sevenstar-sword") return null;
+  if (E.heldCount(state, "sticky-rice") > 1) return "sticky-rice";
+
+  const keep = new Set([best, "soul-banner", bigTalisman(state), "truefire-talisman"].filter(Boolean));
+  return ids.find((id) => !keep.has(id)) || null;
+}
+
+// Only 七星劍 is worth a 真火符 while there is still night left to find one in.
+// A lesser blade gets it once being picky has stopped paying.
+function adeptBuff(state) {
+  const sword = E.bestSword(state);
+  if (!sword) return false;
+  return sword === "sevenstar-sword" || state.turn >= 20;
+}
+
+// The night's budget. Before this the kit is cheaper to chase indoors, where
+// three tiles apiece pay 20-30 %; after it the banner needs every rummage it
+// can still get at 15 % from the only tile that has one.
+const BANNER_DEADLINE = 11;
+
 // ---- One night ------------------------------------------------------------------
 export function playNight(data, policyName, seed) {
   const state = E.newGame(data, { seed });
@@ -211,7 +398,9 @@ export function playNight(data, policyName, seed) {
 
     // ---- the action
     const charges = state.cowerCharges;
-    const wantCower = charges > 0 && (state.health <= 3 || (plan.thenStay && state.hour === 23 && die() < 0.5));
+    const wantCower = charges > 0 && (plan.cowerWhen
+      ? plan.cowerWhen(state)
+      : (state.health <= 3 || (plan.thenStay && state.hour === 23 && die() < 0.5)));
     if (wantCower) {
       E.cower(state);
     } else {
@@ -239,24 +428,29 @@ export function playNight(data, policyName, seed) {
 
       // ---- the event
       const ev = E.drawEvent(state);
-      const out = E.resolveEvent(state, ev, { giveRice: E.heldCount(state, "sticky-rice") > 1 });
+      const feed = plan.giveRice ? plan.giveRice(state) : E.heldCount(state, "sticky-rice") > 1;
+      const out = E.resolveEvent(state, ev, { giveRice: feed });
       if (out.type === "GIFT") { stats.gifts++; stats.giftIds.push(out.id); }
-      if (out.type === "FIGHT") fight(ctx, out.n, { hoardBanner: plan.hoardBanner });
+      if (out.type === "FIGHT") fight(ctx, out.n, plan);
 
       if (state.status === "playing" && !state.fled) {
-        survive(ctx);
+        survive(ctx, plan);
         const tile = B.currentTile(board);
         if (tile && tile.def.search) {
           const r = E.search(state, tile.def.search);
           if (r.result === "OFFER_DROP") {
-            // Drop rice before equipment; a sword outlives a meal.
-            const spare = E.held(state, "sticky-rice") ? "sticky-rice" : E.heldIds(state)[0];
-            E.pickUpItem(state, r.id, spare);
+            // Drop rice before equipment; a sword outlives a meal. A policy may
+            // answer null instead, which refuses the find — sometimes the right
+            // answer, since a fourth blade is not worth the slot.
+            const spare = plan.dropChoice
+              ? plan.dropChoice(state, r.id)
+              : (E.held(state, "sticky-rice") ? "sticky-rice" : E.heldIds(state)[0]);
+            if (spare) E.pickUpItem(state, r.id, spare);
           }
         }
         if (tile && tile.def.action === "RESTORE_COWER_ONCE") E.restoreCowerCharge(state);
         if (tile && tile.def.action === "PRAY_ONCE" && plan.pray && B.canPray(board)) B.pray(board);
-        upkeep(ctx);
+        upkeep(ctx, plan);
 
         // Only the hunter performs a rite. Everyone else standing in a goal
         // room is standing in an ordinary room — without this the duelist and
@@ -266,8 +460,9 @@ export function playNight(data, policyName, seed) {
         const riteAllowed = plan.doRites === true || plan.doRites === goal;
         if (goal && riteAllowed && E.riteDraws(state, goal)) {
           const rev = E.riteEvent(state);
-          const rout = E.resolveEvent(state, rev, { giveRice: E.heldCount(state, "sticky-rice") > 1 });
-          if (rout.type === "FIGHT") fight(ctx, rout.n, { hoardBanner: plan.hoardBanner });
+          const rfeed = plan.giveRice ? plan.giveRice(state) : E.heldCount(state, "sticky-rice") > 1;
+          const rout = E.resolveEvent(state, rev, { giveRice: rfeed });
+          if (rout.type === "FIGHT") fight(ctx, rout.n, plan);
           if (state.status === "playing") E.completeRite(state, goal);
         }
       }
@@ -277,7 +472,7 @@ export function playNight(data, policyName, seed) {
         if (n) {
           const wall = B.pickZombieDoorWall(board);
           if (wall) B.openZombieDoor(board, wall);
-          fight(ctx, n, { hoardBanner: plan.hoardBanner });
+          fight(ctx, n, plan);
         }
       }
 
@@ -296,9 +491,15 @@ export function playNight(data, policyName, seed) {
       const water = !!(here && (here.def.flags || []).includes("RUNNING_WATER"));
       const use = {};
       if (E.held(state, "soul-banner")) use.banner = true;
-      const tal = E.heldIds(state)
+      const cands = E.heldIds(state)
         .filter((id) => { const d = state.itemsById[id]; return d && d.cat === "magic" && d.attack; })
-        .sort((a, b) => state.itemsById[b].attack - state.itemsById[a].attack)[0];
+        .sort((a, b) => state.itemsById[b].attack - state.itemsById[a].attack);
+      // 血符 is paid before the strike lands, so at 1 HP the heaviest talisman
+      // in the pack is the one that kills you on the doorstep. A policy that
+      // knows the rule reaches past it.
+      const tal = plan.smartStrike
+        ? (cands.find((id) => !((state.itemsById[id].costHp || 0) >= state.health)) || cands[0])
+        : cands[0];
       if (tal) use.talisman = tal;
       const atMidnight = E.attackWith(state, use);
       // Captured BEFORE midnight resolves, because resolving it spends the
@@ -326,7 +527,7 @@ function finish(state, board, extra) {
 }
 
 // ---- A thousand nights -----------------------------------------------------------
-export function run(data, policyName, seeds = 1000) {
+export function run(data, policyName, seeds = 1000, from = 1) {
   const tally = { WIN_BURIAL: 0, WIN_SEAL: 0, SURVIVED: 0, LOSS_HEALTH: 0, LOSS_KING: 0 };
   let reachedMidnight = 0;
   let bannerAtMidnight = 0;
@@ -338,7 +539,7 @@ export function run(data, policyName, seeds = 1000) {
   let bestAttackSum = 0;
   const giftKinds = {};
   const errors = [];
-  for (let seed = 1; seed <= seeds; seed++) {
+  for (let seed = from; seed < from + seeds; seed++) {
     try {
       const r = playNight(data, policyName, seed);
       if (r.outcome in tally) tally[r.outcome]++;
@@ -362,6 +563,7 @@ export function run(data, policyName, seeds = 1000) {
   return {
     policy: policyName,
     seeds,
+    batch: `${from}..${from + seeds - 1}`,
     ...tally,
     wins,
     winRate: +((wins / seeds) * 100).toFixed(1),
