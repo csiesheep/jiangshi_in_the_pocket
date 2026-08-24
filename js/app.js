@@ -577,14 +577,15 @@ async function copyReplayLink(btn) {
 // next to Sound because they are the same kind of decision — how loud should
 // this be at me — and it is a separate switch from the OS motion setting on
 // purpose: wanting animation and not wanting to be frightened are different.
-// First run only. The key is the whole mechanism: no zitp:seen means nobody has
-// played here before.
+// First run only. The key is the whole mechanism: no jitp:seen means nobody has
+// played here before — and it has to be OUR key, or a player who met Grave
+// Errand on this origin never gets the letter that explains this game.
 //
 // Off the RNG entirely — showing the note is presentation, so a shared seed
 // plays out identically whether or not the note appeared. That matters more
 // than it looks: reading the note takes time, and time is exactly what this
 // game measures, so it must not be allowed to cost any.
-const SEEN_KEY = "zitp:seen";
+const SEEN_KEY = "jitp:seen";
 
 function firstVisit() {
   try {

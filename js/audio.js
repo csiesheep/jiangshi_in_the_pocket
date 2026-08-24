@@ -11,8 +11,11 @@
 // player asked for, and there is no `prefers-reduced-sound` to lean on, so the
 // toggle is how sound gets turned *on*.
 
-const KEY = "zitp:muted";
-const CALM_KEY = "zitp:calm";
+// The `jitp:` prefix is not cosmetic. Every game on games.csiesheep.com
+// shares one origin and localStorage is origin-scoped, so a key named for
+// the sibling is the SAME key — these read and wrote Grave Errand's.
+const KEY = "jitp:muted";
+const CALM_KEY = "jitp:calm";
 
 let ctx = null;
 let master = null;

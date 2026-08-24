@@ -10,8 +10,11 @@
 // No sync and no server. Clearing site data clears it, and the house forgetting
 // you is thematically fine.
 
-const TAKEN_KEY = "zitp:deaths";
-const LEFT_KEY = "zitp:escapes";
+// The `jitp:` prefix is not cosmetic. Every game on games.csiesheep.com
+// shares one origin and localStorage is origin-scoped, so a key named for
+// the sibling is the SAME key — these read and wrote Grave Errand's.
+const TAKEN_KEY = "jitp:deaths";
+const LEFT_KEY = "jitp:escapes";
 
 function read(key) {
   try {
