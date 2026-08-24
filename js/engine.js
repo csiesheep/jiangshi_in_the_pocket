@@ -118,8 +118,17 @@ export function newGame(data, opts = {}) {
     // that saw the figure got different phantoms for the rest of the night.
     standingRng: makeRng((seed ^ 0x27d4eb2f) >>> 0),
     stoodOnce: false,
+    // A sixth, and the first that is not presentation: every search roll and
+    // the 金丹 coin-flip come from here. Its own stream for the same reason as
+    // the rest — a shared seed has to find the same things in the same rooms
+    // whatever else the night did, and sharing the game's rng would let an
+    // unrelated draw shift every find after it.
+    searchRng: makeRng((seed ^ 0x1b873593) >>> 0),
     seed,
     itemsById,
+    // The §4 tables, by name. Kept on state rather than reached for at call
+    // time so the engine still has no I/O and a test can inject its own.
+    searchTables: data.search || {},
     health: RULES.START_HEALTH,
     // The clock, in two forms. `turn` is the truth — 1..30, and 31 the moment
     // the night is over. `hour` is derived from it and kept in step, because
@@ -522,10 +531,99 @@ export function dropItem(state, itemId, n = 1) {
 export function useMedicine(state, itemId) {
   const def = state.itemsById[itemId];
   if (!def || !held(state, itemId)) return { ok: false, reason: "not-held" };
-  if (def.heal) changeHealth(state, def.heal);
+
+  let healed = def.heal || 0;
+  // 金丹 is a coin-flip, and it is rolled from the SEARCH stream rather than
+  // the game's. Half of these were made by someone who knew what they were
+  // doing; a shared seed has to agree on which half you got, and the search
+  // stream is the one nothing else disturbs.
+  if (def.gamble) {
+    const face = weightedPick(def.gamble, state.searchRng);
+    healed = face ? face.hp : 0;
+  }
+  if (healed) changeHealth(state, healed);
   if (def.cures === "POISON") state.poisoned = false;
   if (def.consumed) dropItem(state, itemId);
-  return { ok: true, healed: def.heal || 0, cured: def.cures === "POISON" };
+  return { ok: true, healed, cured: def.cures === "POISON" };
+}
+
+// ---- Searching --------------------------------------------------------------
+// A search is free, costs no turn, and happens after the room's event — so you
+// rummage a room that has already shown you what is in it.
+//
+// Every roll comes from state.searchRng and nothing else touches that stream.
+// That is the whole reason it exists: a shared seed has to find the same things
+// in the same rooms whatever else the night did, and a stream shared with the
+// game's own rng would be shifted by every unrelated draw before it.
+
+// One draw, one result. Weights are the `p` column and are asserted to sum to
+// 100 in the data tests, but this does not rely on that — it normalises to the
+// total it is given, so a table that drifts still picks proportionally rather
+// than silently favouring the last row.
+export function weightedPick(table, rng) {
+  const total = table.reduce((n, e) => n + e.p, 0);
+  if (total <= 0) return null;
+  let roll = rng() * total;
+  for (const entry of table) {
+    roll -= entry.p;
+    if (roll < 0) return entry;
+  }
+  return table[table.length - 1]; // float dust at the very top of the range
+}
+
+// Would a search of this table find nothing, and how often? Nothing is two
+// different outcomes wearing one face: the table's own `null`, and a unique you
+// are already carrying. Exported because it is the honest way to state the
+// escalation — a weapon search misses 10% of the time with no swords and 85%
+// with three, and no rule anywhere says so; it falls out of the table.
+export function missChance(state, tableName) {
+  const table = (state.searchTables || {})[tableName];
+  if (!table) return 100;
+  const total = table.reduce((n, e) => n + e.p, 0) || 1;
+  let miss = 0;
+  for (const e of table) {
+    if (e.id === null) miss += e.p;
+    else {
+      const def = state.itemsById[e.id];
+      if (def && def.unique && held(state, e.id)) miss += e.p;
+    }
+  }
+  return (miss / total) * 100;
+}
+
+// Roll one search. Consumes EXACTLY ONE draw from the search stream whatever
+// the outcome, which is what keeps a shared seed in step: a run that finds
+// nothing and a run that finds a sword have spent the same randomness.
+//
+// Returns one of:
+//   { result: "NOTHING" }                  rolled null, or a unique already held
+//   { result: "TOOK", id }                 in the pack
+//   { result: "OFFER_DROP", id, cost }     no room; the caller picks what goes
+//
+// OFFER_DROP is deliberately not resolved here. What to drop is a decision, and
+// decisions belong to whoever is talking to the player — finish it by calling
+// pickUpItem(state, id, dropId), which is the same door every other pickup uses.
+export function search(state, tableName) {
+  const table = (state.searchTables || {})[tableName];
+  if (!table) return { result: "NOTHING", reason: "no-table" };
+
+  const pick = weightedPick(table, state.searchRng);
+  if (!pick || pick.id === null) return { result: "NOTHING" };
+
+  const def = state.itemsById[pick.id];
+  if (!def) return { result: "NOTHING", reason: "unknown-item" };
+
+  // A unique you already carry finds nothing. This is what makes weapon
+  // searches self-limiting rather than a treadmill: every sword you own raises
+  // the chance the next search hands you back the room you already looted.
+  if (def.unique && held(state, pick.id)) return { result: "NOTHING", reason: "duplicate" };
+
+  if (!hasItemSpace(state, pick.id)) {
+    return { result: "OFFER_DROP", id: pick.id, cost: slotCost(state, pick.id) };
+  }
+
+  pickUpItem(state, pick.id);
+  return { result: "TOOK", id: pick.id };
 }
 
 // ---- Cowering ---------------------------------------------------------------

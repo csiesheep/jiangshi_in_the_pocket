@@ -7,10 +7,11 @@ import { test, assert, eq } from "./harness.js";
 const NO_STORE = { cache: "no-store" };
 
 // Load the real game data so tests run against the shipped tables.
-const [items] = await Promise.all([
+const [items, search] = await Promise.all([
   fetch("../data/items.json", NO_STORE).then((r) => r.json()),
+  fetch("../data/search.json", NO_STORE).then((r) => r.json()),
 ]);
-const DATA = { items };
+const DATA = { items, search };
 const game = (opts) => E.newGame(DATA, opts);
 
 // ---- Setup -----------------------------------------------------------------
@@ -693,3 +694,152 @@ test("cower: the incense gives one charge back, once a night", () => {
 // "behaves like an ordinary fresh turn", so it carries its own cower allowance
 // rather than competing with the one at end of turn.
 // ---- Card resolution -------------------------------------------------------
+
+// ---- Searching ---------------------------------------------------------------
+// The tables live in search.json and the DoD numbers come from them, so these
+// load the real file rather than a fixture: a re-cut of the weights should
+// break the arithmetic here loudly rather than pass against a stale copy.
+
+test("search: a weighted pick is proportional and spends one draw", () => {
+  const rng = E.makeRng(4242);
+  const table = [{ id: "a", p: 70 }, { id: "b", p: 30 }];
+  const seen = { a: 0, b: 0 };
+  for (let i = 0; i < 4000; i++) seen[E.weightedPick(table, rng).id]++;
+  // 4000 draws off a fixed seed: deterministic, so this is an exact check of
+  // the split rather than a flaky one.
+  assert(seen.a > 2600 && seen.a < 3000, `70% should land near 2800, got ${seen.a}`);
+  eq(seen.a + seen.b, 4000, "every draw returned something");
+});
+
+test("search: null in a table is a real result — you found nothing", () => {
+  const s = game({ seed: 1 });
+  const rng = E.makeRng(7);
+  const nothing = E.weightedPick([{ id: null, p: 100 }], rng);
+  eq(nothing.id, null);
+  s.searchTables = { empty: [{ id: null, p: 100 }] };
+  eq(E.search(s, "empty").result, "NOTHING");
+});
+
+// THE DoD NUMBER. A weapon search misses 10% of the time with no swords and
+// 85% with three, and nothing in the code says so — it falls out of the table
+// once "a unique you already hold finds nothing" is applied. That escalation is
+// what stops weapon searching being a treadmill.
+test("search: the weapon miss climbs 10 -> 35 -> 60 -> 85 as swords accumulate", () => {
+  const s = game({ seed: 1 });
+  const at = () => Math.round(E.missChance(s, "weapon"));
+  eq(at(), 10, "bare-handed: only the table's own null");
+  E.pickUpItem(s, "precept-knife");
+  eq(at(), 35, "one sword: its 25 now finds nothing");
+  E.pickUpItem(s, "peachwood-sword");
+  eq(at(), 60, "two");
+  E.pickUpItem(s, "coin-sword");
+  eq(at(), 85, "three — only 七星劍 is still worth turning over");
+});
+
+test("search: a unique already held returns nothing, and does not duplicate", () => {
+  const s = game({ seed: 1 });
+  s.searchTables = { only: [{ id: "coin-sword", p: 100 }] };
+  eq(E.search(s, "only").result, "TOOK");
+  eq(E.heldCount(s, "coin-sword"), 1);
+  const again = E.search(s, "only");
+  eq(again.result, "NOTHING");
+  eq(again.reason, "duplicate");
+  eq(E.heldCount(s, "coin-sword"), 1, "still exactly one");
+});
+
+// Rice is not unique, so a second one is a real find — the duplicate rule is
+// scoped to `unique` and must not leak into everything else.
+test("search: a non-unique can be found again", () => {
+  const s = game({ seed: 1 });
+  s.searchTables = { only: [{ id: "sticky-rice", p: 100 }] };
+  eq(E.search(s, "only").result, "TOOK");
+  eq(E.heldCount(s, "sticky-rice"), 4, "a fourth rice on top of the starting three");
+});
+
+test("search: a full pack offers a drop rather than silently losing the find", () => {
+  const s = game({ seed: 1 }); // 3 rice
+  E.pickUpItem(s, "precept-knife");
+  E.pickUpItem(s, "peachwood-sword");
+  E.pickUpItem(s, "coin-sword");
+  eq(E.slotsUsed(s), 6, "full");
+
+  s.searchTables = { only: [{ id: "sevenstar-sword", p: 100 }] };
+  const r = E.search(s, "only");
+  eq(r.result, "OFFER_DROP");
+  eq(r.id, "sevenstar-sword");
+  eq(E.held(s, "sevenstar-sword"), false, "not taken behind the player's back");
+
+  // The offer is finished through the same door every other pickup uses.
+  eq(E.pickUpItem(s, r.id, "sticky-rice").ok, true);
+  eq(E.held(s, "sevenstar-sword"), true);
+  eq(E.slotsUsed(s), 6);
+});
+
+// THE OTHER DoD NUMBER. The search stream is separate so that a shared seed
+// finds the same things whatever else happened — this drives the game's own rng
+// and every presentation stream hard in between, and the finds must not move.
+test("search: same seed, same finds, however much else is drawn", () => {
+  const run = (disturb) => {
+    const s = game({ seed: 31 });
+    s.searchTables = {
+      weapon: [{ id: "precept-knife", p: 25 }, { id: "peachwood-sword", p: 25 },
+               { id: "coin-sword", p: 25 }, { id: "sevenstar-sword", p: 15 },
+               { id: null, p: 10 }],
+    };
+    const out = [];
+    for (let i = 0; i < 12; i++) {
+      if (disturb) {
+        for (let k = 0; k < 5; k++) s.rng();
+        E.rollPhantom(s, 1);
+        E.rollGutter(s, 1);
+        E.rollSilentScare(s);
+      }
+      const r = E.search(s, "weapon");
+      out.push(r.result === "TOOK" ? r.id : r.result);
+    }
+    return out.join(",");
+  };
+  eq(run(false), run(true), "unrelated draws must not move the search stream");
+  eq(run(true), run(true), "and it is deterministic besides");
+});
+
+test("search: rolling searches does not disturb the game's own stream", () => {
+  const a = game({ seed: 19 });
+  const b = game({ seed: 19 });
+  a.searchTables = { t: [{ id: "sticky-rice", p: 50 }, { id: null, p: 50 }] };
+  for (let i = 0; i < 20; i++) E.search(a, "t");
+  eq(a.rng(), b.rng(), "the game stream is where it was");
+});
+
+test("search: an unknown table finds nothing rather than throwing", () => {
+  const s = game({ seed: 1 });
+  eq(E.search(s, "no-such-table").result, "NOTHING");
+});
+
+// 金丹 is the one item whose effect is a die roll, and it is rolled from the
+// search stream for the same reason the searches are: a shared seed has to
+// agree on which half of the elixir you got.
+test("golden-elixir: the coin-flip comes off the search stream", () => {
+  const outcomes = (seed) => {
+    const s = game({ seed });
+    const got = [];
+    for (let i = 0; i < 6; i++) {
+      s.items["golden-elixir"] = 1;
+      s.health = 5;
+      got.push(E.useMedicine(s, "golden-elixir").healed);
+    }
+    return got;
+  };
+  const first = outcomes(88);
+  eq(first, outcomes(88), "same seed, same flips");
+  for (const h of first) assert(h === 6 || h === -2, `an elixir is +6 or -2, got ${h}`);
+  assert(new Set(first).size === 2, "and over six flips it is not always the same face");
+});
+
+test("golden-elixir: it is consumed either way, and respects the cap", () => {
+  const s = game({ seed: 1 });
+  s.items["golden-elixir"] = 1;
+  const r = E.useMedicine(s, "golden-elixir");
+  eq(E.held(s, "golden-elixir"), false, "drunk, good or bad");
+  if (r.healed > 0) eq(s.health, 10, "a good flip cannot exceed the cap");
+});
