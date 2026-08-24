@@ -301,8 +301,12 @@ export function playNight(data, policyName, seed) {
         .sort((a, b) => state.itemsById[b].attack - state.itemsById[a].attack)[0];
       if (tal) use.talisman = tal;
       const atMidnight = E.attackWith(state, use);
+      // Captured BEFORE midnight resolves, because resolving it spends the
+      // banner. Read afterwards it is false for exactly the runs that used one,
+      // which is the opposite of the question being asked.
+      const hadBanner = !!use.banner;
       const r = E.midnight(state, { runningWater: water, use });
-      return finish(state, board, { atMidnight, threshold: r.threshold, water, ...stats });
+      return finish(state, board, { atMidnight, threshold: r.threshold, water, hadBanner, ...stats });
     }
     E.advanceTurn(state);
   }
@@ -348,7 +352,7 @@ export function run(data, policyName, seeds = 1000) {
       if (r.atMidnight !== undefined) {
         reachedMidnight++;
         sealAttackSum += r.atMidnight;
-        if (r.hadBanner || r.atMidnight >= 10) bannerAtMidnight++;
+        if (r.hadBanner) bannerAtMidnight++;
       }
     } catch (err) {
       errors.push(`seed ${seed}: ${err && err.message}`);
