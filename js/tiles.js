@@ -9,36 +9,50 @@ const DIRS = ["N", "E", "S", "W"];
 // Plain words for the behaviour flags. Keyed off the same fields the engine
 // reads, so a tile cannot gain a power the gallery quietly omits — anything
 // unrecognised is surfaced rather than dropped (see noteFor).
-// The two goal rooms. Each resolves the room's own event and then draws ONE
-// MORE for the rite itself — so a goal room is two events in one turn, and the
-// second lands at the moment you least want it.
+// The two goal rooms are rites, not cards: each resolves the room's own event
+// and then draws ONE MORE for the rite itself, so a goal room is two events in
+// one turn and the second lands at the moment you least want it. {tablet} is
+// filled from the theme, so this page and the board cannot end up calling the
+// 神主牌 two different things.
 const GOAL = {
   TAKE_TABLET:
-    "The 神主牌 is here. Resolve the room's event, then draw one more for the rite. Survive it and the tablet is yours.",
+    "The {tablet} is here. Resolve the room's event, then one more for the opening of the coffin. Survive it and still be standing here, and it is yours.",
   BURY_TABLET:
-    "Break ground, then draw one more for the burial. Survive it holding the tablet and you have won.",
+    "Break ground, then one more for the digging. Survive that holding the {tablet} and you have won.",
 };
 const ON_TURN_END = { HEAL_1: "+1 Health if you end your turn here." };
 const ACTION = {
-  RESTORE_COWER_ONCE: "Light the incense: one cower charge back. Once per night.",
-  PRAY_ONCE: "Pray: the next unexplored place you put down is the 亂葬崗. Once per night.",
+  RESTORE_COWER_ONCE: "Light the incense: one cower charge back. Once per night, and it costs no turn.",
 };
 const FLAG = {
-  RUNNING_WATER: "Running water. They cannot cross it, so their blows land on nothing.",
+  RUNNING_WATER: "活水 running water. 殭屍 cannot cross it, so their attacks do you no harm while you stand here.",
 };
 // The one category this room can be rummaged for. Every room sharing a category
 // rolls the identical table — there is no rarity flag, and the ★ that used to
 // sit on 經堂 and 鐵匠鋪 was flavour that had leaked into the data.
 const SEARCH = {
-  weapon: "Search here for a weapon.",
-  magic: "Search here for a talisman.",
-  medicine: "Search here for medicine.",
-  relic: "Search here for a ritual implement.",
+  weapon: "搜索 Search here for a 武器 weapon.",
+  magic: "搜索 Search here for a 符咒 talisman.",
+  medicine: "搜索 Search here for 丹藥 medicine.",
+  relic: "搜索 Search here for the 法器 — and nowhere else in the village.",
 };
 
 const WORD = { N: "north", E: "east", S: "south", W: "west" };
 
-function noteFor(def, world) {
+// A tile's display name, for the notes that have to refer to another room.
+function name(theme, id) {
+  return (theme && theme.tiles && theme.tiles[id]) || id;
+}
+
+// The word for the 神主牌, taken from the theme so this page and the board
+// cannot end up calling it two different things.
+function fill(line, theme) {
+  if (!line) return line;
+  const tablet = (theme && theme.actions && theme.actions.tablet) || "tablet";
+  return line.replace("{tablet}", tablet);
+}
+
+function noteFor(def, world, theme) {
   const notes = [];
   // Both decks have a `start` tile, but they mean different things: one is
   // where the night begins, the other is what goes down the moment you step
@@ -50,16 +64,28 @@ function noteFor(def, world) {
         : "Set aside at setup — it goes down the moment you first step outside."
     );
   }
-  if (def.search) notes.push(SEARCH[def.search] || `Search here for ${def.search}.`);
+  if (def.search) {
+    // No "best of its kind" line: every room sharing a category rolls the
+    // identical table, so saying otherwise would teach a rule the game lacks.
+    notes.push(SEARCH[def.search] || `搜索 Search here for ${def.search}.`);
+  }
   if (def.exteriorDoor) {
     notes.push(
-      `Carries the gate out — its ${WORD[def.exteriorDoor]} door leads outside, not to another room.`
+      `Carries the 月門 moon gate — its ${WORD[def.exteriorDoor]} way out leads outside the village, not to another room.`
     );
   }
-  if (def.seam) notes.push("Joins the house along its seam edge, the way back in.");
+  if (def.seam) notes.push("Joins the village along its seam edge, the way back in.");
   for (const f of def.flags || []) notes.push(FLAG[f] || `Special: ${f}`);
-  if (def.action) notes.push(ACTION[def.action] || `Special: ${def.action}`);
-  if (def.goal) notes.push(GOAL[def.goal] || `Special: ${def.goal}`);
+  if (def.action) {
+    // The prayer names the tile it summons rather than hinting at it, and takes
+    // that name from the theme like every other room name on the page.
+    notes.push(
+      def.action === "PRAY_ONCE"
+        ? `Pray: the next unexplored outdoor tile you place is the ${name(theme, "mass-grave")}. Once per night, and it costs no turn.`
+        : ACTION[def.action] || `Special: ${def.action}`
+    );
+  }
+  if (def.goal) notes.push(fill(GOAL[def.goal], theme) || `Special: ${def.goal}`);
   if (def.onTurnEnd) notes.push(ON_TURN_END[def.onTurnEnd] || `Special: ${def.onTurnEnd}`);
   return notes;
 }
@@ -196,7 +222,7 @@ function card(def, theme, count, world, n) {
     body.appendChild(row);
   }
 
-  for (const note of noteFor(def, world)) {
+  for (const note of noteFor(def, world, theme)) {
     const p = document.createElement("p");
     p.className = "tilecard-note";
     p.textContent = note;

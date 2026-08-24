@@ -14,7 +14,7 @@
     gtag('config', 'G-Q4VS3P3T58');
   </script>
   <title>Rulebook — how to play Jiangshi in the Pocket</title>
-  <meta name="description" content="How to play 殭屍在口袋: setup, the turn sequence, searching, cowering, and the two ways to end the night.">
+  <meta name="description" content="How to play 殭屍在口袋: the thirty-turn night, the action-event-search turn, cowering, 中毒, the villager, and the two ways the night can end.">
   <link rel="canonical" href="https://games.csiesheep.com/jiangshi_in_the_pocket/rulebook">
   <!-- The reskin has landed on this page, but the sitemap and the OG card
        are still being checked in production. Drop this line once that pass is
@@ -31,7 +31,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="csiesheep games">
   <meta property="og:title" content="Jiangshi in the Pocket — Rulebook">
-  <meta property="og:description" content="Setup, the turn, the clock, and the two ways the night can end. Free, no install, one player.">
+  <meta property="og:description" content="The thirty-turn night, the turn, cowering, poison and the villager — and what comes at the third watch. Free, no install, one player.">
   <meta property="og:url" content="https://games.csiesheep.com/jiangshi_in_the_pocket/rulebook">
   <!-- Absolute, because crawlers do not reliably resolve relative OG paths, and
        a new filename rather than a new picture at the old one — scrapers cache
@@ -43,7 +43,7 @@
   <meta property="og:image:alt" content="The gate of a walled village at night under a cold moon, two red lanterns burning either side of it, under the title 殭屍在口袋 — Jiangshi in the Pocket.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Jiangshi in the Pocket — Rulebook">
-  <meta name="twitter:description" content="Setup, the turn, the clock, and the two ways the night can end. Free, no install, one player.">
+  <meta name="twitter:description" content="The thirty-turn night, the turn, cowering, poison and the villager — and what comes at the third watch. Free, no install, one player.">
   <meta name="twitter:image" content="https://games.csiesheep.com/jiangshi_in_the_pocket/assets/social-jiangshi.png">
   <meta name="twitter:image:alt" content="The gate of a walled village at night under a cold moon, two red lanterns burning either side of it, under the title 殭屍在口袋 — Jiangshi in the Pocket.">
 
@@ -71,7 +71,15 @@
   </header>
 
   <!-- Room and item names below mirror data/theme.json. Keep them in step: the
-       skin is swappable, and this page is the one place the names are hardcoded. -->
+       skin is swappable, and this page is the one place the names are hardcoded.
+
+       🤫 One rule binds this page beyond ordinary accuracy. 鎮屍 — sealing the
+       King — is a hidden ending, and the number it needs is never printed here,
+       nor the kit that reaches it, nor what carrying the tablet does to it. The
+       only place that number is ever shown is the verdict card of a player he
+       killed at midnight. Remove that discretion and the ending stops being
+       discoverable. See the ruleset spec §9; it is part of the spec, not a
+       matter of taste. -->
   <main class="wrap article">
     <h1>Rulebook</h1>
     <p class="muted">Everything you need to play, on one page. The game runs
@@ -81,257 +89,398 @@
     <nav class="toc" aria-label="Contents">
       <h2>Contents</h2>
       <ol>
-        <li><a href="#goal">Goal</a></li>
-        <li><a href="#components">What's in the box</a></li>
+        <li><a href="#night">The night</a></li>
+        <li><a href="#track">What you track</a></li>
         <li><a href="#setup">Setup</a></li>
-        <li><a href="#turn">Taking a turn</a></li>
-        <li><a href="#rooms">Special rooms</a></li>
-        <li><a href="#outside">Going outside</a></li>
         <li><a href="#clock">The clock</a></li>
-        <li><a href="#combat">Combat</a></li>
-        <li><a href="#fleeing">Running away</a></li>
+        <li><a href="#turn">Taking a turn</a></li>
+        <li><a href="#events">What the night throws at you</a></li>
+        <li><a href="#combat">Fighting, and not fighting</a></li>
+        <li><a href="#breach">破牆 — when the wall gives</a></li>
         <li><a href="#cowering">Cowering</a></li>
-        <li><a href="#zombie-doors">Zombie doors</a></li>
+        <li><a href="#outside">Going outside</a></li>
+        <li><a href="#places">Special places</a></li>
         <li><a href="#items">Items</a></li>
+        <li><a href="#rites">The two rites</a></li>
+        <li><a href="#midnight">Midnight — 三更</a></li>
         <li><a href="#winning">Winning &amp; losing</a></li>
-        <li><a href="#house-rules">House rules</a></li>
       </ol>
     </nav>
 
-    <h2 id="goal">Goal</h2>
-    <p>You wake alone in the Entry Hall at 9 PM. Somewhere in the house is the
-      relic that holds the dead here; out behind it is the family plot. Find the
-      relic, bury it there, and be standing when it's done — all before
-      midnight.</p>
-    <p>There are no dice. Every fight is arithmetic, and the only clock that
-      matters is the development deck running dry.</p>
+    <h2 id="night">The night</h2>
+    <p>You are the caretaker. The village has locked its doors, and at the far
+      end of it is the <strong>義莊</strong> — the corpse hostel, where coffins
+      wait for the road home. One of them has waited too long.</p>
+    <p>It is <strong>9:00 PM</strong>. At <strong>midnight</strong> the third
+      watch sounds and the thing in that coffin comes for you. You have until
+      then to do one of two things:</p>
+    <ol>
+      <li><strong>Lay him to rest.</strong> Find his <strong>神主牌</strong> —
+        the ancestral tablet — in the <strong>停柩房 Sealed Crypt</strong>, carry
+        it out of the village, and bury it in the
+        <strong>亂葬崗 Mass Grave</strong>.</li>
+      <li><strong>Meet him.</strong> Be standing there properly armed when he
+        arrives — and it is only what you are holding that decides it.</li>
+    </ol>
+    <p>Either ends the night. So does dying.</p>
 
-    <h2 id="components">What's in the box</h2>
-    <ul>
-      <li><strong>8 indoor tiles</strong> and <strong>8 outdoor tiles</strong>,
-        drawn from two separate face-down stacks. Every one of them is laid out
-        on <a href="tiles.html">the tiles page</a>.</li>
-      <li><strong>9 development cards.</strong> Each one says a different thing
-        depending on the hour — you read only the current hour's line.</li>
-      <li><strong>Health</strong>, <strong>Attack</strong> and the time are just
-        numbers. The game tracks them for you, beside the board.</li>
-    </ul>
+    <h2 id="track">What you track</h2>
+    <p><strong>Twenty tiles</strong>, ten indoor and ten outdoor. An event pool
+      and an item pool, kept separate. <strong>Thirteen items</strong>, in five
+      kinds.</p>
+    <p>Four numbers: <strong>血 Health</strong>, <strong>攻擊力 Attack</strong>,
+      the <strong>回合 turn</strong> you are on, and your
+      <strong>躲藏額度 cower charges</strong>.</p>
 
     <h2 id="setup">Setup</h2>
     <ol>
-      <li>The <strong>Entry Hall</strong> goes down first. The <strong>Veranda</strong>
-        is set aside — it only appears when you first step outside.</li>
-      <li>The remaining indoor and outdoor tiles are shuffled into two separate
-        face-down stacks.</li>
-      <li>The 9 development cards are shuffled and the <strong>top two are
-        burned face down, unseen</strong>. That leaves seven live cards per
-        hour.</li>
-      <li>You start with <strong>Attack 1</strong> and <strong>Health 6</strong>.
-        Both move up and down, and neither has an upper limit.</li>
-      <li>The clock starts at <strong>9 PM</strong>.</li>
+      <li>The <strong>門廳 Gatehouse</strong> goes down first. The
+        <strong>後門石階 Back Steps</strong> is set aside — it goes down later,
+        the moment you first step outside.</li>
+      <li>The rest are shuffled into two face-down stacks, indoor and
+        outdoor.</li>
+      <li>You start with <strong>Attack 1</strong>, <strong>Health 6</strong>,
+        <strong>3 cower charges</strong> and <strong>three 糯米</strong>.</li>
+      <li>The clock reads <strong>9:00 PM</strong>. It is
+        <strong>turn 1 of 30</strong>.</li>
     </ol>
-    <p>You begin in the Entry Hall and <strong>draw no card for it</strong> — the game
-      only starts once you walk out. Come back to the Entry Hall later, though, and
-      you draw as normal.</p>
-
-    <h2 id="turn">Taking a turn</h2>
-    <ol>
-      <li><strong>Move.</strong> Pick a door out of the room you're in, into
-        either unexplored space or somewhere you've already been. Moving is
-        <strong>mandatory</strong> — you can't peer into a room and decide to
-        stay put. You can flee <em>after</em> walking into trouble, but you did
-        walk in.</li>
-      <li><strong>Place the tile</strong> if the space is unexplored. The top
-        tile of the stack is revealed and turned for you, under one constraint:
-        one of its doors must line up with the door you just came through. Where
-        there's a choice, it's turned to leave you a way on into unexplored
-        space. Its other doors don't have to match anything — a door can open
-        onto a blank wall, and a wall can seal off a neighbour's door. That's
-        intended. There's no fixed footprint either; the house sprawls as far as
-        the tiles take it.</li>
-      <li><strong>Draw a development card.</strong> Always — even when
-        re-entering a room you already know. Read only the line for the current
-        hour:
-        <ul>
-          <li><strong>Item</strong> — you <em>may</em> draw the next card and
-            take the item pictured on <em>that</em> one. Declining costs
-            nothing, but you get nothing.</li>
-          <li><strong>Risen</strong> — fight them, or run.</li>
-          <li><strong>Event</strong> — gain or lose the Health shown, if any.</li>
-        </ul>
-        If the deck is empty when you need to draw, <a href="#clock">an hour has
-        passed</a>.</li>
-      <li><strong>Apply the room's own instructions</strong>, after the card is
-        finished. Only <a href="#rooms">some rooms</a> have any.</li>
-      <li><strong>Check for a dead end.</strong> Nowhere left to go means
-        <a href="#zombie-doors">zombie doors</a>.</li>
-      <li><strong>Kitchen and Herb Garden</strong> give <strong>+1 Health</strong> if
-        you finish your turn in them.</li>
-      <li><strong>Cower, if you want to.</strong> See
-        <a href="#cowering">Cowering</a>.</li>
-    </ol>
-
-    <h2 id="rooms">Special rooms</h2>
-    <ul>
-      <li><strong>Reliquary.</strong> The relic is here. Resolve the room's
-        card as normal, then draw and resolve <strong>a second card</strong> —
-        that one is the search itself. Survive it, still standing in the room,
-        and the relic is yours. Carrying it does <em>not</em> use an item
-        slot.</li>
-      <li><strong>Family Plot.</strong> The same two-card procedure, this time
-        standing for the burial. Survive it holding the relic and you've
-        won.</li>
-      <li><strong>Pantry.</strong> Resolve the card as normal, then you
-        <em>may</em> draw one more and take the item on it.</li>
-      <li><strong>Kitchen</strong> and <strong>Herb Garden.</strong> +1 Health if you
-        end your turn there.</li>
-    </ul>
-
-    <h2 id="outside">Going outside</h2>
-    <p>The only way out of the house is the <strong>Dining Hall's exterior
-      door</strong>, marked with an arrow. It's one of the Dining Hall's four
-      ordinary doors, not a secret fifth exit.</p>
-    <p>Take it and the <strong>Veranda</strong> goes down against the Dining Hall
-      with the two arrows aligned. Then you draw a card as usual.</p>
-    <p>Outside, turns work exactly as they do indoors with one substitution:
-      instead of a door, you leave across an <strong>open grassy edge</strong>.
-      <strong>Hedges are walls</strong> — you can't push through them. As
-      indoors, one grassy edge on each newly placed tile has to line up with the
-      edge you left by.</p>
+    <p>You begin in the Gatehouse and <strong>draw no event for it</strong>. The
+      night starts when you move.</p>
 
     <h2 id="clock">The clock</h2>
-    <p>Time doesn't pass on a turn counter. It passes when the deck does.
-      <strong>Need to draw a card with none left, and an hour has gone by.</strong>
-      From that point on you read the new hour's line on every card.</p>
-    <p>The deck is then reshuffled — including the two burned at setup — and two
-      are burned again.</p>
-    <p>Hours run <strong>9 PM → 10 PM → 11 PM</strong>. There is no midnight line
-      to read; see <a href="#winning">Losing</a>.</p>
-    <p class="muted">Edge case: if an <strong>Item</strong> card is the last one
-      in the deck, the deck reshuffles and burns first, then you draw the top of
-      the fresh deck to see what you found.</p>
+    <p><strong>The turn is the clock.</strong> There is no deck to run down.</p>
+    <p>The game is exactly <strong>30 turns</strong>, each of them six minutes.
+      Turn 1 begins at nine; turn 30 ends at midnight. The three hour bands are
+      ten turns each.</p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Band</th><th>Turns</th><th>Clock</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>9 PM</strong></td><td>1–10</td><td>21:00 → 22:00</td></tr>
+        <tr><td><strong>10 PM</strong></td><td>11–20</td><td>22:00 → 23:00</td></tr>
+        <tr><td><strong>11 PM</strong></td><td>21–30</td><td>23:00 → 24:00</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Events get worse as the bands advance. There is
+      <strong>no losing to the clock</strong> — midnight is not a deadline you
+      fail, it is an appointment you keep.</p>
 
-    <h2 id="combat">Combat</h2>
-    <p>Fighting is arithmetic, not dice:</p>
-    <blockquote>
-      <strong>Health lost = (number of risen) − (your Attack)</strong>
-    </blockquote>
-    <p>You can never lose more than <strong>4 Health</strong> in a single fight,
-      and you can never <em>gain</em> Health from one.</p>
-    <p><strong>Attack never stacks.</strong> You use exactly one weapon per
-      fight — the best one you're holding — and its bonus doesn't accumulate
-      with anything else. Carrying the Splintered Bone (+1) and the Billhook (+2)
-      leaves you at +2, not +3. Drop a weapon and its bonus goes with it.</p>
+    <h2 id="turn">Taking a turn</h2>
+    <p>Every turn is <strong>one action</strong>, then <strong>an event</strong>,
+      then <strong>an optional search</strong>.</p>
 
-    <h2 id="fleeing">Running away</h2>
-    <p>Instead of fighting, you can leave through a door or grassy edge into a
-      room you've <strong>already explored</strong>. The risen get a parting
-      swipe: <strong>−1 Health</strong>. You do <em>not</em> draw a card for the
-      room you retreat into.</p>
-    <p>You can only run <strong>one step</strong>, to an adjacent explored room —
-      see <a href="#house-rules">House rules</a>.</p>
-    <p>Holding <strong>Lamp Oil</strong>, you can throw it as you go and take no
-      damage at all. One use.</p>
+    <h3>1 — Choose one action</h3>
+    <p><strong>移動 MOVE</strong> — step into an adjacent room, explored or not.
+      If it is unexplored, a tile goes down.</p>
+    <p><strong>停留 STAY</strong> — remain where you are. Legal, and often
+      correct: staying is how you search a room a second time.</p>
+    <p><strong>躲藏 COWER</strong> — hide. Spend a charge and end the turn
+      immediately: no event, no search. See <a href="#cowering">Cowering</a>.</p>
+    <p class="muted">Movement is optional — but standing still costs a turn and
+      draws an event exactly like walking does. There is no free turn.</p>
+
+    <h3>2 — Place the tile, if the room is new</h3>
+    <p>The top tile of the matching stack goes down.
+      <strong>Rotated however it likes</strong>, with one constraint: one of its
+      ways out must line up with the way you just came through. Its other edges
+      match nothing in particular — a door may open onto a blank wall, and a
+      wall may seal off a neighbour's door.</p>
+    <p>There is no fixed footprint. The village sprawls as far as the tiles take
+      it.</p>
+
+    <h3>3 — Draw an event</h3>
+    <p>One event, read for <strong>the current hour band</strong>. Always —
+      including when you re-enter a room you know, and including when you stayed
+      put.</p>
+
+    <h3>4 — Search, if the room offers it</h3>
+    <p>Ten of the twenty places can be searched, each for
+      <strong>one category</strong> of thing.</p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Category</th><th>Where</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>武器 weapons</strong></td><td>鐵匠鋪 Blacksmith · 柴房 Woodshed · 牌坊 Memorial Arch</td></tr>
+        <tr><td><strong>符咒 talismans</strong></td><td>經堂 Sutra Hall · 靈堂 Mourning Hall · 竹林 Bamboo Grove</td></tr>
+        <tr><td><strong>丹藥 medicine</strong></td><td>藥鋪 Apothecary · 帳房 Counting Room · 槐樹 Pagoda Tree</td></tr>
+        <tr><td><strong>法器 implement</strong></td><td>土地廟 Earth God Shrine — and nowhere else</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Searching is <strong>free</strong> — it costs no turn. It happens after
+      the event, and <strong>it may find nothing</strong>. If it does, you can
+      search the same room again by spending next turn on
+      <strong>STAY</strong> — which means another event. That is the price of
+      rummaging: not the search, the lingering.</p>
+    <p>You may carry <strong>6 items</strong>. The 神主牌 does not count against
+      that.</p>
+
+    <h3>5 — End of turn</h3>
+    <p><strong>帳房 Counting Room</strong> and <strong>槐樹 Pagoda Tree</strong>
+      give <strong>+1 Health</strong> if you finish your turn standing in them.
+      Then the clock advances six minutes.</p>
+
+    <h2 id="events">What the night throws at you</h2>
+    <p>Every draw is one of six things, and the mix sours as the night goes on:
+      more fights, bigger ones, and at eleven o'clock the small mercies stop.</p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Event</th><th>What happens</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>殭屍</strong></td><td>A pack of them, three to six. See <a href="#combat">Fighting</a></td></tr>
+        <tr><td><strong>損血</strong></td><td>−1 Health. Bad footing, a dropped beam, the cold</td></tr>
+        <tr><td><strong>回血</strong></td><td>+1 Health. Nothing above ten o'clock is generous, and by eleven this stops entirely</td></tr>
+        <tr><td><strong>沒事</strong></td><td>Nothing happens. Rarer every hour</td></tr>
+        <tr><td><strong>中毒</strong></td><td>Corpse-poison, below</td></tr>
+        <tr><td><strong>村民受傷</strong></td><td>A villager, bitten, below</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3 id="poison">中毒 — poisoned</h3>
+    <p>屍毒 gets into you, and it does not wear off.</p>
+    <blockquote><strong>−1 Health at the start of every turn, until a 糯米 draws
+      it out.</strong></blockquote>
+    <p>Nothing else cures it, and <strong>it does not stack</strong> — poisoned
+      is poisoned, however often it happens. The <strong>護身符 does not
+      help</strong>: poison is not a wound, and the charm only softens wounds.</p>
+    <p>Left alone it will kill you. <strong>The rice in your pack is the only
+      answer</strong> — which is exactly why you can never comfortably spend it
+      on anything else.</p>
+
+    <h3 id="villager">村民受傷 — a villager is hurt</h3>
+    <p>Someone from the village is bitten and bleeding. <strong>Spend a 糯米 to
+      draw the poison out of them</strong>, and they give you what they have.
+      Refuse — or have no rice — and you watch them turn, and then you fight
+      them.</p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Band</th><th>Save them, and take</th><th>Refuse, and fight</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>9 PM</strong></td><td>護身符 — every wound 1 less, all night</td><td>殭屍 4</td></tr>
+        <tr><td><strong>10 PM</strong></td><td>真火符</td><td>殭屍 5</td></tr>
+        <tr><td><strong>11 PM</strong></td><td>五雷符</td><td>殭屍 6</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>The rice you keep for yourself is rice you don't have when someone
+      needs it</strong> — and late in the night the villagers are carrying
+      exactly what you were searching for. Rice is also the only thing that cures
+      中毒. Poisoned, with one 糯米 left and a bleeding villager in front of you,
+      is the hardest choice the game asks.</p>
+
+    <h2 id="combat">Fighting, and not fighting</h2>
+    <p>No dice. The arithmetic is the whole of it:</p>
+    <blockquote><strong>Health lost = (number of 殭屍) − (your Attack)</strong></blockquote>
+    <p>Never more than <strong>4</strong> from one fight, and never a gain. That
+      ceiling is why a very high Attack stops helping against an ordinary
+      pack — you can only get the damage down to zero.</p>
+    <p><strong>逃跑 Running.</strong> On any 殭屍 you may run instead of fighting:
+      <strong>−1 Health</strong>, and you step into an adjacent room you have
+      already been in. You draw no event there and you do not search — the turn
+      is over. Because you are no longer standing in the room you fled, a dead
+      end there will not break its wall on you. Spending
+      <strong>黑狗血</strong> does the same thing for free, which is what the
+      blood is for.</p>
+    <p><strong>護身符</strong> softens 殭屍 wounds by 1 and nothing else — not
+      the 損血 events, not 中毒, not the Health that running costs.</p>
+
+    <h2 id="breach">破牆 — when the wall gives</h2>
+    <p>If a room leaves you with <strong>no unexplored way out</strong>, they
+      come through the wall once the room's own event has been dealt with —
+      <strong>three at nine o'clock, four at ten, five at eleven</strong>. You
+      choose which wall.</p>
+    <p>So a dead end can cost you two fights in one turn, with no cowering
+      between them. Late at night that is the worst thing that can happen to you
+      in a single turn. <strong>The hole stays open afterwards</strong>, and you
+      can use it.</p>
 
     <h2 id="cowering">Cowering</h2>
-    <p>Once a room's turn is finished you may hole up and catch your breath:
-      <strong>+3 Health</strong>, at the cost of discarding the top development
-      card unresolved. Health is cheap. Time is not.</p>
+    <p>Cowering costs a <strong>whole turn</strong> and one of your
+      <strong>3 charges</strong>, and it is the only turn in the game that
+      <strong>draws no event</strong>.</p>
+    <p><strong>It does not heal you.</strong> What it buys is the draw you did
+      not make — and late in the night that is worth more than a bandage. At
+      eleven o'clock roughly seven draws in ten are a fight.</p>
     <ul>
-      <li>Any tile counts, <strong>including outdoor ones</strong>.</li>
-      <li>You may cower <strong>after running away</strong> — the turn resolved,
-        it just didn't happen to involve a card.</li>
-      <li>You may cower <strong>between the Reliquary's or Family Plot's two
-        cards</strong>. It behaves like an ordinary fresh turn, so cowering there
-        does <em>not</em> use up your end-of-turn one — those rooms give you two
-        chances to steady yourself, one before each card.</li>
-      <li>You may <strong>not</strong> cower before a zombie-door attack.
-        Afterwards is fine.</li>
-      <li>Once per turn — see <a href="#house-rules">House rules</a>.</li>
+      <li>You may cower anywhere, indoors or out.</li>
+      <li>The <strong>香堂 Incense Hall</strong> gives one charge back, once a
+        night.</li>
+      <li>When the charges are gone, they are gone.</li>
     </ul>
+    <p class="muted">Three charges is the whole supply of <em>not this time</em>
+      you will get. Spend them early and the last hour has nothing in it but you
+      and the draw.</p>
 
-    <h2 id="zombie-doors">Zombie doors</h2>
-    <p>Sometimes you end up somewhere with nowhere to go. The classic case is the
-      Washroom placed directly above the Entry Hall, its only door facing back the way
-      you came. It also happens when every exit is explored and the room you
-      still need hasn't turned up.</p>
-    <p>When that happens, <strong>three of the risen smash through a blank
-      wall</strong>, making a new opening. Fight them as normal.</p>
-    <p>Which wall they pick is chosen for you, and favours one facing unexplored
-      space — the hole is how you get out of here, so an opening back into rooms
-      already placed would be no use.</p>
-    <ul>
-      <li>They arrive <strong>after the room's own card is resolved</strong>, not
-        instead of it. Deal with the room first, then with the fact that it's a
-        dead end. A bad tile can therefore mean <strong>two fights in one
-        turn</strong>, and you can't cower between them.</li>
-      <li>You <strong>may run</strong> from them. If you do, the new opening is
-        made in the room you end up in, and it stays there.</li>
-      <li>The hole is a <strong>hole</strong>, not a matched pair of doors — the
-        tile beyond it goes down wall-to-wall, in any rotation. It persists, and
-        you can use it again later.</li>
-      <li>You <strong>don't</strong> have to go through straight away. Cower
-        first if you like and head through on a later turn. Entering draws a
-        card as normal.</li>
-    </ul>
+    <h2 id="outside">Going outside</h2>
+    <p>The only way out of the village is the <strong>天井 Courtyard's moon
+      gate</strong> — one of its four ordinary ways out, not a fifth. Take it and
+      the <strong>後門石階 Back Steps</strong> goes down against the Courtyard,
+      joined along that edge. Then the turn continues as normal.</p>
+    <p>The gate works both ways. Going back in costs a turn, like any move.</p>
+    <p class="muted">Almost everything you will ever carry is found indoors.
+      Crossing the moon gate is a decision made with what you already have.</p>
+
+    <h2 id="places">Special places</h2>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Place</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>停柩房 Sealed Crypt</strong></td><td>The 神主牌 is here. See <a href="#rites">the rites</a></td></tr>
+        <tr><td><strong>亂葬崗 Mass Grave</strong></td><td>Where it has to go back. See <a href="#rites">the rites</a></td></tr>
+        <tr><td><strong>香堂 Incense Hall</strong></td><td>Light the incense: <strong>one cower charge back</strong>. Once per night, and it costs no turn — the incense burns out</td></tr>
+        <tr><td><strong>土地廟 Earth God Shrine</strong></td><td>Pray: the <strong>next unexplored outdoor tile placed is the Mass Grave</strong>. Once per night, no turn. The land god knows where the dead are buried</td></tr>
+        <tr><td><strong>溪澗 Stream</strong></td><td>活水 running water. They cannot cross it, so their attacks do you <strong>no damage</strong> while you stand here. Nothing to find, nothing to heal you — shelter and nothing more</td></tr>
+        <tr><td><strong>枯井 Dry Well</strong></td><td>Where the village threw what it wanted gone. There is nothing down there worth having</td></tr>
+        <tr><td><strong>帳房 · 槐樹</strong></td><td><strong>+1 Health</strong> if your turn ends there</td></tr>
+      </tbody>
+    </table>
+    </div>
 
     <h2 id="items">Items</h2>
-    <p>You can carry <strong>two at a time</strong>. Picking up a third means
-      dropping one, and anything you drop is gone as soon as you leave the room.
-      You may <em>carry</em> two weapons but only ever <em>use</em> one in a
-      fight. The relic is exempt and doesn't count toward the limit.</p>
+    <p>You can carry <strong>6</strong>. <strong>Only talismans stack</strong> —
+      however many of one you pile up they share a single slot; everything else
+      takes a slot each, so the three 糯米 you start with are already half your
+      pack.</p>
+    <p><strong>Weapons stay with you. Everything else — talismans, medicines, the
+      banner — is used once and is gone.</strong></p>
+
+    <h3>武器 Weapons — kept</h3>
+    <p>A weapon <em>is</em> your Attack, not a bonus on top of it. Only the best
+      one you are holding counts: carrying two does not add them together.</p>
     <div class="table-scroll">
     <table>
-      <thead>
-        <tr><th>Item</th><th>Effect</th></tr>
-      </thead>
+      <thead><tr><th>Weapon</th><th>Attack</th></tr></thead>
       <tbody>
-        <tr><td>Nailed Plank</td><td>+1 Attack</td></tr>
-        <tr><td>Splintered Bone</td><td>+1 Attack</td></tr>
-        <tr><td>Fire Iron</td><td>+1 Attack</td></tr>
-        <tr><td>Billhook</td><td>+2 Attack</td></tr>
-        <tr><td>Petrol Saw</td><td>+3 Attack, but only enough fuel for <strong>2 fights</strong></td></tr>
-        <tr><td>Bottled Tonic</td><td>+2 Health</td></tr>
-        <tr><td>Tallow Candle</td><td>Nothing on its own — pairs with Lamp Oil or Petrol Can</td></tr>
-        <tr><td>Lamp Oil</td><td>Throw it while fleeing to escape damage. <strong>+ Tallow Candle</strong>: every one of the risen in the room burns, you're untouched. One use</td></tr>
-        <tr><td>Petrol Can</td><td><strong>+ Tallow Candle</strong>: every one of the risen in the room burns, you're untouched. <strong>+ Petrol Saw</strong>: two more fights' worth of fuel. One use</td></tr>
+        <tr><td><strong>戒刀</strong> Precept Knife</td><td>1</td></tr>
+        <tr><td><strong>桃木劍</strong> Peachwood Sword</td><td>1</td></tr>
+        <tr><td><strong>銅錢劍</strong> Coin Sword</td><td>2</td></tr>
+        <tr><td><strong>七星劍</strong> Seven-Star Sword</td><td>3</td></tr>
       </tbody>
     </table>
     </div>
-    <p><strong>An empty Petrol Saw isn't discarded.</strong> It stays in your
-      hands, keeps occupying a slot, and can be refuelled with Petrol Can as often
-      as you can find it. Dropping it is your call, not automatic.</p>
+    <p class="muted"><strong>There is only one of each weapon in the
+      village.</strong> Turn up one you are already carrying and you find
+      nothing — so the more blades you own, the more often a weapon search comes
+      up empty. 七星劍 is rare on purpose: roughly one search in seven. Many
+      nights you will fight with something worse, and that is the game working,
+      not the game cheating you.</p>
+
+    <h3>符咒 Talismans — burned once</h3>
+    <p><strong>A talisman adds to your sword.</strong> Bring both to the same
+      fight and the two stack.</p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Talisman</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>真火符</strong> True Fire</td><td>Fight at <strong>1</strong> — <em>or</em> raise one sword's Attack by <strong>+1</strong>, and it stays raised</td></tr>
+        <tr><td><strong>五雷符</strong> Five Thunder</td><td>Fight at <strong>4</strong></td></tr>
+        <tr><td><strong>血符</strong> Blood</td><td>Fight at <strong>5</strong>. Writing it costs you <strong>1 Health</strong></td></tr>
+        <tr><td><strong>硃砂</strong> Cinnabar</td><td>Copy a talisman you already hold — <strong>+2 more of it</strong>, all sharing one slot</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>真火符 is the only one worth spending outside a fight: put it into a sword
+      and the sword is better for the rest of the night. <strong>A sword takes
+      only one</strong> — so there is a ceiling on how good steel alone ever
+      gets. Talismans have no such limit: the same one can be found again and
+      again, and a talisman search comes up empty only one time in ten.</p>
+
+    <h3>丹藥 Medicine — taken once</h3>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Medicine</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>糯米</strong> Sticky Rice</td><td><strong>+3 Health</strong> — <em>or</em> draw out <strong>中毒</strong></td></tr>
+        <tr><td><strong>黑狗血</strong> Black Dog Blood</td><td><strong>Get out of the fight</strong>, unhurt</td></tr>
+        <tr><td><strong>金丹</strong> Golden Elixir</td><td>A gamble: half the time <strong>+6 Health</strong>, half the time <strong>−2</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Health stops at <strong>10</strong>. Anything that would take you past it
+      is wasted — so a 糯米 at 9 Health is worth holding rather than eating.</p>
+
+    <h3>護符 The charm — kept</h3>
+    <p><strong>護身符 Protective Charm</strong> — 殭屍 wounds are 1 less, all
+      night. Nothing else. <strong>It is not found by searching:</strong> the
+      only way to get one is to save the villager in the 9 PM band, which makes
+      it the earliest opportunity in the game and the one that pays off
+      latest.</p>
+
+    <h3>法器 The banner — used once</h3>
+    <p><strong>攝魂幡 Soul-Snatching Banner</strong> — <strong>doubles your
+      sword</strong> for one fight. It does nothing for a talisman.</p>
+    <p>There is exactly one place it is ever found:
+      <strong>土地廟 the Earth God Shrine</strong>, and only sometimes, when you
+      search there. Doubling a sword is wasted on a small pack — damage only goes
+      down to zero, and a sword and talisman together often get you there anyway.
+      <strong>Keep it for something big.</strong></p>
+
+    <h2 id="rites">The two rites</h2>
+    <p>The 停柩房 and the 亂葬崗 are the only rooms that ask for something beyond
+      walking in.</p>
+    <p><strong>停柩房 Sealed Crypt.</strong> Resolve the room's event as usual —
+      then <strong>one more</strong>, which is the opening of the coffin itself.
+      Survive it and still be standing there, and the 神主牌 is yours. Carrying
+      it does not use an item slot.</p>
+    <p><strong>亂葬崗 Mass Grave.</strong> The same shape, for the burial: the
+      room's event, then <strong>one more</strong> for the digging. Survive that
+      holding the 神主牌 and <strong>you have won</strong>.</p>
+    <p class="muted">Both are two events in one turn, and the second comes at the
+      worst possible moment — standing over the hole with the tablet in your
+      hands. Neither win is free.</p>
+
+    <h2 id="midnight">Midnight — 三更</h2>
+    <p>When turn 30 ends the third watch sounds, and
+      <strong>殭屍王 the King comes to whatever place you are standing in.</strong></p>
+    <p><strong>There is one exchange.</strong> He strikes once, you meet it once,
+      and the night is decided. No fleeing, no cowering, no medicine, no second
+      chance — and <strong>黑狗血 does not work on him</strong>, because there is
+      nowhere he is not.</p>
+    <p>Only what you are holding decides it. Nothing you did earlier counts here
+      except what it left in your hands.</p>
+    <p><strong>Unless you are not there to be found.</strong> The
+      <strong>溪澗 Stream</strong> is running water and he will not cross it.
+      Stand there when turn 30 ends and he does not come at all — you live. If
+      the 神主牌 is already in the ground you have won anyway; if it is not, you
+      simply saw the night out.</p>
+    <p class="muted">You do not kill him. Nobody destroys a 殭屍王 — the most
+      anyone has ever managed is to put one back.</p>
 
     <h2 id="winning">Winning &amp; losing</h2>
-    <p><strong>You win</strong> by surviving the burial of the relic in the
-      Family Plot. Every one of the risen drops where it stands.</p>
-    <p><strong>You lose</strong> if:</p>
-    <ul>
-      <li>the risen finish you off,</li>
-      <li>an Event takes your last Health, or</li>
-      <li>you need a development card during the <strong>11 PM</strong> hour and
-        the deck is empty. Midnight.</li>
-    </ul>
-
-    <h2 id="house-rules">House rules</h2>
-    <p>Three ordinary situations the original rules never settled. These are our
-      calls, and they're what the game above actually does.</p>
     <div class="table-scroll">
     <table>
-      <thead>
-        <tr><th>Gap</th><th>Our ruling</th></tr>
-      </thead>
+      <thead><tr><th>Ending</th><th>How</th></tr></thead>
       <tbody>
-        <tr><td>How far can you flee?</td><td>One step, to an adjacent explored room</td></tr>
-        <tr><td>How often can you cower?</td><td>Once per chance to. An ordinary turn gives one, at the end; the Reliquary and Family Plot give a second between their two cards</td></tr>
-        <tr><td>Can the Reliquary be re-searched?</td><td>No — the second-card draw happens once, and is used up on success</td></tr>
+        <tr><td><strong>下葬 — the burial</strong></td><td>Take the 神主牌 from the 停柩房, carry it out through the moon gate, and finish the rite at the 亂葬崗. <strong>It ends the night the moment you finish it</strong></td></tr>
+        <tr><td><strong>見到天亮 — you saw the night out</strong></td><td>Be standing on the 溪澗 when turn 30 ends. You live; he is still out there</td></tr>
+        <tr><td><strong>Lost</strong></td><td>Health reaches 0 — in a fight, from an event, or from 中毒 at the start of a turn</td></tr>
       </tbody>
     </table>
     </div>
+    <p><strong>The burial is the win you plan for.</strong> It asks for turns
+      spent walking: three particular rooms have to turn up, and the 天井 is the
+      only way between the village and the hillside.</p>
+    <p>Midnight is the other way the night can end, and it asks for the
+      opposite — turns spent standing still, and whatever you were able to find
+      while you stood there. The game will not tell you whether what you are
+      carrying is enough. That is the point of it.</p>
+    <p class="muted">There is no losing to the clock.</p>
 
     <p class="muted">Based on the free print-and-play solo game by Jeremiah Lee.
-      These rules are paraphrased in our own words, with the designer's later
-      clarifications folded in where you'd look for them. See
+      The rules above are our own reworking — a different clock, a different
+      economy and a different ending — with his design underneath. See
       <a href="credits.html">Credits</a>.</p>
   </main>
 </body>
