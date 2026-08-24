@@ -325,7 +325,7 @@ def tracked(text, font, y, fill, track=0):
         x += w + track
 
 
-tracked("殭屍在口袋", name, 58, TEXT, track=17)
+tracked("口袋裡的殭屍", name, 58, TEXT, track=17)
 tracked("JIANGSHI IN THE POCKET", gloss, 196, GOLD, track=9)
 tracked("Lay him to rest, or be standing when he arrives.", sub, 246, MUTED)
 
