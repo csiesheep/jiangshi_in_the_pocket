@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Diagnose — where the seal is actually lost</title>
+  <style>
+    body { font-family: ui-monospace, monospace; background: #0a0b0d; color: #e6e3dc;
+           padding: 24px; max-width: 860px; margin: 0 auto; line-height: 1.55; }
+    pre { background: #0d0f12; border: 1px solid #1c2027; padding: 14px; border-radius: 6px;
+          font-size: .82rem; overflow-x: auto; white-space: pre-wrap; }
+    #status { color: #e8b33a; }
+  </style>
+</head>
+<body>
+  <h1>Where the seal is actually lost</h1>
+  <p id="status">Running…</p>
+  <pre id="out"></pre>
+
+  <script type="module">
+    import { loadData, playNight } from "./bots.js";
+
+    const q = new URLSearchParams(location.search);
+    const SEEDS = Number(q.get("seeds") || 2000);
+    const P = Number(q.get("p") || 15);
+    const POLICY = q.get("policy") || "duelist";
+    const ADD = (q.get("relicAdd") || "").split(",").filter(Boolean);
+    // A disjoint seed range, so "reproducible" means a second sample rather
+    // than the same one printed twice.
+    const FROM = Number(q.get("from") || 1);
+
+    const data = await loadData("..");
+    const rice = Math.min(40, 100 - P);
+    const blank = 100 - P - rice;
+    data.search.relic = [{ id: "sticky-rice", p: rice }, { id: "soul-banner", p: P }]
+      .concat(blank > 0 ? [{ id: null, p: blank }] : []);
+    for (const w of ["indoor", "outdoor"]) {
+      for (const t of data.tiles[w]) if (ADD.includes(t.id)) t.search = "relic";
+    }
+
+    // The funnel, stage by stage. Every seal that does not happen is lost at
+    // exactly one of these, and the point is to find out which one carries the
+    // losses rather than assuming.
+    let reachedMidnight = 0, withBanner = 0, sealed = 0;
+    let shortOfThreshold = 0, noBannerAtMidnight = 0;
+    const shortfalls = [];
+    const atkHist = {};
+    let everBanner = 0, everBannerAtMidnight = 0;
+
+    for (let seed = FROM; seed < FROM + SEEDS; seed++) {
+      const r = playNight(data, POLICY, seed);
+      if (r.everHadBanner) everBanner++;
+      if (r.atMidnight === undefined) continue;
+      reachedMidnight++;
+      if (r.everHadBanner) everBannerAtMidnight++;
+      atkHist[r.atMidnight] = (atkHist[r.atMidnight] || 0) + 1;
+      if (r.hadBanner) withBanner++; else noBannerAtMidnight++;
+      if (r.outcome === "WIN_SEAL") sealed++;
+      else if (r.atMidnight < r.threshold) {
+        shortOfThreshold++;
+        shortfalls.push(r.threshold - r.atMidnight);
+      }
+    }
+
+    const pct = (n, d) => d ? `${((n / d) * 100).toFixed(1)} %` : "—";
+    const median = (a) => a.length ? a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)] : 0;
+
+    const lines = [
+      `policy ${POLICY} · seeds ${FROM}..${FROM + SEEDS - 1} · banner ${P} % · relic tiles ${1 + ADD.length}`,
+      ``,
+      `ever held the banner        ${everBanner}  (${pct(everBanner, SEEDS)} of all runs)`,
+      `reached midnight            ${reachedMidnight}  (${pct(reachedMidnight, SEEDS)} of all runs)`,
+      `  ...ever found the banner  ${everBannerAtMidnight}  (${pct(everBannerAtMidnight, reachedMidnight)} of arrivals)`,
+      `  ...still holding it       ${withBanner}  (${pct(withBanner, reachedMidnight)} of arrivals)`,
+      `  ...without it             ${noBannerAtMidnight}  (${pct(noBannerAtMidnight, reachedMidnight)} of arrivals)`,
+      `  ...sealed                 ${sealed}  (${pct(sealed, reachedMidnight)} of arrivals)`,
+      `  ...short of the threshold ${shortOfThreshold}  (${pct(shortOfThreshold, reachedMidnight)} of arrivals)`,
+      ``,
+      `median shortfall at midnight: ${median(shortfalls)} attack`,
+      `attack at midnight, histogram:`,
+      ...Object.keys(atkHist).map(Number).sort((a, b) => a - b)
+        .map((k) => `   ${String(k).padStart(3)} : ${"#".repeat(Math.min(60, atkHist[k]))} ${atkHist[k]}`),
+      ``,
+      `DIED BEFORE MIDNIGHT: ${SEEDS - reachedMidnight} of ${SEEDS} (${pct(SEEDS - reachedMidnight, SEEDS)})`,
+    ];
+    document.getElementById("out").textContent = lines.join("\n");
+    document.getElementById("status").textContent = "Done.";
+    window.__diag = { everBanner, everBannerAtMidnight, reachedMidnight, withBanner, sealed, shortOfThreshold, atkHist, SEEDS };
+  </script>
+</body>
+</html>
