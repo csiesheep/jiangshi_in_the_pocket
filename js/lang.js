@@ -32,17 +32,32 @@ export function known(lang) {
   return Object.prototype.hasOwnProperty.call(LANGS, lang);
 }
 
-// What the reader has chosen, or what their browser implies. Only ever consults
-// the browser when nothing has been chosen: an explicit choice outlives a
-// system setting, which is the whole point of making it a choice.
+// Whether a language may be reached WITHOUT being asked for.
+//
+// False while a translation is still landing, and that is not caution — it is
+// the whole sequencing rule. An overlay means a partial language is safe to
+// SHIP; it does not mean a partial language is fit to be the first thing a
+// stranger sees. Detection is what turns "available if you want it" into "this
+// is your version of the game", and it goes on last, once coverage is done.
+//
+// It shipped true for about an hour with a thirty-key zh file behind it, which
+// meant a zh browser met a half-English night. This flag is that mistake, made
+// impossible to repeat quietly.
+const DETECT = false;
+
+// What the reader has chosen, or — once DETECT is on — what their browser
+// implies. An explicit choice always wins and always outlives a system setting,
+// which is the whole point of making it a choice.
 export function preferred() {
   try {
     const saved = localStorage.getItem(KEY);
     if (saved && known(saved)) return saved;
   } catch {
-    /* storage blocked; fall through to the browser */
+    /* storage blocked; fall through */
   }
-  return fromBrowser();
+  // Until detection is on, an unasked reader gets the complete language. The
+  // switch is still there and still works — this only decides the default.
+  return DETECT ? fromBrowser() : BASE;
 }
 
 // A Chinese-reading browser opens in Chinese. Deliberately generous about which
