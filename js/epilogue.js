@@ -11,7 +11,7 @@
 // Every fragment lives in theme.json with the rest of the writing, so a
 // re-theme changes what the house says about you along with everything else.
 
-import { RULES, heldIds } from "./engine.js";
+import { RULES, heldIds, OUTCOMES } from "./engine.js";
 import { distanceTo } from "./board.js";
 
 // A run needs a fair few zombies at once for this to read as a swarm rather
@@ -55,8 +55,14 @@ function roomsPhrase(theme, n) {
 }
 
 // The three clauses, each chosen by a fact rather than a die.
+// Both wins open with the same words, deliberately and structurally: the seal
+// is the hidden ending and not the better one (§9), and the surest way to keep
+// the two from ranking themselves is for the sentence to be identical right up
+// to its last clause. Only the close says which one happened.
 function openKey(state, won) {
   if (won) return state.health <= 1 ? "won-hurt" : "won";
+  if (state.outcome === OUTCOMES.SURVIVED) return "water";
+  if (state.outcome === OUTCOMES.LOSS_KING) return "king";
   if (state.lossReason === "combat") {
     return (state.foughtThisHour || 0) >= SWARMED ? "combat-swarmed" : "combat";
   }
@@ -75,6 +81,9 @@ function handKey(state, weapon) {
 }
 
 function closeKey(state, won, distance) {
+  // The one clause that differs between the two wins, and the whole of the
+  // difference: what you did about him, said flatly and at the same length.
+  if (state.outcome === OUTCOMES.WIN_SEAL) return "sealed";
   if (won) return "buried";
   if (state.tablet) {
     if (distance === null) return "carrying-lost";
@@ -99,6 +108,9 @@ export function epilogue(game) {
   const theme = (game.data && game.data.theme && game.data.theme.epilogue) || null;
   if (!theme) return ""; // a skin without the fragments simply has no epilogue
   const state = game.state;
+  // Status, not outcome: both wins are "won" and 見到天亮 is neither — it ends
+  // the run without settling it, which is what "over" means and why the stream
+  // gets its own opening rather than a win's or a loss's.
   const won = state.status === "won";
 
   const weapon = bestWeapon(state);

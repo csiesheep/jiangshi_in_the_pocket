@@ -3178,3 +3178,42 @@ body.asleep .fog {
    the shape of what you have run out of is worth seeing. */
 .doorway--cower:disabled { cursor: default; opacity: .38; }
 .doorway--cower:disabled .doorway-pips i { opacity: .45; }
+
+/* ---- The comparison ----------------------------------------------------------
+   🤫 Two numbers on the card of a player the King has just killed, and the only
+   place in the game either one is ever shown (spec §9). Set as a measurement
+   rather than a sentence: the gap between the rows is the information, and a
+   player who reads it learns there was a number to reach. That is the entire
+   discovery mechanism for 鎮屍 — this block is spec, not decoration.
+
+   Deliberately plain. No colour, no emphasis, nothing that reads as a score or
+   invites a rematch: it states what happened and lets the reader do the rest. */
+.verdict-compare {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  gap: 2px 18px;
+  margin: 16px auto 4px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+}
+.verdict-compare dt {
+  margin: 0;
+  color: var(--muted);
+  text-align: right;
+  font-family: var(--font-body);
+  font-size: .82rem;
+  align-self: center;
+}
+.verdict-compare dd {
+  margin: 0;
+  color: var(--text);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+/* 見到天亮 is neither win nor loss, so it gets neither dressing: no sunrise, no
+   blood, no stopped clock. The stream simply kept running. */
+#overlay.overlay--over .overlay-card { border-color: var(--border); }
