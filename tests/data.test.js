@@ -271,3 +271,48 @@ test("rulebook: §9 — no threshold, no kit, no tablet effect on the player pag
   assert(!/threshold|門檻/.test(rulebookText), "rulebook names the threshold");
   assert(!/鎮屍/.test(rulebookText), "rulebook names the seal");
 });
+
+// The Chinese rulebook is a fragment swapped into the same <main>, so the two
+// have to keep the same shape: the table of contents links by #anchor, and an
+// anchor that exists in one language and not the other is a link that works
+// until somebody switches.
+const rulebookZh = await fetch("../data/rulebook.zh-TW.html", NO_STORE).then((r) => r.text());
+
+function shapeOf(html) {
+  const doc = new DOMParser().parseFromString(`<main>${html}</main>`, "text/html");
+  const main = doc.querySelector("main");
+  return {
+    h2: main.querySelectorAll("h2").length,
+    h3: main.querySelectorAll("h3").length,
+    tables: main.querySelectorAll("table").length,
+    rows: main.querySelectorAll("tr").length,
+    ids: [...main.querySelectorAll("[id]")].map((e) => e.id).sort().join(","),
+    toc: [...main.querySelectorAll(".toc a")].map((a) => a.getAttribute("href")).join(","),
+  };
+}
+
+test("rulebook: both languages have the same shape and the same anchors", () => {
+  const enBody = rulebookHtml.slice(rulebookHtml.indexOf("<main"), rulebookHtml.indexOf("</main>"));
+  const en = shapeOf(enBody.replace(/^<main[^>]*>/, ""));
+  const zh = shapeOf(rulebookZh);
+  eq(zh.h2, en.h2, "section count");
+  eq(zh.h3, en.h3, "subsection count");
+  eq(zh.tables, en.tables, "table count");
+  eq(zh.rows, en.rows, "table rows — a dropped row is a dropped rule");
+  eq(zh.ids, en.ids, "anchors: a #link that works in one language must work in both");
+  eq(zh.toc, en.toc, "contents links");
+});
+
+test("rulebook: §9 holds in the Chinese page too", () => {
+  const text = rulebookZh.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  // The comment at the top of the fragment names 門檻 to say it is reserved;
+  // strip comments before checking, or the file fails for explaining itself.
+  const body = rulebookZh.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ");
+  assert(!/門檻/.test(body), "the zh rulebook names the threshold");
+  assert(!/鎮屍/.test(body), "the zh rulebook names the seal");
+  const withoutClock = body
+    .replace(/\d{1,2}:\d{2}/g, " ")
+    .replace(/\b\d{1,2}\s*[–-]\s*\d{1,2}\b/g, " ");
+  assert(!/\b1[12]\b/.test(withoutClock),
+    "the zh rulebook states a threshold-shaped number outside the clock");
+});
