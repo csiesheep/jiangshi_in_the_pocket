@@ -523,11 +523,10 @@ function renderBackpack(game) {
 function itemEffect(game, id) {
   const it = game.state.itemsById[id];
   if (!it) return "";
-  if (it.type === "weapon") {
-    const fuel = it.fuel != null ? ` · ${game.state.chainsawFuel} fight${game.state.chainsawFuel === 1 ? "" : "s"} of fuel` : "";
-    return `+${it.attack} attack${fuel}`;
-  }
-  if (it.type === "heal") return `+${it.health} health`;
+  // Provisional: enough to describe the new item shape truthfully. The backpack
+  // UI (#10) is what will actually present talisman stacks, gambles and charges.
+  if (it.attack != null) return `+${it.attack} attack`;
+  if (it.heal != null) return `+${it.heal} health`;
   const bits = [];
   if (it.fleeNoDamage) bits.push("flee unharmed");
   if (it.combo) bits.push("pairs with " + Object.keys(it.combo).map((k) => itemName(game, k)).join(" or "));

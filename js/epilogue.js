@@ -38,7 +38,7 @@ function bestWeapon(state) {
   let best = null;
   for (const id of state.items) {
     const def = state.itemsById[id];
-    if (!def || def.type !== "weapon") continue;
+    if (!def || def.cat !== "weapon") continue;
     if (!best || def.attack > best.def.attack) best = { id, def };
   }
   return best;

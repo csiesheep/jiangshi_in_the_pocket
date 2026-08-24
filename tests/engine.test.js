@@ -2,11 +2,10 @@ import * as E from "../js/engine.js";
 import { test, assert, eq } from "./harness.js";
 
 // Load the real game data so tests run against the shipped tables.
-const [cards, items] = await Promise.all([
-  fetch("../data/cards.json").then((r) => r.json()),
+const [items] = await Promise.all([
   fetch("../data/items.json").then((r) => r.json()),
 ]);
-const DATA = { cards, items };
+const DATA = { items };
 const game = (opts) => E.newGame(DATA, opts);
 
 // ---- Setup -----------------------------------------------------------------
@@ -463,64 +462,33 @@ test("resolveCombat: lethal fight loses with reason combat", () => {
 
 test("attack never stacks: best weapon only", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "grisly-femur"); // +1
-  E.pickUpItem(s, "machete"); // +2
+  E.pickUpItem(s, "peachwood-sword"); // +1
+  E.pickUpItem(s, "coin-sword"); // +2
   eq(E.effectiveAttack(s), 3, "1 + best(2), not 1+1+2");
-  eq(E.chooseWeapon(s), "machete");
+  eq(E.chooseWeapon(s), "coin-sword");
 });
 
 test("chooseWeapon: honours an explicit weapon", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "grisly-femur");
-  E.pickUpItem(s, "machete");
-  eq(E.chooseWeapon(s, "grisly-femur"), "grisly-femur");
-});
-
-// ---- Chainsaw --------------------------------------------------------------
-test("chainsaw: picks up loaded, gives +3", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "chainsaw");
-  eq(s.chainsawFuel, 2);
-  eq(E.effectiveAttack(s), 4);
-});
-
-test("chainsaw: fuel drains, is kept when spent, refuellable", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "chainsaw");
-  E.resolveCombat(s, 5); // use 1 -> fuel 1
-  E.resolveCombat(s, 5); // use 2 -> fuel 0
-  eq(s.chainsawFuel, 0);
-  assert(s.items.includes("chainsaw"), "empty chainsaw is kept");
-  eq(E.effectiveAttack(s), 1, "empty chainsaw gives no bonus");
-  E.pickUpItem(s, "gasoline");
-  eq(E.refuelChainsaw(s).ok, true);
-  eq(s.chainsawFuel, 2);
-  assert(!s.items.includes("gasoline"), "gasoline consumed");
-  eq(E.effectiveAttack(s), 4, "refuelled chainsaw usable again");
-});
-
-test("chainsaw: can preserve fuel by choosing another weapon", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "chainsaw");
-  E.pickUpItem(s, "machete");
-  E.resolveCombat(s, 4, { weapon: "machete" });
-  eq(s.chainsawFuel, 2, "fuel untouched");
+  E.pickUpItem(s, "peachwood-sword");
+  E.pickUpItem(s, "coin-sword");
+  eq(E.chooseWeapon(s, "peachwood-sword"), "peachwood-sword");
 });
 
 // ---- Items -----------------------------------------------------------------
 test("items: 2-slot limit, drop to make room", () => {
   const s = game({ seed: 1 });
-  eq(E.pickUpItem(s, "machete").ok, true);
-  eq(E.pickUpItem(s, "golf-club").ok, true);
-  eq(E.pickUpItem(s, "board-nails").ok, false, "full without a drop");
-  eq(E.pickUpItem(s, "board-nails", "machete").ok, true, "drop then pick up");
-  eq(s.items, ["golf-club", "board-nails"]);
+  eq(E.pickUpItem(s, "coin-sword").ok, true);
+  eq(E.pickUpItem(s, "precept-knife").ok, true);
+  eq(E.pickUpItem(s, "sevenstar-sword").ok, false, "full without a drop");
+  eq(E.pickUpItem(s, "sevenstar-sword", "coin-sword").ok, true, "drop then pick up");
+  eq(s.items, ["precept-knife", "sevenstar-sword"]);
 });
 
 test("totem: slotless, and wins only when held", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "machete");
-  E.pickUpItem(s, "golf-club");
+  E.pickUpItem(s, "coin-sword");
+  E.pickUpItem(s, "precept-knife");
   E.gainTotem(s); // full on items, totem still allowed
   eq(s.totem, true);
   eq(s.items.length, 2, "totem took no slot");
@@ -531,32 +499,16 @@ test("totem: slotless, and wins only when held", () => {
   eq(s.status, "won");
 });
 
-test("soda: +2 health, consumed; respects cap", () => {
+test("medicine: heals and is consumed; respects cap", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "can-of-soda");
-  E.useHealItem(s);
-  eq(s.health, 8);
-  assert(!s.items.includes("can-of-soda"), "soda consumed");
+  E.pickUpItem(s, "sticky-rice");
+  E.useHealItem(s, "sticky-rice");
+  eq(s.health, 9, "6 + the rice's 3");
+  assert(!s.items.includes("sticky-rice"), "rice consumed");
   const capped = game({ seed: 1, healthCap: 6 });
-  E.pickUpItem(capped, "can-of-soda");
-  E.useHealItem(capped);
+  E.pickUpItem(capped, "sticky-rice");
+  E.useHealItem(capped, "sticky-rice");
   eq(capped.health, 6, "capped");
-});
-
-// ---- Combos ----------------------------------------------------------------
-test("candle combo: needs candle + fuel; fuel consumed, candle kept", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "candle");
-  E.pickUpItem(s, "oil");
-  eq(E.useCandleCombo(s, "oil").ok, true);
-  assert(!s.items.includes("oil"), "oil consumed");
-  assert(s.items.includes("candle"), "candle reusable");
-});
-
-test("candle combo: fails without candle", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "oil");
-  eq(E.useCandleCombo(s, "oil").ok, false);
 });
 
 // ---- Fleeing ---------------------------------------------------------------
@@ -564,14 +516,6 @@ test("flee: costs 1 health", () => {
   const s = game({ seed: 1 });
   E.flee(s);
   eq(s.health, 5);
-});
-
-test("flee: oil escapes damage, one use", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "oil");
-  E.flee(s, { useOil: true });
-  eq(s.health, 6, "no damage");
-  assert(!s.items.includes("oil"), "oil consumed");
 });
 
 // ---- Cowering --------------------------------------------------------------

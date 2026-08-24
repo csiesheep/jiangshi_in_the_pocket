@@ -68,7 +68,6 @@ export function shuffle(arr, rng) {
 // ---- Setup -----------------------------------------------------------------
 export function newGame(data, opts = {}) {
   const seed = opts.seed ?? (Date.now() >>> 0);
-  const cardsById = Object.fromEntries(data.cards.map((c) => [c.id, c]));
   const itemsById = Object.fromEntries(data.items.map((i) => [i.id, i]));
 
   const state = {
@@ -96,9 +95,7 @@ export function newGame(data, opts = {}) {
     standingRng: makeRng((seed ^ 0x27d4eb2f) >>> 0),
     stoodOnce: false,
     seed,
-    cardsById,
     itemsById,
-    allCardIds: data.cards.map((c) => c.id),
     health: RULES.START_HEALTH,
     // The clock, in two forms. `turn` is the truth — 1..30, and 31 the moment
     // the night is over. `hour` is derived from it and kept in step, because
@@ -403,7 +400,7 @@ export function combatDamage(zombies, attack) {
 export function usableWeapons(state) {
   return state.items.filter((id) => {
     const d = state.itemsById[id];
-    return d && d.type === "weapon" && !(id === "chainsaw" && state.chainsawFuel <= 0);
+    return d && d.cat === "weapon";
   });
 }
 
@@ -478,8 +475,8 @@ export function dropItem(state, itemId) {
 // Drink the soda: +2 health (respects cap), consumes it.
 export function useHealItem(state, itemId = "can-of-soda") {
   const def = state.itemsById[itemId];
-  if (!state.items.includes(itemId) || !def || def.type !== "heal") return { ok: false };
-  changeHealth(state, def.health);
+  if (!state.items.includes(itemId) || !def || !def.heal) return { ok: false };
+  changeHealth(state, def.heal);
   dropItem(state, itemId);
   return { ok: true };
 }

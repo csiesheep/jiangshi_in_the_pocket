@@ -54,15 +54,21 @@ const CUE_BEAT_MS = 1500;
 const FETCH_OPTS = { cache: "no-cache" };
 
 async function loadData() {
-  const [tiles, cards, items, theme] = await Promise.all(
-    ["tiles", "cards", "items", "theme"].map((name) =>
+  // cards.json is gone. The development deck was the source game's whole engine
+  // — clock, events and items in one 9-card table — and the jiangshi set splits
+  // it into three tables that are read independently: search rolls (§4), the
+  // event pool by band (§5), and item definitions. Nothing draws a card any
+  // more, so nothing fetches one.
+  const names = ["tiles", "items", "search", "events", "theme"];
+  const [tiles, items, search, events, theme] = await Promise.all(
+    names.map((name) =>
       fetch(`data/${name}.json`, FETCH_OPTS).then((r) => {
         if (!r.ok) throw new Error(`data/${name}.json -> HTTP ${r.status}`);
         return r.json();
       })
     )
   );
-  return { tiles, cards, items, theme };
+  return { tiles, items, search, events, theme };
 }
 
 class Game {

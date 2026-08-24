@@ -18,6 +18,7 @@
   <script type="module">
     // Import each suite in turn (they register tests via the shared harness),
     // then report once.
+    await import("./data.test.js");
     await import("./engine.test.js");
     await import("./board.test.js");
     await import("./seo.test.js");

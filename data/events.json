@@ -1,0 +1,29 @@
+{
+  "9": [
+    {"t":"JIANGSHI","n":3,"p":15},
+    {"t":"JIANGSHI","n":4,"p":25},
+    {"t":"HP","hp":-1,"p":10},
+    {"t":"HP","hp":1,"p":10},
+    {"t":"NOTHING","p":20},
+    {"t":"POISON","p":10},
+    {"t":"VILLAGER","gift":"protective-charm","turnsInto":4,"p":10}
+  ],
+  "10": [
+    {"t":"JIANGSHI","n":4,"p":25},
+    {"t":"JIANGSHI","n":5,"p":15},
+    {"t":"HP","hp":-1,"p":10},
+    {"t":"HP","hp":1,"p":10},
+    {"t":"NOTHING","p":20},
+    {"t":"POISON","p":10},
+    {"t":"VILLAGER","gift":"truefire-talisman","turnsInto":5,"p":10}
+  ],
+  "11": [
+    {"t":"JIANGSHI","n":4,"p":20},
+    {"t":"JIANGSHI","n":5,"p":20},
+    {"t":"JIANGSHI","n":6,"p":20},
+    {"t":"HP","hp":-1,"p":10},
+    {"t":"NOTHING","p":10},
+    {"t":"POISON","p":10},
+    {"t":"VILLAGER","gift":"fivethunder-talisman","turnsInto":6,"p":10}
+  ]
+}
