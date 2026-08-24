@@ -1,9 +1,14 @@
 import * as E from "../js/engine.js";
 import { test, assert, eq } from "./harness.js";
 
+// Data is fetched no-store. A test that reads a cached copy of the file it is
+// asserting about is worse than no test: it passes on data that is not on disk,
+// which is exactly how a fixed table can keep reporting the old bug.
+const NO_STORE = { cache: "no-store" };
+
 // Load the real game data so tests run against the shipped tables.
 const [items] = await Promise.all([
-  fetch("../data/items.json").then((r) => r.json()),
+  fetch("../data/items.json", NO_STORE).then((r) => r.json()),
 ]);
 const DATA = { items };
 const game = (opts) => E.newGame(DATA, opts);

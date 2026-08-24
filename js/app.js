@@ -96,7 +96,7 @@ class Game {
     clearLog();
     // Both rooms named from the data: where you are standing, and the one tile
     // that carries the burial. Nothing here knows what either is called.
-    const goal = this.data.tiles.outdoor.find((d) => d.onResolve === "SECOND_CARD_THEN_BURY_TOTEM");
+    const goal = this.data.tiles.outdoor.find((d) => d.goal === "BURY_TABLET");
     log(
       `You wake in the ${this.tileName(Bd.currentTile(this.board).id)}. Find the ${this.word("relic")}` +
         (goal ? `, bury it in the ${this.tileName(goal.id)}` : "") +
@@ -199,14 +199,14 @@ class Game {
   // ruling on the cost, it is the absence of one, and it exists only so the map
   // has a goal to be tested against. Fix it when the rites are designed.
   roomEffect() {
-    const onr = Bd.currentTile(this.board).def.onResolve;
-    if (onr === "SECOND_CARD_THEN_GAIN_TOTEM" && !this.state.totem) {
+    const goal = Bd.currentTile(this.board).def.goal;
+    if (goal === "TAKE_TABLET" && !this.state.totem) {
       E.gainTotem(this.state);
       relicFound();
       this.tally.found += 1;
       log(`Among the coffins, the ${this.word("relic")}. It is yours.`, "good");
       this.refresh();
-    } else if (onr === "SECOND_CARD_THEN_BURY_TOTEM" && this.state.totem) {
+    } else if (goal === "BURY_TABLET" && this.state.totem) {
       E.buryTotem(this.state);
       this.refresh();
       if (this.state.status === "won") return this.gameOver();

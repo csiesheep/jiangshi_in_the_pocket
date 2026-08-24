@@ -89,7 +89,7 @@ function closeKey(state, won, distance) {
 
 function burialTileId(game) {
   const outdoor = (game.data && game.data.tiles && game.data.tiles.outdoor) || [];
-  const found = outdoor.find((d) => d.onResolve === "SECOND_CARD_THEN_BURY_TOTEM");
+  const found = outdoor.find((d) => d.goal === "BURY_TABLET");
   return found ? found.id : null;
 }
 

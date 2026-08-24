@@ -1,18 +1,24 @@
 import { test, assert, eq } from "./harness.js";
 
+// Data is fetched no-store. A test that reads a cached copy of the file it is
+// asserting about is worse than no test: it passes on data that is not on disk,
+// which is exactly how a fixed table can keep reporting the old bug.
+const NO_STORE = { cache: "no-store" };
+
 // The mechanics tables, checked against the ruleset spec §4–§5. These assert
 // the SHAPE and the ARITHMETIC, not the flavour: ids are the contract between
 // the spec's glossary, these files, and every consumer of them, so an id that
 // drifts here breaks something that cannot see this file.
-const [items, search, events] = await Promise.all([
-  fetch("../data/items.json").then((r) => r.json()),
-  fetch("../data/search.json").then((r) => r.json()),
-  fetch("../data/events.json").then((r) => r.json()),
+const [items, search, events, tiles] = await Promise.all([
+  fetch("../data/items.json", NO_STORE).then((r) => r.json()),
+  fetch("../data/search.json", NO_STORE).then((r) => r.json()),
+  fetch("../data/events.json", NO_STORE).then((r) => r.json()),
+  fetch("../data/tiles.json", NO_STORE).then((r) => r.json()),
 ]);
 // Retired with the card system. Asked for rather than assumed gone, because a
 // stale copy left in data/ is exactly the sort of thing that keeps working in
 // a service worker's cache long after nothing fetches it.
-const cardsGone = await fetch("../data/cards.json").then((r) => !r.ok).catch(() => true);
+const cardsGone = await fetch("../data/cards.json", NO_STORE).then((r) => !r.ok).catch(() => true);
 
 const byId = Object.fromEntries(items.map((i) => [i.id, i]));
 const CATS = ["weapon", "magic", "relic", "medicine", "charm"];
@@ -97,4 +103,40 @@ test("events: the bands only ever carry outcomes the engine will know", () => {
   for (const [band, table] of Object.entries(events)) {
     for (const e of table) assert(KINDS.includes(e.t), `band ${band}: unknown outcome ${e.t}`);
   }
+});
+
+// ---- Reachability -----------------------------------------------------------
+// The tables and the map are two halves of one contract, and nothing checked
+// that they met. They did not: the relic table existed and no tile pointed at
+// it, so 攝魂幡 could not be found, and every winning seal line spends it —
+// WIN_SEAL was unreachable in shipped data. These two tests are the guard.
+test("reachability: every search table is pointed at by a tile", () => {
+  const pointed = new Set(
+    [...tiles.indoor, ...tiles.outdoor].filter((t) => t.search).map((t) => t.search)
+  );
+  const orphaned = Object.keys(search).filter((name) => !pointed.has(name));
+  eq(orphaned, [], "a table no room rolls on is a table that does not exist");
+  const dangling = [...pointed].filter((name) => !search[name]);
+  eq(dangling, [], "and a room cannot roll on a table that is not there");
+});
+
+test("reachability: every item can actually be obtained", () => {
+  const fromSearch = new Set();
+  for (const [name, table] of Object.entries(search)) {
+    // Only tables some room actually rolls on count as a way to get anything.
+    const reachable = [...tiles.indoor, ...tiles.outdoor].some((t) => t.search === name);
+    if (!reachable) continue;
+    for (const e of table) if (e.id) fromSearch.add(e.id);
+  }
+  const fromEvents = new Set();
+  for (const table of Object.values(events)) {
+    for (const e of table) if (e.gift) fromEvents.add(e.gift);
+  }
+  const unobtainable = items
+    .map((i) => i.id)
+    .filter((id) => !fromSearch.has(id) && !fromEvents.has(id));
+  eq(unobtainable, [], "every item must come from a reachable table or a villager");
+
+  // And the one the bug was actually about, named so a regression says so.
+  assert(fromSearch.has("soul-banner"), "攝魂幡 must be findable — the seal needs it");
 });

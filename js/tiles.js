@@ -9,23 +9,31 @@ const DIRS = ["N", "E", "S", "W"];
 // Plain words for the behaviour flags. Keyed off the same fields the engine
 // reads, so a tile cannot gain a power the gallery quietly omits — anything
 // unrecognised is surfaced rather than dropped (see noteFor).
-const ON_RESOLVE = {
-  BONUS_ITEM:
-    "Resolve the room's card as normal, then you may draw one more and take the item on it.",
-  SECOND_CARD_THEN_GAIN_TOTEM:
-    "The relic is here. Resolve the card, then draw and resolve a second — that one is the search. Survive it and the relic is yours.",
-  SECOND_CARD_THEN_BURY_TOTEM:
-    "Resolve the card, then a second for the burial. Survive it holding the relic and you have won.",
+// The two goal rooms. Each resolves the room's own event and then draws ONE
+// MORE for the rite itself — so a goal room is two events in one turn, and the
+// second lands at the moment you least want it.
+const GOAL = {
+  TAKE_TABLET:
+    "The 神主牌 is here. Resolve the room's event, then draw one more for the rite. Survive it and the tablet is yours.",
+  BURY_TABLET:
+    "Break ground, then draw one more for the burial. Survive it holding the tablet and you have won.",
 };
 const ON_TURN_END = { HEAL_1: "+1 Health if you end your turn here." };
-const ONCE = { RESTORE_COWER: "Restores one cower charge. Once per night." };
-// The one category this room can be rummaged for. The pool behind them is not
-// designed yet, so this says where a search happens and nothing about what it
-// finds.
+const ACTION = {
+  RESTORE_COWER_ONCE: "Light the incense: one cower charge back. Once per night.",
+  PRAY_ONCE: "Pray: the next unexplored place you put down is the 亂葬崗. Once per night.",
+};
+const FLAG = {
+  RUNNING_WATER: "Running water. They cannot cross it, so their blows land on nothing.",
+};
+// The one category this room can be rummaged for. Every room sharing a category
+// rolls the identical table — there is no rarity flag, and the ★ that used to
+// sit on 經堂 and 鐵匠鋪 was flavour that had leaked into the data.
 const SEARCH = {
   weapon: "Search here for a weapon.",
-  magic: "Search here for a charm.",
+  magic: "Search here for a talisman.",
   medicine: "Search here for medicine.",
+  relic: "Search here for a ritual implement.",
 };
 
 const WORD = { N: "north", E: "east", S: "south", W: "west" };
@@ -42,20 +50,16 @@ function noteFor(def, world) {
         : "Set aside at setup — it goes down the moment you first step outside."
     );
   }
-  if (def.search) {
-    const line = SEARCH[def.search] || `Search here for ${def.search}.`;
-    notes.push(def.best ? `${line} The best of its kind in the game.` : line);
-  }
+  if (def.search) notes.push(SEARCH[def.search] || `Search here for ${def.search}.`);
   if (def.exteriorDoor) {
     notes.push(
       `Carries the gate out — its ${WORD[def.exteriorDoor]} door leads outside, not to another room.`
     );
   }
   if (def.seam) notes.push("Joins the house along its seam edge, the way back in.");
-  if (def.sanctuary) notes.push("Running water. Their attacks do you no harm while you stand here.");
-  if (def.pray) notes.push("Pray: the next unexplored place you put down is the one you are looking for. Once per night.");
-  if (def.once) notes.push(ONCE[def.once] || `Special: ${def.once}`);
-  if (def.onResolve) notes.push(ON_RESOLVE[def.onResolve] || `Special: ${def.onResolve}`);
+  for (const f of def.flags || []) notes.push(FLAG[f] || `Special: ${f}`);
+  if (def.action) notes.push(ACTION[def.action] || `Special: ${def.action}`);
+  if (def.goal) notes.push(GOAL[def.goal] || `Special: ${def.goal}`);
   if (def.onTurnEnd) notes.push(ON_TURN_END[def.onTurnEnd] || `Special: ${def.onTurnEnd}`);
   return notes;
 }
@@ -105,18 +109,16 @@ function doorCompass(def) {
 // also says in a sentence — the chip is there to be scanned, the sentence to be
 // read, and the geography of the map (magic indoors only, weapons mostly out)
 // is only visible when twenty of these can be taken in at once.
-const CHIP_SEARCH = { weapon: "武器 weapons", magic: "符咒 magic", medicine: "丹藥 medicine" };
+const CHIP_SEARCH = { weapon: "武器 weapons", magic: "符咒 talismans",
+                      medicine: "丹藥 medicine", relic: "法器 ritual" };
 
 function chipsFor(def) {
   const chips = [];
-  if (def.search) {
-    chips.push([CHIP_SEARCH[def.search] || def.search, `tilechip--${def.search}`, true]);
-    if (def.best) chips.push(["best of its kind", "tilechip--star", false]);
-  }
+  if (def.search) chips.push([CHIP_SEARCH[def.search] || def.search, `tilechip--${def.search}`, true]);
   if (def.onTurnEnd === "HEAL_1") chips.push(["+1 health", "", false]);
-  if (def.sanctuary) chips.push(["no damage", "", false]);
-  if (def.once || def.pray) chips.push(["once per night", "", false]);
-  if (def.onResolve) chips.push(["goal", "tilechip--goal", false]);
+  if ((def.flags || []).includes("RUNNING_WATER")) chips.push(["no damage", "", false]);
+  if (def.action) chips.push(["once per night", "", false]);
+  if (def.goal) chips.push(["goal", "tilechip--goal", false]);
   if (def.start) chips.push(["start", "", false]);
   if (def.exteriorDoor) chips.push(["moon gate", "", false]);
   if (def.seam) chips.push(["seam", "", false]);

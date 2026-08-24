@@ -2134,10 +2134,10 @@ function tileBadges(game, tile) {
   const def = (tile && tile.def) || {};
   const held = game.state.totem;
   const out = [];
-  if (def.onResolve === "SECOND_CARD_THEN_GAIN_TOTEM" && !held) {
+  if (def.goal === "TAKE_TABLET" && !held) {
     out.push({ kind: "relic", kindName: "ui", id: "relic", say: "The relic rests here." });
   }
-  if (def.onResolve === "SECOND_CARD_THEN_BURY_TOTEM" && held) {
+  if (def.goal === "BURY_TABLET" && held) {
     out.push({ kind: "relic", kindName: "ui", id: "relic", say: "Bury the relic here." });
   }
   if (def.onTurnEnd === "HEAL_1") {

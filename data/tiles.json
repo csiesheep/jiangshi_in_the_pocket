@@ -1,27 +1,27 @@
 {
-  "_note": "Mechanics only — every name lives in theme.json. Twenty tiles: ten indoor (the village and the 義莊 at the end of it) and ten outdoor (the hillside). `exits` are the tile's own doors before rotation; the game turns tiles as it places them. `search` names the one category this room can be rummaged for, and is data only — the pool itself is not designed yet. `exteriorDoor` names which base edge is the way between worlds, and must be one of `exits`: it costs the room a door rather than adding a fifth. `pray` names a tile this room can summon to the top of its stack, once per night.",
+  "_note": "Mechanics only — every name lives in theme.json. Twenty tiles: ten indoor (the village and the 義莊 at the end of it) and ten outdoor (the hillside). `exits` are the tile's own doors before rotation; the game turns tiles as it places them. `search` names which table in search.json a search here rolls on, and there is NO rarity flag — every room sharing a category rolls the identical table. `exteriorDoor` names which base edge is the moon gate: it costs the room one of its own doors rather than adding a fifth, so it must be one of `exits`.",
   "indoor": [
     {"id":"gatehouse",     "exits":["N","E","W"],     "start":true},
     {"id":"apothecary",    "exits":["N"],             "search":"medicine"},
     {"id":"woodshed",      "exits":["N","E"],         "search":"weapon"},
-    {"id":"sutra-hall",    "exits":["N","W"],         "search":"magic",    "best":true},
+    {"id":"sutra-hall",    "exits":["N","W"],         "search":"magic"},
     {"id":"mourning-hall", "exits":["N","E","W"],     "search":"magic"},
     {"id":"courtyard",     "exits":["N","E","S","W"], "exteriorDoor":"N"},
-    {"id":"blacksmith",    "exits":["N"],             "search":"weapon",   "best":true},
+    {"id":"blacksmith",    "exits":["N"],             "search":"weapon"},
     {"id":"counting-room", "exits":["N","E","W"],     "search":"medicine", "onTurnEnd":"HEAL_1"},
-    {"id":"incense-hall",  "exits":["N","E"],         "once":"RESTORE_COWER"},
-    {"id":"sealed-crypt",  "exits":["E","W"],         "onResolve":"SECOND_CARD_THEN_GAIN_TOTEM"}
+    {"id":"incense-hall",  "exits":["N","E"],         "action":"RESTORE_COWER_ONCE"},
+    {"id":"sealed-crypt",  "exits":["E","W"],         "goal":"TAKE_TABLET"}
   ],
   "outdoor": [
     {"id":"back-steps",       "exits":["E","S"],         "seam":"N", "start":true},
-    {"id":"dry-well",         "exits":["S","W"],         "search":"weapon"},
-    {"id":"bamboo-grove",     "exits":["E","S","W"],     "search":"weapon"},
+    {"id":"dry-well",         "exits":["S","W"]},
+    {"id":"bamboo-grove",     "exits":["E","S","W"],     "search":"magic"},
     {"id":"memorial-arch",    "exits":["E","S","W"],     "search":"weapon"},
     {"id":"pavilion",         "exits":["E","S","W"]},
     {"id":"pagoda-tree",      "exits":["E","S","W"],     "search":"medicine", "onTurnEnd":"HEAL_1"},
     {"id":"stone-ward",       "exits":["N","E","S","W"]},
-    {"id":"stream",           "exits":["E","W"],         "sanctuary":true},
-    {"id":"earth-god-shrine", "exits":["E","S"],         "pray":"mass-grave"},
-    {"id":"mass-grave",       "exits":["E","S"],         "onResolve":"SECOND_CARD_THEN_BURY_TOTEM"}
+    {"id":"stream",           "exits":["E","W"],         "flags":["RUNNING_WATER"]},
+    {"id":"earth-god-shrine", "exits":["E","S"],         "search":"relic",    "action":"PRAY_ONCE"},
+    {"id":"mass-grave",       "exits":["E","S"],         "goal":"BURY_TABLET"}
   ]
 }

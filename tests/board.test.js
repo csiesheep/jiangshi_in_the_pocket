@@ -1,7 +1,12 @@
 import * as B from "../js/board.js";
 import { test, assert, eq } from "./harness.js";
 
-const [tiles] = await Promise.all([fetch("../data/tiles.json").then((r) => r.json())]);
+// Data is fetched no-store. A test that reads a cached copy of the file it is
+// asserting about is worse than no test: it passes on data that is not on disk,
+// which is exactly how a fixed table can keep reporting the old bug.
+const NO_STORE = { cache: "no-store" };
+
+const [tiles] = await Promise.all([fetch("../data/tiles.json", NO_STORE).then((r) => r.json())]);
 const DATA = { tiles };
 const board = (opts) => B.createBoard(DATA, opts);
 
@@ -33,18 +38,40 @@ test("tiles.json: the exterior door is one of the room's own doors", () => {
   }
 });
 
-// Ten of the twenty can be searched, split 5 weapons / 2 charms / 3 medicine,
-// with one best-in-category apiece for the two that have a ★.
-test("tiles.json: ten searchable rooms, and every ★ is searchable", () => {
+// Ten of the twenty can be searched. The split moved with the 2026-08-23
+// re-cut: 枯井 became a hazard with nothing in it, 竹林 turned from weapons to
+// talismans, and 土地廟 gained the relic table — which is the only way 攝魂幡
+// is reachable at all.
+test("tiles.json: ten searchable rooms, split 3/3/3/1", () => {
   const all = [...tiles.indoor, ...tiles.outdoor];
   const searchable = all.filter((d) => d.search);
   eq(searchable.length, 10);
   const byKind = {};
   for (const d of searchable) byKind[d.search] = (byKind[d.search] || 0) + 1;
-  eq(byKind, { medicine: 3, weapon: 5, magic: 2 });
-  for (const d of all.filter((x) => x.best)) {
-    assert(d.search, `${d.id}: best of a category it cannot be searched for`);
+  eq(byKind, { medicine: 3, weapon: 3, magic: 3, relic: 1 });
+});
+
+// There is no rarity flag. Every room sharing a category rolls the identical
+// table, so a ★ in the data would be flavour pretending to be a mechanic.
+test("tiles.json: no rarity flag, and no retired field shapes", () => {
+  const all = [...tiles.indoor, ...tiles.outdoor];
+  const RETIRED = ["best", "sanctuary", "pray", "once", "onResolve"];
+  const offenders = [];
+  for (const d of all) {
+    for (const k of RETIRED) if (k in d) offenders.push(`${d.id}.${k}`);
   }
+  eq(offenders, [], "spec §2 field names only");
+});
+
+test("tiles.json: the goal rooms and the tile actions use spec §2 names", () => {
+  const all = [...tiles.indoor, ...tiles.outdoor];
+  const goals = all.filter((d) => d.goal).map((d) => `${d.id}:${d.goal}`).sort();
+  eq(goals, ["mass-grave:BURY_TABLET", "sealed-crypt:TAKE_TABLET"]);
+  const actions = all.filter((d) => d.action).map((d) => `${d.id}:${d.action}`).sort();
+  eq(actions, ["earth-god-shrine:PRAY_ONCE", "incense-hall:RESTORE_COWER_ONCE"]);
+  const flagged = all.filter((d) => d.flags);
+  eq(flagged.map((d) => d.id), ["stream"]);
+  eq(flagged[0].flags, ["RUNNING_WATER"]);
 });
 
 // Every tile has to be enterable from any direction, or a stack can jam: the
