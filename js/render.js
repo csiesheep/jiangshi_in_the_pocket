@@ -4,6 +4,7 @@ import { RULES, effectiveAttack, clockTime, dread, heldIds, heldCount,
          attackWith, bestSword, held } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
+         watchDrum, hopThud,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
          muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm,
          setSpace, wickHiss, setScoreRelief, splintering, startPounding, stopPounding,
@@ -410,6 +411,14 @@ function renderHour(s) {
 
   const turned = lastHour != null && lastHour !== s.hour;
   lastHour = s.hour;
+  if (turned) {
+    // 更鼓. Somebody out in the village is still walking the watches and still
+    // striking the number of the one that has begun, which is the one piece of
+    // evidence all night that anyone else is alive out there. Ten o'clock is
+    // two, eleven is three — the count is the information, and it is the same
+    // drum that will strike at 三更.
+    watchDrum(s.hour - RULES.START_HOUR + 1);
+  }
   if (turned && s.hour === RULES.FINAL_HOUR) strikeEleven(face);
 
   // The clock's heartbeat is now the draw, not the hour: every card that leaves
@@ -1140,6 +1149,11 @@ function stingOnly(count, from = null) {
     // A silent directional scare is just the panned sting — which is the whole
     // of it in calm mode too, where the sound carries the direction because
     // audio is not motion.
+    //
+    // The hopping lands under it either way. Calm mode takes away the faces,
+    // not the fact that something is coming: the rhythm is how many and which
+    // side, and that is information rather than assault.
+    hopThud(count, from);
     combatSting(count, from);
     buzz([18, 40, 18]);
     setTimeout(resolve, reducedMotion() ? 0 : 420);
@@ -1152,6 +1166,7 @@ function scareNow(count, from = null) {
     const endScene = () => leaveScene();
     // Same rule as the door: the cue is sound, not motion, so it plays whether
     // or not the picture does.
+    hopThud(count, from);
     combatSting(count, from);
     buzz([26, 50, 90]);
     if (reducedMotion()) { endScene(); return resolve(); }
