@@ -1,10 +1,10 @@
 {
-  "_note": "The skin. Every player-visible string lives here; mechanics live in tiles.json / cards.json / items.json and never change. Swapping this file re-themes the whole game. Written clean-room: these names and lines are our own, not the original's.",
-  "title": "Grave Errand",
-  "tagline": "Find the relic. Bury it in the family plot. Beat the clock to midnight — alone.",
+  "_note": "The skin. Every player-visible string lives here; mechanics live in tiles.json / items.json / search.json / events.json and never change. Names follow the vault glossary, which is the naming contract: ids are ASCII and never translated, display strings are 繁體中文 followed by English. The monster is spelled 殭屍 throughout — the 歹-radical form, never the variant with 亻.",
+  "title": "Jiangshi in the Pocket",
+  "tagline": "It is nine at night. At the third watch he comes for you. Lay him to rest, or be standing when he arrives.",
   "words": {
-    "monsters": "risen",
-    "relic": "relic"
+    "monsters": "jiangshi",
+    "relic": "tablet"
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",
@@ -28,72 +28,173 @@
     "earth-god-shrine": "土地廟 Earth God Shrine",
     "mass-grave": "亂葬崗 Mass Grave"
   },
-  "items": {
-    "board-nails": "Nailed Plank",
-    "grisly-femur": "Splintered Bone",
-    "golf-club": "Fire Iron",
-    "machete": "Billhook",
-    "chainsaw": "Petrol Saw",
-    "can-of-soda": "Bottled Tonic",
-    "oil": "Lamp Oil",
-    "gasoline": "Petrol Can",
-    "candle": "Tallow Candle"
+  "tileBlurbs": {
+    "_note": "One line per tile, for the gallery. What the place is, not what it does — the mechanics come from tiles.json.",
+    "gatehouse": "Where you start. Three ways on, and the gate shut behind you.",
+    "apothecary": "One door. Drawers of herbs, a balance, a mortar still full.",
+    "woodshed": "Poles and axes, close to the start.",
+    "sutra-hall": "Scripture and talismans. The richest magic in the game.",
+    "mourning-hall": "Where the coffins are laid out, under two white banners.",
+    "courtyard": "The crossroads. Roofless, and its 月門 is the only way outside.",
+    "blacksmith": "One door. The forge — iron is anti-yin, and the coals are still live.",
+    "counting-room": "Ledgers, an abacus, and the clerk’s own medicine chest behind the desk.",
+    "incense-hall": "Tablets in tiers. One coil is still burning, and it burns out once.",
+    "sealed-crypt": "The coffin nobody claimed, papered shut. The 神主牌 is here.",
+    "back-steps": "The stone landing outside the moon gate.",
+    "dry-well": "Where the village threw what it wanted gone.",
+    "bamboo-grove": "Poles, and paper charms tied to them.",
+    "memorial-arch": "Offerings and tools stacked at its foot.",
+    "pavilion": "Somewhere to sit, if this were a different night.",
+    "pagoda-tree": "鬼樹. It heals because it is literally a medicine tree.",
+    "stone-ward": "The stone at the junction. Every route outdoors crosses it.",
+    "stream": "活水. They cannot cross it, so their blows land on nothing.",
+    "earth-god-shrine": "The land god knows where the dead are buried. Ask once.",
+    "mass-grave": "The pit for the unclaimed. Bury the 神主牌 here."
   },
-  "cardFlavour": {
-    "_note": "One line per card per hour band, keyed by card id then hour. Read alongside the matching entry in cards.json — the line describes what that band's outcome feels like, and carries no mechanics of its own.",
-    "1": {
+  "categories": {
+    "_note": "The five things a room can be searched for. relic and charm hold one item each; they are categories rather than special cases so the search tables and the slot rules stay uniform.",
+    "weapon": "武器 Weapon",
+    "magic": "符咒 Talisman",
+    "medicine": "丹藥 Medicine",
+    "relic": "法器 Ritual implement",
+    "charm": "護符 Charm"
+  },
+  "items": {
+    "precept-knife": "戒刀 Precept Knife",
+    "peachwood-sword": "桃木劍 Peachwood Sword",
+    "coin-sword": "銅錢劍 Coin Sword",
+    "sevenstar-sword": "七星劍 Seven-Star Sword",
+    "truefire-talisman": "真火符 True Fire Talisman",
+    "fivethunder-talisman": "五雷符 Five Thunder Talisman",
+    "blood-talisman": "血符 Blood Talisman",
+    "cinnabar": "硃砂 Cinnabar",
+    "soul-banner": "攝魂幡 Soul-Snatching Banner",
+    "sticky-rice": "糯米 Sticky Rice",
+    "black-dog-blood": "黑狗血 Black Dog Blood",
+    "golden-elixir": "金丹 Golden Elixir",
+    "protective-charm": "護身符 Protective Charm"
+  },
+  "itemBlurbs": {
+    "_note": "One line each, said when the thing is found. What it is and what it is for, in the same short diegetic register as the rest of the writing.",
+    "precept-knife": "A monk’s blade, meant for cutting cloth and rope. It has been kept sharp anyway.",
+    "peachwood-sword": "Peach wood takes an edge badly and takes a spirit well.",
+    "coin-sword": "Old coins lashed to a spine of wire. Every emperor on it is dead, which is the point.",
+    "sevenstar-sword": "The Dipper inlaid down the blade. The best iron in the village, and it knows it.",
+    "truefire-talisman": "Yellow paper, red script. Burns on contact and lends its fire to a sword.",
+    "fivethunder-talisman": "Five thunders, folded small. You get one, and it is enormous.",
+    "blood-talisman": "Written in your own. It costs what it says it costs.",
+    "cinnabar": "Ground red mineral. Paint a charm twice and it works twice.",
+    "soul-banner": "The banner the priest would have carried. In your hands a sword swings for two.",
+    "sticky-rice": "Draws 屍毒 out of a wound. Also feeds you, which matters by eleven.",
+    "black-dog-blood": "Thrown, it buys you the doorway. It buys you nothing from the King.",
+    "golden-elixir": "Half of these were made by someone who knew what they were doing.",
+    "protective-charm": "Sewn shut and worn against the skin. It takes the first of every blow."
+  },
+  "events": {
+    "_note": "One line per event type per hour band, keyed the way events.json is: the `t` value, then 9 / 10 / 11. HP splits by the sign of `hp` — HP_LOSS is 損血, HP_GAIN is 回血 — because one line cannot serve both. The band is the register: nine o'clock is a house settling, eleven is a house with something in it.",
+    "JIANGSHI": {
+      "9": "Something in the dark straightens up, and hops.",
+      "10": "They come at the sound of you, stiff-legged and unhurried.",
+      "11": "The room fills with them. They have stopped pretending to be furniture."
+    },
+    "HP_LOSS": {
+      "9": "A bad step in the dark. It still costs you.",
+      "10": "Something goes past your face in the dark and takes skin with it.",
+      "11": "The cold in here bites, and takes your breath with it."
+    },
+    "HP_GAIN": {
+      "9": "Clean water, and a moment long enough to drink it.",
+      "10": "You find a wall to put your back against, and your breath with it.",
+      "11": "A stub of incense, still warm. You sit until it is out."
+    },
+    "NOTHING": {
       "9": "The floorboards settle. Nothing follows.",
-      "10": "Something glints under a dust sheet.",
-      "11": "Six of them pour in from the dark."
-    },
-    "2": {
-      "9": "Four shapes straighten up in the corners.",
-      "10": "A frame drops off the wall, and the glass finds you.",
-      "11": "A cupboard hangs open, half emptied already."
-    },
-    "3": {
-      "9": "A toolbox sits where someone dropped it.",
-      "10": "Four of them crowd into the doorway.",
-      "11": "You misjudge a step in the dark."
-    },
-    "4": {
-      "9": "Four come in over the windowsill.",
-      "10": "Cold hands brush past before you can turn.",
-      "11": "Six press through the gap at once."
-    },
-    "5": {
-      "9": "Somebody left their kit behind in a hurry.",
-      "10": "Five of them come at the sound of you.",
-      "11": "The air in here bites, and takes your breath with it."
-    },
-    "6": {
-      "9": "No trap here but bad footing. It still hurts.",
-      "10": "Four heads turn toward you together.",
+      "10": "Dust, and the sound of your own steps.",
       "11": "Silence, and the smell of old rain."
     },
-    "7": {
-      "9": "A door swings open on its own. Nothing behind it.",
-      "10": "Clean water, and a moment long enough to drink it.",
-      "11": "Four step out of the shadow along the wall."
+    "POISON": {
+      "9": "A nail catches you. The scratch goes grey at the edges.",
+      "10": "Cold fingers brush your wrist, and the cold stays.",
+      "11": "屍毒 is in your blood now. You can feel it looking for your heart."
     },
-    "8": {
-      "9": "You find a chair, and your breath, at the same time.",
-      "10": "A drawer stands open with something still in it.",
-      "11": "Four of them were already waiting."
-    },
-    "9": {
-      "9": "Three come for you, unhurried.",
-      "10": "Dust, and the sound of your own steps.",
-      "11": "Five block the way you came in."
+    "VILLAGER": {
+      "9": "Someone is still alive in here, and hurt.",
+      "10": "A villager, cornered, and not dead yet.",
+      "11": "Someone calls out. There is still time to reach them."
     }
   },
+  "eventNames": {
+    "_note": "The event types by name, for the log and the turn summary. Keyed by the `t` in events.json, with HP split by sign.",
+    "JIANGSHI": "殭屍 Jiangshi",
+    "HP_LOSS": "損血 Lose Health",
+    "HP_GAIN": "回血 Gain Health",
+    "NOTHING": "沒事 Nothing happens",
+    "POISON": "中毒 Poisoned",
+    "VILLAGER": "村民受傷 A villager is hurt"
+  },
+  "villager": {
+    "_note": "The one event that asks a question. Rice buys the stranger; refusing leaves you with what was chasing them.",
+    "ask": "You have 糯米. Give it, and they may live.",
+    "give": "Give the rice",
+    "refuse": "Keep it",
+    "gave": "They take it, press {gift} into your hands, and are gone.",
+    "refused": "You keep the rice. What was behind them is in front of you now."
+  },
+  "poison": {
+    "_note": "屍毒 is the substance; 中毒 is the state. The status flag says 中毒; flavour about what is in your blood says 屍毒.",
+    "state": "中毒 Poisoned",
+    "onset": "屍毒. It does not stop on its own.",
+    "tick": "The grey under your skin creeps a little further.",
+    "cured": "The 糯米 draws it out. Your hands are your own again."
+  },
+  "actions": {
+    "_note": "The turn's three choices and the mechanics they touch. Held here so the code keeps using the code term and the screen keeps using the name.",
+    "MOVE": "移動 Move",
+    "STAY": "停留 Stay",
+    "COWER": "躲藏 Cower",
+    "cowerCharges": "躲藏額度 Cower charges",
+    "search": "搜索 Search",
+    "flee": "逃跑 Run",
+    "breach": "破牆 Breach",
+    "rite": "儀式 Rite",
+    "seam": "月門 Moon gate",
+    "tablet": "神主牌 Ancestral tablet",
+    "poisoned": "中毒 Poisoned",
+    "turn": "回合 Turn",
+    "band": "時段 Hour band",
+    "attack": "攻擊力 Attack",
+    "health": "血 Health"
+  },
+  "king": {
+    "_note": "Midnight and what arrives with it.",
+    "king": "殭屍王 the Jiangshi King",
+    "seal": "鎮屍 the seal",
+    "midnight": "三更 the third watch",
+    "threshold": "門檻 threshold"
+  },
+  "setting": {
+    "_note": "The place, for flavour text. 屍毒 is the substance and 中毒 the state of having it — see poison.",
+    "corpse-hostel": "義莊 the corpse hostel",
+    "village": "村子 the village",
+    "running-water": "活水 running water",
+    "corpse-poison": "屍毒 corpse-poison",
+    "ghost-tree": "鬼樹 the ghost tree"
+  },
+  "outcomes": {
+    "_note": "How the night ended. WIN_SEAL and WIN_BURIAL must read as equals — same register, same length, neither grander. The seal is the hidden ending, not the better one.",
+    "WIN_BURIAL": "下葬 The tablet is back in the ground",
+    "WIN_SEAL": "鎮屍 The paper is on his forehead",
+    "SURVIVED": "見到天亮 You saw the night out",
+    "LOSS_HEALTH": "傷重不治 You did not last the night",
+    "LOSS_KING": "王帶走了你 The King took you"
+  },
   "note": {
-    "_note": "The first-run letter (#81). Diegetic: written by whoever sent you, in the same voice as cardFlavour. Teaches only the three things that decide the game.",
-    "title": "A note, left folded on the hall table",
+    "_note": "The first-run letter (#81). Diegetic: written by whoever sent you, in the same voice as the event lines. Teaches only the three things that decide the game.",
+    "title": "A note, folded and left on the gatehouse table",
     "lines": [
-      "You know why you are here. The relic is somewhere in this house, and it does not want to be found.",
-      "Take it to the family plot behind the garden and put it back in the ground. That is all that is being asked.",
-      "Be quick about it. The deck on the table is the hour — every card you turn is time you have spent, and when the last one goes over it is midnight.",
+      "You know why you are here. At the end of the village is the 義莊, and in it a coffin that has waited too long for anyone to come for it.",
+      "His 神主牌 is in the 停柩房. Take it out past the moon gate and put it in the 亂葬崗, and give the man his name back.",
+      "Be quick. The night is thirty turns and every one of them is six minutes; when the third watch sounds he is awake, and he comes to whatever room you are standing in.",
       "Doors are on the walls. Use them."
     ],
     "dismiss": "Fold it away"
@@ -101,17 +202,17 @@
   "epilogue": {
     "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}.",
     "open": {
-      "won": "You walked out at dawn",
-      "won-hurt": "You walked out at dawn on your last heart",
+      "won": "You walked out at first light",
+      "won-hurt": "You walked out at first light on your last heart",
       "combat": "They pulled you down at {hour}",
-      "combat-swarmed": "They came through the walls at {hour} and did not stop",
+      "combat-swarmed": "They came through the wall at {hour} and did not stop",
       "health": "You bled out at {hour}",
-      "health-worn": "The house wore you through by {hour}",
-      "midnight": "Midnight found you still inside"
+      "health-worn": "The village wore you through by {hour}",
+      "midnight": "The third watch found you still inside"
     },
     "hand": {
       "armed": "{weapon} in hand",
-      "dry": "the {weapon} out of fuel",
+      "dry": "the {weapon} already spent",
       "bare": "nothing in your hands",
       "tool": "only the {weapon} on you"
     },
@@ -143,7 +244,7 @@
       "21": "nine",
       "22": "ten",
       "23": "eleven",
-      "24": "midnight"
+      "24": "the third watch"
     }
   }
 }
