@@ -130,16 +130,17 @@ test("§13: a warded turn is worth ~0.85 / ~1.25 / ~2.3 at Attack 2", () => {
 // These used to be the same number. They are not any more, and the gap IS the
 // hidden ending: the sword is something a good player expects to find, and the
 // banner is something they mostly will not.
-test("§13: ~10 searches for 七星劍, ~50 for 攝魂幡", () => {
+test("§13: ~10 searches for 七星劍, ~10 for 攝魂幡", () => {
   const p = (table, id) => search[table].find((e) => e.id === id).p;
   eq(p("weapon", "sevenstar-sword"), 10);
   eq(Math.round(100 / p("weapon", "sevenstar-sword")), 10, "one in ten, about ten rummages");
-  eq(p("relic", "soul-banner"), 2);
-  eq(Math.round(100 / p("relic", "soul-banner")), 50, "one in fifty, and only at 土地廟");
-  // Which is the point: a night has thirty turns, so fifty rummages is not a
-  // budget anyone has. 鎮屍 is meant to be a thing that happens to almost nobody.
-  assert(100 / p("relic", "soul-banner") > E.RULES.TOTAL_TURNS,
-    "the expected hunt is longer than the night itself");
+  eq(p("relic", "soul-banner"), 10);
+  eq(Math.round(100 / p("relic", "soul-banner")), 10, "one in ten, and only at 土地廟");
+  // 攝魂幡 went 15 -> 2 to hide 鎮屍, then 2 -> 10 because at 2 % the shrine was
+  // a rice tile with a rumour attached and 土地廟 has no other identity since
+  // the prayer was removed. The seal is held down by the bar at 14/13 and by
+  // the 神主牌 being compulsory, not by the banner being nearly unfindable.
+  eq(p("relic", "sticky-rice"), 40, "the shrine's rice is untouched: it is what makes the walk pay when the banner does not come");
 });
 
 // Enumerated rather than transcribed: this builds every sword x buff x banner x

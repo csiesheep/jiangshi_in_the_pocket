@@ -1,5 +1,12 @@
 # Pricing the seal down (#43)
 
+> **Superseded in part, 2026-08-25.** This priced the levers against a "< 2 %"
+> target for 鎮屍. That target no longer stands: with the curve in front of them
+> the user chose 攝魂幡 at 10 % and 鎮屍 at 3.5–4.2 %, preferring a shrine worth
+> walking to. Option A itself — the bar at 14/13 — did land and is still in
+> force; it is only the target the option was chosen against that has moved.
+> Left as written, because what it records is a decision made at a moment.
+
 **Nothing here is implemented.** Every number was measured with the levers
 patched in memory, in a disposable worktree, and the lever page was deleted
 afterwards. This is a menu, not a change.

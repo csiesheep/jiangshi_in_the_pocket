@@ -232,11 +232,28 @@ test("handover: the page is wired to notice a new worker arriving", () => {
 // The decision itself, exercised rather than asserted to exist. Source-level
 // checks can only say a guard is present; these say it is right.
 test("handover: it reloads on a fresh load, when a controller has arrived", () => {
-  eq(shouldReloadOnHandover({ hasController: true, openedAt: 1000, now: 1200, reloading: false }), true);
+  eq(shouldReloadOnHandover({ hasController: true, openedAt: 1000, now: 1200, reloading: false, playing: false }), true);
   // The boundary itself counts as fresh.
   eq(shouldReloadOnHandover({
     hasController: true, openedAt: 0, now: HANDOVER_GRACE_MS, reloading: false,
   }), true, "exactly at the grace is still the opening moments");
+});
+
+// The sentence the DoD actually makes: no reload ever interrupts a run in
+// progress. The clock is the outer bound for an untouched page; this is the
+// question itself, and it is asked directly because the two are only the same
+// thing if nobody can take a turn inside ten seconds — and they can.
+test("handover: it NEVER reloads a run in progress, however fresh the page", () => {
+  eq(shouldReloadOnHandover({
+    hasController: true, openedAt: 0, now: 1, reloading: false, playing: true,
+  }), false, "one second in, but a turn has been spent — those turns are not saved");
+  eq(shouldReloadOnHandover({
+    hasController: true, openedAt: 0, now: 9000, reloading: false, playing: true,
+  }), false, "second nine, which the clock alone would have allowed");
+  // And the same instant without a run is still fine to reload.
+  eq(shouldReloadOnHandover({
+    hasController: true, openedAt: 0, now: 9000, reloading: false, playing: false,
+  }), true, "nobody has touched anything, so nothing is lost");
 });
 
 test("handover: it NEVER reloads a page somebody has been sitting on", () => {

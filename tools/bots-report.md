@@ -9,28 +9,153 @@ Companions: `tools/diagnose.html` prints the seal funnel stage by stage;
 patch data in memory and write nothing. Lever pricing for #43 is in
 `tools/lever-pricing.md`.
 
-**Measured after #43 option A** — 攝魂幡 2 % at the shrine, and the bar at 14
-(13 carrying the 神主牌).
+**THE CONSOLIDATED MEASUREMENT (#49)** — one reading of the world that the
+hands, the ward, the blades, option A, the sword, the pack, the event stage and
+the shrine all built. Everything below the arc table is the per-lever history,
+kept so "what did each change cost" and "where does the game sit" are both
+answerable.
 
-## Batch A — seeds 1..1000
+## Where the game sits — batch A, seeds 1..1000
 
-| policy | win % | burial | seal | survived | died | king | reached midnight | avg atk @ midnight |
-|---|---|---|---|---|---|---|---|---|
-| hunter  | **34.4 %** | 344 | 0 | 1  | 592 | 63  | 6.4 %  | 4.77 |
-| duelist | 0.1 %      | 0   | 1 | 0  | 926 | 73  | 7.7 %  | 7.84 |
-| **adept**   | **1.7 %** | 0 | **17** | 0 | 671 | 312 | **32.9 %** | 9.16 |
-| turtle  | 0 %        | 0   | 0 | 53 | 947 | 0   | 5.3 %  | 5.00 |
-| camper  | 0 %        | 0   | 0 | 0  | 624 | 376 | 37.6 % | 1.83 |
+| policy | burial | seal | survived | died | King | reached midnight | atk @ midnight |
+|---|---|---|---|---|---|---|---|
+| hunter  | **322** | 0  | 0  | 632 | 46  | 4.6 %  | 3.83  |
+| duelist | 0   | 1  | 0  | 971 | 28  | 3.0 %  | 8.13  |
+| **adept**   | 0 | **35** | 3 | 783 | 179 | 21.7 % | 11.11 |
+| turtle  | 0   | 0  | **31** | 969 | 0   | 3.1 %  | 5.00  |
+| camper  | 0   | 0  | 0  | 732 | 268 | 26.8 % | 1.59  |
 
-## Batch B — seeds 5001..6000
+## Batch B, seeds 5001..6000
 
-| policy | win % | burial | seal | survived | died | king | reached midnight | avg atk @ midnight |
-|---|---|---|---|---|---|---|---|---|
-| hunter  | 37.4 % | 374 | 0 | 1  | 540 | 85  | 8.6 %  | 3.80 |
-| duelist | 0.1 %  | 0   | 1 | 1  | 913 | 85  | 8.7 %  | 7.37 |
-| **adept**   | **1.7 %** | 0 | **17** | 2 | 653 | 328 | **34.7 %** | 9.03 |
-| turtle  | 0 %    | 0   | 0 | 66 | 934 | 0   | 6.6 %  | 4.82 |
-| camper  | 0 %    | 0   | 0 | 0  | 620 | 380 | 38.0 % | 1.99 |
+| policy | burial | seal | survived | died | King | reached midnight | atk @ midnight |
+|---|---|---|---|---|---|---|---|
+| hunter  | **342** | 0  | 1  | 593 | 64  | 6.5 %  | 3.12  |
+| duelist | 0   | 0  | 0  | 959 | 41  | 4.3 %  | 7.51  |
+| **adept**   | 0 | **42** | 4 | 770 | 184 | 23.0 % | 11.28 |
+| turtle  | 0   | 0  | **32** | 968 | 0   | 3.2 %  | 4.31  |
+| camper  | 0   | 0  | 0  | 719 | 281 | 28.1 % | 1.78  |
+
+## The whole week in one table
+
+Same seeds throughout, so every column is the rule named and nothing else.
+
+| | pre-A | after A | after #46 | after #47 | now (#52) |
+|---|---|---|---|---|---|
+| | hands/ward/blades | bar 14/13, 幡 2 % | 七星劍 10 % | pack 4 | 幡 10 % |
+| **hunter burial** | 344 / 374 | 344 / 374 | 330 / 354 | 322 / 342 | **322 / 342** |
+| **adept seal** | 259 / 299 | 17 / 17 | 10 / 13 | 9 / 10 | **35 / 42** |
+| **turtle 活水** | 53 / 66 | 53 / 66 | 40 / 46 | 31 / 33 | **31 / 32** |
+| adept reaches midnight | 32.0 / 35.0 % | 32.9 / 34.7 % | 26.1 / 27.4 % | 23.3 / 24.3 % | **21.7 / 23.0 %** |
+| adept atk @ midnight | 11.88 / 12.08 | 9.16 / 9.03 | 9.11 / 8.93 | 9.08 / 8.91 | **11.11 / 11.28** |
+
+Read down the rows rather than across the columns. Each column looks small; the
+rows do not.
+
+- **鎮墓 (burial) has held.** 344 → 322 and 374 → 342, about 6–9 % lost, all of
+  it to the sword and the pack. Nothing was ever aimed at it.
+- **鎮屍 (seal) went 26 % → 1.7 % → 0.9 % → 3.5 %.** Deliberately placed at
+  1.7 %, drifted to half that as a side effect of two rulings about swords and
+  slots, and is now above where it was ruled to be.
+- **活水 (survived) has been halved and never recovered.** 53 → 31. It is
+  downstream of the sword and the food, so it absorbed both cuts and no later
+  ruling gave anything back. Of the five endings it has the least room left.
+- **Arrivals fell by a third while attack at the door came back.** Two different
+  levers wearing the same clothes: the pack and the sword decide how many
+  players reach midnight, the banner and the bar decide what happens there.
+
+## #48 as a control — it moved nothing
+
+FE's pack UI is presentation, so it must not touch a number. Checked by running
+today's code with the banner rolled back to 2 %, which reproduces the post-#47
+world exactly:
+
+| | post-#47, before #48 | today's code, 幡 back at 2 % |
+|---|---|---|
+| hunter | 322 burial, 631 died, 47 King, 4.7 % | **identical** |
+| duelist | 970 died, 30 King, 3.2 % | **identical** |
+| adept | 9 seals, 767 died, 224 King, 23.3 % | **identical** |
+| turtle | 31 survived, 969 died, 3.1 % | **identical** |
+| camper | 730 died, 270 King, 27.0 % | **identical** |
+
+Every figure matches to the run. The control holds.
+
+## What the four-slot pack actually costs
+
+New in this pass, because the pack is a lever now and "it is tighter" is not a
+number. `forced choices` counts finds that arrived at a full pack; `paid with
+food` is the subset paid for with 糯米; `starved after` is the share of runs that
+later stood at 3 health or less with nothing to eat, having paid that way.
+
+| policy | forced choices / run | paid with food | starved after |
+|---|---|---|---|
+| hunter  | 0.28 | 0.24 | 9.9 / 10.2 % |
+| duelist | 0.40 | 0.34 | 19.8 / 22.0 % |
+| adept   | 0.63 | 0.49 | 15.5 / 15.3 % |
+| turtle  | 0.18 | 0.17 | 13.2 / 15.3 % |
+| camper  | 3.07 | 1.72 | 18.8 / 21.4 % |
+
+**About one adept run in six** ends hungry and out of food after paying for a
+find with a meal. That is the pack cut expressed as the thing it does, rather
+than as a slot count.
+
+The camper's three forced choices a night are the same fact from the other end:
+standing still and rummaging one room is the fastest way to fill a small pack,
+and it converts none of it — 1.59 attack against a bar of 13.
+
+*The approximation is stated rather than hidden.* "Needed it later" is counted
+as the case that actually kills runs — hungry with nothing to eat — not every
+possible regret. A run that dropped a talisman it would have thrown at midnight
+is not counted.
+
+## The trade, resolved
+
+There was a real conflict here between two of the same user's rulings — 鎮屍
+"under 2 %" in the morning, 攝魂幡 at 10 % in the afternoon, which the measurement
+put at 3.5–4.2 %. It has been decided, with the curve below in front of them:
+**keep the shrine at 10 % and accept the seal where it lands.** A shrine worth
+walking to beat the lower number.
+
+**So "< 2 %" is superseded.** Anything still stating it — including the per-lever
+history further down this file, and tools/lever-pricing.md, both of which were
+written while it stood — is a record of what was true then, not a target now.
+
+§9 is untouched by any of this. 鎮屍 is still never explained and never
+announced; it is simply no longer rare to the point of vanishing.
+
+**What the choice cost**, for the record: the seal went from where option A
+deliberately placed it (1.7 %) to roughly twice that. Nothing else moved — #52
+touches the conversion term only, so burial, 活水 and camper arrivals are
+unchanged to the run. The mechanism is entirely "three times as many players
+arrive holding a banner": attack at the door went 9.08 → 11.11.
+
+**The curve is kept in case it is ever revisited.** The bar cannot help — 14
+already makes the 神主牌 compulsory and 15 would make 鎮屍 impossible rather than
+hidden — so the shrine's odds are the only dial that does not cost survival:
+
+| 攝魂幡 | adept seal |
+|---|---|
+| 2 % | 0.9 % |
+| 3 % | 1.5 % |
+| 4 % | 2.1 % |
+| 5 % | 2.4 % |
+| **10 %** | **3.5 / 4.2 % — chosen** |
+
+Three per cent was the most that would have bought both. It was not chosen, and
+the reason is on the record rather than inferable from the number.
+
+---
+
+# Per-lever history
+
+What each change cost on its own, kept because "where does it sit" and "what did
+that one do" are different questions.
+
+**Everything below is a snapshot, true when it was taken.** Several of these
+sections reason against a "< 2 %" target for 鎮屍 that has since been superseded
+(see *The trade, resolved*, above), and one of them offers advice — restore the
+seal to 1.7 % — that the user has now declined. They are left as written rather
+than rewritten: a record that gets edited to agree with the present stops being
+a record. The tables at the top of this file are the current numbers.
 
 ## What option A cost
 
@@ -196,10 +321,22 @@ say:
 
 ## Against what the design expected
 
-**"Camper and turtle ≈ never win" — still true**, zero across 4000 nights.
+No figures restated here — the tables at the top are the figures, and a prose
+copy of them is a thing that goes stale while looking authoritative. This
+section is only for the claims the design made that a table cannot settle.
 
-**"Banner-less midnight ≈ always fatal" — now the ordinary case**, and by
-design: 76–79 % of arrivals have no banner at all.
+**"Camper and turtle ≈ never win" — still true**, and now true by a wider
+margin than when it was written: zero wins across every batch, with both
+policies materially harder to keep alive than they were.
 
-**"鎮屍 is hidden" — true again by the number as well as the presentation**, at
-1.7 % against the 0.4 % it measured when the ruling was made.
+**"Banner-less midnight ≈ always fatal" — still the ordinary case**, though
+less lopsided since #52. The banner is what decides the exchange, and the
+proportion arriving with one is now a design dial rather than an accident.
+
+**"鎮屍 is hidden"** — hidden by §9 as it always was, and hidden by the number
+only as far as the shrine's odds allow. That is the live conflict above, not a
+settled property.
+
+**"The villager route contributes to the kit"** — still the weakest of the
+original claims, and untouched by any of this week's rulings. Worth re-measuring
+if it ever matters, rather than assumed either way.
