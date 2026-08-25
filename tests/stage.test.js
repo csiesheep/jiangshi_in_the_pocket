@@ -696,3 +696,106 @@ test("pack: both languages can say a stack out loud", () => {
       "the stack's accessible name drops the item or the count: " + said);
   }
 });
+
+
+// ---- The thirteen at the size they ship (#54) ----------------------------------
+// These render at 18px in the found-item row, 26px in the hands and about 76px in
+// a pack cell. EIGHTEEN is the number that decides whether an icon works, and an
+// icon judged at poster size is not judged at all.
+//
+// The weapons matter most: the replace prompt is a decision made on recognition,
+// and #36 made that decision permanent — take the wrong blade and the other one
+// stays on the floor for the rest of the night. So "they look different" is not
+// a claim to make in a comment. It is measured here, on two axes, because an
+// icon can be told apart by its outline or by its material and either is enough
+// but neither on its own is guaranteed:
+//
+//   silhouette — fraction of pixels whose coverage differs, which is what
+//                survives when detail is gone
+//   colour     — mean per-pixel distance composited on the panel behind them,
+//                which is what survives when the outline does not
+//
+// The first draft of this set failed here: three vertical blades came out 4-6%
+// apart on silhouette and 13 apart on colour, because everything separating them
+// was interior detail that 18px does not have room for. The measurement is what
+// said so.
+const ICON_SVG = await fetch("../assets/icons.svg", NO_STORE).then((r) => r.text());
+
+async function rasterise(symbolId, px) {
+  const doc = new DOMParser().parseFromString(ICON_SVG, "image/svg+xml");
+  const sym = doc.getElementById(symbolId);
+  if (!sym) return null;
+  const markup =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + sym.getAttribute("viewBox") +
+    '" width="' + px + '" height="' + px + '">' + sym.innerHTML + "</svg>";
+  const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+  const draw = (bg) => {
+    const c = document.createElement("canvas");
+    c.width = px; c.height = px;
+    const x = c.getContext("2d");
+    if (bg) { x.fillStyle = bg; x.fillRect(0, 0, px, px); }
+    x.drawImage(img, 0, 0, px, px);
+    return x.getImageData(0, 0, px, px).data;
+  };
+  const onPanel = draw("#1b1e24");   // --panel, what actually sits behind them
+  const bare = draw(null);
+  URL.revokeObjectURL(url);
+  const alpha = [];
+  let ink = 0;
+  for (let i = 0; i < px * px; i++) {
+    const on = bare[i * 4 + 3] > 96 ? 1 : 0;
+    alpha.push(on); ink += on;
+  }
+  return { onPanel, alpha, inkPct: (100 * ink) / (px * px) };
+}
+
+const ITEM_IDS = [
+  "item-precept-knife", "item-peachwood-sword", "item-coin-sword", "item-sevenstar-sword",
+  "item-truefire-talisman", "item-fivethunder-talisman", "item-blood-talisman",
+  "item-cinnabar", "item-soul-banner", "item-sticky-rice", "item-black-dog-blood",
+  "item-golden-elixir", "item-protective-charm",
+];
+
+test("icons: all thirteen exist and draw something at the smallest shipped size", async () => {
+  for (const id of ITEM_IDS) {
+    const r = await rasterise(id, 18);
+    assert(r, "no symbol " + id + " — the id column is the contract");
+    // A blank icon and a missing icon look identical to a player, and only one
+    // of them is caught by the id check above.
+    assert(r.inkPct > 4, id + " draws almost nothing at 18px (" + r.inkPct.toFixed(1) + "%)");
+    assert(r.inkPct < 70, id + " is a solid blob at 18px (" + r.inkPct.toFixed(1) + "%)");
+  }
+});
+
+test("icons: the four weapons stay apart at the size the choice is made", async () => {
+  const W = ITEM_IDS.slice(0, 4);
+  for (const px of [18, 26]) {
+    const r = {};
+    for (const id of W) r[id] = await rasterise(id, px);
+    for (let i = 0; i < W.length; i++) {
+      for (let j = i + 1; j < W.length; j++) {
+        const a = r[W[i]], b = r[W[j]];
+        let differing = 0;
+        for (let k = 0; k < a.alpha.length; k++) if (a.alpha[k] !== b.alpha[k]) differing++;
+        const sil = (100 * differing) / a.alpha.length;
+        let sum = 0;
+        for (let k = 0; k < a.onPanel.length; k += 4) {
+          const dr = a.onPanel[k] - b.onPanel[k];
+          const dg = a.onPanel[k + 1] - b.onPanel[k + 1];
+          const db = a.onPanel[k + 2] - b.onPanel[k + 2];
+          sum += Math.sqrt(dr * dr + dg * dg + db * db);
+        }
+        const col = sum / (a.onPanel.length / 4);
+        const name = W[i] + " / " + W[j] + " at " + px + "px";
+        // Both floors, deliberately. A pair that is only separated by colour
+        // fails anyone who cannot see the difference, and a pair only separated
+        // by outline fails at a glance. Measured minima when this was written:
+        // 14.5% and 27.5.
+        assert(sil >= 12, name + ": silhouettes only " + sil.toFixed(1) + "% apart");
+        assert(col >= 25, name + ": colours only " + col.toFixed(1) + " apart");
+      }
+    }
+  }
+});
