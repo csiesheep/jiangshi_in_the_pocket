@@ -62,21 +62,15 @@ function noteFor(def, world, theme) {
   }
   if (def.seam) notes.push(note(theme, "seam"));
   for (const f of def.flags || []) {
-    notes.push(f === "RUNNING_WATER"
-      ? note(theme, "running-water")
+    notes.push(
+      f === "RUNNING_WATER" ? note(theme, "running-water")
+      : f === "WARDED" ? note(theme, "ward")
       : note(theme, "unknown", { what: f }));
   }
-  if (def.action) {
-    // The prayer names the tile it summons rather than hinting at it, and takes
-    // that name from the theme like every other room name on the page.
-    if (def.action === "PRAY_ONCE") {
-      notes.push(note(theme, "pray", { room: name(theme, "mass-grave") }));
-    } else if (def.action === "RESTORE_COWER_ONCE") {
-      notes.push(note(theme, "restore-cower"));
-    } else {
-      notes.push(note(theme, "unknown", { what: def.action }));
-    }
-  }
+  // No tile carries an `action` since the post-launch redesign took the
+  // prayer and the coil, but the branch stays: the field is still read, and a
+  // tile that grows one should say so rather than say nothing.
+  if (def.action) notes.push(note(theme, "unknown", { what: def.action }));
   if (def.goal) {
     const key = def.goal === "TAKE_TABLET" ? "take-tablet"
       : def.goal === "BURY_TABLET" ? "bury-tablet" : null;
@@ -148,6 +142,7 @@ function chipsFor(def) {
   if (def.search) chips.push([CHIP_SEARCH[def.search] || def.search, `tilechip--${def.search}`, true]);
   if (def.onTurnEnd === "HEAL_1") chips.push(["+1 health", "", false]);
   if ((def.flags || []).includes("RUNNING_WATER")) chips.push(["no damage", "", false]);
+  if ((def.flags || []).includes("WARDED")) chips.push(["no events", "", false]);
   if (def.action) chips.push(["once per night", "", false]);
   if (def.goal) chips.push(["goal", "tilechip--goal", false]);
   if (def.start) chips.push(["start", "", false]);

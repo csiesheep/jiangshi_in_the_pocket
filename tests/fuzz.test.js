@@ -47,70 +47,60 @@ function playNight(seed, { maxTurns = 400 } = {}) {
     // ---- step 2: an action
     const moves = B.listMoves(board);
     const roll = die();
-    // Cower when it is worth cowering: a charge buys the expected damage of the
-    // draw you skip, which is most valuable late and when there is little left
-    // to lose it with.
-    const wantsCower = state.cowerCharges > 0 && (state.health <= 3 || (state.hour === 23 && die() < 0.3));
-    if (wantsCower) {
-      E.cower(state); // skips the event entirely; the turn ends here
-      log.push("cower");
-    } else {
-      if (moves.length) {
-        const m = pick(moves);
-        if (m.type === "explore") B.explore(board, m.dir, B.pickExploreRotation(board, m.dir));
-        else if (m.type === "outside") B.goOutside(board);
-        else B.moveTo(board, m.dir);
-      }
-      // ---- step 3: the event
-      const ev = E.drawEvent(state);
-      const out = E.resolveEvent(state, ev, { giveRice: die() < 0.5 });
-      if (out.type === "FIGHT") resolveFight(state, out.n, die, pick);
-      log.push(ev ? ev.t : "none");
+    // MOVE or STAY, and there is no third. The roll has to sometimes choose
+    // staying or the fuzz would only ever walk — and staying is how a room is
+    // rummaged twice and how anyone waits on the ward.
+    if (moves.length && roll < 0.85) {
+      const m = pick(moves);
+      if (m.type === "explore") B.explore(board, m.dir, B.pickExploreRotation(board, m.dir));
+      else if (m.type === "outside") B.goOutside(board);
+      else B.moveTo(board, m.dir);
+    }
+    // ---- step 3: the event, unless the stone turns it
+    const ev = E.drawEvent(state, { warded: B.isWarded(board) });
+    const out = E.resolveEvent(state, ev, { giveRice: die() < 0.5 });
+    if (out.type === "FIGHT") resolveFight(state, out.n, die, pick);
+    log.push(ev ? ev.t : "none");
 
-      if (state.status === "playing" && !state.fled) {
-        // ---- step 4: a free search, if the room offers one
-        const here = B.currentTile(board);
-        if (here && here.def.search) {
-          const r = E.search(state, here.def.search);
-          // A full pack is offered a drop; take it or leave it, both are legal.
-          if (r.result === "OFFER_DROP" && die() < 0.5) {
-            E.pickUpItem(state, r.id, pick(E.heldIds(state)));
-          }
-        }
-        // Eat when badly hurt. The old policy never ate at all, which is one of
-      // the reasons every night ended the same way.
-      if (state.health <= 4 && E.held(state, "sticky-rice")) E.useMedicine(state, "sticky-rice");
-      if (state.poisoned && E.held(state, "sticky-rice") && die() < 0.7) E.useMedicine(state, "sticky-rice");
-
-      // Tile actions are free.
-        if (here && here.def.action === "RESTORE_COWER_ONCE" && die() < 0.8) E.restoreCowerCharge(state);
-        if (here && here.def.action === "PRAY_ONCE" && B.canPray(board) && die() < 0.8) B.pray(board);
-
-        // ---- the rites, which draw one more event apiece
-        const goal = here && here.def.goal;
-        if (goal && E.riteDraws(state, goal)) {
-          const riteEv = E.riteEvent(state);
-          const riteOut = E.resolveEvent(state, riteEv, { giveRice: die() < 0.5 });
-          if (riteOut.type === "FIGHT") resolveFight(state, riteOut.n, die, pick);
-          if (state.status === "playing") E.completeRite(state, goal);
+    if (state.status === "playing" && !state.fled) {
+      // ---- step 4: a free search, if the room offers one
+      const here = B.currentTile(board);
+      if (here && here.def.search) {
+        const r = E.search(state, here.def.search);
+        // A full pack is offered a drop; take it or leave it, both are legal.
+        if (r.result === "OFFER_DROP" && die() < 0.5) {
+          E.pickUpItem(state, r.id, pick(E.heldIds(state)));
         }
       }
+      // Eat when badly hurt. The old policy never ate at all, which is one of
+    // the reasons every night ended the same way.
+    if (state.health <= 4 && E.held(state, "sticky-rice")) E.useMedicine(state, "sticky-rice");
+    if (state.poisoned && E.held(state, "sticky-rice") && die() < 0.7) E.useMedicine(state, "sticky-rice");
 
-      // ---- 破牆, after the room's own event and only if you are still here
-      if (state.status === "playing") {
-        const n = E.breachAfterEvent(state, { deadEnd: B.isDeadEnd(board) });
-        if (n) {
-          const wall = B.pickZombieDoorWall(board);
-          if (wall) B.openZombieDoor(board, wall);
-          resolveFight(state, n, die, pick);
-        }
+      // ---- the rites, which draw one more event apiece
+      const goal = here && here.def.goal;
+      if (goal && E.riteDraws(state, goal)) {
+        const riteEv = E.riteEvent(state);
+        const riteOut = E.resolveEvent(state, riteEv, { giveRice: die() < 0.5 });
+        if (riteOut.type === "FIGHT") resolveFight(state, riteOut.n, die, pick);
+        if (state.status === "playing") E.completeRite(state, goal);
       }
+    }
 
-      // ---- step 5: the tile's own end
-      const here2 = B.currentTile(board);
-      if (state.status === "playing" && !state.fled && here2 && here2.def.onTurnEnd === "HEAL_1") {
-        E.changeHealth(state, 1);
+    // ---- 破牆, after the room's own event and only if you are still here
+    if (state.status === "playing") {
+      const n = E.breachAfterEvent(state, { deadEnd: B.isDeadEnd(board) });
+      if (n) {
+        const wall = B.pickZombieDoorWall(board);
+        if (wall) B.openZombieDoor(board, wall);
+        resolveFight(state, n, die, pick);
       }
+    }
+
+    // ---- step 5: the tile's own end
+    const here2 = B.currentTile(board);
+    if (state.status === "playing" && !state.fled && here2 && here2.def.onTurnEnd === "HEAL_1") {
+      E.changeHealth(state, 1);
     }
 
     if (state.status !== "playing") break;

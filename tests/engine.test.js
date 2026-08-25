@@ -32,7 +32,6 @@ test("setup: 10 HP, attack 0, 3 charges, 3 rice in 3 of 6 slots", () => {
   eq(s.health, E.RULES.START_HEALTH);
   eq(s.health, 10);
   eq(E.effectiveAttack(s), 0, "bare-handed is zero, not one");
-  eq(s.cowerCharges, 3);
   eq(E.heldCount(s, "sticky-rice"), 3, "three rice");
   eq(E.slotsUsed(s), 3, "and they cost three slots, one each");
   eq(E.freeSlots(s), 3, "of six");
@@ -189,7 +188,6 @@ test("dread: the worst the game gets is worse than any single thing", () => {
   s.health = 1;
   s.foughtThisHour = 12;
   s.tablet = true;
-  s.cowerCharges = 0; // and nowhere left to hide, which is part of the worst
   const worst = E.dread(s);
   assert(worst > 0.85, `a 1 HP relic-carrying midnight should be near the top, got ${worst}`);
   eq(worst <= 1, true, "and never above 1");
@@ -212,36 +210,6 @@ test("dread: health matters most at the bottom, which is where it is felt", () =
     `losing your last heart (${lastHeart}) should count for more than your first (${firstHeart})`);
 });
 
-test("dread: out of cowers barely registers at nine and plainly does at eleven", () => {
-  const dial = (turn, charges) => {
-    const s = game({ seed: 1 });
-    E.setTurn(s, turn);
-    s.cowerCharges = charges;
-    return E.dread(s);
-  };
-  const full = E.RULES.COWER_CHARGES;
-
-  // The same empty coil, read three hours apart. The term is charges times
-  // lateness, so at a fresh nine o'clock it is worth nothing at all.
-  const nine = dial(1, 0) - dial(1, full);
-  const eleven = dial(21, 0) - dial(21, full);
-
-  assert(nine < 0.005, `empty at nine is nearly nothing, got ${nine}`);
-  assert(eleven > 0.03, `empty at eleven should be plain on the dial, got ${eleven}`);
-  // The guard on the multiply: drop it and the two become the same number.
-  assert(eleven > nine * 10, "being out of cowers has to mean more late than early");
-});
-
-test("dread: a spare cower charge is not negative fear", () => {
-  const s = game({ seed: 1 });
-  E.setTurn(s, 30);
-  const full = E.dread(s);
-  // 香堂 restores one on top of the starting three, so charges above the
-  // ceiling are reachable in an ordinary night, and the term has to clamp.
-  s.cowerCharges = E.RULES.COWER_CHARGES + 1;
-  eq(E.dread(s), full, "a fourth charge does not make midnight calmer");
-});
-
 test("dread: the weights are a whole", () => {
   const sum = Object.values(E.DREAD_WEIGHTS).reduce((a, b) => a + b, 0);
   assert(Math.abs(sum - 1) < 1e-9, `the dial has to be a unit, got ${sum}`);
@@ -252,7 +220,7 @@ test("dread: pure, and deterministic under a seed", () => {
   const b = game({ seed: 77 });
   for (let i = 0; i < 4; i++) { E.advanceTurn(a); E.advanceTurn(b); }
   eq(E.dread(a), E.dread(b), "same seed, same fear");
-  const snap = (s) => JSON.stringify({ h: s.health, t: s.turn, f: s.foughtThisHour, c: s.cowerCharges });
+  const snap = (s) => JSON.stringify({ h: s.health, t: s.turn, f: s.foughtThisHour });
   const before = snap(a);
   E.dread(a);
   eq(snap(a), before, "reading the dial changes nothing");
@@ -663,48 +631,41 @@ test("poison: no tick for a run already over", () => {
   eq(s.health, 10);
 });
 
-// ---- Cowering ---------------------------------------------------------------
-// The DoD's cower check: a charge is spent, nothing is healed, and there is no
-// event to draw because cowering is the one turn that does not draw one.
-test("cower: spends a charge, heals nothing, and runs out", () => {
+// ---- The ward ---------------------------------------------------------------
+// 石敢當 replaced cowering as the game's safety: a place you travel to rather
+// than a resource you carry. The engine's whole share of it is that a warded
+// turn draws nothing.
+test("ward: a warded turn draws no event at all", () => {
   const s = game({ seed: 1 });
-  s.health = 5;
-  eq(s.cowerCharges, 3);
-
-  const r = E.cower(s);
-  eq(r.ok, true);
-  eq(r.charges, 2);
-  eq(s.health, 5, "cowering heals nothing — that is the whole point");
-
-  E.cower(s);
-  E.cower(s);
-  eq(s.cowerCharges, 0);
-  const empty = E.cower(s);
-  eq(empty.ok, false, "illegal at zero");
-  eq(empty.reason, "no-charges");
-  eq(s.cowerCharges, 0, "and a refused cower costs nothing");
+  eq(E.drawEvent(s, { warded: true }), null, "nothing comes to the stone");
+  assert(E.drawEvent(s, { warded: false }), "and everywhere else still answers");
+  assert(E.drawEvent(s), "unwarded is the default, so no caller draws by accident");
 });
 
-test("cower: there is no COWER_HEAL to find", () => {
-  eq(E.RULES.COWER_HEAL, undefined, "healing left with the source game");
+test("ward: standing on the stone does not spend the night's events", () => {
+  // The short-circuit is before the draw, not a discard after it. Two nights on
+  // one seed that differ only in whether the player stood on the ward have to
+  // stay in step, or the ward would quietly re-roll everything downstream.
+  const a = game({ seed: 9 });
+  const b = game({ seed: 9 });
+  for (let i = 0; i < 5; i++) E.drawEvent(b, { warded: true });
+  eq(E.drawEvent(a).t, E.drawEvent(b).t, "five warded turns cost the stream nothing");
 });
 
-test("cower: the incense gives one charge back, once a night", () => {
-  const s = game({ seed: 1 });
-  E.cower(s);
-  eq(s.cowerCharges, 2);
-  eq(E.restoreCowerCharge(s).ok, true);
-  eq(s.cowerCharges, 3, "the coil is lit");
-  const twice = E.restoreCowerCharge(s);
-  eq(twice.ok, false, "and it burns out");
-  eq(twice.reason, "spent");
-  eq(s.cowerCharges, 3);
+test("ward: the King is not turned by it — only running water declines him", () => {
+  // §the amendment: the stone stops what walks the road, not what keeps the
+  // appointment. Standing there at midnight is still a meeting.
+  const s = game({ seed: 3 });
+  E.setTurn(s, E.RULES.TOTAL_TURNS);
+  const r = E.midnight(s, { runningWater: false, use: {} });
+  eq(r.outcome, "LOSS_KING", "bare-handed on the stone is still bare-handed");
+
+  const w = game({ seed: 3 });
+  E.setTurn(w, E.RULES.TOTAL_TURNS);
+  eq(E.midnight(w, { runningWater: true, use: {} }).outcome, "SURVIVED",
+     "and water is still the only thing that declines him");
 });
 
-// ---- Cowering --------------------------------------------------------------
-// The designer ruled the gap between the Reliquary's / Family Plot's two cards
-// "behaves like an ordinary fresh turn", so it carries its own cower allowance
-// rather than competing with the one at end of turn.
 // ---- Card resolution -------------------------------------------------------
 
 // ---- Searching ---------------------------------------------------------------

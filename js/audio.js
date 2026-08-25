@@ -162,10 +162,10 @@ function audio() {
     // is everything happening somewhere else, and it runs through a lowpass
     // that is transparent until something closes it.
     //
-    // The split exists so cowering can muffle the house without muffling the
-    // sound of you holding your breath in it. #78 wants this routing too, for
-    // placing sounds rather than dulling them; the bus is built here because
-    // this is the issue that first needed it.
+    // The split exists so a scene can muffle the house without muffling what
+    // is happening at your ear. #78 wants this routing too, for placing sounds
+    // rather than dulling them; the bus is built here because this is the
+    // issue that first needed it.
     world = ctx.createBiquadFilter();
     world.type = "lowpass";
     world.frequency.value = OPEN_HZ;
@@ -823,25 +823,6 @@ export function stopPounding() {
   pounding = null;
 }
 
-// Cowering: a held breath let go. Noise through a moving bandpass, no pitch —
-// the one cue here that should sound like a person rather than a thing.
-export function cowerBreath() {
-  if (sample("cower")) return;
-  const c = live();
-  if (!c) return;
-  const t = c.currentTime;
-  const src = c.createBufferSource();
-  src.buffer = noise(c);
-  const band = c.createBiquadFilter();
-  band.type = "bandpass";
-  band.Q.value = 2.2;
-  band.frequency.setValueAtTime(900, t);
-  band.frequency.exponentialRampToValueAtTime(430, t + 0.75);
-  const g = envelope(c, 0.1, 0.22, 0.62);
-  src.connect(band).connect(g).connect(dry || master);
-  src.start(t);
-  src.stop(t + 0.9);
-}
 
 // Picking something up, by class rather than by item: nine items, five sounds.
 // Metal rings, wood knocks, liquid sloshes, the saw coughs, and everything else
@@ -1663,8 +1644,8 @@ export function unduck() {
 // rather than as nothing; a game with no score has no way to take one away.
 //
 // On master rather than the world bus, deliberately: a score is not in the
-// house. Cowering muffles the room and leaves the music where it is, which is
-// what film does — the score does not duck because a character is hiding.
+// house. Muffling the room leaves the music where it is, which is what film
+// does — the score does not duck because the room has gone quiet.
 //
 // A1, its fifth, and the octave. Low, close together, and detuned enough to
 // beat slowly against each other rather than sound like a chord.

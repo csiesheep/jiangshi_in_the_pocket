@@ -1,11 +1,11 @@
 // Game page controller — orchestrates the turn, wiring user input -> engine +
 // board -> render. Owns the RNG seed.
 //
-// The turn, in the order §8 sets out: the poison tick, one action — move, stay
-// or cower — then the room answers with an event, then the rite if this room
-// has one, then the breach if there is nowhere on, then the search, then six
-// minutes off the clock. Cowering is the exception that proves the order: it
-// ends the turn where it stands, buying the one event-free turn in the game.
+// The turn, in the order §8 sets out: the poison tick, one action — move or
+// stay, and there is no third — then the room answers with an event, then the
+// rite if this room has one, then the breach if there is nowhere on, then the
+// search, then six minutes off the clock. 石敢當 is the one room that skips the
+// answer: standing on the ward draws nothing, arriving or staying.
 //
 // Most of that is arithmetic and lives in the engine. Two things are not: a
 // fight and a villager come back from resolveEvent unresolved, because both are
@@ -53,7 +53,6 @@ import {
   breakInCollapse,
   breakInClear,
   buryBeat,
-  cowerScene,
   showCinnabarDialog,
 } from "./render.js";
 
@@ -171,9 +170,6 @@ class Game {
     this.tally = { putDown: 0, found: 0 };
     // One search per turn, and turn 1 has not had its yet.
     this.searched = false;
-    // Set by 躲藏, cleared with it. A cowered turn draws nothing, so there is
-    // nothing to search after and nothing to heal from.
-    this.cowered = false;
   }
 
   tileName(id) { return tName(this, id); }
@@ -200,14 +196,6 @@ class Game {
     return fill((this.data.theme.verdict || {})[key] || key, values);
   }
 
-  // A count of cower charges, said properly. Two keys rather than one format
-  // string, because English needs "charge" to become "charges" and Chinese
-  // needs a measure word and no plural at all — one template cannot serve both,
-  // and this is the small version of the problem epilogue.js has whole.
-  charges(n) {
-    return n === 1 ? this.line("cower-charges-one") : this.line("cower-charges-many", { n });
-  }
-
   // Themed nouns, so nothing player-visible is hardcoded to one setting.
   word(key) { return (this.data.theme.words && this.data.theme.words[key]) || key; }
 
@@ -229,11 +217,11 @@ class Game {
   }
 
   // ---- Step 1: choose an action --------------------------------------------
-  // MOVE, STAY or COWER. Movement is optional in this game, unlike the source
-  // it came from — but standing still costs a turn exactly like walking does,
-  // so there is no free turn and STAY is always on the table, dead end or not.
-  // All three are drawn on the board rather than in the panel: they are the
-  // same rank of choice and belong in the same place.
+  // MOVE or STAY, and nothing else. Movement is optional in this game, unlike
+  // the source it came from — but standing still costs a turn exactly like
+  // walking does, so there is no free turn and STAY is always on the table,
+  // dead end or not. Both are drawn on the board rather than in the panel:
+  // they are the same rank of choice and belong in the same place.
   renderMoves() {
     if (this.state.status !== "playing") return this.gameOver();
     const acts = Bd.listMoves(this.board).map((m) => {
@@ -257,52 +245,7 @@ class Game {
     // doorways, and "rest" would send the whole step to the action panel.
     acts.push({ kind: "stay", label: this.ui("stay"), sub: this.ui("stay-sub"),
       primary: acts.length === 0, onClick: () => this.doStay() });
-
-    // 躲藏. Offered every turn, including with nothing left to spend — then it
-    // is inert and says why. What it buys is the only event-free turn in the
-    // game, which is worth more the later it gets, and a player who never sees
-    // the control has no way to learn that.
-    const charges = this.state.cowerCharges;
-    const slots = E.RULES.COWER_CHARGES + (this.state.cowerRestored ? 1 : 0);
-    acts.push({
-      kind: "cower",
-      label: this.actionWord("COWER"),
-      sub: charges > 0
-        ? this.ui("cower-sub", { n: charges })
-        : this.ui("cower-spent"),
-      disabled: charges <= 0,
-      charges,
-      slots,
-      onClick: () => this.doCower(),
-    });
     renderActions(acts, this.ui("move-prompt"));
-  }
-
-  // The theme's name for a mechanic, minus the English gloss: the controls are
-  // narrow and "躲藏" reads better on one than the full "躲藏 Cower" string.
-  actionWord(key) {
-    const named = (this.data.theme.actions || {})[key] || key;
-    return String(named).split(" ")[0];
-  }
-
-  // Cowering is a whole action and ends the turn, but it is the one action that
-  // draws no event — that IS the item. So it skips the room's answer and goes
-  // straight to the end of the turn: no event, no rite, no breach.
-  doCower() {
-    const r = E.cower(this.state);
-    if (!r.ok) return this.renderMoves(); // no charges: the control was inert
-    clearChoices();
-    this.refresh();
-    const outdoors = Bd.currentTile(this.board).world === "outdoor";
-    this.tell(this.line("cower", { room: this.tileName(Bd.currentTile(this.board).id) }));
-    cowerScene(outdoors).then(() => {
-      log(this.line("cower-passed", { n: this.charges(r.charges) }));
-      if (this.state.status !== "playing") return this.gameOver();
-      // Straight to the end of the turn. Nothing was drawn, so there is nothing
-      // to have rummaged after either — the same rule running follows.
-      this.cowered = true;
-      this.renderEndTurn();
-    });
   }
 
   // STAY is a whole action. It ends in the same place every other one does, so
@@ -416,7 +359,8 @@ class Game {
   // nothing is ever used up — it is a distribution, not a deck.
   async eventBeat() {
     if (this.state.status !== "playing") return;
-    const ev = E.drawEvent(this.state);
+    // 石敢當 turns what walks the road: no event here, arriving or staying.
+    const ev = E.drawEvent(this.state, { warded: Bd.isWarded(this.board) });
     if (!ev) return;
 
     this.tell(this.eventLine(ev));
@@ -885,11 +829,11 @@ class Game {
   // room's event — so it belongs here, between the event and the clock.
   endTurnChoices() {
     const choices = [];
-    // Nothing to rummage after. Running means no event was drawn where you
-    // landed (§8); cowering means no event was drawn at all (§7). Either way
-    // the turn is already over — and cowering explicitly buys no healing
-    // either, which is why it never reaches endTurn().
-    if (this.state.fled || this.cowered) return choices;
+    // Nothing to rummage after: running means no event was drawn where you
+    // landed (§8), and the turn is already over. Standing on the ward is the
+    // opposite case — no event was drawn, but you are still here, so the room
+    // is still yours to search.
+    if (this.state.fled) return choices;
     const tile = Bd.currentTile(this.board);
     const table = tile && tile.def && tile.def.search;
     // One search per turn. Rummaging the same room again is what STAY is for,
@@ -904,49 +848,10 @@ class Game {
       });
     }
 
-    // The two rooms that do something for you, free and once per run. They cost
-    // no turn on purpose (§8): both are already gated twice over — once by the
-    // once, once by the walk it took to get here — so charging a turn on top
-    // would tax the same thing twice and make a late detour never worth making.
-    const action = tile && tile.def && tile.def.action;
-    if (action === "RESTORE_COWER_ONCE" && !this.state.cowerRestored) {
-      choices.push({
-        kind: "tileaction",
-        label: this.ui("coil", { cower: this.actionWord("COWER") }),
-        sub: this.ui("coil-sub"),
-        onClick: () => this.doRestoreCower(),
-      });
-    }
-    // canPray answers for the whole thing: the right room, unspent, and the
-    // ground still in the stack. Asked rather than re-derived, so an offered
-    // prayer never refuses.
-    if (action === "PRAY_ONCE" && Bd.canPray(this.board)) {
-      choices.push({
-        kind: "tileaction",
-        label: this.ui("pray"),
-        sub: this.ui("pray-sub"),
-        onClick: () => this.doPray(),
-      });
-    }
+    // 香堂's coil and 土地廟's prayer both stood here, free and once per run.
+    // The post-launch redesign took the mechanics they belonged to, and no tile
+    // carries an `action` any more — the shrine keeps only its search.
     return choices;
-  }
-
-  doRestoreCower() {
-    const r = E.restoreCowerCharge(this.state);
-    if (!r.ok) return this.renderEndTurn();
-    relicFound();
-    this.refresh();
-    this.tell(this.line("coil-lit"), "good");
-    this.renderEndTurn();
-  }
-
-  doPray() {
-    const r = Bd.pray(this.board);
-    if (!r.ok) return this.renderEndTurn();
-    relicFound();
-    this.refresh();
-    this.tell(this.line("prayer-answered", { room: this.tileName(r.target) }), "good");
-    this.renderEndTurn();
   }
 
   // The category as the theme names it, minus the English gloss — the action
@@ -1101,7 +1006,6 @@ class Game {
     // A new turn is a new chance to rummage — including a STAY spent in a room
     // you already went through, which is exactly what STAY is for.
     this.searched = false;
-    this.cowered = false;
     this.refresh();
     // Said after the refresh, so the hearts have already moved and the board
     // has already flashed by the time the sentence lands on it.

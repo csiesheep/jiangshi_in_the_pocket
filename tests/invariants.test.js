@@ -97,7 +97,10 @@ test("§13: camping a HEAL_1 tile is losing", () => {
   assert(heal < expectedLoss("11", 2), `+1 against ${expectedLoss("11", 2)} at eleven`);
   assert(heal < expectedLoss("11", 0), "and far worse bare-handed");
   const tilesWithHeal = [...tiles.indoor, ...tiles.outdoor].filter((t) => t.onTurnEnd === "HEAL_1");
-  eq(tilesWithHeal.length, 2, "帳房 and 槐樹");
+  eq(tilesWithHeal.map((t) => t.id).sort(), ["incense-hall", "pagoda-tree"], "香堂 and 槐樹");
+  // One each side of the seam, which is what stops the mending all living in
+  // one half of the map.
+  eq(tilesWithHeal.filter((t) => tiles.indoor.includes(t)).length, 1, "one indoors");
 });
 
 test("§13: the worst single turn is 7 HP at Attack 2, 3 at Attack 4", () => {
@@ -110,13 +113,18 @@ test("§13: the worst single turn is 7 HP at Attack 2, 3 at Attack 4", () => {
   eq(E.combatDamage(worstPack, 4) + E.combatDamage(breach, 4), 3);
 });
 
-test("§13: a cower charge is worth ~0.85 / ~1.25 / ~2.3 at Attack 2", () => {
-  // What a charge buys is the expected damage of the draw you did not make,
-  // which is why charges hoard themselves for late without a rule saying so.
+test("§13: a warded turn is worth ~0.85 / ~1.25 / ~2.3 at Attack 2", () => {
+  // This arithmetic used to price a cower charge. The charges went in the
+  // post-launch redesign and 石敢當 inherited the thing they were pricing: what
+  // an event-free turn buys is the expected damage of the draw you did not
+  // make. The numbers did not move because the event tables did not — which is
+  // the useful part, since it says the ward is worth exactly what the charge
+  // was, minus the carrying.
   eq(expectedLoss("9", 2), 0.85);
   eq(expectedLoss("10", 2), 1.25);
   eq(expectedLoss("11", 2), 2.3);
-  assert(expectedLoss("11", 2) > expectedLoss("9", 2) * 2.5, "worth nearly three times as much at eleven");
+  assert(expectedLoss("11", 2) > expectedLoss("9", 2) * 2.5,
+    "and standing there is worth nearly three times as much at eleven as at nine");
 });
 
 test("§13: ~7 searches for 七星劍, ~7 for 攝魂幡", () => {
