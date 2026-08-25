@@ -17,23 +17,54 @@ answerable.
 
 ## Where the game sits — batch A, seeds 1..1000
 
+Four endings now, not five: 見到天亮 is unreachable since #56 removed 溪澗's
+running-water rule, and the column is kept only to show it reading zero.
+
 | policy | burial | seal | survived | died | King | reached midnight | atk @ midnight |
 |---|---|---|---|---|---|---|---|
-| hunter  | **322** | 0  | 0  | 632 | 46  | 4.6 %  | 3.83  |
-| duelist | 0   | 1  | 0  | 971 | 28  | 3.0 %  | 8.13  |
-| **adept**   | 0 | **35** | 3 | 783 | 179 | 21.7 % | 11.11 |
-| turtle  | 0   | 0  | **31** | 969 | 0   | 3.1 %  | 5.00  |
-| camper  | 0   | 0  | 0  | 732 | 268 | 26.8 % | 1.59  |
+| hunter  | **322** | 0  | 0 | 632 | 46  | 4.6 %  | 3.83  |
+| duelist | 0   | 4  | 0 | 971 | 25  | 3.0 %  | 8.13  |
+| **adept**   | 0 | **113** | 0 | 783 | 104 | 21.7 % | 11.11 |
+| turtle  | 0   | 0  | **0** | 969 | 31  | 3.1 %  | 5.00  |
+| camper  | 0   | 0  | 0 | 732 | 268 | 26.8 % | 1.59  |
 
 ## Batch B, seeds 5001..6000
 
 | policy | burial | seal | survived | died | King | reached midnight | atk @ midnight |
 |---|---|---|---|---|---|---|---|
-| hunter  | **342** | 0  | 1  | 593 | 64  | 6.5 %  | 3.12  |
-| duelist | 0   | 0  | 0  | 959 | 41  | 4.3 %  | 7.51  |
-| **adept**   | 0 | **42** | 4 | 770 | 184 | 23.0 % | 11.28 |
-| turtle  | 0   | 0  | **32** | 968 | 0   | 3.2 %  | 4.31  |
-| camper  | 0   | 0  | 0  | 719 | 281 | 28.1 % | 1.78  |
+| hunter  | **342** | 0  | 0 | 593 | 65  | 6.5 %  | 3.12  |
+| duelist | 0   | 1  | 0 | 959 | 40  | 4.3 %  | 7.51  |
+| **adept**   | 0 | **128** | 0 | 770 | 102 | 23.0 % | 11.28 |
+| turtle  | 0   | 0  | **0** | 968 | 32  | 3.2 %  | 4.31  |
+| camper  | 0   | 0  | 0 | 719 | 281 | 28.1 % | 1.78  |
+
+## What #56 did
+
+| | after #52 | after #56 | |
+|---|---|---|---|
+| **adept seal** | 35 / 42 (3.5 / 4.2 %) | **113 / 128 (11.3 / 12.8 %)** | roughly tripled |
+| **turtle 見到天亮** | 31 / 32 | **0 / 0** | the ending is gone |
+| turtle → King | 0 / 0 | 31 / 32 | exactly the survivals, transferred |
+| hunter burial | 322 / 342 | 322 / 342 | **unmoved** |
+| adept reaches midnight | 21.7 / 23.0 % | 21.7 / 23.0 % | **unmoved** |
+| adept atk @ midnight | 11.11 / 11.28 | 11.11 / 11.28 | **unmoved** |
+
+**Only the conversion term moved**, and that is what a bar change is: the same
+players arrive with the same kit and more of them clear it. Arrivals and attack
+are identical to the run, which also means the one instrument change in this
+pass — the adept no longer detours off 溪澗 before midnight, since the tile has
+no rule to detour from — cost nothing measurable.
+
+**鎮屍 is now 11.3–12.8 %.** For scale: 26 % before option A, 1.7 % after it,
+0.9 % after the sword and the pack, 3.5–4.2 % after the shrine, and this. The
+bar meeting the ceiling is the largest single lever measured all week, because
+it does not make the kit easier to assemble — it makes an already-assembled kit
+sufficient more often, and the adept assembles well.
+
+**見到天亮 reads zero because it cannot happen**, not because nobody managed it.
+The turtle still stands in 溪澗 all night, unchanged on purpose, and now meets
+him there like everybody else: its 31–32 survivals became 31–32 deaths to the
+King, one for one.
 
 ## The whole week in one table
 
