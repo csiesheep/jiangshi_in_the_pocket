@@ -1161,7 +1161,7 @@ class Game {
     // as far as it goes: there is no text in it at all. §9 binds hardest here —
     // the kit question is the next thing that happens, and nothing about this
     // scene may hint at what the kit is worth.
-    await kingScene({ skipHint: this.ui("stage-skip") });
+    await kingScene();
     if (this.state.status !== "playing") return this.gameOver();
 
     const use = await this.askKit();

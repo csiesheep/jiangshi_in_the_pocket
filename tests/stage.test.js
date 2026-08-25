@@ -382,7 +382,11 @@ test("king: §9 — the scene has nothing to say, in any language", serial(async
   const was = isFast();
   setFast(false);
   try {
-    const p = S.kingScene({});
+    // Called WITH a hint on purpose: the scene has to be wordless even when it
+    // is offered text, because the first version of this test passed while the
+    // live scene carried 19 characters of skip chrome. kingScene takes no
+    // options now, so this is structural rather than a promise.
+    const p = S.kingScene({ skipHint: "press anything to go on" });
     await new Promise((r) => setTimeout(r, 40));
     const el = document.querySelector(".kingscene");
     assert(el, "the King never mounted");

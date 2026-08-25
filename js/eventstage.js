@@ -159,7 +159,16 @@ const KING_MS = 2500;
 const KING_CALM_MS = 2100;
 const KING_REDUCED_MS = 1400;
 
-export function kingScene(opts = {}) {
+// Takes no options, and that is the §9 decision made structural. It was passed a
+// skipHint at first, which put "press anything to go on" across the one arrival
+// the whole night walks toward — chrome in the middle of the set-piece, and 19
+// characters of text in a scene whose whole defence is having none. The test
+// asserting the scene was wordless passed anyway, because it called this without
+// a hint and so never exercised the path the game actually uses.
+//
+// The skip still works. By midnight the hint has been shown twice already, and a
+// scene that cannot be handed text cannot be handed the wrong text.
+export function kingScene() {
   // Fast mode keeps what the game did before this scene existed: the sting, and
   // then straight to the question. Nothing is skipped that carries information,
   // because this scene never carried any.
@@ -175,7 +184,6 @@ export function kingScene(opts = {}) {
     build: buildKing,
     ctx: { calm, reduced },
     budget, calm, reduced,
-    skipHint: opts.skipHint,
     onBuildError: () => undefined,
   });
 }
