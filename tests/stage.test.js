@@ -14,6 +14,35 @@ import {
 
 const NO_STORE = { cache: "no-store" };
 
+// Comments, gone. Every guard in this file is a NEGATIVE assertion — "this word
+// must not appear" — and the comment explaining each rule inevitably contains
+// the word the rule forbids. That has now tripped three separate guards: two
+// §9 audits and the no-strobe check, which went red on its own sentence saying
+// "nothing alternates".
+//
+// Written with indexOf and split rather than a regex, deliberately. A backslash
+// in this file has twice arrived as a literal control character, and the guards
+// that would use one are exactly the negative assertions that pass silently
+// forever when their pattern cannot match anything.
+function noComments(text) {
+  let out = "";
+  let rest = String(text);
+  for (;;) {
+    const i = rest.indexOf("/*");
+    if (i === -1) { out += rest; break; }
+    out += rest.slice(0, i) + " ";
+    const j = rest.indexOf("*/", i + 2);
+    if (j === -1) break;
+    rest = rest.slice(j + 2);
+  }
+  // String.fromCharCode(10) rather than a newline escape. Writing this file
+  // through a shell heredoc turned that escape into a REAL newline and broke
+  // the string literal, which silently took thirty tests out of the run: the
+  // suite went from 261 to 231 and still reported a tidy one-line failure.
+  const nl = String.fromCharCode(10);
+  return out.split(nl).filter((l) => !l.trim().startsWith("//")).join(nl);
+}
+
 // The stage is a singleton by design: one full-screen layer, and a new one
 // displaces the old so two set-pieces can never be up at once. The harness
 // starts every async test the moment it is declared, so without this the DOM
@@ -312,10 +341,11 @@ test("scare: nothing on the overlay ever repeats a luminance change", () => {
   // than an intention in a comment — it covers the 僵屍 dressing and the six
   // event scenes together, since both paint full-screen.
   assert(tierCss.length > 500, "the overlay CSS block was not found — this guard is not looking at anything");
-  assert(!tierCss.includes("infinite"), "a full-screen overlay animation repeats");
-  assert(!tierCss.includes("alternate"), "a full-screen overlay animation ping-pongs");
+  const overlay = noComments(tierCss);
+  assert(!overlay.includes("infinite"), "a full-screen overlay animation repeats");
+  assert(!overlay.includes("alternate"), "a full-screen overlay animation ping-pongs");
   // steps() is how a flicker gets written when someone wants one.
-  assert(!tierCss.includes("steps("), "a full-screen overlay animation is stepped");
+  assert(!overlay.includes("steps("), "a full-screen overlay animation is stepped");
 });
 
 test("scare: the dressing is cumulative, so the tiers only ever escalate", () => {
@@ -450,7 +480,8 @@ test("king: calm never lets him turn his face to the screen", () => {
 });
 
 test("king: nothing in his scene repeats a luminance change", () => {
-  assert(!["infinite", "alternate", "steps("].some((s) => kingCss.includes(s)),
+  const kingRules = noComments(kingCss);
+  assert(!["infinite", "alternate", "steps("].some((s) => kingRules.includes(s)),
     "the King's scene has a repeating or stepped animation");
 });
 
@@ -484,9 +515,6 @@ test("king: he replaces the generic scare, and running water still short-circuit
 // automation: after a fight the bed ramps back to 0.013, and after midnight's
 // duck nothing ramps at all.
 
-// Comments name unduck() several times over while explaining it, so they go
-// first — the same trap the §9 guards fell into twice.
-const noComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
 
 test("audio: unduck() is actually called from somewhere", () => {
   // The whole bug in one line. A function that restores something and is never

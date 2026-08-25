@@ -319,119 +319,191 @@ function runStage({ cls, build, ctx, budget, calm, reduced, skipHint, onBuildErr
 // Built from layer spans plus a centrepiece, the same grammar the scare dressing
 // uses, so the two full-screen registers are made of the same material.
 
-// A wash, a vignette, a drift — whatever the scene needs behind its subject.
+// ---- The film ------------------------------------------------------------------
+// Two lights and nothing else. The lantern is tungsten — the living's light,
+// the one you carry — and the moon is a corpse-green white that belongs to the
+// other thing. Everything between them is desaturated, the blacks swallow, and
+// RED is spent on nothing but 硃砂 and talisman paper. A scene that reaches for
+// red for any other reason has spent the only saturated colour in the film.
+//
+// Motion grammar, which is the part that makes it horror rather than
+// decoration: no bounce and no cartoon timing. A long hold in which almost
+// nothing changes, then ONE sudden completion. The scare is the thing that did
+// not move, moving once — so the keyframes below sit still for two thirds of
+// their budget and then arrive.
+
+// A flat layer over the stage. One job each, composed rather than choreographed.
 function layer(inner, name) {
   const n = document.createElement("span");
-  n.className = `evs-${name}`;
+  n.className = "evs-" + name;
   n.setAttribute("aria-hidden", "true");
   inner.appendChild(n);
   return n;
 }
 
-function art(kind, id, cls = "") {
-  return icon(kind, id, `evstage-art ${cls}`.trim());
+// Film grain, and it is what makes the rest read as photographed rather than
+// drawn. Rendered ONCE from a fixed seed: a grain that reseeds every frame is a
+// strobe wearing a respectable name, and this project has a real guard against
+// those now.
+function grain(inner, opacity) {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "evs-grain");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("preserveAspectRatio", "none");
+  const id = "grain-" + Math.random().toString(36).slice(2, 9);
+  const filter = document.createElementNS(NS, "filter");
+  filter.setAttribute("id", id);
+  filter.setAttribute("x", "0");
+  filter.setAttribute("y", "0");
+  filter.setAttribute("width", "100%");
+  filter.setAttribute("height", "100%");
+  const turb = document.createElementNS(NS, "feTurbulence");
+  turb.setAttribute("type", "fractalNoise");
+  turb.setAttribute("baseFrequency", "0.9");
+  turb.setAttribute("numOctaves", "3");
+  turb.setAttribute("seed", "7");
+  turb.setAttribute("stitchTiles", "stitch");
+  filter.appendChild(turb);
+  // Desaturate the noise. Coloured grain is video noise; film grain is silver.
+  const mat = document.createElementNS(NS, "feColorMatrix");
+  mat.setAttribute("type", "saturate");
+  mat.setAttribute("values", "0");
+  filter.appendChild(mat);
+  svg.appendChild(filter);
+  const rect = document.createElementNS(NS, "rect");
+  rect.setAttribute("width", "100%");
+  rect.setAttribute("height", "100%");
+  rect.setAttribute("filter", "url(#" + id + ")");
+  rect.setAttribute("opacity", String(opacity == null ? 0.22 : opacity));
+  svg.appendChild(rect);
+  inner.appendChild(svg);
+  return svg;
 }
 
-function seat(inner, node, { x = 50, y = 50, scale = 1 } = {}) {
+// Fog, in layers that drift at different speeds. Slow enough that you are not
+// certain it is moving, which is the whole of the effect — a fog you can see
+// moving is weather, and a fog you cannot is a room that is wrong.
+function fog(inner, n) {
+  const count = n || 2;
+  for (let i = 0; i < count; i++) {
+    const f = document.createElement("span");
+    // Two classes: one for what it is, one for which layer — the drift speeds
+    // and offsets differ per layer and that difference is the whole illusion.
+    f.className = "evs-fog evs-fog--" + i;
+    f.setAttribute("aria-hidden", "true");
+    inner.appendChild(f);
+  }
+}
+
+function art(kind, id, cls) {
+  return icon(kind, id, ("evstage-art " + (cls || "")).trim());
+}
+
+function seat(inner, node, opts) {
   if (!node) return null;
+  const o = opts || {};
   const box = document.createElement("span");
   box.className = "evstage-seat";
-  box.style.left = `${x}%`;
-  box.style.top = `${y}%`;
-  box.style.setProperty("--seat-scale", String(scale));
+  box.style.left = (o.x == null ? 50 : o.x) + "%";
+  box.style.top = (o.y == null ? 50 : o.y) + "%";
+  box.style.setProperty("--seat-scale", String(o.scale == null ? 1 : o.scale));
   box.appendChild(node);
   inner.appendChild(box);
   return box;
 }
 
-// Where a pack stands. Same idea as the scare's slots — the one in front is
-// nearest and largest — but its own table, because this is a composition rather
-// than a lunge.
+// Where a pack stands. #45 restages these properly; the composition stays so
+// the slot is not empty in the meantime.
 const PACK_SLOTS = [
   [50, 54, 1.00], [30, 58, 0.82], [70, 58, 0.82],
   [17, 62, 0.66], [83, 62, 0.66], [50, 66, 0.58],
 ];
 
 const SCENES = {
-  // 僵屍, scaling with n. Registered and reachable, but eventBeat does NOT run
-  // it: a drawn JIANGSHI goes on to fightBeat, which stages the pack with
-  // jumpScare and its four tiers, and two full-screen layers back to back is one
-  // too many. fightBeat has three callers and only one arrives through an event
-  // beat — the breach and the refused villager reach it directly — so the scare
-  // has to stay where it is, and the tiers ride it rather than this.
+  // 僵屍. Registered and reachable, but eventBeat does NOT run it: a drawn
+  // JIANGSHI goes on to fightBeat, which stages the pack with jumpScare and its
+  // four tiers. Restaged into the new language only as far as the ground it
+  // stands on — the figures themselves are #45.
   pack(inner, ctx) {
+    layer(inner, "ink");
+    fog(inner, 2);
     const n = Math.max(1, Math.min(Number(ctx.n) || 1, PACK_SLOTS.length));
-    layer(inner, "dark");
     for (let i = 0; i < n; i++) {
-      const [x, y, scale] = PACK_SLOTS[i];
-      seat(inner, art("scare", "zombie"), { x, y, scale });
+      const slot = PACK_SLOTS[i];
+      seat(inner, art("scare", "zombie"), { x: slot[0], y: slot[1], scale: slot[2] });
     }
+    grain(inner, 0.2);
   },
 
-  // −1 HP. The blow, not the wound: this runs before resolveEvent, so the hearts
-  // in the HUD have not moved yet and the stage is the moment they are about to.
-  // The frame is struck from one side — a bad step in the dark has a direction
-  // even when the game does not name one.
-  hurt(inner, ctx) {
-    layer(inner, "strike");
-    layer(inner, "bleed");
-    seat(inner, art("stat", "heart", "evstage-art--hurt"), { y: 46 });
-    inner.appendChild(tally(ctx.hp, "hurt"));
+  // The wound you do not see. No blood and no number: the frame simply goes
+  // darker from one side while the lantern gives up some of its reach, and you
+  // find out what it cost from the log, where the news has always lived.
+  //
+  // The old staging put a big red heart and a "-1" on screen. Both are gone —
+  // the numeral was a placeholder crutch by its own comment, and red is spent
+  // on 硃砂 and paper now.
+  hurt(inner) {
+    layer(inner, "ink");
+    layer(inner, "tungsten");
+    fog(inner, 1);
+    layer(inner, "wound");
+    grain(inner, 0.26);
   },
 
-  // +1 HP. The same organ read the other way, and the opposite motion: the hurt
-  // scene arrives from the edge, this one rises from underneath. Distinct by
-  // colour, by direction and by sign — three ways, because two hearts a night
-  // apart should never be mistaken for each other.
-  mend(inner, ctx) {
-    layer(inner, "warm");
-    seat(inner, art("stat", "heart", "evstage-art--mend"), { y: 46 });
-    inner.appendChild(tally(ctx.hp, "mend"));
+  // Tungsten coming back. The one scene in the set that gets warmer, and it
+  // arrives from below like a lamp being carried back into the room rather than
+  // switched on.
+  mend(inner) {
+    layer(inner, "ink");
+    layer(inner, "warmth");
+    fog(inner, 1);
+    grain(inner, 0.2);
   },
 
-  // Nothing happens — which IS an event, and the one most easily mistaken for
-  // the game having failed to do anything. That is exactly why it gets a stage:
-  // the room was looked at, and there was nothing in it. A held ring and the
-  // dust still settling, rather than an empty frame.
-  nothing(inner) {
-    layer(inner, "dust");
-    const ring = document.createElement("span");
-    ring.className = "evstage-nil";
-    inner.appendChild(ring);
-  },
-
-  // 中毒 onset. Not a blow — a change of state — so it is the only scene that
-  // takes the whole frame rather than putting something in the middle of it. The
-  // grey comes in from the edges, the way it comes in from your hands.
+  // 屍毒 looking for the heart. Ink in water: it enters at the corners, holds,
+  // and then reaches — one motion, further than you expect. The only green in
+  // the film, and it is the corpse-white moon rather than anything living.
   poison(inner) {
-    inner.classList.add("evstage-inner--wash");
+    layer(inner, "ink");
+    layer(inner, "moon");
     layer(inner, "creep");
-    seat(inner, art("ui", "skull", "evstage-art--poison"));
+    fog(inner, 2);
+    grain(inner, 0.3);
   },
 
-  // 村民受傷. Someone is alive in here and hurt, and the rice is the question
-  // that follows — so the picture is the person, with what you could spend on
-  // them beside it. The figure is the same silhouette the board uses for you,
-  // which is the point: it could have been.
+  // Nothing happens, and this is the one that has to be the best in the game.
+  // The room simply watches. One candle breathes — a single slow swell and
+  // release, no flicker, nothing arriving — and the grain sits over the top of
+  // a black that gives nothing back.
+  //
+  // It is an event, and the most easily mistaken for the game having failed to
+  // do anything, which is exactly why it gets the most careful staging of the
+  // six. The horror is that you looked and the room was already looking.
+  nothing(inner) {
+    layer(inner, "ink");
+    layer(inner, "candle");
+    layer(inner, "watch");
+    fog(inner, 2);
+    grain(inner, 0.3);
+  },
+
+  // A figure at the edge of the light. Mostly out of it — you get an outline and
+  // a posture, and the posture is very slightly not a person's: too upright,
+  // tilted a few degrees off true, arms that are not hanging the way arms hang.
+  //
+  // That wrongness is the whole scene, because this is the event that can become
+  // a fight. Refuse the rice and it stands up straight.
   villager(inner) {
-    layer(inner, "lantern");
-    seat(inner, art("scene", "standing", "evstage-art--villager"), { x: 42, y: 52, scale: 1 });
-    seat(inner, art("item", "sticky-rice", "evstage-art--rice"), { x: 63, y: 60, scale: 0.5 });
+    layer(inner, "ink");
+    layer(inner, "tungsten");
+    fog(inner, 2);
+    const fig = seat(inner, art("scene", "standing", "evstage-art--villager"),
+                     { x: 63, y: 56, scale: 1 });
+    if (fig) fig.classList.add("evs-wrong");
+    grain(inner, 0.26);
   },
 };
-
-// The number, drawn big. The one piece of text on any stage, and it is a numeral
-// that the log has already said in words — so it needs no theme key and carries
-// nothing a skipping player loses.
-function tally(hp, tone) {
-  const n = Number(hp);
-  const p = document.createElement("p");
-  p.className = `evstage-tally evstage-tally--${tone}`;
-  p.textContent = Number.isFinite(n) && n !== 0
-    ? (n > 0 ? `+${n}` : String(n))
-    : "";
-  return p;
-}
 
 // The registry, for the suite and for anything that wants to know what exists
 // without reaching into the table.

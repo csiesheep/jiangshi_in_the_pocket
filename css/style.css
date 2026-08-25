@@ -2290,96 +2290,206 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 }
 
 
-/* ---- The event scenes' layers -------------------------------------------------
-   Same grammar as the 僵屍 dressing: flat spans over the stage, each one doing
-   one thing, composed rather than choreographed. Nothing here strobes.
+/* ---- The event scenes: the film ------------------------------------------------
+   HK jiangshi cinema, not iconography. Two lights and nothing else — the
+   lantern's tungsten, which is the living's light and the one you are carrying,
+   and a corpse-green moon-white that belongs to the other thing. Everything
+   between them is desaturated and the blacks give nothing back.
 
-   Every layer resolves to a held final state under .evstage--still, because
-   reduced motion means no MOVEMENT rather than no picture — the composition is
-   the information and it survives being arrived at instantly. */
-.evs-dark, .evs-strike, .evs-bleed, .evs-warm,
-.evs-dust, .evs-creep, .evs-lantern {
+   RED IS SPENT ON 硃砂 AND TALISMAN PAPER ONLY. It is the single saturated
+   colour in the whole film, and none of these six scenes reaches for it.
+
+   Motion: no bounce, no cartoon timing. Every keyframe set below sits nearly
+   still for two thirds of its budget and then completes in one move — the scare
+   is the thing that did not move, moving once. Nothing repeats, nothing
+   alternates, nothing steps; the no-strobe guard is real and it is watching.
+
+   The whole set plays inside the same 1100ms the placeholders had, so the 30x
+   night tax is untouched. */
+:root {
+  --film-ink:      #05060a;   /* the black that swallows */
+  --film-tungsten: #c98a4b;   /* the lantern: the living's light */
+  --film-moon:     #9fb2ab;   /* corpse-green white: the other light */
+}
+
+.evs-ink, .evs-tungsten, .evs-moon, .evs-warmth, .evs-wound,
+.evs-creep, .evs-candle, .evs-watch, .evs-fog, .evs-grain {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.evs-dark { background: rgba(6, 3, 4, .55); animation: evs-fade .2s ease-out both; }
-
-/* The blow has a direction. A bad step in the dark is still a thing that came at
-   you from somewhere, even when the game does not name which side. */
-.evs-strike {
-  background: linear-gradient(118deg, transparent 34%,
-              color-mix(in srgb, var(--danger) 34%, transparent) 46%,
-              transparent 58%);
-  animation: evs-strike .26s cubic-bezier(.2,.8,.3,1) both;
-}
-.evs-bleed {
-  box-shadow: inset 0 0 min(20vmin, 170px) min(6vmin, 48px)
-              color-mix(in srgb, var(--danger) 26%, transparent);
-  animation: evs-fade .3s ease-out both;
-}
-
-/* Mend rises from underneath — the opposite motion to the strike, so the two
-   hearts are never the same event with a different colour. */
-.evs-warm {
-  background: radial-gradient(90% 60% at 50% 108%,
-              color-mix(in srgb, var(--accent) 26%, transparent), transparent 68%);
-  animation: evs-rise .34s ease-out both;
-}
-
-/* Nothing happened, and the dust is still settling from you opening the door. */
-.evs-dust {
+/* Ground. Every scene starts here, and it is darker than the stage behind it. */
+.evs-ink {
   background:
-    radial-gradient(1.5px 1.5px at 30% 40%, rgba(230, 227, 220, .30), transparent),
-    radial-gradient(1.5px 1.5px at 63% 32%, rgba(230, 227, 220, .22), transparent),
-    radial-gradient(1.5px 1.5px at 47% 63%, rgba(230, 227, 220, .26), transparent),
-    radial-gradient(1.5px 1.5px at 72% 58%, rgba(230, 227, 220, .18), transparent),
-    radial-gradient(1.5px 1.5px at 38% 72%, rgba(230, 227, 220, .20), transparent);
-  animation: evs-drift 1s linear both;
+    radial-gradient(120% 90% at 50% 55%, rgba(10, 11, 16, .5), var(--film-ink) 78%);
+  animation: evs-in .22s ease-out both;
 }
 
-/* 中毒 comes in from the edges, the way it comes in from your hands. */
+/* The lantern you are carrying. Low, warm and small — a pool rather than a
+   wash, because a lantern lights a patch of floor and not a room. */
+.evs-tungsten {
+  background: radial-gradient(34% 26% at 38% 62%,
+              color-mix(in srgb, var(--film-tungsten) 30%, transparent), transparent 72%);
+  animation: evs-in .3s ease-out both;
+}
+
+/* The other light. Colder, wider, and from above — nobody is carrying it. */
+.evs-moon {
+  background: radial-gradient(70% 46% at 50% 8%,
+              color-mix(in srgb, var(--film-moon) 16%, transparent), transparent 76%);
+  animation: evs-in .34s ease-out both;
+}
+
+/* HP+: tungsten returning, from below, like a lamp carried back into the room.
+   Holds low and then arrives — the one warm completion in the set. */
+.evs-warmth {
+  background: radial-gradient(64% 44% at 50% 104%,
+              color-mix(in srgb, var(--film-tungsten) 34%, transparent), transparent 70%);
+  animation: evs-warmth 1s cubic-bezier(.6,.02,.35,1) both;
+}
+
+/* HP−: the wound you do not see. Ink takes the frame from one side while the
+   light gives up its reach. No red — this is not a cut, it is what it cost. */
+.evs-wound {
+  background: linear-gradient(96deg, rgba(3, 4, 6, .96) 0%, rgba(3, 4, 6, .72) 26%, transparent 62%);
+  animation: evs-wound 1s cubic-bezier(.7,0,.3,1) both;
+}
+
+/* 中毒: ink in water at the corners. Enters, holds, then reaches — further than
+   you expect, in one motion, which is the grammar of the whole set. */
 .evs-creep {
-  box-shadow: inset 0 0 min(26vmin, 210px) min(10vmin, 80px)
-              color-mix(in srgb, var(--accent) 30%, transparent);
-  animation: evs-fade .42s ease-out both;
+  background:
+    radial-gradient(38% 30% at 0% 0%,     rgba(4, 8, 7, .95), transparent 70%),
+    radial-gradient(38% 30% at 100% 0%,   rgba(4, 8, 7, .95), transparent 70%),
+    radial-gradient(38% 30% at 0% 100%,   rgba(4, 8, 7, .95), transparent 70%),
+    radial-gradient(38% 30% at 100% 100%, rgba(4, 8, 7, .95), transparent 70%);
+  animation: evs-creep 1s cubic-bezier(.75,0,.25,1) both;
 }
 
-/* Someone is still alive in here. One lamp, low and warm — the only scene of the
-   five lit by anything. */
-.evs-lantern {
-  background: radial-gradient(40% 34% at 44% 50%,
-              color-mix(in srgb, var(--gold) 22%, transparent), transparent 72%);
-  animation: evs-fade .3s ease-out both;
+/* NOTHING. One candle, and it breathes: a single slow swell and release. Not a
+   flicker — a flicker is a strobe and also a cliche. One breath, and the room
+   is still watching afterwards. */
+.evs-candle {
+  background: radial-gradient(13% 11% at 50% 58%,
+              color-mix(in srgb, var(--film-tungsten) 46%, transparent), transparent 74%);
+  animation: evs-breathe 1.05s cubic-bezier(.45,0,.55,1) both;
 }
 
-.evstage-art--rice { color: var(--gold); }
-.evstage-art--villager { color: var(--muted); opacity: .85; }
+/* And the thing that is already looking. It never resolves and never arrives —
+   the vignette simply closes a little, once, near the end. */
+.evs-watch {
+  box-shadow: inset 0 0 min(24vmin, 200px) min(8vmin, 64px) rgba(2, 3, 5, .96);
+  animation: evs-watch 1.05s cubic-bezier(.8,0,.2,1) both;
+}
 
-@keyframes evs-fade   { from { opacity: 0; } to { opacity: 1; } }
-@keyframes evs-rise   { from { opacity: 0; transform: translateY(8%); }
-                        to   { opacity: 1; transform: none; } }
-@keyframes evs-strike { from { opacity: 0; transform: translateX(-6%); }
-                        to   { opacity: 1; transform: none; } }
-@keyframes evs-drift  { from { opacity: 0; transform: translateY(2%); }
-                        to   { opacity: 1; transform: translateY(-1%); } }
+/* Fog, two layers drifting at different speeds and neither fast enough to be
+   sure about. */
+.evs-fog {
+  background:
+    radial-gradient(50% 26% at 30% 74%, rgba(150, 160, 165, .07), transparent 70%),
+    radial-gradient(46% 22% at 72% 60%, rgba(150, 160, 165, .05), transparent 70%);
+}
+.evs-fog--0 { animation: evs-drift-a 9s linear both; }
+.evs-fog--1 { animation: evs-drift-b 13s linear both; opacity: .7; }
 
-.evstage--still .evs-dark,
-.evstage--still .evs-strike,
-.evstage--still .evs-bleed,
-.evstage--still .evs-warm,
-.evstage--still .evs-dust,
+/* Grain sits over everything, figures included. Rendered once, never reseeded. */
+.evs-grain {
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: overlay;
+}
+
+/* The villager's posture. Too upright, a couple of degrees off true, and just
+   tall enough to be wrong — the whole scene is in this transform, because this
+   is the event that can stand up and become a fight. */
+.evs-wrong {
+  transform: translate(-50%, -50%) rotate(-2.4deg) scaleY(1.06);
+  filter: drop-shadow(0 0 26px rgba(0, 0, 0, .9));
+}
+.evstage-art--villager { color: #2a2d33; opacity: .96; }
+
+@keyframes evs-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Hold, then complete. The numbers matter: nothing meaningful happens before
+   62% of the budget, and what happens after it happens all at once. */
+@keyframes evs-warmth {
+  0%   { opacity: 0;   transform: translateY(6%); }
+  62%  { opacity: .18; transform: translateY(4%); }
+  100% { opacity: 1;   transform: none; }
+}
+@keyframes evs-wound {
+  0%   { opacity: 0;   transform: translateX(-8%); }
+  64%  { opacity: .12; transform: translateX(-6%); }
+  100% { opacity: 1;   transform: none; }
+}
+@keyframes evs-creep {
+  0%   { opacity: 0;   transform: scale(1.22); }
+  62%  { opacity: .35; transform: scale(1.16); }
+  100% { opacity: 1;   transform: scale(1); }
+}
+/* One breath. In, and most of the way back — a candle that returns exactly to
+   where it started has not been breathed on by anything. */
+@keyframes evs-breathe {
+  0%   { opacity: .62; transform: scale(1); }
+  58%  { opacity: .95; transform: scale(1.11); }
+  100% { opacity: .74; transform: scale(1.03); }
+}
+@keyframes evs-watch {
+  0%   { opacity: .55; }
+  70%  { opacity: .6; }
+  100% { opacity: 1; }
+}
+@keyframes evs-drift-a {
+  from { transform: translate3d(-2%, 1%, 0); }
+  to   { transform: translate3d(3%, -1.5%, 0); }
+}
+@keyframes evs-drift-b {
+  from { transform: translate3d(2%, -1%, 0) scale(1.06); }
+  to   { transform: translate3d(-3%, 1%, 0) scale(1.1); }
+}
+
+/* Calm: the information stays, the assault goes. What is assaultive here is the
+   SUDDEN COMPLETION, so calm keeps every light, texture and colour and simply
+   arrives at them — the scene composes instead of pouncing. */
+.evstage--calm .evs-warmth,
+.evstage--calm .evs-wound,
+.evstage--calm .evs-creep,
+.evstage--calm .evs-candle,
+.evstage--calm .evs-watch {
+  animation-timing-function: ease-out;
+  animation-duration: .8s;
+}
+.evstage--calm .evs-wound {
+  background: linear-gradient(96deg, rgba(3, 4, 6, .8) 0%, transparent 58%);
+}
+
+/* Reduced motion: the composition, arrived at rather than travelled to. Every
+   layer at its final value, the fog parked, the grain unchanged. */
+.evstage--still .evs-ink,
+.evstage--still .evs-tungsten,
+.evstage--still .evs-moon,
+.evstage--still .evs-warmth,
+.evstage--still .evs-wound,
 .evstage--still .evs-creep,
-.evstage--still .evs-lantern { animation: none; opacity: 1; transform: none; }
+.evstage--still .evs-candle,
+.evstage--still .evs-watch,
+.evstage--still .evs-fog {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+.evstage--still .evs-candle { opacity: .8; }
+.evstage--still .evs-fog--1 { opacity: .7; }
 
 @media (prefers-reduced-motion: reduce) {
-  .evs-dark, .evs-strike, .evs-bleed, .evs-warm,
-  .evs-dust, .evs-creep, .evs-lantern {
+  .evs-ink, .evs-tungsten, .evs-moon, .evs-warmth, .evs-wound,
+  .evs-creep, .evs-candle, .evs-watch, .evs-fog {
     animation: none;
     opacity: 1;
     transform: none;
   }
+  .evs-candle { opacity: .8; }
 }
 
 /* ---- 殭屍王 ---------------------------------------------------------------------
