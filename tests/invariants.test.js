@@ -149,10 +149,11 @@ test("§13: ~10 searches for 七星劍, ~10 for 攝魂幡", () => {
 // notices in play. Derived from RULES rather than restated, so the day the
 // thresholds move this fails with the real number instead of a stale one.
 //
-// The bar is 14 now, and the game's ceiling is 13. That is not a mistake: it
-// means NO kit wins without the 神主牌 and exactly one wins with it. "Bar 14"
-// and "the tablet is mandatory" are the same rule written two ways.
-test("§13: no kit reaches the bar bare, and exactly one reaches it with the tablet", () => {
+// The bar met the ceiling in #56: 13 bare, 12 carrying the 神主牌, against a
+// game that tops out at exactly 13. So the hardest kit wins on the nose without
+// his name, and the tablet buys the one point that lets a lesser talisman do
+// it — an advantage again rather than the requirement option A made it.
+test("§13: one kit reaches the bare bar, and the tablet buys a second", () => {
   const swords = items.filter((i) => i.cat === "weapon");
   const talismans = items.filter((i) => i.cat === "magic" && i.attack);
   const reached = [];
@@ -172,12 +173,12 @@ test("§13: no kit reaches the bar bare, and exactly one reaches it with the tab
   }
   const ceiling = Math.max(...reached);
   eq(ceiling, 13, "13 is the most the game can produce: 七星劍 + 真火符, doubled, + 血符");
-  eq(reached.filter((a) => a >= E.RULES.KING_THRESHOLD).length, 0,
-    `nothing reaches ${E.RULES.KING_THRESHOLD} — without his name there is no line at all`);
-  eq(reached.filter((a) => a >= E.RULES.KING_THRESHOLD_WITH_TABLET).length, 1,
-    `exactly one kit reaches ${E.RULES.KING_THRESHOLD_WITH_TABLET}, and only carrying the tablet`);
-  assert(E.RULES.KING_THRESHOLD > ceiling,
-    "the bare bar is above the ceiling on purpose; that is what makes the tablet compulsory");
+  eq(reached.filter((a) => a >= E.RULES.KING_THRESHOLD).length, 1,
+    `exactly one kit reaches ${E.RULES.KING_THRESHOLD} bare, and it is the ceiling itself`);
+  eq(reached.filter((a) => a >= E.RULES.KING_THRESHOLD_WITH_TABLET).length, 2,
+    `two reach ${E.RULES.KING_THRESHOLD_WITH_TABLET} — the tablet buys 五雷 a line of its own`);
+  eq(E.RULES.KING_THRESHOLD, ceiling,
+    "the bare bar IS the ceiling: winnable without his name, but only perfectly");
 });
 
 test("§13: every winning line spends the banner", () => {

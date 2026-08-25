@@ -108,8 +108,7 @@ function playNight(seed, { maxTurns = 400 } = {}) {
     // ---- step 6: the clock, and midnight when it runs out
     if (state.turn >= E.RULES.TOTAL_TURNS) {
       const here = B.currentTile(board);
-      const water = !!(here && (here.def.flags || []).includes("RUNNING_WATER"));
-      E.midnight(state, { runningWater: water, use: bestKit(state, die) });
+      E.midnight(state, { use: bestKit(state, die) });
       break;
     }
     E.advanceTurn(state);

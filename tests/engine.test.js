@@ -7,12 +7,13 @@ import { test, assert, eq } from "./harness.js";
 const NO_STORE = { cache: "no-store" };
 
 // Load the real game data so tests run against the shipped tables.
-const [items, search, events] = await Promise.all([
+const [items, search, events, tiles] = await Promise.all([
   fetch("../data/items.json", NO_STORE).then((r) => r.json()),
   fetch("../data/search.json", NO_STORE).then((r) => r.json()),
   fetch("../data/events.json", NO_STORE).then((r) => r.json()),
+  fetch("../data/tiles.json", NO_STORE).then((r) => r.json()),
 ]);
-const DATA = { items, search, events };
+const DATA = { items, search, events, tiles };
 const game = (opts) => E.newGame(DATA, opts);
 
 // ---- Setup -----------------------------------------------------------------
@@ -686,13 +687,9 @@ test("ward: the King is not turned by it — only running water declines him", (
   // appointment. Standing there at midnight is still a meeting.
   const s = game({ seed: 3 });
   E.setTurn(s, E.RULES.TOTAL_TURNS);
-  const r = E.midnight(s, { runningWater: false, use: {} });
+  const r = E.midnight(s, { use: {} });
   eq(r.outcome, "LOSS_KING", "bare-handed on the stone is still bare-handed");
-
-  const w = game({ seed: 3 });
-  E.setTurn(w, E.RULES.TOTAL_TURNS);
-  eq(E.midnight(w, { runningWater: true, use: {} }).outcome, "SURVIVED",
-     "and water is still the only thing that declines him");
+  // Nothing declines him at all since #56 — not the stone, and no longer 活水.
 });
 
 // ---- Card resolution -------------------------------------------------------
@@ -1425,27 +1422,47 @@ test("outcome: WIN_SEAL — meet him at the threshold, carrying his name", () =>
   eq(s.status, "won");
 });
 
-// The other half of the same rule, and the reason the bar sits above the
-// ceiling: the identical kit without the 神主牌 is not a near miss, it is not a
-// line at all.
-test("outcome: the same kit without the tablet cannot win", () => {
+// #56 brought the bar down to the ceiling, which reverses what option A did to
+// the 神主牌: it is an advantage again rather than a requirement. The same kit
+// that needed his name now wins without it — exactly, with nothing to spare.
+test("outcome: the best kit now wins without the tablet, exactly", () => {
   const s = game({ seed: 1 });
   const use = sealKit(s);
   s.tablet = false;
   const r = E.midnight(s, { use });
   eq(r.attack, 13, "the best the game can produce");
   eq(r.threshold, E.RULES.KING_THRESHOLD);
-  eq(r.outcome, "LOSS_KING");
-  assert(r.attack < r.threshold, "and it is short, by construction rather than by luck");
+  eq(r.outcome, "WIN_SEAL");
+  eq(r.attack, r.threshold, "met on the nose — the bar IS the ceiling now");
 });
 
-test("outcome: SURVIVED — running water, and no exchange at all", () => {
-  const s = game({ seed: 1 });
-  E.pickUpItem(s, "soul-banner");
-  const r = E.midnight(s, { runningWater: true, use: { banner: true } });
-  eq(r.outcome, "SURVIVED");
-  eq(s.status, "over", "neither a win nor a loss");
-  eq(E.held(s, "soul-banner"), true, "nothing was spent — he never came");
+// 見到天亮 was reachable exactly one way: standing in 溪澗 at midnight, which
+// declined the exchange. #56 removed that rule and nothing replaced it, so the
+// game has four reachable endings and a fifth that is declared and orphaned.
+//
+// This pins the ORPHANING rather than mourning it. Retiring the outcome or
+// giving it another route is the user's decision, and until they make it the
+// useful thing a test can do is fail the day something starts producing
+// SURVIVED again without anybody meaning it to.
+test("outcome: SURVIVED is declared and unreachable", () => {
+  eq(E.OUTCOMES.SURVIVED, "SURVIVED", "still declared — retiring it is a separate decision");
+
+  // Every shape a midnight can take, and none of them is it.
+  const bare = game({ seed: 1 });
+  eq(E.midnight(bare, { use: {} }).outcome, "LOSS_KING");
+
+  const armed = game({ seed: 1 });
+  E.pickUpItem(armed, "sevenstar-sword");
+  E.pickUpItem(armed, "truefire-talisman");
+  E.buffSword(armed, "sevenstar-sword");
+  E.pickUpItem(armed, "soul-banner");
+  E.pickUpItem(armed, "blood-talisman");
+  eq(E.midnight(armed, { use: { banner: true, talisman: "blood-talisman" } }).outcome, "WIN_SEAL");
+
+  // And the tile that used to buy it has no rule left to buy it with.
+  const stream = tiles.outdoor.find((t) => t.id === "stream");
+  eq(stream.flags, undefined, "溪澗 carries no flag");
+  eq(Object.keys(stream).sort(), ["exits", "id"], "and nothing else either");
 });
 
 test("outcome: LOSS_HEALTH — from a fight, an event, or a poison tick", () => {
@@ -1506,29 +1523,29 @@ test("midnight: the tablet is what brings the bar within reach at all", () => {
   eq(E.kingThreshold(without) - E.kingThreshold(with_), 1, "still one, as it always was");
 });
 
-// The same pair of runs the old "eleven seals him" test made, moved up to the
-// only numbers that still do it: 七星劍 with a 真火符 burned in, doubled, plus
-// 血符 — thirteen, which is both the game's ceiling and the tablet's bar.
-test("midnight: thirteen seals him with the tablet and fails without it", () => {
+// The pair of runs that shows what the 神主牌 is worth, moved to the numbers
+// that still do it after #56: 七星劍 with a 真火符 burned in, doubled, plus 五雷
+// — twelve, which is one short of the bare bar and exactly the tablet's.
+test("midnight: twelve seals him with the tablet and fails without it", () => {
   const kit = (s) => {
     E.pickUpItem(s, "sevenstar-sword");
     E.pickUpItem(s, "truefire-talisman");
     E.buffSword(s, "sevenstar-sword");
     E.pickUpItem(s, "soul-banner");
-    E.pickUpItem(s, "blood-talisman");
-    return { banner: true, talisman: "blood-talisman" };
+    E.pickUpItem(s, "fivethunder-talisman");
+    return { banner: true, talisman: "fivethunder-talisman" };
   };
   const bare = game({ seed: 1 });
   const r1 = E.midnight(bare, { use: kit(bare) });
-  eq(r1.attack, 13);
-  eq(r1.outcome, "LOSS_KING", "the ceiling is still short of a bar set above it");
+  eq(r1.attack, 12);
+  eq(r1.outcome, "LOSS_KING", "twelve is not thirteen");
 
   const carrying = game({ seed: 1 });
   carrying.tablet = true;
   const r2 = E.midnight(carrying, { use: kit(carrying) });
-  eq(r2.attack, 13);
+  eq(r2.attack, 12);
   eq(r2.threshold, E.RULES.KING_THRESHOLD_WITH_TABLET);
-  eq(r2.outcome, "WIN_SEAL", "the same thirteen, and now it is enough");
+  eq(r2.outcome, "WIN_SEAL", "the same twelve, and now it is enough");
 });
 
 test("midnight: every winning line spends the banner", () => {

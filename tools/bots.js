@@ -220,13 +220,11 @@ const POLICIES = {
       buffWhen: adeptBuff,
     };
 
-    // 活水 is the one tile that turns the meeting into no meeting at all. Be
-    // anywhere else when the clock runs out.
-    const here = B.currentTile(board);
-    const inWater = here && (here.def.flags || []).includes("RUNNING_WATER");
-    if (inWater && state.turn >= E.RULES.TOTAL_TURNS - 2) {
-      return { ...base, seek: (x) => !(x.def.flags || []).includes("RUNNING_WATER") };
-    }
+    // The adept used to walk off 溪澗 before midnight, because standing in it
+    // forfeited the exchange. #56 removed that rule, so the detour is gone too:
+    // a player who knows the recipe does not avoid a tile for a reason that no
+    // longer exists. This is a deliberate instrument change and it is named in
+    // the report rather than left to explain a moved number.
 
     const want = adeptWants(state);
     const onTable = (table) =>
@@ -263,12 +261,18 @@ const POLICIES = {
     return { ...base, explore: "outdoor" }; // not turned up yet; it is outdoor ground
   },
 
-  // Hide. Find the 溪澗 and stand in it until the clock runs out — the one
-  // ending that costs nothing and proves nothing.
+  // Hide. Find the 溪澗 and stand in it until the clock runs out.
+  //
+  // Its thesis died with #56: the water no longer declines him, so this policy
+  // now hides in a featureless tile and meets him there like everybody else.
+  // Kept UNCHANGED on purpose — it seeks the same tile by id rather than by the
+  // flag it lost — because a turtle that still does exactly what it did is the
+  // clearest possible demonstration that the ending it chased is gone. Retarget
+  // it and the zero would disappear along with the finding.
   turtle(ctx) {
     const { board } = ctx;
-    const stream = [...board.worlds.outdoor.values()].find((t) => (t.def.flags || []).includes("RUNNING_WATER"));
-    if (stream) return { seek: (x) => (x.def.flags || []).includes("RUNNING_WATER") };
+    const stream = [...board.worlds.outdoor.values()].find((t) => t.id === "stream");
+    if (stream) return { seek: (x) => x.id === "stream" };
     return { explore: "outdoor" };
   },
 
@@ -514,7 +518,6 @@ export function playNight(data, policyName, seed, opts = {}) {
     if (state.status !== "playing") break;
     if (state.turn >= E.RULES.TOTAL_TURNS) {
       const here = B.currentTile(board);
-      const water = !!(here && (here.def.flags || []).includes("RUNNING_WATER"));
       const use = {};
       if (E.held(state, "soul-banner")) use.banner = true;
       const cands = E.heldIds(state)
@@ -543,8 +546,8 @@ export function playNight(data, policyName, seed, opts = {}) {
         heavyTalisman: use.talisman === "blood-talisman" || use.talisman === "fivethunder-talisman",
         tablet: !!state.tablet,
       };
-      const r = E.midnight(state, { runningWater: water, use });
-      return finish(state, board, { atMidnight, threshold: r.threshold, water, hadBanner, atWard, kit, ...stats });
+      const r = E.midnight(state, { use });
+      return finish(state, board, { atMidnight, threshold: r.threshold, hadBanner, atWard, kit, ...stats });
     }
     E.advanceTurn(state);
   }

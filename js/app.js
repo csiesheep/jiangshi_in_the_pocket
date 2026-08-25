@@ -1157,18 +1157,10 @@ class Game {
     this.tell(this.line("third-watch"), "toll");
     await wait(MIDNIGHT_TOLL_MS);
 
-    // 活水. He will not cross it, so there is no exchange at all — the only
-    // ending in the game that costs nothing and proves nothing, and it gets a
-    // quiet card rather than a triumphant one.
-    const tile = Bd.currentTile(this.board);
-    const water = ((tile.def && tile.def.flags) || []).includes("RUNNING_WATER");
-    if (water) {
-      this.tell(this.line("running-water"));
-      E.midnight(this.state, { runningWater: true });
-      await wait(RESULT_BEAT_MS);
-      return this.gameOver();
-    }
-
+    // 溪澗 used to decline him — he would not cross running water, and standing
+    // in it ended the night with no exchange at all. #56 removed that rule, so
+    // the appointment is the same wherever you are standing and there is no
+    // branch here any more.
     // Not the pack's sting. That one rises because the question is how fast
     // they reach you; this one falls, because there is no question.
     //

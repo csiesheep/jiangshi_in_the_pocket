@@ -62,10 +62,9 @@ function noteFor(def, world, theme) {
   }
   if (def.seam) notes.push(note(theme, "seam"));
   for (const f of def.flags || []) {
-    notes.push(
-      f === "RUNNING_WATER" ? note(theme, "running-water")
-      : f === "WARDED" ? note(theme, "warded")
-      : note(theme, "unknown", { what: f }));
+    // RUNNING_WATER went with #56 and no tile carries it any more; the branch
+    // is gone rather than left describing a flag nothing can have.
+    notes.push(f === "WARDED" ? note(theme, "warded") : note(theme, "unknown", { what: f }));
   }
   // No tile carries an `action` since the post-launch redesign took the
   // prayer and the coil, but the branch stays: the field is still read, and a
@@ -141,7 +140,6 @@ function chipsFor(def) {
   const chips = [];
   if (def.search) chips.push([CHIP_SEARCH[def.search] || def.search, `tilechip--${def.search}`, true]);
   if (def.onTurnEnd === "HEAL_1") chips.push(["+1 health", "", false]);
-  if ((def.flags || []).includes("RUNNING_WATER")) chips.push(["no damage", "", false]);
   if ((def.flags || []).includes("WARDED")) chips.push(["no events", "", false]);
   if (def.action) chips.push(["once per night", "", false]);
   if (def.goal) chips.push(["goal", "tilechip--goal", false]);

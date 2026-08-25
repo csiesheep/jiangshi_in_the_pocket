@@ -87,15 +87,19 @@ export const RULES = {
   // half of how. Priced in tools/lever-pricing.md.
   //
   // The other half is the shrine, and it has moved since: 攝魂幡 went 15 % -> 2 %
-  // with this bar (seal 1.7 %), then back to 10 % because at 2 % 土地廟 was a
-  // rice tile with a rumour attached and it has had no other identity since the
-  // prayer was removed. 鎮屍 sits at 3.5-4.2 % now, and the "< 2 %" target is
-  // SUPERSEDED — the user chose the shrine over the lower number with the curve
-  // in front of them. §9 is untouched: still never explained, never announced,
-  // simply no longer rare to the point of vanishing. Live numbers live in
-  // tools/bots-report.md, never here.
-  KING_THRESHOLD: 14,
-  KING_THRESHOLD_WITH_TABLET: 13,
+  // with the old bar, then back to 10 % because at 2 % 土地廟 was a rice tile
+  // with a rumour attached. The "< 2 %" target is SUPERSEDED — the user chose
+  // the shrine over the lower number with the curve in front of them. §9 is
+  // untouched: still never explained, never announced, simply no longer rare to
+  // the point of vanishing. Live numbers live in tools/bots-report.md.
+  //
+  // AND THE BAR CAME BACK DOWN (#56): 14 -> 13, with-tablet 13 -> 12. That
+  // reverses the property option A introduced, deliberately — 13 is exactly the
+  // ceiling, so 鎮屍 is reachable bare-handed of the 神主牌 again, and the tablet
+  // is an advantage rather than a requirement. The -1 both previous settings
+  // carried is kept.
+  KING_THRESHOLD: 13,
+  KING_THRESHOLD_WITH_TABLET: 12,
 };
 
 // House rules, baked in as the defaults. Only the one that still has anything
@@ -1116,7 +1120,11 @@ export function breachAfterEvent(state, { deadEnd = false, fled = false, warded 
 export const OUTCOMES = {
   WIN_BURIAL: "WIN_BURIAL", // survived the rite at 亂葬崗 holding the tablet
   WIN_SEAL: "WIN_SEAL", // met the King at or above the threshold
-  SURVIVED: "SURVIVED", // stood in running water at midnight; neither win nor loss
+  // UNREACHABLE since #56 removed 溪澗's running-water rule. Kept declared, and
+  // kept in STATUS_FOR below, because retiring the ending is a separate decision
+  // — the strings, the epilogue branch and the verdict card all still exist and
+  // would have to go with it.
+  SURVIVED: "SURVIVED",
   LOSS_HEALTH: "LOSS_HEALTH", // health reached 0 — combat, event, or a poison tick
   LOSS_KING: "LOSS_KING", // met him under the threshold
 };
@@ -1200,16 +1208,17 @@ export function kingThreshold(state) {
   return state.tablet ? RULES.KING_THRESHOLD_WITH_TABLET : RULES.KING_THRESHOLD;
 }
 
-export function midnight(state, { runningWater = false, use = {} } = {}) {
+// 溪澗 used to decline him — he would not cross running water, and standing in
+// it bought the only ending that cost nothing and proved nothing. #56 removed
+// that rule, so midnight is now the same appointment wherever you are standing.
+//
+// SURVIVED IS THEREFORE UNREACHABLE. It is deliberately still declared (see
+// OUTCOMES) rather than deleted: whether 見到天亮 is retired or given another
+// route is the user's decision and not this change's to make. Nothing in the
+// engine produces it, and tests/engine.test.js pins that it stays that way
+// until somebody rules otherwise.
+export function midnight(state, { use = {} } = {}) {
   if (state.status !== "playing") return { outcome: state.outcome };
-
-  // 活水. He will not cross it, so there is no exchange at all — not a win, not
-  // a loss, and the only ending in the game that costs nothing and proves
-  // nothing.
-  if (runningWater) {
-    finish(state, OUTCOMES.SURVIVED);
-    return { outcome: OUTCOMES.SURVIVED };
-  }
 
   const threshold = kingThreshold(state);
   const attack = attackWith(state, use);

@@ -616,12 +616,15 @@ test("king: he replaces the generic scare, and running water still short-circuit
   assert(!/jumpScare\(1/.test(beat),
     "midnightBeat still uses the pack's one-face scare — which reads as LESS " +
     "than an ordinary doorway encounter");
-  // 活水 returns before he is ever staged: he will not cross it, so there is no
-  // arrival to animate.
-  const water = beat.indexOf("runningWater: true");
+  // 活水 used to return before he was ever staged — he would not cross it, so
+  // there was no arrival to animate. #56 removed that rule, so the King is now
+  // staged unconditionally and nothing may short-circuit ahead of him.
+  assert(!/runningWater/.test(beat),
+    "midnightBeat still branches on running water, which no tile has any more");
   const king = beat.indexOf("await kingScene(");
-  assert(water !== -1 && water < king,
-    "the running-water ending no longer short-circuits before the King's scene");
+  const early = beat.indexOf("return this.gameOver()");
+  assert(king !== -1 && (early === -1 || early > king),
+    "he must be staged before any way out of the beat");
 });
 
 // ---- The room's voice (#41) ---------------------------------------------------

@@ -72,7 +72,9 @@ test("tiles.json: the goal rooms and the tile actions use spec §2 names", () =>
   const actions = all.filter((d) => d.action).map((d) => `${d.id}:${d.action}`).sort();
   eq(actions, [], "the prayer and the coil are gone");
   const flagged = all.filter((d) => d.flags).map((d) => `${d.id}:${d.flags.join("+")}`).sort();
-  eq(flagged, ["stone-ward:WARDED", "stream:RUNNING_WATER"]);
+  // 溪澗 lost its flag with #56 and has no rule left at all; 石敢當 is the only
+  // flagged tile in the game now.
+  eq(flagged, ["stone-ward:WARDED"]);
   // Two rooms heal, one each side of the seam, and 香堂 is the indoor one now
   // that 帳房 keeps only its 丹藥.
   const heals = all.filter((d) => d.onTurnEnd === "HEAL_1").map((d) => d.id).sort();

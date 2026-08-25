@@ -49,7 +49,6 @@
     // exactly one of these, and the point is to find out which one carries the
     // losses rather than assuming.
     let reachedMidnight = 0, withBanner = 0, sealed = 0;
-    let onWater = 0;
     const held = { sevenstar: 0, buffed: 0, banner: 0, heavyTalisman: 0, tablet: 0 };
     let allFive = 0;
     let shortOfThreshold = 0, noBannerAtMidnight = 0;
@@ -62,7 +61,6 @@
       if (r.everHadBanner) everBanner++;
       if (r.atMidnight === undefined) continue;
       reachedMidnight++;
-      if (r.water) onWater++;
       if (r.kit) {
         for (const k of Object.keys(held)) if (r.kit[k]) held[k]++;
         if (Object.keys(held).every((k) => r.kit[k])) allFive++;
@@ -95,7 +93,6 @@
       ``,
       `THE FUNNEL, stage by stage:`,
       `  reached midnight            ${reachedMidnight}  (${pct(reachedMidnight, SEEDS)} of all runs)`,
-      `  ...not standing in 活水     ${reachedMidnight - onWater}  (${onWater} presented nothing at all)`,
       `  ...七星劍 in hand           ${held.sevenstar}  (${pct(held.sevenstar, reachedMidnight)})`,
       `  ...with 真火符 burned in    ${held.buffed}  (${pct(held.buffed, reachedMidnight)})`,
       `  ...攝魂幡 to spend          ${held.banner}  (${pct(held.banner, reachedMidnight)})`,

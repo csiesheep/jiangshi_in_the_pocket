@@ -155,9 +155,6 @@
       "exits": [
         "E",
         "W"
-      ],
-      "flags": [
-        "RUNNING_WATER"
       ]
     },
     {
