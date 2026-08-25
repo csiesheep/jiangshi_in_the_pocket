@@ -162,7 +162,7 @@ function audio() {
     // is everything happening somewhere else, and it runs through a lowpass
     // that is transparent until something closes it.
     //
-    // The split exists so cowering can muffle the house without muffling the
+    // The split exists so a set-piece can muffle the house without muffling the
     // sound of you holding your breath in it. #78 wants this routing too, for
     // placing sounds rather than dulling them; the bus is built here because
     // this is the issue that first needed it.
@@ -823,38 +823,6 @@ export function stopPounding() {
   pounding = null;
 }
 
-// Cowering: a held breath let go. Noise through a moving bandpass, no pitch —
-// the one cue here that should sound like a person rather than a thing.
-export function cowerBreath() {
-  if (sample("cower")) return;
-  const c = live();
-  if (!c) return;
-  const t = c.currentTime;
-  const src = c.createBufferSource();
-  src.buffer = noise(c);
-  const band = c.createBiquadFilter();
-  band.type = "bandpass";
-  band.Q.value = 2.2;
-  band.frequency.setValueAtTime(900, t);
-  band.frequency.exponentialRampToValueAtTime(430, t + 0.75);
-  const g = envelope(c, 0.1, 0.22, 0.62);
-  src.connect(band).connect(g).connect(dry || master);
-  src.start(t);
-  src.stop(t + 0.9);
-}
-
-// Picking something up, by class rather than by item: nine items, five sounds.
-// Metal rings, wood knocks, liquid sloshes, the saw coughs, and everything else
-// is a small dry find.
-// What each thing sounds like coming off a shelf. Every id here is a jiangshi
-// item; the inherited map was still the other game's, so a 七星劍 came up
-// sounding like a candle and every one of the thirteen fell through to the same
-// small rustle.
-//
-// 桃木劍 is wood because it IS wood — that is the entire point of a peachwood
-// sword, and it would be a strange thing for the game to say otherwise. The
-// talismans and the banner are paper and get the flutter, which is the same cue
-// that plays when one is spent: picking one up and throwing one are the same
 // material doing the same thing.
 const ITEM_CUE = {
   "precept-knife": "metal", "coin-sword": "metal", "sevenstar-sword": "metal",
@@ -864,6 +832,7 @@ const ITEM_CUE = {
   "black-dog-blood": "liquid",
   cinnabar: "small", "sticky-rice": "small", "golden-elixir": "small",
 };
+
 
 export function itemPickup(itemId) {
   const kind = ITEM_CUE[itemId] || "small";
@@ -1663,7 +1632,7 @@ export function unduck() {
 // rather than as nothing; a game with no score has no way to take one away.
 //
 // On master rather than the world bus, deliberately: a score is not in the
-// house. Cowering muffles the room and leaves the music where it is, which is
+// house. A set-piece muffles the room and leaves the music where it is, which is
 // what film does — the score does not duck because a character is hiding.
 //
 // A1, its fifth, and the octave. Low, close together, and detuned enough to

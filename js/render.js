@@ -6,7 +6,7 @@ import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          watchDrum, hopThud,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
-         muffle, passingSteps, cowerBreath, setScoreHour, buzz, isCalm,
+         muffle, passingSteps, setScoreHour, buzz, isCalm,
          setSpace, wickHiss, setScoreRelief, splintering, startPounding, stopPounding,
          floodMurmur } from "./audio.js";
 
@@ -119,7 +119,7 @@ export function formatClock(c) {
   }).trim();
 }
 
-// Health has no upper bound in this ruleset — cowering adds 3 with no cap — so
+// Health is capped at ten, but the hearts still draw against the start rather
 // there is no "x of y" to draw. Hearts show damage against the starting health
 // while the number stays small, and fall back to a count once it does not.
 const HEART_BASELINE = RULES.START_HEALTH;
@@ -152,13 +152,12 @@ export function renderHud(game) {
     health > 0 && health <= LOW_HEALTH && game.state.status === "playing"
   );
 
-  for (const id of ["stat-health", "stat-attack", "stat-cower", "stat-relic"]) {
+  for (const id of ["stat-health", "stat-attack", "stat-relic"]) {
     const el = document.getElementById(id);
     if (el) el.textContent = ui(game, id);
   }
   renderHealth(game.state);
   renderAttack(game);
-  renderCower(game.state);
   renderPoison(game.state);
   renderHour(game.state);
   renderRelic(game.state);
@@ -311,34 +310,6 @@ function renderAttack(game) {
   }
   el.title = held0;
   el.appendChild(srOnly(held0));
-}
-
-// 躲藏, as pips rather than a number: three of them is a thing you can see at a
-// glance and a thing you can watch go out, where "3" is a fact you have to
-// read. The fourth arrives from 香堂 and is drawn the same — a charge is a
-// charge, however it was come by.
-function renderCower(s) {
-  const el = statBox("hud-cower");
-  if (!el) return;
-  // The baseline is the run's own ceiling, not the rule's: once 香堂 has given
-  // its coil the row is four wide for the rest of the night, so the pips do not
-  // silently re-scale under the player halfway through.
-  const slots = Math.max(s.cowerCharges, RULES.COWER_CHARGES + (s.cowerRestored ? 1 : 0));
-  for (let i = 0; i < slots; i++) {
-    const pip = document.createElement("span");
-    pip.className = "pip" + (i < s.cowerCharges ? " pip--lit" : "");
-    pip.setAttribute("aria-hidden", "true");
-    el.appendChild(pip);
-  }
-  el.classList.toggle("statval--spent", s.cowerCharges <= 0);
-  el.appendChild(
-    srOnly(
-      s.cowerCharges === 0
-        ? ui(drawing, "cower-said-none")
-        : ui(drawing, s.cowerCharges === 1 ? "cower-said-one" : "cower-said-many",
-             { n: s.cowerCharges, of: slots })
-    )
-  );
 }
 
 // 中毒: shown only while it is true. The tick itself is announced by the turn
@@ -1063,48 +1034,6 @@ function mountDoorways(boardEl) {
     group.appendChild(hot);
   }
 
-  // 躲藏, under the standing figure: the other way to spend a turn without
-  // going anywhere. It is rendered even with no charges left, disabled and
-  // saying why — a control that vanishes at zero teaches nothing, and a player
-  // who never sees it has no idea the game had that in it.
-  const cower = pendingMoves.find((m) => m.kind === "cower");
-  if (cower) {
-    const hot = document.createElement("button");
-    hot.type = "button";
-    hot.className = "doorway doorway--cower";
-    hot.dataset.kind = "cower";
-    hot.disabled = !!cower.disabled;
-    hot.setAttribute("aria-label", cower.label + (cower.sub ? `. ${cower.sub}` : ""));
-    if (cower.disabled && cower.sub) hot.title = cower.sub;
-    if (!cower.disabled) {
-      const n = pendingMoves.indexOf(cower);
-      if (n < 9) {
-        const k = document.createElement("kbd");
-        k.textContent = String(n + 1);
-        k.setAttribute("aria-hidden", "true");
-        hot.appendChild(k);
-      }
-    }
-    const face = document.createElement("span");
-    face.className = "doorway-face doorway-face--cower";
-    face.setAttribute("aria-hidden", "true");
-    face.textContent = "躲";
-    hot.appendChild(face);
-    // The charges, on the control that spends them, so the cost is where the
-    // decision is rather than only across the panel in the HUD.
-    const pips = document.createElement("span");
-    pips.className = "doorway-pips";
-    pips.setAttribute("aria-hidden", "true");
-    for (let i = 0; i < (cower.slots || 0); i++) {
-      const pip = document.createElement("i");
-      if (i < (cower.charges || 0)) pip.className = "pip--lit";
-      pips.appendChild(pip);
-    }
-    hot.appendChild(pips);
-    hot.addEventListener("click", cower.onClick);
-    hot.addEventListener("focus", doorwayTick);
-    group.appendChild(hot);
-  }
   box.appendChild(group);
 }
 
@@ -1458,52 +1387,6 @@ function swingArt(row, iconId) {
   return art;
 }
 
-// ---- Cowering, from the inside -----------------------------------------------
-// Mechanically this is hiding in a corner for a slice of an hour while things
-// walk past. It used to be a button and a log line.
-//
-// So: the view narrows to a slit, the house goes muffled, the breathing is the
-// only thing still close, and one set of footsteps passes a wall you are not on
-// the other side of. Then the slit opens and the health lands with the exhale.
-//
-// Presentation only — E.cower has already resolved and the card is already
-// spent. Reduced motion keeps the whole audio treatment and drops the squint,
-// because the muffle is what actually says "hiding" and the vignette only
-// illustrates it.
-const COWER_MS = 1500;
-
-export function cowerScene(outdoors = false) {
-  return new Promise((resolve) => {
-    cowerBreath();
-    muffle(true, 0.28);
-    // Something goes past while you are down there. Late enough that the
-    // muffle has closed first, so it arrives already distant.
-    setTimeout(() => passingSteps(outdoors ? "outdoor" : "indoor"), 420);
-
-    const open = () => {
-      muffle(false, 0.6);
-      document.body.classList.remove("cowering");
-    };
-
-    if (reducedMotion()) {
-      setTimeout(() => { open(); resolve(); }, COWER_MS);
-      return;
-    }
-
-    document.body.classList.add("cowering");
-    let settled = false;
-    const done = () => {
-      if (settled) return;
-      settled = true;
-      open();
-      resolve();
-    };
-    // Timer-backed like every other awaited beat: a hidden tab advances no
-    // animation, and the turn cannot be allowed to hang on one.
-    setTimeout(done, COWER_MS);
-  });
-}
-
 // ---- The burial --------------------------------------------------------------
 // The climax used to resolve like any other card: draw, verdict. This wraps the
 // draw the way the scare wraps combat — presentation only, the engine untouched
@@ -1514,6 +1397,7 @@ export function cowerScene(outdoors = false) {
 // differ, because one is finding the thing and the other is finishing.
 const DIG_CUTS = { graveyard: 3, temple: 2 };
 const DIG_GAP_MS = 640;
+
 
 export function buryBeat(kind = "graveyard") {
   const full = kind === "graveyard";
@@ -1968,7 +1852,7 @@ function restoreBreachWall() {
   if (!breakIn.dir || !breakIn.wall) return;
   const wrap = mountBreachWall(breakIn.dir, breakIn.wall);
   // And still reaching. Without this the arms come back frozen after any
-  // mid-fight render — a cower, a heal, anything that refreshes the board —
+  // mid-fight render — a heal, anything that refreshes the board —
   // which is a wall that stopped being attacked while the fight is still on.
   if (wrap && breakIn.grasping && !reducedMotion()) wrap.classList.add("edgemark--grasping");
 }
@@ -2876,13 +2760,7 @@ export function renderActions(actions, prompt = "", opts = {}) {
   // for the entire turn.
   const isWalk = (a) => a.kind === "move" && a.dir;
   const isStay = (a) => a.kind === "stay";
-  // 躲藏 is the third action of the same rank as the other two (§8), so it is
-  // drawn on the board with them. Admitting it here matters for the same reason
-  // staying had to be admitted: one action the board cannot draw disqualifies
-  // the whole step, and the doorways go with it.
-  const isCower = (a) => a.kind === "cower";
-  const boardOnly =
-    actions.some(isWalk) && actions.every((a) => isWalk(a) || isStay(a) || isCower(a));
+  const boardOnly = actions.some(isWalk) && actions.every((a) => isWalk(a) || isStay(a));
 
   // A decision is open: the board starts closing in. Moves are not a decision
   // in this sense — walking is what you do between them, and a push-in that
@@ -2931,7 +2809,7 @@ export function renderActions(actions, prompt = "", opts = {}) {
   }
 
   // Lethal is judged against the health the player has right now, not the health
-  // they had when the choice was assembled — cower can move it mid-window.
+  // they had when the choice was assembled — a heal can move it mid-window.
   const kills = (a) =>
     typeof opts.health === "number" &&
     a.cost &&

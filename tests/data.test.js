@@ -245,7 +245,6 @@ test("rulebook: the numbers it teaches are the numbers the engine plays", async 
   const claims = [
     [`Attack ${RULES.START_ATTACK}`, "starting attack"],
     [`Health ${RULES.START_HEALTH}`, "starting health"],
-    [`${RULES.COWER_CHARGES} cower charges`, "cower charges"],
     [`carry ${RULES.MAX_ITEMS} items`, "carry limit"],
     [`${RULES.TOTAL_TURNS} turns`, "night length"],
   ];

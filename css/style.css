@@ -2732,26 +2732,6 @@ body.burying .board-pane::after {
   .grave { transition: none; }
 }
 
-/* ---- Cowering ---------------------------------------------------------------
-   The view closes to a slit. It rides the vignette, which is already the thing
-   that says how much of the world you can see — so this is the same statement
-   pushed to its end rather than a new effect layered over it.
-
-   Overrides the dread breath and the low-health beat while it runs: both are
-   about how the room feels, and right now the room is somewhere you are not
-   looking at. */
-body.cowering .board-pane::after {
-  opacity: .97;
-  transition: opacity .34s ease-in;
-  animation: none;
-}
-body.cowering .board { transform: scale(.985); transition: transform .34s ease-in; }
-
-@media (prefers-reduced-motion: reduce) {
-  body.cowering .board-pane::after { transition: none; }
-  body.cowering .board { transform: none; transition: none; }
-}
-
 /* ---- The menu as a cold open -------------------------------------------------
    The register of the whole thing is set before the first click, and a clean
    text menu sets it to "website".
@@ -3076,27 +3056,6 @@ body.asleep .fog {
   animation-play-state: paused;
 }
 
-/* ---- 躲藏 pips ---------------------------------------------------------------
-   Charges as marks rather than a digit. Three of them is something you take in
-   at a glance and, more to the point, something you watch go out — "3" is a
-   fact you have to read, and a fact does not get quieter as it runs down.
-   Lit ones are the gold the buffed numbers use; spent ones keep their outline,
-   so the row never changes width and the ceiling stays visible. */
-.pip {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--border));
-  background: transparent;
-}
-.pip--lit {
-  background: var(--gold);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 55%, transparent);
-}
-/* Out of charges: the row is still there and still four wide, dimmed as a set
-   rather than removed. A control that vanishes at zero teaches nothing. */
-.statval--spent .pip { border-color: color-mix(in srgb, var(--muted) 40%, transparent); }
-
 /* ---- The attack ceiling ------------------------------------------------------
    What you could reach if you burned something, set beside what you hit for
    now. Deliberately the quieter of the two: the number in your hand is the
@@ -3134,50 +3093,6 @@ body.asleep .fog {
   color: color-mix(in srgb, var(--danger) 72%, var(--text));
 }
 .poisonrate { font-family: var(--font-body); font-size: .76rem; color: var(--muted); }
-
-/* ---- The cowering control ----------------------------------------------------
-   Under the standing figure, and drawn to the same rule: a mark on the floor,
-   no box, quieter than the ways out because it does not lead anywhere. */
-.doorway--cower {
-  left: 50%;
-  /* A full edge clears the standing figure's own box — both controls are
-     --edge tall and centred, so anything less than that overlaps its hit
-     target. The extra tenth is the gap between them. */
-  top: calc(50% + var(--edge) * 1.1);
-  transform: translate(-50%, -50%);
-  min-width: 0;
-  min-height: 0;
-  width: var(--edge);
-  height: var(--edge);
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-}
-.doorway--cower .doorway-face--cower {
-  font-family: var(--font-cjk);
-  font-size: clamp(13px, calc(var(--edge) * .4), 22px);
-  line-height: 1;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9)) drop-shadow(0 1px 1px rgba(0, 0, 0, .7));
-}
-.doorway--cower:hover:not(:disabled) .doorway-face--cower,
-.doorway--cower:focus-visible .doorway-face--cower { color: var(--way-new); }
-.doorway--cower kbd { top: -6px; left: 50%; transform: translateX(-50%); }
-/* The charges, on the control that spends them. Small enough to read as a
-   gauge rather than a second row of buttons. */
-.doorway-pips { display: flex; gap: 3px; }
-.doorway-pips i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  border: 1px solid currentColor;
-  opacity: .55;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9));
-}
-.doorway-pips i.pip--lit { background: currentColor; opacity: 1; }
-/* Inert, with the reason in the title and the accessible name. Not hidden:
-   the shape of what you have run out of is worth seeing. */
-.doorway--cower:disabled { cursor: default; opacity: .38; }
-.doorway--cower:disabled .doorway-pips i { opacity: .45; }
 
 /* ---- The comparison ----------------------------------------------------------
    🤫 Two numbers on the card of a player the King has just killed, and the only

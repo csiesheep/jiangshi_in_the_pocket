@@ -62,21 +62,15 @@ function noteFor(def, world, theme) {
   }
   if (def.seam) notes.push(note(theme, "seam"));
   for (const f of def.flags || []) {
-    notes.push(f === "RUNNING_WATER"
-      ? note(theme, "running-water")
+    notes.push(
+      f === "RUNNING_WATER" ? note(theme, "running-water")
+      : f === "WARDED" ? note(theme, "warded")
       : note(theme, "unknown", { what: f }));
   }
-  if (def.action) {
-    // The prayer names the tile it summons rather than hinting at it, and takes
-    // that name from the theme like every other room name on the page.
-    if (def.action === "PRAY_ONCE") {
-      notes.push(note(theme, "pray", { room: name(theme, "mass-grave") }));
-    } else if (def.action === "RESTORE_COWER_ONCE") {
-      notes.push(note(theme, "restore-cower"));
-    } else {
-      notes.push(note(theme, "unknown", { what: def.action }));
-    }
-  }
+  // No tile carries an action any more — cowering and the prayer both went in
+  // the post-launch amendment. Anything that turns up here is therefore new and
+  // undocumented, and says so rather than being dropped.
+  if (def.action) notes.push(note(theme, "unknown", { what: def.action }));
   if (def.goal) {
     const key = def.goal === "TAKE_TABLET" ? "take-tablet"
       : def.goal === "BURY_TABLET" ? "bury-tablet" : null;
