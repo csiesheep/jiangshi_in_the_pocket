@@ -1437,15 +1437,18 @@ test("outcome: the best kit now wins without the tablet, exactly", () => {
 });
 
 // 見到天亮 was reachable exactly one way: standing in 溪澗 at midnight, which
-// declined the exchange. #56 removed that rule and nothing replaced it, so the
-// game has four reachable endings and a fifth that is declared and orphaned.
+// declined the exchange. #56 removed that rule; #59 retired the ending rather
+// than leave it declared and orphaned.
 //
-// This pins the ORPHANING rather than mourning it. Retiring the outcome or
-// giving it another route is the user's decision, and until they make it the
-// useful thing a test can do is fail the day something starts producing
-// SURVIVED again without anybody meaning it to.
-test("outcome: SURVIVED is declared and unreachable", () => {
-  eq(E.OUTCOMES.SURVIVED, "SURVIVED", "still declared — retiring it is a separate decision");
+// So this pins FOUR, and pins it by enumeration rather than by tolerance. A
+// test that said "at least these four" would pass the day a fifth came back by
+// accident, which is the failure worth catching — the last one arrived through
+// a tile flag nobody thought of as an ending.
+test("outcome: there are four endings, and 見到天亮 is not one of them", () => {
+  eq(Object.keys(E.OUTCOMES).sort(),
+     ["LOSS_HEALTH", "LOSS_KING", "WIN_BURIAL", "WIN_SEAL"],
+     "two ways to win, two to lose, and no third kind");
+  eq(E.OUTCOMES.SURVIVED, undefined, "retired, not merely unreachable");
 
   // Every shape a midnight can take, and none of them is it.
   const bare = game({ seed: 1 });

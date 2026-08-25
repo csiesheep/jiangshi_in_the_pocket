@@ -68,7 +68,7 @@ o["tileBlurbs"] = collections.OrderedDict([
     ("pavilion", "可以坐一下的地方，如果今晚是別的晚上。"),
     ("pagoda-tree", "鬼樹。它能治傷，因為它本來就是藥。"),
     ("stone-ward", "路口那塊石頭。外面每條路都要經過它。"),
-    ("stream", "活水。他們過不來，打過來也落空。"),
+    ("stream", "溪澗。水流過石頭。這裡沒有東西可找，也留不住你。"),
     ("earth-god-shrine", "土地公知道死人埋在哪裡。問一次。"),
     ("mass-grave", "無主的坑。把神主牌埋回這裡。"),
 ])
@@ -129,12 +129,12 @@ o["poison"] = collections.OrderedDict([
 # Chinese as in English — the seal is the hidden ending, not the better one, and
 # a longer sentence would be the game congratulating you for finding it.
 o["outcomes"] = collections.OrderedDict([
-    ("WIN_BURIAL", "下葬"), ("WIN_SEAL", "鎮屍"), ("SURVIVED", "見到天亮"),
+    # Four endings since #59 retired 見到天亮 with the rule that reached it.
+    ("WIN_BURIAL", "下葬"), ("WIN_SEAL", "鎮屍"),
     ("LOSS_HEALTH", "傷重不治"), ("LOSS_KING", "王帶走了你"),
     ("subs", collections.OrderedDict([
         ("WIN_BURIAL", "天亮以前，你把土填回去了。"),
         ("WIN_SEAL", "從那以後，他沒有再往前一步。"),
-        ("SURVIVED", "水在你和他之間流了一整夜。"),
         ("LOSS_KING", "你在三更見到他，差了一點。"),
         ("LOSS_HEALTH_combat", "死人把你拖下去了。"),
         ("LOSS_HEALTH_health", "傷太重了。"),
@@ -193,7 +193,6 @@ o["lines"] = collections.OrderedDict([
     ("use-plain", "{item}。"),
     ("cinnabar-painted", "你把{item}磨開，再畫一次。{target}×{n}。"),
     ("third-watch", "三更。鼓聲響過，之後什麼都不響了。"),
-    ("running-water", "他在岸邊停住。不管他是什麼，活水他過不來。"),
     ("died-paying", "你寫{item}，血不夠寫完。"),
     ("strike-eleven", "十一點。最後一個時辰——牌翻完了，就是三更。"),
     ("replay-link", "重玩連結：{url}"),
@@ -331,7 +330,6 @@ o["tileNotes"] = collections.OrderedDict([
     ("search-other", "在這裡搜索{what}。"),
     ("moon-gate", "帶著月門——它{dir}邊那條路通到村外，不是通到別的房間。"),
     ("seam", "沿著接縫和村子相連，也是回去的路。"),
-    ("running-water", "活水。殭屍過不來，你站在這裡他們打你也不痛。"),
     ("restore-cower", "點香：拿回一次躲藏額度。一晚一次，不花回合。"),
     ("pray", "祈求：下一塊翻出來的外面土地就是{room}。一晚一次，不花回合。"),
     ("take-tablet", "{tablet}在這裡。先解決這間房的事件，再解決開棺的那一件。撐過去而且人還站在這裡，它就是你的。"),
@@ -377,7 +375,6 @@ o["epilogue"] = collections.OrderedDict([
         ("health-worn", "到{hour}，這個村子把你磨穿了"),
         ("midnight", "三更找到你的時候，你還在屋裡"),
         ("king", "他在三更來找你"),
-        ("water", "你站在活水裡，站到天色發灰"),
     ])),
     ("hand", collections.OrderedDict([
         ("armed", "手裡握著{weapon}"),

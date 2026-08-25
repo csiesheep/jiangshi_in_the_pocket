@@ -88,6 +88,12 @@ Neither ruling is dangerous alone. Together they would undo "camping must be
 losing" completely. If both are wanted, the ending needs a different home, or
 the water needs to stay dangerous.
 
+## The coupling has since resolved, safely
+
+The user ruled 見到天亮 **retired** rather than rerouted (#59) — the ending is
+removed, not moved to 溪澗. So the dangerous combination named above cannot
+occur, and the conditional below reduces to its first branch.
+
 ## Recommendation
 
 Build it, **wide**, if the rulebook is to be believed — it costs almost nothing

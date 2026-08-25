@@ -263,12 +263,18 @@ const POLICIES = {
 
   // Hide. Find the 溪澗 and stand in it until the clock runs out.
   //
-  // Its thesis died with #56: the water no longer declines him, so this policy
-  // now hides in a featureless tile and meets him there like everybody else.
-  // Kept UNCHANGED on purpose — it seeks the same tile by id rather than by the
-  // flag it lost — because a turtle that still does exactly what it did is the
-  // clearest possible demonstration that the ending it chased is gone. Retarget
-  // it and the zero would disappear along with the finding.
+  // WHAT THIS POLICY IS FOR HAS CHANGED, and it is worth saying rather than
+  // quietly repointing it. It was built to chase 見到天亮 — stand in running
+  // water and the night ends with no exchange. #56 removed the rule and #59
+  // retired the ending, so there is nothing at the end of this plan any more.
+  //
+  // It is kept UNCHANGED on purpose, still seeking the same tile (by id now,
+  // since the flag it used is gone). A policy that still does exactly what it
+  // did is the evidence: its 31-32 survivals became 31-32 deaths to the King,
+  // one for one. Retarget it and that measurement disappears along with the
+  // ending. What it measures now is the cost of hiding somewhere that does
+  // nothing — which is a real question, and the answer is that you live longer
+  // and still lose.
   turtle(ctx) {
     const { board } = ctx;
     const stream = [...board.worlds.outdoor.values()].find((t) => t.id === "stream");
@@ -568,7 +574,9 @@ function finish(state, board, extra) {
 
 // ---- A thousand nights -----------------------------------------------------------
 export function run(data, policyName, seeds = 1000, from = 1, opts = {}) {
-  const tally = { WIN_BURIAL: 0, WIN_SEAL: 0, SURVIVED: 0, LOSS_HEALTH: 0, LOSS_KING: 0 };
+  // Four endings since #59 retired 見到天亮. Enumerated rather than tolerant:
+  // an outcome that is not one of these lands in `errors` and is meant to.
+  const tally = { WIN_BURIAL: 0, WIN_SEAL: 0, LOSS_HEALTH: 0, LOSS_KING: 0 };
   let reachedMidnight = 0;
   let bannerAtMidnight = 0;
   let sealAttackSum = 0;

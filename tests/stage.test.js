@@ -605,7 +605,7 @@ test("king: nothing in his scene repeats a luminance change", () => {
     "the King's scene repeats a luminance change: " + offenders.join(" | "));
 });
 
-test("king: he replaces the generic scare, and running water still short-circuits", () => {
+test("king: he replaces the generic scare, and nothing short-circuits ahead of him", () => {
   // Comments stripped, same reason: the code says out loud that it is NOT
   // jumpScare(1) any more, and the guard was reading its own explanation.
   const beat = appSrc
