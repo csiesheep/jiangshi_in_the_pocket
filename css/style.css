@@ -545,6 +545,76 @@ body.app .board-pane > .board { min-height: 0; }
 .pip--spent { background: #3a404b; box-shadow: none; }
 
 /* ---- Backpack ---- */
+/* ---- The hands ---------------------------------------------------------------
+   Two slots either side of a figure. Not pack slots and deliberately not drawn
+   like them: the backpack is a stack of rows because luggage is a list, and this
+   is a body, because what you are holding is not.
+
+   Empty is a state worth drawing rather than a gap. Bare-handed is zero attack,
+   which is the rule the source game did not have, and a dashed outline with the
+   word in it teaches that on turn one for free. */
+.hands {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 8px;
+}
+.hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  min-width: 0;
+}
+.hand--bare {
+  border-style: dashed;
+  background: transparent;
+}
+.handlabel {
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.handicon { width: 26px; height: 26px; color: var(--gold); }
+.handname {
+  font-size: .78rem;
+  color: var(--text);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.hand--bare .handname { color: var(--muted); font-style: italic; }
+
+/* The number IS the weapon here — a sword is your attack outright rather than a
+   bonus on top of one — so it is sized like a stat, not like a caption. */
+.handattack {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.hand--bare .handattack { color: var(--muted); }
+/* 真火符 burned into the steel. The point is permanent and belongs to the
+   blade, so it is marked on the number the blade is worth — and it leaves with
+   the sword if you put the sword down. */
+.handattack--buffed {
+  color: var(--gold);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+
+.handfig { display: flex; align-items: center; justify-content: center; padding: 0 2px; }
+.handfig-art {
+  width: 34px;
+  height: 54px;
+  color: var(--muted);
+  opacity: .5;
+}
+
 .backpack { display: flex; flex-direction: column; gap: 8px; }
 .slot {
   display: flex; align-items: flex-start; gap: 9px;

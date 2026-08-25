@@ -14,7 +14,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-v25";
+const CACHE = "jiangshi-v26";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -34,30 +34,30 @@ const CACHE = "jiangshi-v25";
 // shell that goes stale, and a new tiles.json against an old engine.js is
 // exactly the mismatch #28 shipped.
 const SHELL_DIGEST = {
-  "@cache":                                 "jiangshi-v25",
-  "./":                                     "4be996b2dc",
-  "index.html":                             "4be996b2dc",
-  "game.html":                              "029f88082c",
-  "rulebook.html":                          "b1ca06f6e1",
-  "tiles.html":                             "da533137c2",
-  "credits.html":                           "1c3770a50d",
-  "manifest.webmanifest":                   "7cb5f47143",
+  "@cache":                                 "jiangshi-v26",
+  "./":                                     "567fbcc1dc",
+  "index.html":                             "567fbcc1dc",
+  "game.html":                              "f4926f5f77",
+  "rulebook.html":                          "ff98452d4c",
+  "tiles.html":                             "4223b8bd14",
+  "credits.html":                           "44405f11d9",
+  "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "b60eec3587",
-  "css/style.css":                          "412302e499",
-  "js/app.js":                              "91bcf219e1",
-  "js/eventstage.js":                       "53c5be2365",
+  "css/style.css":                          "afb40b0c4e",
+  "js/app.js":                              "0e68665dbd",
+  "js/eventstage.js":                       "591847c434",
   "js/engine.js":                           "95cb3d6fc6",
   "js/board.js":                            "fa1ad58cb1",
-  "js/render.js":                           "461fe072a2",
-  "js/audio.js":                            "df974b7abb",
-  "js/menu.js":                             "9a208967ba",
-  "js/tiles.js":                            "7a64ef7abf",
-  "js/shell.js":                            "6b3810be0a",
-  "js/tally.js":                            "758853a682",
-  "js/epilogue.js":                         "b01470afde",
-  "js/lang.js":                             "1e39e11bb9",
-  "js/rulebook.js":                         "a2a55d1dab",
-  "assets/icons.svg":                       "39bee1b54d",
+  "js/render.js":                           "729e056750",
+  "js/audio.js":                            "30cdbed084",
+  "js/menu.js":                             "b264b1ff1a",
+  "js/tiles.js":                            "2c0ee7043c",
+  "js/shell.js":                            "0aa62a2190",
+  "js/tally.js":                            "6d9c240fc0",
+  "js/epilogue.js":                         "c08e0636d4",
+  "js/lang.js":                             "1e7b3f3b4a",
+  "js/rulebook.js":                         "11dd15125f",
+  "assets/icons.svg":                       "deaac827d1",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
   "assets/icons/icon-192.png":              "83b7d80dc2",
   "assets/icons/icon-512.png":              "8114a3228c",

@@ -315,3 +315,78 @@ test("rulebook: §9 holds in the Chinese page too", () => {
   assert(!/\b1[12]\b/.test(withoutClock),
     "the zh rulebook states a threshold-shaped number outside the clock");
 });
+
+// ---- The hands (#32) ----------------------------------------------------------
+// The engine half is covered in engine.test.js. These guard the half a player
+// actually sees: that the panel exists, that every string it needs is written in
+// both languages, and that the rulebook stopped teaching the pack that used to
+// hold swords.
+
+test("equipment: both languages carry every string the panel and the prompt use", () => {
+  const keys = [
+    "hands-title", "hand-weapon", "hand-charm", "hand-empty", "hand-buffed",
+    "hand-weapon-said", "hand-weapon-bare", "hand-charm-said", "hand-charm-bare",
+    "replace-prompt", "replace-take", "replace-take-sub", "replace-keep", "replace-keep-sub",
+  ];
+  for (const k of keys) {
+    assert((themeEn.ui || {})[k], `English is missing ui.${k}`);
+    assert((themeZh.ui || {})[k], `繁體中文 is missing ui.${k}`);
+    assert(themeEn.ui[k] !== themeZh.ui[k], `ui.${k} is the same in both — untranslated`);
+  }
+  for (const k of ["search-armed", "search-replaced"]) {
+    assert((themeEn.lines || {})[k], `English is missing lines.${k}`);
+    assert((themeZh.lines || {})[k], `繁體中文 is missing lines.${k}`);
+  }
+});
+
+test("equipment: the replace prompt names both blades and both numbers", () => {
+  // The choice is unanswerable without them: a 真火符 burned into the blade in
+  // your hand is worth a point, and it can make worse steel the better weapon.
+  // A prompt that showed only one number would be asking the player to guess.
+  for (const [lang, t] of [["en", themeEn], ["zh", themeZh]]) {
+    for (const k of ["replace-take", "replace-keep"]) {
+      assert(/\{item\}/.test(t.ui[k]), `${lang} ui.${k} does not name the weapon`);
+      assert(/\{n\}/.test(t.ui[k]), `${lang} ui.${k} does not show its attack`);
+    }
+    assert(/\{item\}/.test(t.ui["replace-take-sub"]), `${lang} take-sub does not name what is left`);
+    assert(/\{item\}/.test(t.ui["replace-keep-sub"]), `${lang} keep-sub does not name what is left`);
+  }
+});
+
+test("equipment: both sides of the replace prompt admit the loss is permanent", () => {
+  // Saying it on one button only would make the other read as the safe choice.
+  // Whichever blade you turn down stays on the floor of a room you have no
+  // reason to walk back into, and weapons are unique.
+  assert(/for good/i.test(themeEn.ui["replace-take-sub"]), "en take-sub hides the permanence");
+  assert(/for good/i.test(themeEn.ui["replace-keep-sub"]), "en keep-sub hides the permanence");
+  assert(/永遠/.test(themeZh.ui["replace-take-sub"]), "zh take-sub hides the permanence");
+  assert(/永遠/.test(themeZh.ui["replace-keep-sub"]), "zh keep-sub hides the permanence");
+});
+
+test("equipment: the hands panel is in the page", async () => {
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  assert(/id="hud-hands"/.test(html), "game.html has no hands panel");
+  assert(/id="hands-title"/.test(html), "the hands panel has no themed heading");
+});
+
+test("rulebook: it no longer teaches a pack that holds swords", () => {
+  // One hand, one blade. The old rule — carry several and the best one counts —
+  // is the exact thing the second amendment replaced, and a rulebook still
+  // teaching it is worse than one that says nothing.
+  const en = rulebookHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  assert(!/best\s+one you are holding/i.test(en), "the English rulebook still teaches best-of-several");
+  assert(!/carrying two does not add/i.test(en), "the English rulebook still explains carrying two");
+  assert(/one blade at a time/i.test(en), "the English rulebook does not state the one-blade rule");
+
+  const zh = rulebookZh.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  assert(!/只算你手上\s*最好的那一把/.test(zh), "the zh rulebook still teaches best-of-several");
+  assert(!/帶兩把不會相加/.test(zh), "the zh rulebook still explains carrying two");
+  assert(/一次只拿得動一把/.test(zh), "the zh rulebook does not state the one-blade rule");
+});
+
+test("rulebook: both languages say the hands cost no pack slot", () => {
+  const en = rulebookHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  assert(/neither costs a slot/i.test(en), "the English rulebook does not exempt the hands");
+  const zh = rulebookZh.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  assert(/都不佔格子/.test(zh), "the zh rulebook does not exempt the hands");
+});

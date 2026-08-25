@@ -242,7 +242,9 @@
       "你把手伸進黑裡，摸到的是黑。",
       "這裡只有房間本身。"
     ],
-    "warded": "路口那塊石頭鎮著。什麼都不會來這塊地。"
+    "warded": "路口那塊石頭鎮著。什麼都不會來這塊地。",
+    "search-armed": "{item}。可是你手上已經有{holding}了。",
+    "search-replaced": "你拿起{item}，讓{dropped}掉在地上。"
   },
   "ui": {
     "dir-N": "北",
@@ -356,7 +358,21 @@
     "fast-on": "快速模式：開",
     "fast-off": "快速模式：關",
     "title-fast": "快速模式——只留節奏，不放動畫",
-    "stage-skip": "按任意鍵繼續"
+    "stage-skip": "按任意鍵繼續",
+    "hands-title": "手上",
+    "hand-weapon": "右手",
+    "hand-charm": "左手",
+    "hand-empty": "空著",
+    "hand-buffed": "燒了真火符",
+    "hand-weapon-said": "右手：{item}，攻擊力 {n}。",
+    "hand-weapon-bare": "右手空著。空手，攻擊力 {n}。",
+    "hand-charm-said": "左手：{item}。",
+    "hand-charm-bare": "左手空著。",
+    "replace-prompt": "{item}。你只拿得動一把。",
+    "replace-take": "拿{item}——攻擊力 {n}",
+    "replace-take-sub": "{item}（{n}）就永遠留在這裡了",
+    "replace-keep": "留著{item}——攻擊力 {n}",
+    "replace-keep-sub": "{item}就永遠留在這裡了"
   },
   "landing": {
     "tagline": "夜裡九點。三更時分，他來找你。讓他入土，或是等他來的時候還站著。",

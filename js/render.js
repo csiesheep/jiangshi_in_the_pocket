@@ -1,7 +1,8 @@
 // Rendering — reflects game + board state into the DOM. No game logic here.
 
 import { RULES, effectiveAttack, clockTime, dread, heldIds, heldCount,
-         attackWith, bestSword, held } from "./engine.js";
+         attackWith, bestSword, held, equippedWeapon, equippedCharm,
+         swordAttack } from "./engine.js";
 import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          watchDrum, hopThud,
@@ -168,6 +169,7 @@ export function renderHud(game) {
   const nowHeld = heldIds(game.state);
   const arrived = nowHeld.filter((id) => !lastItems.includes(id));
   lastItems = nowHeld.slice();
+  renderHands(game);
   renderBackpack(game);
   // The sound goes with the pickup, not with the animation — reduced motion
   // skips the flare, and a player who turned sound on still hears the find.
@@ -589,6 +591,85 @@ function renderRelic(s) {
   text.setAttribute("aria-hidden", "true");
   el.appendChild(text);
   el.appendChild(srOnly(ui(drawing, s.tablet ? "tablet-held" : "tablet-missing")));
+}
+
+// ---- The hands ---------------------------------------------------------------
+// What you are HOLDING, which the second amendment made a different question
+// from what you are carrying. Two slots that are not pack slots, drawn either
+// side of the figure so the answer is a picture rather than another list — the
+// pack went back to being luggage and this panel is the reason that reads.
+//
+// Both hands are drawn even when empty, and that is the point of starting the
+// night here: bare-handed is ZERO attack, not "one plus whatever you find", and
+// an empty right hand said out loud on turn one is the clearest way to teach a
+// rule that the source game did not have.
+//
+// The slots are LABELLED as well as placed. The figure faces you, so its right
+// hand is on your left, and a player who has to work that out from a silhouette
+// is a player the panel failed.
+function renderHands(game) {
+  const el = document.getElementById("hud-hands");
+  if (!el) return;
+  const s = game.state;
+  el.textContent = "";
+
+  el.appendChild(handSlot(game, "weapon", equippedWeapon(s)));
+
+  const fig = document.createElement("div");
+  fig.className = "handfig";
+  const art = icon("scene", "standing", "handfig-art");
+  if (art) fig.appendChild(art);
+  el.appendChild(fig);
+
+  el.appendChild(handSlot(game, "charm", equippedCharm(s)));
+}
+
+// One hand. The weapon hand also carries the number, because the number IS the
+// weapon here — a sword is your attack outright rather than a bonus on top of
+// one, and 真火符 burned into the steel is worth a point that has to show
+// somewhere the player will look before a replace prompt asks about it.
+function handSlot(game, slot, id) {
+  const s = game.state;
+  const box = document.createElement("div");
+  box.className = `hand hand--${slot}` + (id ? "" : " hand--bare");
+
+  const label = document.createElement("span");
+  label.className = "handlabel";
+  label.textContent = ui(game, slot === "weapon" ? "hand-weapon" : "hand-charm");
+  box.appendChild(label);
+
+  const art = id ? icon("item", id, "handicon") : null;
+  if (art) box.appendChild(art);
+
+  const name = document.createElement("span");
+  name.className = "handname";
+  name.textContent = id ? itemName(game, id) : ui(game, "hand-empty");
+  box.appendChild(name);
+
+  if (slot === "weapon") {
+    const n = id ? swordAttack(s, id) : RULES.START_ATTACK;
+    const num = document.createElement("span");
+    num.className = "handattack";
+    num.textContent = String(n);
+    // The buff is permanent and belongs to this blade — leave the sword and the
+    // point goes with it. Marked here so the replace prompt is not the first
+    // time anybody hears about it.
+    if (id && s.buffed && s.buffed[id]) {
+      num.classList.add("handattack--buffed");
+      num.appendChild(srOnly(ui(game, "hand-buffed")));
+    }
+    box.appendChild(num);
+    // Spoken as a sentence: the visual is a label, a name and a bare numeral
+    // three elements apart, which reads as three unrelated facts aloud.
+    box.appendChild(srOnly(ui(game, id ? "hand-weapon-said" : "hand-weapon-bare", {
+      item: id ? itemName(game, id) : "", n,
+    })));
+  } else {
+    box.appendChild(srOnly(ui(game, id ? "hand-charm-said" : "hand-charm-bare", {
+      item: id ? itemName(game, id) : "",
+    })));
+  }
+  return box;
 }
 
 // The pack expanded into one entry per slot, in the order the engine charges

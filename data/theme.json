@@ -54,7 +54,9 @@
       "Nothing here but the room."
     ],
     "strike-eleven": "Eleven. The last hour — when the deck runs dry, it is midnight.",
-    "warded": "The stone at the junction holds. Nothing comes to this ground."
+    "warded": "The stone at the junction holds. Nothing comes to this ground.",
+    "search-armed": "{item}. Your hand is already full — you are holding {holding}.",
+    "search-replaced": "You take {item}, and let {dropped} fall."
   },
   "ui": {
     "_note": "Labels, the small grey line under them, and the prompts over the choice window. Kept apart from `lines` because these are things you press and those are things the house says — a translator handles them differently, and these have to stay short enough for a narrow card.",
@@ -169,7 +171,21 @@
     "fast-on": "Fast mode on",
     "fast-off": "Fast mode off",
     "title-fast": "Fast mode — the beats without the animations",
-    "stage-skip": "press anything to go on"
+    "stage-skip": "press anything to go on",
+    "hands-title": "In hand",
+    "hand-weapon": "Right hand",
+    "hand-charm": "Left hand",
+    "hand-empty": "empty",
+    "hand-buffed": "真火符 burned into it",
+    "hand-weapon-said": "Right hand: {item}, attack {n}.",
+    "hand-weapon-bare": "Right hand empty. Bare-handed, attack {n}.",
+    "hand-charm-said": "Left hand: {item}.",
+    "hand-charm-bare": "Left hand empty.",
+    "replace-prompt": "{item}. You can only hold one blade.",
+    "replace-take": "Take {item} — attack {n}",
+    "replace-take-sub": "{item} ({n}) stays here for good",
+    "replace-keep": "Keep {item} — attack {n}",
+    "replace-keep-sub": "{item} stays here for good"
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",

@@ -1570,6 +1570,7 @@ function paintChrome() {
     "nav-rulebook": "nav-rulebook", "nav-menu": "nav-menu",
     "page-title": "page-title", backpack: "backpack", "seed-label": "seed-label",
     "note-again": "note-again", "copy-replay": "copy-replay",
+    "hands-title": "hands-title",
     brand: "brand",
   };
   for (const [id, key] of Object.entries(text)) {
