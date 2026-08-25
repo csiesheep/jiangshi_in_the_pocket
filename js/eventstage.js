@@ -42,7 +42,7 @@
 // picture away without taking anything away. That ordering is load-bearing —
 // see the note on skipping.
 
-import { enterScene, leaveScene, icon, reducedMotion } from "./render.js";
+import { enterScene, leaveScene, icon, reducedMotion, grain } from "./render.js";
 import { isCalm } from "./audio.js";
 
 // The beat the stage is replacing. Kept here as its own name rather than
@@ -192,7 +192,10 @@ export function kingScene() {
 // him: the frost off his feet, the light leaning away, the shadow reaching out
 // past the frame. Layers, like everything else that paints full screen.
 function buildKing(inner, ctx) {
-  for (const part of ["dark", "bow", "frost", "shadow"]) {
+  // The shadow is built FIRST and is full from the opening frame — it is the
+  // layer that arrives before the man, and he resolves out of the dark behind
+  // it a beat later.
+  for (const part of ["shadow", "dark", "bow", "frost", "weave"]) {
     const n = document.createElement("span");
     n.className = `king-${part}`;
     n.setAttribute("aria-hidden", "true");
@@ -204,6 +207,7 @@ function buildKing(inner, ctx) {
   const art = icon("king", "figure", "king-art");
   if (art) fig.appendChild(art);
   inner.appendChild(fig);
+  grain(inner, 0.22);
 }
 
 // ---- The frame ----------------------------------------------------------------
@@ -339,46 +343,6 @@ function layer(inner, name) {
   n.setAttribute("aria-hidden", "true");
   inner.appendChild(n);
   return n;
-}
-
-// Film grain, and it is what makes the rest read as photographed rather than
-// drawn. Rendered ONCE from a fixed seed: a grain that reseeds every frame is a
-// strobe wearing a respectable name, and this project has a real guard against
-// those now.
-function grain(inner, opacity) {
-  const NS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("class", "evs-grain");
-  svg.setAttribute("aria-hidden", "true");
-  svg.setAttribute("preserveAspectRatio", "none");
-  const id = "grain-" + Math.random().toString(36).slice(2, 9);
-  const filter = document.createElementNS(NS, "filter");
-  filter.setAttribute("id", id);
-  filter.setAttribute("x", "0");
-  filter.setAttribute("y", "0");
-  filter.setAttribute("width", "100%");
-  filter.setAttribute("height", "100%");
-  const turb = document.createElementNS(NS, "feTurbulence");
-  turb.setAttribute("type", "fractalNoise");
-  turb.setAttribute("baseFrequency", "0.9");
-  turb.setAttribute("numOctaves", "3");
-  turb.setAttribute("seed", "7");
-  turb.setAttribute("stitchTiles", "stitch");
-  filter.appendChild(turb);
-  // Desaturate the noise. Coloured grain is video noise; film grain is silver.
-  const mat = document.createElementNS(NS, "feColorMatrix");
-  mat.setAttribute("type", "saturate");
-  mat.setAttribute("values", "0");
-  filter.appendChild(mat);
-  svg.appendChild(filter);
-  const rect = document.createElementNS(NS, "rect");
-  rect.setAttribute("width", "100%");
-  rect.setAttribute("height", "100%");
-  rect.setAttribute("filter", "url(#" + id + ")");
-  rect.setAttribute("opacity", String(opacity == null ? 0.22 : opacity));
-  svg.appendChild(rect);
-  inner.appendChild(svg);
-  return svg;
 }
 
 // Fog, in layers that drift at different speeds. Slow enough that you are not

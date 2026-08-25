@@ -1155,6 +1155,51 @@ const SCARE_SLOTS = [
   [50, 21, 0.5, 0.34],
 ];
 
+// ---- Film grain --------------------------------------------------------------
+// Lives here rather than in eventstage.js because BOTH full-screen registers
+// need it — the event scenes and the scare — and eventstage already imports
+// from this file. Putting it the other way round would make a cycle.
+//
+// Film grain, and it is what makes the rest read as photographed rather than
+// drawn. Rendered ONCE from a fixed seed: a grain that reseeds every frame is a
+// strobe wearing a respectable name, and this project has a real guard against
+// those now.
+export function grain(inner, opacity) {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "evs-grain");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("preserveAspectRatio", "none");
+  const id = "grain-" + Math.random().toString(36).slice(2, 9);
+  const filter = document.createElementNS(NS, "filter");
+  filter.setAttribute("id", id);
+  filter.setAttribute("x", "0");
+  filter.setAttribute("y", "0");
+  filter.setAttribute("width", "100%");
+  filter.setAttribute("height", "100%");
+  const turb = document.createElementNS(NS, "feTurbulence");
+  turb.setAttribute("type", "fractalNoise");
+  turb.setAttribute("baseFrequency", "0.9");
+  turb.setAttribute("numOctaves", "3");
+  turb.setAttribute("seed", "7");
+  turb.setAttribute("stitchTiles", "stitch");
+  filter.appendChild(turb);
+  // Desaturate the noise. Coloured grain is video noise; film grain is silver.
+  const mat = document.createElementNS(NS, "feColorMatrix");
+  mat.setAttribute("type", "saturate");
+  mat.setAttribute("values", "0");
+  filter.appendChild(mat);
+  svg.appendChild(filter);
+  const rect = document.createElementNS(NS, "rect");
+  rect.setAttribute("width", "100%");
+  rect.setAttribute("height", "100%");
+  rect.setAttribute("filter", "url(#" + id + ")");
+  rect.setAttribute("opacity", String(opacity == null ? 0.22 : opacity));
+  svg.appendChild(rect);
+  inner.appendChild(svg);
+  return svg;
+}
+
 // ---- The four 僵屍 -------------------------------------------------------------
 // Strength is HOW IT ARRIVES, not just how many faces. n runs 3 to 6 and each
 // is its own staging: 白殭 is a stiff thing at the door and 飛殭 is already on
@@ -1184,14 +1229,23 @@ const SCARE_TIERS = {
   6: { cls: "n6", lead: 1.42, at: 0.00, beats: [0, 0.07, 0.14, 0.21, 0.28] },
 };
 
-// What the room gives up, by tier. This is the half that survives calm mode:
-// the faces are the assault and go, the room's own reaction is information and
-// stays. Cumulative on purpose — the lantern never comes back up.
+// What the room gives up, by tier — restaged into the film. Cumulative on
+// purpose: the lantern never comes back up, and nothing a lower tier gave away
+// is taken back by a higher one.
+//
+// 白殭 is a GLIMPSE: backlit in a doorway, and the 符 on its brow still moving.
+// 黑殭 is closer and lacquered, and the paper is gone. 跳殭 brings the hop, so
+// it brings smear and a single shudder of the frame — POSITION only, never
+// luminance, and once. 飛殭 fills the frame: breath on the glass and eyeshine
+// that rises to a held value and stays there.
+//
+// The eyes GLOW and never flash, at any tier, under any gate. That is not a
+// preference and there is a test on it.
 const SCARE_DRESSING = {
-  n3: ["dim"],
-  n4: ["dim", "frost"],
-  n5: ["dim", "frost", "close"],
-  n6: ["dim", "frost", "close", "gutter"],
+  n3: ["dim", "backlit"],
+  n4: ["dim", "backlit", "frost", "lacquer"],
+  n5: ["dim", "frost", "close", "smear"],
+  n6: ["dim", "frost", "close", "gutter", "breath"],
 };
 
 function scareTier(count) {
@@ -1271,6 +1325,7 @@ function stingOnly(count, from = null) {
     el.className = `scare scare--calm scare--${tier.cls}`;
     el.setAttribute("aria-hidden", "true");
     dressScare(el, tier);
+    grain(el, 0.24);
     document.body.appendChild(el);
     setTimeout(() => {
       el.remove();
@@ -1315,6 +1370,7 @@ function scareNow(count, from = null) {
         seat.appendChild(held);
         still.appendChild(seat);
       }
+      grain(still, 0.24);
       document.body.appendChild(still);
       setTimeout(() => {
         still.remove();
@@ -1361,8 +1417,12 @@ function scareNow(count, from = null) {
       el.appendChild(nails);
     }
     if (tier.cls === "n6") {
+      // Animal eyeshine — the flat retroreflective coin you get back from a fox
+      // at the edge of a torch beam. It rises once to a held value and stays
+      // there for the rest of the scene. It does not blink, and nothing in this
+      // file is allowed to make it.
       const glow = document.createElement("span");
-      glow.className = "scare-glow";
+      glow.className = "scare-eyeshine";
       glow.setAttribute("aria-hidden", "true");
       el.appendChild(glow);
     }
@@ -1412,6 +1472,10 @@ function scareNow(count, from = null) {
         }
       );
     }
+
+    // The same grain the event scenes carry, so the two full-screen registers are
+    // photographed by the same camera.
+    grain(el, 0.24);
 
     const anim = el.animate(
       [

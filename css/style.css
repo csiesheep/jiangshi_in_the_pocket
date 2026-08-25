@@ -2183,112 +2183,207 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 }
 
 /* ---- The four 僵屍 -------------------------------------------------------------
-   One grammar, escalating. 白殭 is a stiff thing at the door and 飛殭 is already
-   on top of you, and every axis moves together: how close it lands, how late it
-   commits, the rhythm of the hops, and how much the room gives up.
+   Same film as the event scenes: two lights, swallowing blacks, silver grain.
+   The escalation logic is unchanged — strength is HOW IT ARRIVES — and what
+   changes here is the register it arrives in.
 
-   PHOTOSENSITIVITY, and this is not negotiable. Nothing here strobes. The eyes
-   GLOW — one steady rise, held — and 飛殭's candles die and relight exactly once
-   over a fifth of a second, easing both ways. There is no repeating luminance
-   change anywhere in this block, at any tier, and any future tier that wants one
-   has to find another idea.
+   白殭 is a glimpse in a doorway, backlit, the 符 on its brow still moving.
+   黑殭 is a layer closer, skin like lacquer, and the paper gone. 跳殭 hops, so
+   it smears, and the frame shudders ONCE — position only, never brightness.
+   飛殭 fills the frame: breath on the glass, and eyeshine that rises to a held
+   value and stays there.
 
-   The dressing layers are painted for calm mode too, where no face ever arrives:
-   the faces are the assault and go, the room's reaction is information and
-   stays. Everything is aria-hidden — the log already said what walked in. */
+   PHOTOSENSITIVITY, still not negotiable. Nothing here repeats a luminance
+   change. The eyes glow and never blink; 飛殭's candles die and relight exactly
+   once, eased both ways; the judder moves the frame and does not touch its
+   brightness. There is a test on all of this and it has already caught me once. */
 
-.scare-dim, .scare-frost, .scare-close, .scare-gutter, .scare-nails, .scare-glow {
+.scare-dim, .scare-frost, .scare-close, .scare-gutter, .scare-nails,
+.scare-eyeshine, .scare-backlit, .scare-lacquer, .scare-smear, .scare-breath {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-/* The lantern drops. Present at every tier and never coming back up. */
+/* The lantern gives up. Present at every tier and never coming back. */
 .scare-dim {
-  background: rgba(4, 2, 3, .38);
-  animation: scare-dim-in .22s ease-out both;
+  background: rgba(4, 3, 4, .46);
+  animation: scare-dim-in .24s ease-out both;
 }
 
-/* First breath on the air: cold, and off to the edges rather than over the
-   face, so it reads as the room going cold and not as fog on the lens. */
+/* 白殭's doorway. A cold rectangle of moon behind the figure, so the first tier
+   is a shape you cannot read rather than a face you can. */
+.scare-backlit {
+  background:
+    linear-gradient(to bottom,
+      transparent 12%,
+      color-mix(in srgb, var(--film-moon) 20%, transparent) 22%,
+      color-mix(in srgb, var(--film-moon) 20%, transparent) 78%,
+      transparent 88%);
+  -webkit-mask-image: linear-gradient(to right, transparent 34%, #000 40%, #000 60%, transparent 66%);
+  mask-image: linear-gradient(to right, transparent 34%, #000 40%, #000 60%, transparent 66%);
+  animation: scare-backlit 1s cubic-bezier(.6,0,.4,1) both;
+}
+
+/* Frost, crystalline rather than a wash — it wants to look like it grew. */
 .scare-frost {
   background:
-    radial-gradient(120% 80% at 50% 108%, rgba(150, 200, 214, .17), transparent 62%),
-    radial-gradient(120% 80% at 50% -8%,  rgba(150, 200, 214, .13), transparent 62%);
-  animation: scare-frost-in .3s ease-out both;
+    radial-gradient(60% 24% at 50% 104%, rgba(150, 200, 214, .2), transparent 72%),
+    repeating-linear-gradient(58deg, rgba(190, 220, 228, .05) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(-58deg, rgba(190, 220, 228, .04) 0 2px, transparent 2px 11px);
+  animation: scare-frost-in .5s ease-out both;
 }
 
-/* The edges come in. Distinct from the dim: that one flattens the whole frame,
-   this one takes the corners away, which is what "there is less room than there
-   was" looks like. */
+/* 黑殭's skin. A hard specular band across the figures — lacquer, not sweat. */
+.scare-lacquer {
+  background: linear-gradient(104deg, transparent 40%, rgba(226, 232, 236, .12) 49%, transparent 58%);
+  mix-blend-mode: screen;
+  animation: scare-lacquer .9s cubic-bezier(.7,0,.3,1) both;
+}
+
+/* 跳殭's smear. The trail a hop leaves when the shutter is too slow for it. */
+.scare-smear {
+  background:
+    linear-gradient(to bottom, transparent 30%, rgba(180, 190, 196, .07) 46%, transparent 62%);
+  filter: blur(6px);
+  animation: scare-smear .8s cubic-bezier(.85,0,.2,1) both;
+}
+
+/* The edges come in. */
 .scare-close {
-  box-shadow: inset 0 0 min(22vmin, 190px) min(9vmin, 70px) rgba(3, 2, 2, .92);
-  animation: scare-close-in .26s ease-out both;
+  box-shadow: inset 0 0 min(22vmin, 190px) min(9vmin, 70px) rgba(3, 2, 2, .93);
+  animation: scare-close-in .3s ease-out both;
+}
+
+/* 飛殭's breath on the glass, close and low and warm-cold at once. */
+.scare-breath {
+  background: radial-gradient(30% 22% at 50% 52%, rgba(206, 224, 228, .16), transparent 72%);
+  filter: blur(3px);
+  animation: scare-breath 1.1s ease-out both;
 }
 
 /* Every candle dies and comes back. ONCE — a single dip and return, eased both
-   ways over 200ms. Not a flash and not a sequence. */
+   ways. Not a flash and not a sequence. */
 .scare-gutter {
   background: #000;
   opacity: 0;
-  animation: scare-gutter .2s ease-in-out both;
+  animation: scare-gutter .22s ease-in-out both;
 }
 
-/* Nails at the bottom edge, arriving before the face lands on top of them. Drawn
-   as strokes rather than art, in the danger colour, so they belong to the same
-   material as everything else on this overlay. */
+/* Nails at the bottom edge, arriving before the face lands on top of them. */
 .scare-nails {
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0 3.6%,
-      color-mix(in srgb, var(--danger) 52%, transparent) 3.6% 4.3%,
+      rgba(190, 196, 200, .3) 3.6% 4.3%,
       transparent 4.3% 8%);
   -webkit-mask-image: linear-gradient(to top, #000 0, transparent 13vmin);
   mask-image: linear-gradient(to top, #000 0, transparent 13vmin);
-  animation: scare-nails-in .16s ease-out both;
+  animation: scare-nails-in .18s ease-out both;
 }
 
-/* The eyes. A steady rise to a held value — the one thing in this file that is
-   forbidden from ever blinking. */
-.scare-glow {
-  background: radial-gradient(28vmin 20vmin at 50% 46%,
-              color-mix(in srgb, var(--danger) 30%, transparent), transparent 70%);
-  animation: scare-glow-in .34s ease-out both;
+/* Animal eyeshine. Two flat coins of returned light, and the only saturated
+   thing anywhere near this scene is still not red — retroreflection is colder
+   than blood and the film keeps its one red for paper. */
+.scare-eyeshine {
+  background:
+    radial-gradient(1.6vmin 1.1vmin at 46.5% 45%, rgba(196, 214, 190, .85), transparent 70%),
+    radial-gradient(1.6vmin 1.1vmin at 53.5% 45%, rgba(196, 214, 190, .85), transparent 70%);
+  animation: scare-eyeshine 1.2s cubic-bezier(.7,0,.3,1) both;
 }
 
 /* The 符 on the brow: present on 白殭, gone above it. Custom properties are the
-   only thing that crosses a <use> shadow boundary, which is why it is one. */
+   only thing that crosses a <use> shadow boundary. */
 .scare--n4, .scare--n5, .scare--n6 { --zb-seal: 0; }
 
-@keyframes scare-dim-in    { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scare-frost-in  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scare-close-in  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scare-nails-in  { from { opacity: 0; transform: translateY(18%); }
-                             to   { opacity: 1; transform: none; } }
-@keyframes scare-glow-in   { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scare-gutter    { 0% { opacity: 0; } 45% { opacity: 1; } 100% { opacity: 0; } }
+/* 白殭's paper still moves. A slow lean and settle — one motion, no repeat. */
+.scare--n3 .scare-art { animation: scare-flutter 1s ease-out both; transform-origin: 50% 12%; }
 
-/* Reduced motion: one composition, arrived at rather than travelled to. Every
-   layer is simply present at its final value — distance is still the tier, and a
-   still frame carries distance perfectly well. The gutter is dropped outright:
-   a light going out and coming back is motion however gently it is done. */
+/* 跳殭 shudders the frame. POSITION ONLY: three offsets and a settle, once.
+   Brightness is untouched, which is what keeps it outside the strobe rule. */
+.scare--n5 .scare-face { animation: scare-judder .42s cubic-bezier(.9,0,.1,1) both; }
+
+@keyframes scare-dim-in     { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scare-frost-in   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scare-close-in   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scare-nails-in   { from { opacity: 0; transform: translateY(18%); }
+                              to   { opacity: 1; transform: none; } }
+@keyframes scare-gutter     { 0% { opacity: 0; } 45% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Hold, then complete — the same grammar the event scenes use. */
+@keyframes scare-backlit {
+  0%   { opacity: 0;   transform: scaleY(.94); }
+  60%  { opacity: .3;  transform: scaleY(.97); }
+  100% { opacity: 1;   transform: none; }
+}
+@keyframes scare-lacquer {
+  0%   { opacity: 0;   transform: translateX(-12%); }
+  62%  { opacity: .15; transform: translateX(-8%); }
+  100% { opacity: 1;   transform: none; }
+}
+@keyframes scare-smear {
+  0%   { opacity: 0;   transform: translateY(9%) scaleY(1.3); }
+  55%  { opacity: .3;  transform: translateY(4%) scaleY(1.16); }
+  100% { opacity: 1;   transform: none; }
+}
+@keyframes scare-breath {
+  0%   { opacity: 0;   transform: scale(.82); }
+  64%  { opacity: .28; transform: scale(.9); }
+  100% { opacity: 1;   transform: scale(1); }
+}
+@keyframes scare-eyeshine {
+  0%   { opacity: 0; }
+  66%  { opacity: .12; }
+  100% { opacity: 1; }
+}
+@keyframes scare-flutter {
+  0%   { transform: rotate(0deg); }
+  38%  { transform: rotate(1.6deg); }
+  70%  { transform: rotate(-.9deg); }
+  100% { transform: rotate(0deg); }
+}
+/* Three offsets and a settle. No opacity anywhere in this one, deliberately. */
+@keyframes scare-judder {
+  0%   { transform: translate(-50%, -50%); }
+  22%  { transform: translate(calc(-50% + 5px), calc(-50% - 3px)); }
+  46%  { transform: translate(calc(-50% - 4px), calc(-50% + 4px)); }
+  70%  { transform: translate(calc(-50% + 2px), calc(-50% - 1px)); }
+  100% { transform: translate(-50%, -50%); }
+}
+
+/* Calm: the room still tells you which of the four it is, and no face ever
+   arrives. The dressing is the information and it stays; the smear, the judder
+   and the eyeshine belong to the thing itself and never render, because calm
+   builds no faces at all. */
+.scare--calm { background: rgba(4, 3, 4, .8); }
+
+/* prefers-reduced-motion: composed and held. Distance is still the tier. The
+   gutter and the judder are dropped outright — a light going out and a frame
+   moving are both motion however gently they are done. */
+.scare--still,
 .scare--still .scare-dim,
+.scare--still .scare-backlit,
 .scare--still .scare-frost,
+.scare--still .scare-lacquer,
+.scare--still .scare-smear,
 .scare--still .scare-close,
+.scare--still .scare-breath,
 .scare--still .scare-nails,
-.scare--still .scare-glow,
-.scare--still .scare-face { animation: none; opacity: 1; transform: none; }
+.scare--still .scare-eyeshine,
+.scare--still .scare-face,
+.scare--still .scare-art { animation: none; opacity: 1; }
 .scare--still .scare-gutter { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .scare-dim, .scare-frost, .scare-close, .scare-nails, .scare-glow {
+  .scare-dim, .scare-backlit, .scare-frost, .scare-lacquer, .scare-smear,
+  .scare-close, .scare-breath, .scare-nails, .scare-eyeshine,
+  .scare-face, .scare-art {
     animation: none;
     opacity: 1;
   }
   .scare-gutter { display: none; }
 }
-
 
 /* ---- The event scenes: the film ------------------------------------------------
    HK jiangshi cinema, not iconography. Two lights and nothing else — the
@@ -2493,53 +2588,78 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 }
 
 /* ---- 殭屍王 ---------------------------------------------------------------------
-   The pack scene inverted, in every axis it has. Those four tiers escalate by
+   The pack scene inverted, in the same film. Those four tiers escalate by
    arriving harder and faster; he does not arrive at all. The frame opens on him
    already standing, and the only movement in the whole scene is one slow step
-   that changes nothing about the outcome.
+   that changes nothing.
+
+   The realism pass is spent on three things and no others: the weave of the
+   court robes, frost crystallising rather than washing, and the SHADOW ARRIVING
+   BEFORE THE MAN — it is full from the first frame and he resolves out of the
+   dark a beat later. He is not walking in. You simply notice the shadow first,
+   which is how you would.
 
    There is no text here, and that is a §9 decision rather than a stylistic one:
    this plays immediately before the one comparison the game never explains, so
-   the scene is given nothing to say. No numbers, no threshold, nothing that
-   grades what you are holding.
+   the scene is given nothing to say. kingScene() takes no arguments at all, so
+   it cannot be handed any.
 
    No strobe, same as everywhere: every animation below runs once, monotonically,
    and reduced motion holds the whole composition instead. */
-.kingscene { background: rgba(3, 2, 3, .94); }
+.kingscene { background: rgba(3, 2, 3, .95); }
 
-.king-dark, .king-bow, .king-frost, .king-shadow {
+.king-dark, .king-bow, .king-frost, .king-shadow, .king-weave {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
 .king-dark {
-  background: radial-gradient(70% 55% at 50% 46%, transparent 30%, rgba(2, 1, 2, .8) 100%);
-  animation: king-fade 1s ease-out both;
+  background: radial-gradient(68% 54% at 50% 46%, transparent 28%, rgba(2, 1, 2, .86) 100%);
+  animation: king-fade 1.1s ease-out both;
 }
 
-/* The candles bow away. The warm light starts near him and leans outward over
-   the whole scene — the room declining to be near him, which is the one piece of
-   set-dressing that says what he is without saying anything. */
+/* The candles bow away from him. The warm light starts near and leans outward
+   over the whole scene — the room declining to be near him, which says what he
+   is without saying anything. */
 .king-bow {
   background:
-    radial-gradient(46% 34% at 22% 62%, color-mix(in srgb, var(--gold) 15%, transparent), transparent 70%),
-    radial-gradient(46% 34% at 78% 62%, color-mix(in srgb, var(--gold) 15%, transparent), transparent 70%);
-  animation: king-bow 2.2s ease-out both;
+    radial-gradient(44% 32% at 20% 62%, color-mix(in srgb, var(--film-tungsten) 16%, transparent), transparent 72%),
+    radial-gradient(44% 32% at 80% 62%, color-mix(in srgb, var(--film-tungsten) 16%, transparent), transparent 72%);
+  animation: king-bow 2.3s ease-out both;
 }
 
-/* Frost off his feet, outward along the floor. */
+/* Frost crystallising off his feet — grown, not washed. Two fine lattices at
+   opposing angles under a low bloom, so the floor reads as ice forming rather
+   than fog lying. */
 .king-frost {
-  background: radial-gradient(58% 26% at 50% 88%,
-              rgba(150, 200, 214, .22), transparent 72%);
-  animation: king-frost 2s ease-out both;
+  background:
+    radial-gradient(56% 24% at 50% 90%, rgba(150, 200, 214, .2), transparent 74%),
+    repeating-linear-gradient(62deg,  rgba(196, 224, 232, .055) 0 2px, transparent 2px 10px),
+    repeating-linear-gradient(-62deg, rgba(196, 224, 232, .045) 0 2px, transparent 2px 13px);
+  -webkit-mask-image: radial-gradient(62% 30% at 50% 92%, #000, transparent 76%);
+  mask-image: radial-gradient(62% 30% at 50% 92%, #000, transparent 76%);
+  animation: king-frost 2.1s ease-out both;
 }
 
-/* The shadow reaches toward you and off the bottom of the frame. It is the only
-   part of him that comes any closer. */
+/* The weave of the robes. A very fine twill over the frame, masked to where he
+   stands — cloth at this distance is a texture and not a pattern, so it sits
+   just above the grain and just below noticing. */
+.king-weave {
+  background:
+    repeating-linear-gradient(52deg, rgba(214, 216, 222, .05) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-52deg, rgba(214, 216, 222, .035) 0 1px, transparent 1px 5px);
+  -webkit-mask-image: radial-gradient(19% 34% at 50% 52%, #000 40%, transparent 78%);
+  mask-image: radial-gradient(19% 34% at 50% 52%, #000 40%, transparent 78%);
+  animation: king-fade 1.4s ease-out both;
+}
+
+/* The shadow reaches toward you and off the bottom of the frame, and it is the
+   only part of him that comes any closer. Full from the first frame — this is
+   the layer that arrives before the man. */
 .king-shadow {
-  background: linear-gradient(to bottom, transparent 62%, rgba(0, 0, 0, .85) 100%);
-  animation: king-shadow 2.2s ease-out both;
+  background: linear-gradient(to bottom, transparent 58%, rgba(0, 0, 0, .9) 100%);
+  animation: king-shadow .5s ease-out both;
 }
 
 .king-fig {
@@ -2547,22 +2667,23 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   left: 50%;
   top: 52%;
   transform: translate(-50%, -50%);
-  /* One slow step. Small enough that it reads as weight rather than motion —
-     a lunge here would make him the pack, which is the one thing he is not. */
-  animation: king-step 2.3s cubic-bezier(.33,.02,.4,1) both;
+  /* He resolves out of the dark AFTER the shadow, then takes one slow step.
+     Small enough that it reads as weight rather than motion — a lunge here
+     would make him the pack, which is the one thing he is not. */
+  animation: king-step 2.4s cubic-bezier(.33,.02,.4,1) both;
 }
 .king-art {
   display: block;
   width: min(30vmin, 260px);
   height: min(48vmin, 420px);
-  color: var(--text);
-  opacity: .92;
-  filter: drop-shadow(0 0 30px rgba(0, 0, 0, .95));
+  color: #d7d9de;
+  opacity: .9;
+  filter: drop-shadow(0 0 34px rgba(0, 0, 0, .96)) contrast(1.08);
 }
 
 /* Calm keeps its promise: he never turns his face to the screen. Robes, hat and
    shadow are the whole of him — which is, if anything, worse. */
-.evstage--calm .king-art { --king-face: 0; opacity: .8; }
+.evstage--calm .king-art { --king-face: 0; opacity: .78; }
 .evstage--calm .king-bow, .evstage--calm .king-frost { opacity: .7; }
 
 /* Reduced motion: one held composition — the doorway, him mid-frame, the light
@@ -2570,23 +2691,28 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 .evstage--still .king-dark,
 .evstage--still .king-bow,
 .evstage--still .king-frost,
+.evstage--still .king-weave,
 .evstage--still .king-shadow,
 .evstage--still .king-fig { animation: none; opacity: 1; }
 .evstage--still .king-fig { transform: translate(-50%, -50%) scale(1.03); }
 
 @keyframes king-fade   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes king-shadow { from { opacity: .55; } to { opacity: 1; } }
 @keyframes king-bow    { from { opacity: 0; transform: scale(.86); }
                          to   { opacity: 1; transform: scale(1.06); } }
-@keyframes king-frost  { from { opacity: 0; transform: scaleX(.5); }
+@keyframes king-frost  { from { opacity: 0; transform: scaleX(.55); }
                          to   { opacity: 1; transform: scaleX(1); } }
-@keyframes king-shadow { from { opacity: 0; } to { opacity: 1; } }
+/* The hold is longer here than anywhere else in the film. He is already there;
+   what you are waiting through is the fact of him. */
 @keyframes king-step {
-  from { transform: translate(-50%, -50%) scale(1); }
-  to   { transform: translate(-50%, calc(-50% + 1.4%)) scale(1.03); }
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(1); }
+  18%  { opacity: .55; transform: translate(-50%, -50%) scale(1); }
+  70%  { opacity: .92; transform: translate(-50%, -50%) scale(1.004); }
+  100% { opacity: 1;   transform: translate(-50%, calc(-50% + 1.4%)) scale(1.03); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .king-dark, .king-bow, .king-frost, .king-shadow, .king-fig {
+  .king-dark, .king-bow, .king-frost, .king-weave, .king-shadow, .king-fig {
     animation: none;
     opacity: 1;
   }
