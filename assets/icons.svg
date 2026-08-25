@@ -787,6 +787,17 @@
     <path d="M5 15.5 12 8.5l7 7"/>
   </symbol>
 
+  <!-- Staying put. Two soles standing, not walking — the one mark on the board
+       that is about not going anywhere. Bare paths like the chevron: every
+       stroke property comes from CSS so this inherits the same discipline the
+       ways out are drawn with, and the mass is in the stroke rather than in a
+       box. The centre of a tile was always "nominally the footprints'"; this
+       makes the decoration the control. -->
+  <symbol id="ui-footprints" viewBox="0 0 24 24">
+    <path d="M7.9 5.4c1.9 0 3.1 1.4 3.1 3.1 0 1.4-.6 2.2-.6 3.6 0 1.6.5 2.3.5 3.4 0 1.5-1.2 2.4-3 2.4s-3-.9-3-2.4c0-1.1.5-1.8.5-3.4 0-1.4-.6-2.2-.6-3.6 0-1.7 1.2-3.1 3.1-3.1Z"/>
+    <path d="M7.9 5.4c1.9 0 3.1 1.4 3.1 3.1 0 1.4-.6 2.2-.6 3.6 0 1.6.5 2.3.5 3.4 0 1.5-1.2 2.4-3 2.4s-3-.9-3-2.4c0-1.1.5-1.8.5-3.4 0-1.4-.6-2.2-.6-3.6 0-1.7 1.2-3.1 3.1-3.1Z" transform="translate(8.2 2.6)"/>
+  </symbol>
+
   <!-- Death warning: a skull, jaw narrower than the cranium so it reads at 14px -->
   <symbol id="ui-skull" viewBox="0 0 24 24">
     <path d="M12 3C7.4 3 3.8 6.5 3.8 10.8c0 2.3 1 4.1 2.6 5.4V18.9a2.3 2.3 0 0 0 2.3 2.3h6.6a2.3 2.3 0 0 0 2.3-2.3v-2.7c1.6-1.3 2.6-3.1 2.6-5.4C20.2 6.5 16.6 3 12 3Z"/>

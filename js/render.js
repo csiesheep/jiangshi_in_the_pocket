@@ -1106,10 +1106,20 @@ function mountDoorways(boardEl) {
       k.setAttribute("aria-hidden", "true");
       hot.appendChild(k);
     }
+    // Two soles, drawn the way the chevrons are drawn. "···" was correctly
+    // placed, correctly sized and completely invisible: three thin dots at rest
+    // have neither the arrows' stroke mass nor their bob, so on dark painted
+    // floor there was nothing to find. The drop-shadow this already had was
+    // sharpening an edge that was barely there.
+    //
+    // The text dots stay as the fallback for the same reason the text arrows
+    // do — no sprite is not the same as no control.
     const face = document.createElement("span");
     face.className = "doorway-face";
     face.setAttribute("aria-hidden", "true");
-    face.textContent = "···"; // waiting, not going anywhere
+    const soles = icon("ui", "footprints", "doorway-soles");
+    if (soles) face.appendChild(soles);
+    else face.textContent = "···"; // waiting, not going anywhere
     hot.appendChild(face);
     hot.addEventListener("click", stay.onClick);
     hot.addEventListener("focus", doorwayTick);

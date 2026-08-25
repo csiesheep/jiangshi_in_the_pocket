@@ -958,6 +958,8 @@ class Game {
           label: this.ui("replace-keep", { item: name(out.current), n: out.currentAttack }),
           sub: this.ui("replace-keep-sub", { item: name(out.id) }),
           onClick: () => {
+            // Refusing it leaves it where it lies — and it stays there.
+            E.declineWeapon(this.state, out.id);
             log(this.line("search-left", { item: name(out.id) }), "muted");
             this.refresh();
             this.renderEndTurn();

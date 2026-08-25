@@ -729,25 +729,31 @@ test("search: null in a table is a real result — you found nothing", () => {
 // 85% with three, and nothing in the code says so — it falls out of the table
 // once "a unique you already hold finds nothing" is applied. That escalation is
 // what stops weapon searching being a treadmill.
-// This used to read 10 -> 35 -> 60 -> 85 as swords piled up, and it was the
-// mechanic that made weapon rooms dry out: every blade you owned raised the
-// chance the next rummage handed back a room you had already looted.
+// 10 -> 35 -> 60 -> 85 is the mechanic that makes weapon rooms dry out: every
+// blade spoken for raises the chance the next rummage hands back a room you
+// have already looted.
 //
-// One weapon ever ends that. You can hold at most one, so the miss reaches 35
-// and stops, and a weapon table stays 65 % productive all night where it used
-// to strangle itself. That is a real consequence of the second amendment, and
-// it is written down here rather than left to be discovered: swapping is now
-// the only way a weapon room disappoints you, and swapping is a choice.
-test("search: the weapon miss reaches 35 and stops, because one blade is the limit", () => {
+// #31 nearly killed it — one weapon in hand meant the miss stopped at 35 and a
+// weapon table stayed 65 % productive all night. #36's ruling restores it by
+// changing what "spoken for" means: a blade you abandoned at a replace is lying
+// on some floor, not circulating. So the curve is back, and it climbs through
+// weapons that PASSED THROUGH your hands rather than weapons you still hold.
+test("search: the weapon miss climbs 10 -> 35 -> 60 -> 85 as blades pass through", () => {
   const s = game({ seed: 1 });
   const at = () => Math.round(E.missChance(s, "weapon"));
   eq(at(), 10, "bare-handed: only the table's own null");
+
   E.pickUpItem(s, "precept-knife");
   eq(at(), 35, "one sword: its 25 now finds nothing");
-  // There is no second. The hand is full, so the next blade is a decision
-  // rather than a pickup, and the miss cannot climb on its own.
-  eq(E.pickUpItem(s, "peachwood-sword").reason, "armed");
-  eq(at(), 35, "still 35 — swords cannot accumulate any more");
+
+  // Swap it away. The knife is on a floor somewhere and never comes back, so
+  // two blades are out of the night while only one is in hand.
+  E.replaceWeapon(s, "peachwood-sword");
+  eq(at(), 60, "two — the one held and the one left behind");
+
+  // And refusing counts the same: it was offered at a decision and declined.
+  E.declineWeapon(s, "coin-sword");
+  eq(at(), 85, "three — only 七星劍 is still worth turning over");
 });
 
 test("search: a unique already held returns nothing, and does not duplicate", () => {
@@ -1007,6 +1013,62 @@ test("replace: declining changes nothing at all", () => {
   eq(r.incomingAttack, 2);
   eq(E.effectiveAttack(s), before, "declining is doing nothing");
   eq(E.equippedWeapon(s), "sevenstar-sword");
+});
+
+// #36: whichever blade exits a RESOLVED replace un-held is gone from the night.
+// Both sides of the decision, because the ruling covers both and the two exits
+// are easy to implement asymmetrically by accident.
+test("replace: the blade you put down never turns up again", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword");
+  E.replaceWeapon(s, "sevenstar-sword");
+
+  s.searchTables = { only: [{ id: "coin-sword", p: 100 }] };
+  for (let i = 0; i < 20; i++) {
+    const r = E.search(s, "only");
+    eq(r.result, "NOTHING", "the room does not hand back what you left in it");
+    eq(r.reason, "abandoned");
+  }
+  eq(E.held(s, "coin-sword"), false);
+  eq(E.outOfPlay(s, "coin-sword"), true);
+});
+
+test("replace: the blade you refused never turns up again either", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "sevenstar-sword");
+  // Offered a worse blade and keeping ours: the refused one stays on the floor.
+  E.declineWeapon(s, "coin-sword");
+
+  s.searchTables = { only: [{ id: "coin-sword", p: 100 }] };
+  for (let i = 0; i < 20; i++) eq(E.search(s, "only").reason, "abandoned");
+  eq(E.outOfPlay(s, "coin-sword"), true);
+});
+
+test("replace: only a resolved decision loses a blade, not the mere offer", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword");
+  s.searchTables = { only: [{ id: "sevenstar-sword", p: 100 }] };
+
+  // Being offered it does not spend it — the player has not answered yet, and
+  // an unanswered offer that lost the sword would be the engine deciding.
+  eq(E.search(s, "only").result, "OFFER_REPLACE");
+  eq(E.outOfPlay(s, "sevenstar-sword"), false, "still out there, still findable");
+  eq(E.search(s, "only").result, "OFFER_REPLACE", "and offered again");
+
+  // Answering is what spends it.
+  E.replaceWeapon(s, "sevenstar-sword");
+  eq(E.outOfPlay(s, "coin-sword"), true, "the one that left");
+  eq(E.outOfPlay(s, "sevenstar-sword"), true, "and the one in hand, for the same reason as ever");
+});
+
+test("replace: declining refuses to throw away the blade in your hand", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword");
+  const r = E.declineWeapon(s, "coin-sword");
+  eq(r.ok, false);
+  eq(r.reason, "in-hand", "you cannot decline what you are holding");
+  eq(E.outOfPlay(s, "coin-sword"), true, "it is out of play by being held, not by being lost");
+  eq(E.equippedWeapon(s), "coin-sword", "and it is still in your hand");
 });
 
 test("replace: the 真火符 burned into a blade goes with it", () => {

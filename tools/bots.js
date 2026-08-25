@@ -441,7 +441,10 @@ export function playNight(data, policyName, seed, opts = {}) {
           const take = plan.replaceChoice
             ? plan.replaceChoice(state, r)
             : r.incomingAttack > r.currentAttack;
+          // Either way a blade stays on the floor and leaves the night: the old
+          // one if we take, the new one if we keep what we have.
           if (take) E.replaceWeapon(state, r.id);
+          else E.declineWeapon(state, r.id);
         }
         if (r.result === "OFFER_DROP") {
           // Drop rice before equipment; a sword outlives a meal. A policy may
