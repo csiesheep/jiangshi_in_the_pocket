@@ -117,6 +117,37 @@ def stamp_harness():
     print("  tests/harness.js %s" % ("restamped" if changed else "already current"))
 
 
+def stamp_suites():
+    """Give every test suite an id that changes whenever the suite changes.
+
+    Same argument as stamp_harness, one level out. The declared-count guard
+    catches a suite that did not run; it cannot catch a suite that ran the WRONG
+    COPY when the counts happen to match — and that is not hypothetical, it once
+    reported a missing element that exists nowhere in the tree.
+
+    Working tree again, not the blob: the point is to catch a module in memory
+    that is older than the file being served, so the id has to move the moment
+    the file does, committed or not.
+    """
+    import glob
+
+    pattern = re.compile(r'^suite\(import\.meta\.url, "([^"]*)"\);$', re.M)
+    for path in sorted(glob.glob(os.path.join(ROOT, "tests", "*.test.js"))):
+        src = io.open(path, encoding="utf-8", newline="").read()
+        if not pattern.search(src):
+            print("  %s has no suite() stamp; skipped" % os.path.basename(path))
+            continue
+
+        def fn(s, _pat=pattern):
+            neutral = _pat.sub('suite(import.meta.url, "");', s)
+            want = short(neutral.encode("utf-8"), 8)
+            return _pat.sub('suite(import.meta.url, "%s");' % want, s)
+
+        changed = rewrite(path, fn)
+        print("  tests/%s %s" % (os.path.basename(path),
+                                 "restamped" if changed else "already current"))
+
+
 def main():
     sw = os.path.join(ROOT, "sw.js")
     src = io.open(sw, encoding="utf-8", newline="").read()
@@ -142,6 +173,7 @@ def main():
     print("  %d shell files, hashed from HEAD blobs" % len(rows))
     print("  CACHE %s -> %s" % (before, name))
     stamp_harness()
+    stamp_suites()
     return 0
 
 

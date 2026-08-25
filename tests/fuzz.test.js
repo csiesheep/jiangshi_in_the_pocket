@@ -1,6 +1,11 @@
 import * as E from "../js/engine.js";
 import * as B from "../js/board.js";
-import { test, assert, eq } from "./harness.js";
+import { test, assert, eq, suite } from "./harness.js";
+
+// Which copy of this suite is speaking. Stamped by tools/record_shell.py;
+// report() compares it against the file on disk, so a stale module is caught
+// even when the test count happens to match.
+suite(import.meta.url, "60eef3e3");
 
 const NO_STORE = { cache: "no-store" };
 

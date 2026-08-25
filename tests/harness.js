@@ -18,7 +18,7 @@
 // Stamped by tools/record_shell.py from harness.js's own blob hash, so nobody
 // has to remember to change it. Set by hand it still works — forgetting only
 // costs the protection, it cannot produce a wrong answer.
-export const HARNESS_ID = "82d7b6d5";
+export const HARNESS_ID = "29fc8a83";
 
 // Pulled out so both directions can be tested without a network.
 // Anchored to the DECLARATION line, and that is load-bearing rather than tidy:
@@ -65,6 +65,53 @@ async function harnessIsCurrent() {
   } catch {
     return { ok: true }; // cannot reach the file; not evidence of anything
   }
+}
+
+// ---- Which suites actually loaded, and which copy of each -----------------
+// The declared-count guard below catches a suite that did not run. It cannot
+// catch a suite that ran the WRONG COPY when the counts happen to match — which
+// is not hypothetical: a stale data.test.js once reported "game.html has no
+// #copy-replay", a string that exists nowhere in the tree, and the totals
+// agreed so nothing complained. A guard that reports a true-sounding falsehood
+// is worse than one that stays quiet.
+//
+// So every suite states which copy of itself is speaking. The stamp is written
+// by tools/record_shell.py from the file's own content, exactly as HARNESS_ID
+// is, and report() compares what SPOKE against what is on disk. A stale module
+// carries the old stamp and the file carries the new one, so they disagree.
+const suiteStamps = new Map();
+
+const fileOf = (u) => {
+  try { return new URL(u, location.href).pathname.split("/").pop(); }
+  catch { return String(u); }
+};
+
+// Called once at the top of each suite: suite(import.meta.url, "<stamp>").
+export function suite(url, stamp) {
+  suiteStamps.set(fileOf(url), String(stamp));
+}
+
+// What each suite actually registered when it was imported. Exported so the
+// live check can be a test rather than only a banner.
+export function registeredSuites() {
+  return Object.fromEntries(suiteStamps);
+}
+
+// Pure, so both directions can be tested without a network.
+//
+// An UNSTAMPED file on disk is "no opinion" — it predates this guard and
+// accusing it would be inventing a failure. A stamped file whose suite
+// registered nothing, or registered a different stamp, is stale: the copy that
+// ran is older than the copy being served.
+export function staleSuites(ran, onDisk) {
+  const bad = [];
+  for (const [name, disk] of Object.entries(onDisk)) {
+    if (disk === null || disk === undefined) continue;
+    const spoke = ran[name];
+    if (spoke === undefined) bad.push(`${name} — the copy that ran is older than the stamp`);
+    else if (spoke !== disk) bad.push(`${name} — ran "${spoke}", disk has "${disk}"`);
+  }
+  return bad;
 }
 
 const results = [];
@@ -143,7 +190,8 @@ async function declaredCounts(suites) {
       try {
         const res = await fetch(`./${name}?fresh=${Date.now()}`, { cache: "no-store" });
         const text = await res.text();
-        out[name] = (text.match(/^test\(/gm) || []).length;
+        const m = text.match(/^suite\(import\.meta\.url, "([^"]*)"\);$/m);
+        out[name] = { count: (text.match(/^test\(/gm) || []).length, stamp: m ? m[1] : null };
       } catch {
         out[name] = null; // unreadable: cannot judge, so do not accuse
       }
@@ -168,6 +216,7 @@ export async function report(suites = []) {
   // then the count below was produced by the wrong rules and comparing it to
   // anything is theatre.
   let stale = null;
+  let declaredOnce = null;
   const identity = await harnessIsCurrent();
   if (!identity.ok) {
     stale = {
@@ -183,12 +232,34 @@ export async function report(suites = []) {
     console.error(stale.message);
   }
 
+  // Is every suite the copy on disk? Asked before the count, because a wrong
+  // copy explains a wrong count and not the other way round.
+  if (!stale && suites.length) {
+    declaredOnce = await declaredCounts(suites);
+    const onDisk = {};
+    for (const [name, d] of Object.entries(declaredOnce)) onDisk[name] = d && d.stamp;
+    const names = staleSuites(Object.fromEntries(suiteStamps), onDisk);
+    if (names.length) {
+      stale = {
+        kind: "suite",
+        registered: results.length,
+        expected: results.length,
+        message:
+          `STALE SUITE — the browser ran an older copy of: ${names.join("; ")}. ` +
+          `The count matching proves nothing; a stale suite with the same number ` +
+          `of tests is invisible to it. Reload from a host:port this browser has ` +
+          `not used before.`,
+      };
+      console.error(stale.message);
+    }
+  }
+
   // Did every test that exists on disk actually run?
   if (!stale && suites.length) {
-    const declared = await declaredCounts(suites);
+    const declared = declaredOnce || (await declaredCounts(suites));
     const known = Object.values(declared).filter((n) => n !== null);
     if (known.length === suites.length) {
-      const expected = known.reduce((n, c) => n + c, 0);
+      const expected = known.reduce((n, c) => n + c.count, 0);
       if (expected !== results.length) {
         stale = { expected, registered: results.length, declared };
         console.error(
@@ -206,7 +277,9 @@ export async function report(suites = []) {
   }
 
   document.title = stale
-    ? (stale.kind === "harness" ? "STALE HARNESS" : `STALE (${results.length}/${stale.expected})`)
+    ? (stale.kind === "harness" ? "STALE HARNESS"
+       : stale.kind === "suite" ? "STALE SUITE"
+       : `STALE (${results.length}/${stale.expected})`)
     : failed === 0
       ? `PASS (${passed})`
       : `FAIL (${failed})`;

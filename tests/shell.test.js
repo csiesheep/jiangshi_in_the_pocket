@@ -1,5 +1,10 @@
-import { test, assert, eq } from "./harness.js";
+import { test, assert, eq, suite } from "./harness.js";
 import { shouldReloadOnHandover, HANDOVER_GRACE_MS } from "../js/shell.js";
+
+// Which copy of this suite is speaking. Stamped by tools/record_shell.py;
+// report() compares it against the file on disk, so a stale module is caught
+// even when the test count happens to match.
+suite(import.meta.url, "f33d2009");
 
 const NO_STORE = { cache: "no-store" };
 
