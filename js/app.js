@@ -684,12 +684,25 @@ class Game {
     return kept.sort((a, b) => a.spends.length - b.spends.length || a.damage - b.damage);
   }
 
+  // The card that spends nothing says "Fight with the 桃木劍" — a verb and a
+  // thing. The cards that spend something used to say only the thing, so a
+  // loadout card read as NAMING an item rather than as an action, and 真火符 is
+  // the one item where that ambiguity has a wrong answer waiting: it is also
+  // the talisman that can be burnt into a blade for good, so a bare card headed
+  // 真火符 invites exactly the reading "make my sword better". It does not. It
+  // throws the paper at them, once. The engine's own author pressed it at the
+  // table expecting the other thing.
+  //
+  // So every card carries the verb, and the verb is BURN, which is true of the
+  // banner and of all three papers alike.
+  //
+  // The join is themed rather than hardcoded to " and ": zh has no spaces.
   loadoutLabel(o, sword) {
     const spent = o.spends.map((id) => this.itemName(id));
     if (!spent.length) {
       return sword ? this.ui("fight-with", { item: this.itemName(sword) }) : this.ui("fight-bare");
     }
-    return spent.join(" and ");
+    return this.ui("fight-spend", { items: spent.join(this.ui("fight-join")) });
   }
 
   paintFight(n, opts, done) {

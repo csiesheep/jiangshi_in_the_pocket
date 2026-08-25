@@ -1011,7 +1011,13 @@ function itemEffect(game, id) {
   const eff = (k, v) => fill(((game.data.theme.effects || {})[k]) || k, v);
   if (it.cat === "weapon" && it.attack != null) bits.push(eff("weapon-attack", { n: it.attack }));
   else if (it.attack != null) bits.push(eff("talisman-attack", { n: it.attack }));
-  if (it.buffSword) bits.push(eff("buff-sword", { n: it.buffSword }));
+  // NOT advertised: `buffSword` is a real engine capability (E.buffSword burns
+  // 真火符 into the blade for good, and tools/bots.js uses it), but no button in
+  // this game can reach it — the pack only lets you use medicine and 硃砂, and a
+  // fight only ever throws. So the card used to end "or +1 to a sword, for
+  // good", naming an action the player cannot take, which is the same kind of
+  // promise #58 stripped out of 溪澗. The line is gone until the action exists;
+  // the engine keeps the capability, so bringing it back is UI work only.
   if (it.costHp) bits.push(eff("cost-hp", { n: it.costHp }));
   if (it.effect === "DUPLICATE_TALISMAN") bits.push(eff("duplicate", { n: it.n || 2 }));
   if (it.effect === "DOUBLE_SWORD") bits.push(eff("double-sword"));

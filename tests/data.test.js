@@ -3,7 +3,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "6533ef1f");
+suite(import.meta.url, "7e20ea7f");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,
@@ -399,4 +399,68 @@ test("rulebook: both languages say the hands cost no pack slot", () => {
   assert(/neither costs a slot/i.test(en), "the English rulebook does not exempt the hands");
   const zh = rulebookZh.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
   assert(/都不佔格子/.test(zh), "the zh rulebook does not exempt the hands");
+});
+
+// ---- 真火符 says one thing and does another (#68) --------------------------------
+// This item has two powers in the design: throw it for +1 in a fight, or burn it
+// into a blade for +1 for good. The engine implements both. The GAME only
+// implements the first — the pack refuses everything that is not medicine or
+// 硃砂, and a fight only ever throws — so the second was advertised on the item
+// card and reachable nowhere. The engine's own author pressed the fight button
+// expecting the permanent one.
+//
+// Both directions are guarded, so this cannot rot in either: advertise it and
+// the first test fails until a caller exists; build the caller and the same
+// test stops objecting, so the line can come back.
+const jsSources = Object.fromEntries(
+  await Promise.all(
+    ["app.js", "render.js", "board.js", "menu.js", "shell.js"].map(async (f) => [
+      f,
+      await fetch("../js/" + f, NO_STORE).then((r) => r.text()),
+    ])
+  )
+);
+
+test("真火符: the permanent sword buff is not advertised while nothing can reach it", () => {
+  // A call site is any use of buffSword outside engine.js, which is where it is
+  // defined. tools/ is not shipped and the bots are not a player.
+  const callers = Object.entries(jsSources)
+    .filter((pair) => pair[1].includes("buffSword("))
+    .map((pair) => pair[0]);
+  const advertised = [
+    ["en", (themeEn.effects || {})["buff-sword"]],
+    ["zh", (themeZh.effects || {})["buff-sword"]],
+  ].filter((pair) => pair[1]);
+
+  if (callers.length) {
+    // Someone built the affordance. Saying so again is now correct, and this
+    // test has done its job and should stop complaining.
+    return;
+  }
+  eq(
+    advertised.map((pair) => pair[0]),
+    [],
+    "the item card promises a permanent sword buff (" +
+      advertised.map((pair) => pair[0] + ": " + pair[1]).join(", ") +
+      ") and no button in js/ calls buffSword"
+  );
+});
+
+test("真火符: a fight card that spends something says what it does to it", () => {
+  // "真火符" alone reads as naming an item. "Burn the 真火符" reads as an action,
+  // which is what a card is. The no-spend card always had its verb.
+  for (const pair of [["en", themeEn], ["zh", themeZh]]) {
+    const ui = pair[1].ui || {};
+    assert(ui["fight-spend"], pair[0] + " has no fight-spend label");
+    assert(ui["fight-spend"].includes("{items}"),
+      pair[0] + " fight-spend never names what is being burnt: " + ui["fight-spend"]);
+    assert(ui["fight-join"] != null, pair[0] + " has no fight-join");
+  }
+  const app = jsSources["app.js"];
+  assert(app.includes('this.ui("fight-spend"'),
+    "loadoutLabel does not use the themed spend label");
+  // The join was hardcoded to an English idiom with spaces around it, which is
+  // wrong in zh twice over.
+  assert(!app.includes('spent.join(" and ")'),
+    "the loadout label still joins with a hardcoded English word");
 });
