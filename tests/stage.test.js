@@ -367,7 +367,12 @@ test("stage: the six scenes each build their own layers", serial(async () => {
 
 const appSrc = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
 const stageSrc = await fetch("../js/eventstage.js", NO_STORE).then((r) => r.text());
-const kingCss = css.slice(css.indexOf("---- 殭屍王"), css.indexOf("---- Article pages"));
+// Sliced from the comment's OPENING delimiter, not from the marker inside it.
+// Starting at the marker leaves the block with a comment body and no `/*` to
+// match, so the stripper below silently keeps every word it was meant to
+// remove — which is exactly how this guard failed itself twice.
+const kingCssAt = css.lastIndexOf("/*", css.indexOf("---- 殭屍王"));
+const kingCss = css.slice(kingCssAt, css.indexOf("---- Article pages"));
 
 test("king: §9 — the scene has nothing to say, in any language", serial(async () => {
   // The safest way to keep a secret in a scene is to give the scene no words.
