@@ -14,7 +14,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-v28";
+const CACHE = "jiangshi-v29";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -34,7 +34,7 @@ const CACHE = "jiangshi-v28";
 // shell that goes stale, and a new tiles.json against an old engine.js is
 // exactly the mismatch #28 shipped.
 const SHELL_DIGEST = {
-  "@cache":                                 "jiangshi-v28",
+  "@cache":                                 "jiangshi-v29",
   "./":                                     "567fbcc1dc",
   "index.html":                             "567fbcc1dc",
   "game.html":                              "f4926f5f77",
@@ -43,13 +43,13 @@ const SHELL_DIGEST = {
   "credits.html":                           "44405f11d9",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "6c904341b6",
-  "css/style.css":                          "607cbe2a9a",
+  "css/style.css":                          "58a95fe247",
   "js/app.js":                              "4454b1ff5f",
-  "js/eventstage.js":                       "591847c434",
+  "js/eventstage.js":                       "2e3a562034",
   "js/engine.js":                           "8835b662d2",
   "js/board.js":                            "766fddc50b",
-  "js/render.js":                           "a5f4658c1e",
-  "js/audio.js":                            "30cdbed084",
+  "js/render.js":                           "d5d7b4276f",
+  "js/audio.js":                            "048485f39d",
   "js/menu.js":                             "b264b1ff1a",
   "js/tiles.js":                            "2c0ee7043c",
   "js/shell.js":                            "0aa62a2190",
@@ -57,7 +57,7 @@ const SHELL_DIGEST = {
   "js/epilogue.js":                         "c08e0636d4",
   "js/lang.js":                             "1e7b3f3b4a",
   "js/rulebook.js":                         "11dd15125f",
-  "assets/icons.svg":                       "8a5f0c9f43",
+  "assets/icons.svg":                       "6455d17503",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
   "assets/icons/icon-192.png":              "83b7d80dc2",
   "assets/icons/icon-512.png":              "8114a3228c",
