@@ -35,8 +35,9 @@
    All four are driven by --dusk, which renderHour writes from clockTime: 0 at
    nine o'clock, 1 at midnight on the face. The light dies continuously, a
    sliver per card drawn, rather than in three steps at the hour turns — which
-   is both scarier and truer to the rule that the deck is the clock. Cowering
-   visibly costs light, because it costs a card.
+   is both scarier and truer to the rule that the deck is the clock. Standing
+   on the ward visibly costs light too, because it still costs a turn — which
+   is the whole of that trade, and the dial says so without being told to.
 
    The slopes are set so the old hand-picked hour values still fall on the line:
    9/10/11 PM land within .01 of the .5/.68/.88 vignette they used to have.
