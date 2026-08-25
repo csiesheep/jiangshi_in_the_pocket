@@ -65,7 +65,8 @@ import {
   showCinnabarDialog,
 } from "./render.js";
 
-import { registerWorker, wireFullscreen, keepAwake, wireSleep, repaintFullscreen } from "./shell.js";
+import { registerWorker, wireFullscreen, keepAwake, wireSleep, repaintFullscreen,
+         markRunInProgress } from "./shell.js";
 import { recordVerdict } from "./tally.js";
 import { epilogue } from "./epilogue.js";
 import * as L from "./lang.js";
@@ -1099,6 +1100,9 @@ class Game {
   }
 
   nextTurn() {
+    // The shell must never reload a run out from under the player, and a run is
+    // not saved anywhere — so the moment a turn is actually spent, say so.
+    markRunInProgress();
     // A turn later, the dust in last turn's hole has settled. The gouges and
     // the dark stay — those are what the house keeps.
     settleDust();

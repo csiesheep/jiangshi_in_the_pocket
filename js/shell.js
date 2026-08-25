@@ -20,20 +20,35 @@ import { sleep as sleepAudio } from "./audio.js";
 // So when the controller actually changes, reload once and let the new worker
 // serve the page it was installed for.
 //
-// GUARDED BY HOW LONG THE PAGE HAS BEEN OPEN, deliberately. A deploy that lands
-// while somebody is on turn twenty-two must not pull the floor out from under
-// them; they will get the new build the next time they open it. Only a handover
-// during the opening moments of a load is one nobody is standing in.
+// GUARDED BY WHETHER ANYBODY IS PLAYING, and only then by the clock. A deploy
+// that lands mid-run must not pull the floor out from under somebody: the board
+// is dealt on load and NOTHING about a run in progress is persisted, so a reload
+// costs every turn taken so far.
+//
+// The clock alone was not enough, and the difference is not theoretical: a
+// handover at second nine would have reloaded a player who had already taken
+// two or three turns. The elapsed time is the outer bound for the case where
+// nobody has touched anything; whether a run has begun is the actual question,
+// so it is now asked directly rather than approximated.
 export const HANDOVER_GRACE_MS = 10000;
+
+// Set by whoever owns a run — app.js, the moment the first turn is spent. The
+// shell has no idea what a game is and should not learn; it only needs to be
+// told that one is under way.
+let runInProgress = false;
+export function markRunInProgress(on = true) {
+  runInProgress = !!on;
+}
 
 // The decision, pulled out of the listener so it can be tested rather than
 // merely asserted to exist. Every branch here is a way of NOT reloading, and
 // the two that matter are the last two: a handover long after the page opened
 // belongs to somebody who is playing, and a second handover must never turn
 // into a loop.
-export function shouldReloadOnHandover({ hasController, openedAt, now, reloading }) {
+export function shouldReloadOnHandover({ hasController, openedAt, now, reloading, playing }) {
   if (reloading) return false; // controllerchange can fire more than once
   if (!hasController) return false; // a worker leaving, not one arriving
+  if (playing) return false; // somebody is in a run, and a run is not saved
   return now - openedAt <= HANDOVER_GRACE_MS;
 }
 
@@ -49,6 +64,7 @@ export function registerWorker() {
       openedAt,
       now: Date.now(),
       reloading,
+      playing: runInProgress,
     });
     if (!go) return;
     reloading = true;
