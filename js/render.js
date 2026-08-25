@@ -2223,7 +2223,9 @@ function intense() {
   return !reducedMotion() && !isCalm();
 }
 
-function reducedMotion() {
+// Exported for the event stage, which needs the same gate and must not grow a
+// second opinion about what "reduced motion" means.
+export function reducedMotion() {
   return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
 

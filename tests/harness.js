@@ -4,23 +4,31 @@
 // can be read back headlessly.
 
 const results = [];
-// Async bodies settle after test() has returned. Their promises are collected
-// here and report() waits on them before counting anything.
+
+// Async bodies settle after test() has already returned, so their outcomes are
+// collected here and report() waits on them before counting anything.
+//
+// This was a hole rather than a design: test() called fn() inside a synchronous
+// try/catch, which cannot see a promise reject, so every
+// `test(name, async () => …)` was recorded as a pass whatever it asserted.
+// Measured rather than reasoned about — a probe registering one synchronous
+// failure and one asynchronous failure reported exactly one. Several suites
+// here carry async tests that had therefore never once been checked. A verifier
+// that can quietly verify nothing is worse than no verifier.
 const settling = [];
 
 export function test(name, fn) {
   try {
     const out = fn();
     if (out && typeof out.then === "function") {
-      // An async test used to be incapable of failing. test() wrote down "ok"
-      // the moment fn() returned a promise, and the rejection arrived later as
-      // an unhandled one — so three suites carried tests that had never once
-      // been checked, and a fourth was about to. The entry is recorded in
-      // registration order to keep the report readable, then corrected in
-      // place if the promise rejects.
+      // Recorded in registration order so the report stays readable, then
+      // corrected in place if the promise rejects.
       const entry = { name, ok: true };
       results.push(entry);
-      settling.push(out.then(null, (err) => { entry.ok = false; entry.err = err; }));
+      settling.push(out.then(null, (err) => {
+        entry.ok = false;
+        entry.err = err instanceof Error ? err : new Error(String(err));
+      }));
       return;
     }
     results.push({ name, ok: true });
@@ -85,6 +93,7 @@ async function declaredCounts(suites) {
 export async function report(suites = []) {
   // Nothing is counted until every async body has settled.
   await Promise.all(settling);
+
   const passed = results.filter((r) => r.ok).length;
   const failed = results.length - passed;
 

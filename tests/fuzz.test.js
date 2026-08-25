@@ -89,7 +89,7 @@ function playNight(seed, { maxTurns = 400 } = {}) {
 
     // ---- 破牆, after the room's own event and only if you are still here
     if (state.status === "playing") {
-      const n = E.breachAfterEvent(state, { deadEnd: B.isDeadEnd(board) });
+      const n = E.breachAfterEvent(state, { deadEnd: B.isDeadEnd(board), warded: B.isWarded(board) });
       if (n) {
         const wall = B.pickZombieDoorWall(board);
         if (wall) B.openZombieDoor(board, wall);

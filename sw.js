@@ -14,7 +14,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-v24";
+const CACHE = "jiangshi-v25";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -34,20 +34,21 @@ const CACHE = "jiangshi-v24";
 // shell that goes stale, and a new tiles.json against an old engine.js is
 // exactly the mismatch #28 shipped.
 const SHELL_DIGEST = {
-  "@cache":                                 "jiangshi-v24",
+  "@cache":                                 "jiangshi-v25",
   "./":                                     "4be996b2dc",
   "index.html":                             "4be996b2dc",
-  "game.html":                              "4927d8bfaf",
+  "game.html":                              "029f88082c",
   "rulebook.html":                          "b1ca06f6e1",
   "tiles.html":                             "da533137c2",
   "credits.html":                           "1c3770a50d",
   "manifest.webmanifest":                   "7cb5f47143",
   "favicon.svg":                            "b60eec3587",
-  "css/style.css":                          "177ed38bf1",
-  "js/app.js":                              "e4d140df16",
-  "js/engine.js":                           "f93df441a9",
+  "css/style.css":                          "412302e499",
+  "js/app.js":                              "91bcf219e1",
+  "js/eventstage.js":                       "53c5be2365",
+  "js/engine.js":                           "95cb3d6fc6",
   "js/board.js":                            "fa1ad58cb1",
-  "js/render.js":                           "08ed7be5af",
+  "js/render.js":                           "461fe072a2",
   "js/audio.js":                            "df974b7abb",
   "js/menu.js":                             "9a208967ba",
   "js/tiles.js":                            "7a64ef7abf",
@@ -78,6 +79,7 @@ const SHELL = [
   "favicon.svg",
   "css/style.css",
   "js/app.js",
+  "js/eventstage.js",
   "js/engine.js",
   "js/board.js",
   "js/render.js",

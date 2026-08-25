@@ -380,11 +380,6 @@ function adeptBuff(state) {
 const BANNER_DEADLINE = 11;
 
 // ---- One night ------------------------------------------------------------------
-// `wardBlocksBreach` is a COUNTERFACTUAL, off by default and never the shipped
-// rule. The amendment says 石敢當 draws no event; 破牆 is not an event draw, so
-// as written the breach still reaches the stone. Whether that was intended is
-// the user's call, and this switch is here so the call can be made against a
-// number instead of an intuition.
 export function playNight(data, policyName, seed, opts = {}) {
   const state = E.newGame(data, { seed });
   const board = B.createBoard(data, { seed });
@@ -476,8 +471,7 @@ export function playNight(data, policyName, seed, opts = {}) {
     }
 
     if (state.status === "playing") {
-      const deadEnd = B.isDeadEnd(board) && !(opts.wardBlocksBreach && warded);
-      const n = E.breachAfterEvent(state, { deadEnd });
+      const n = E.breachAfterEvent(state, { deadEnd: B.isDeadEnd(board), warded });
       // Counted because the amendment is silent on it: the ward stops the
       // EVENT, and 破牆 is not an event draw. If this number is ever large the
       // ward is not the safe square it was ruled to be.

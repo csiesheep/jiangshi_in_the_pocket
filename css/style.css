@@ -1945,6 +1945,141 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   filter: drop-shadow(0 0 26px color-mix(in srgb, var(--danger) 35%, transparent));
 }
 
+/* ---- The event stage ---------------------------------------------------------
+   The room's answer, full screen. Sits just under .scare on purpose: the two
+   are never up together (a drawn JIANGSHI skips its stage and goes to the
+   scare), and if that ever stops being true the scare is the one that should
+   win, because it is the one with a fright in it.
+
+   Everything here is placeholder dressing for #34 except the frame, the hint
+   and the two gates — those are the parts the animations will be built against
+   and should outlive them. */
+.evstage {
+  position: fixed;
+  inset: 0;
+  z-index: 48;
+  background: rgba(8, 4, 5, .86);
+  overflow: hidden;
+  cursor: pointer; /* the whole layer is the skip affordance */
+  animation: evstage-in .18s ease-out both;
+}
+.evstage-inner {
+  position: absolute;
+  inset: 0;
+}
+/* Washed rather than lit: 中毒 is a change of state, not a blow, so it colours
+   the whole stage instead of putting something in the middle of it. */
+.evstage-inner--wash {
+  background: radial-gradient(circle at 50% 55%,
+              color-mix(in srgb, var(--accent) 22%, transparent), transparent 68%);
+}
+.evstage-seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  --seat-scale: 1;
+  animation: evstage-rise .32s ease-out both;
+}
+.evstage-art {
+  display: block;
+  width: calc(min(34vmin, 260px) * var(--seat-scale));
+  height: calc(min(34vmin, 260px) * var(--seat-scale));
+  color: var(--muted);
+}
+.evstage-art--hurt   { color: var(--danger); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--danger) 34%, transparent)); }
+.evstage-art--mend   { color: var(--accent); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--accent) 34%, transparent)); }
+.evstage-art--poison { color: var(--accent); opacity: .82; }
+.evstage-art--villager { color: var(--gold); }
+
+/* Placeholder typography, and the first thing #34 should be able to delete. It
+   earns its place only while two of the six scenes are the same heart. */
+.evstage-tally {
+  position: absolute;
+  left: 50%;
+  top: 74%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 9vmin, 4.4rem);
+  font-variant-numeric: tabular-nums;
+  animation: evstage-rise .32s ease-out both;
+}
+.evstage-tally--hurt { color: var(--danger); }
+.evstage-tally--mend { color: var(--accent); }
+
+/* Nothing happened, drawn as a thing rather than as an absence — a blank stage
+   and a broken stage look identical. */
+.evstage-nil {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(16vmin, 120px);
+  height: min(16vmin, 120px);
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  opacity: .55;
+  animation: evstage-nil 1s ease-out both;
+}
+
+.evstage-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6%;
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: .82rem;
+  letter-spacing: .09em;
+  text-transform: lowercase;
+  opacity: .0;
+  animation: evstage-hint .9s ease-out .35s both;
+}
+
+/* Calm mode: the stage still happens, the assault in it does not. Less contrast,
+   no glow, nothing lunging — the established policy, which is to remove the
+   assault and keep the information. */
+.evstage--calm { background: rgba(8, 4, 5, .78); }
+.evstage--calm .evstage-art { filter: none; opacity: .78; }
+.evstage--calm .evstage-inner--wash { background: none; }
+
+/* prefers-reduced-motion: composed and held, never moved. Separate from calm
+   because they are separate requests — this one is about vestibular safety and
+   takes the motion whether or not the player wanted the intensity gone. */
+.evstage--still,
+.evstage--still .evstage-seat,
+.evstage--still .evstage-tally,
+.evstage--still .evstage-nil,
+.evstage--still .evstage-hint { animation: none; opacity: 1; }
+
+@keyframes evstage-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes evstage-rise {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+@keyframes evstage-nil {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.72); }
+  to   { opacity: .55; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes evstage-hint { from { opacity: 0; } to { opacity: .75; } }
+
+/* The tally rises from its own baseline, not the seat's — it is not centred
+   vertically, so it must not borrow the seat's translate. */
+.evstage-tally { animation-name: evstage-tally-rise; }
+@keyframes evstage-tally-rise {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evstage, .evstage-seat, .evstage-tally, .evstage-nil, .evstage-hint {
+    animation: none;
+    opacity: 1;
+  }
+  .evstage-nil { opacity: .55; }
+  .evstage-hint { opacity: .75; }
+}
+
 /* ---- Article pages (rulebook, credits) ---- */
 .article { max-width: 760px; }
 .article h1 { font-size: 2rem; margin-bottom: 4px; }

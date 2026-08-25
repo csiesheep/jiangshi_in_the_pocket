@@ -1011,9 +1011,22 @@ export function breachCount(state) {
   return (RULES.BREACH_COUNT || {})[bandKey(state)] || 0;
 }
 
-export function breachAfterEvent(state, { deadEnd = false, fled = false } = {}) {
+export function breachAfterEvent(state, { deadEnd = false, fled = false, warded = false } = {}) {
   if (state.status !== "playing") return 0;
   if (fled || state.fled) return 0; // you left; there is no one here to trap
+  // 石敢當. The stone's walls hold, so the corner it makes is not a trap.
+  //
+  // Ruled by the user after #28 measured it: the amendment said the ward draws
+  // no EVENT, and 破牆 is not an event draw, so as shipped the breach reached
+  // the stone anyway — 280 to 445 of them per thousand nights, landing exactly
+  // when a finished kit was waiting there. A safe square that takes 4 damage a
+  // turn at eleven o'clock is not what "safety is a place you travel to" meant,
+  // and a jiangshi coming through the wall is the precise thing a 石敢當 is for.
+  //
+  // Told rather than looked up, like the event draw and like 活水 at midnight:
+  // the engine does not know the board, and board.isWarded() is the one place
+  // the flag is read.
+  if (warded) return 0;
   if (!deadEnd) return 0;
   return breachCount(state);
 }

@@ -20,6 +20,8 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
+import { eventStage, isFast, setFast, resetStageHints, BEAT_MS as STAGE_BEAT_MS }
+  from "./eventstage.js";
 import { isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
          startAmbience, stopAmbience, stopScore, itemPickup, tollBell,
          watchDrum, paperFlutter, kingArrives, combatHit } from "./audio.js";
@@ -81,6 +83,13 @@ const FIND_BEAT_MS = 850;
 // line is read in this gap; without it the sentence and the damage land
 // together and the sentence is the half that gets skipped.
 const EVENT_BEAT_MS = 780;
+// The stage replaces this wait rather than adding to it, and its own pacing
+// arithmetic is written against the same number. If the two ever drift, the
+// budget documented in eventstage.js is a lie about a night thirty turns long,
+// so they are checked rather than trusted.
+if (EVENT_BEAT_MS !== STAGE_BEAT_MS) {
+  console.warn(`event beat ${EVENT_BEAT_MS}ms but the stage budgets against ${STAGE_BEAT_MS}ms`);
+}
 
 // And after a result, before the turn moves on. Shorter — by then the HUD has
 // already shown the number and this is only stopping it being instant.
@@ -360,6 +369,26 @@ class Game {
   // ---- Step 3: the room answers --------------------------------------------
   // Drawn with replacement, so the same thing can happen twice in a row and
   // nothing is ever used up — it is a distribution, not a deck.
+  // Which stage an event gets. One slot per event beat (§33), chosen from the
+  // DRAWN event rather than the resolved one — resolveEvent has not run yet,
+  // and the stage is the moment before the arithmetic, not after it.
+  //
+  // JIANGSHI is the deliberate hole. It goes on to fightBeat, which already
+  // stages the pack with jumpScare, and running a stage here would put two
+  // full-screen layers back to back. fightBeat cannot simply hand its scare
+  // over either: the breach and the refused villager both reach it without
+  // passing through an event beat.
+  eventStageFor(ev) {
+    const kind =
+      ev.t === "NOTHING" ? "nothing"
+      : ev.t === "POISON" ? "poison"
+      : ev.t === "VILLAGER" ? "villager"
+      : ev.t === "HP" ? (ev.hp > 0 ? "mend" : "hurt")
+      : null;
+    if (!kind) return wait(EVENT_BEAT_MS);
+    return eventStage(kind, { n: ev.n, hp: ev.hp, skipHint: this.ui("stage-skip") });
+  }
+
   async eventBeat() {
     if (this.state.status !== "playing") return;
 
@@ -379,7 +408,10 @@ class Game {
     if (!ev) return;
 
     this.tell(this.eventLine(ev));
-    await wait(EVENT_BEAT_MS);
+    // The line is written BEFORE the stage, and that ordering is what makes the
+    // stage skippable: the news is already in the log and the caption, so
+    // dismissing the picture costs the picture and nothing else.
+    await this.eventStageFor(ev);
 
     // The villager is asked before anything is resolved: whether you give the
     // rice is an input to resolveEvent, not a reaction to it.
@@ -473,7 +505,13 @@ class Game {
     if (!Bd.isDeadEnd(this.board)) return;
 
     const wall = Bd.pickZombieDoorWall(this.board);
-    const n = E.breachAfterEvent(this.state, { deadEnd: true, fled: this.state.fled });
+    const n = E.breachAfterEvent(this.state, {
+      deadEnd: true,
+      fled: this.state.fled,
+      // The stone's walls hold. A corner made of 石敢當 is still a corner - the
+      // hole still opens so the run is not stuck - but nothing comes through it.
+      warded: Bd.isWarded(this.board),
+    });
 
     // Nowhere on and nothing coming: the wall still has to give, or the run is
     // stuck standing here. No telegraph for it — nothing is arriving.
@@ -1298,6 +1336,10 @@ let game = null;
 function startNewGame(seed) {
   hideOverlay();
   clearStage();
+  // The stage explains how to dismiss itself for the first couple of events of
+  // a run. A fresh run earns that again — someone else may have picked the game
+  // up since — and it costs two lines rather than a preference nobody asked for.
+  resetStageHints();
   // A run is in progress: the screen stays lit. Released at the verdict, so a
   // finished game is not quietly holding the phone awake.
   keepAwake(true);
@@ -1401,6 +1443,19 @@ function paintCalmToggle() {
   document.body.classList.toggle("calm", on);
 }
 
+// Pace, not intensity: this is its own control beside calm mode rather than a
+// mode of it, for the same reason calm is not folded into prefers-reduced-motion.
+// Someone can want every scare and none of the waiting.
+function paintFastToggle() {
+  const btn = document.getElementById("btn-fast");
+  if (!btn) return;
+  const on = isFast();
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+  const label = document.getElementById("fast-label");
+  if (label) label.textContent = uiWord(on ? "fast-on" : "fast-off");
+  document.body.classList.toggle("fast", on);
+}
+
 function paintSoundToggle() {
   const btn = document.getElementById("btn-sound");
   if (!btn) return;
@@ -1432,6 +1487,14 @@ function wireControls() {
 
   const noteBtn = document.getElementById("btn-note");
   if (noteBtn) noteBtn.addEventListener("click", openNote);
+
+  const fastBtn = document.getElementById("btn-fast");
+  if (fastBtn) {
+    fastBtn.addEventListener("click", () => {
+      setFast(!isFast());
+      paintFastToggle();
+    });
+  }
 
   const calmBtn = document.getElementById("btn-calm");
   if (calmBtn) {
@@ -1486,6 +1549,7 @@ async function useLanguage(lang) {
   paintChrome();
   paintSoundToggle();
   paintCalmToggle();
+  paintFastToggle();
   repaintFullscreen();
   if (!game) return;
   game.data.theme = data.theme;
@@ -1527,7 +1591,8 @@ function paintChrome() {
   }
   const titles = [
     ["btn-sound", "title-sound"], ["btn-note", "title-note"],
-    ["btn-calm", "title-calm"], ["btn-fullscreen", "title-fullscreen"],
+    ["btn-calm", "title-calm"], ["btn-fast", "title-fast"],
+    ["btn-fullscreen", "title-fullscreen"],
     ["btn-lang", "title-lang"], ["btn-copy-seed", "title-copy"],
   ];
   for (const [id, key] of titles) {
@@ -1558,6 +1623,7 @@ async function main() {
   registerWorker();
     paintSoundToggle();
     paintCalmToggle();
+    paintFastToggle();
     paintCopyIcon();
     paintLangToggle();
     paintChrome();

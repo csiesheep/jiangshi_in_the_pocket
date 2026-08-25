@@ -654,6 +654,36 @@ test("ward: standing on the stone does not spend the night's events", () => {
   eq(E.drawEvent(a).t, E.drawEvent(b).t, "five warded turns cost the stream nothing");
 });
 
+// The user's ruling on #28's escalation: 擋. The stone stops 破牆 as well as the
+// event, so the corner it makes is not a trap.
+//
+// This is the whole of what the ruling changed, and it is worth pinning both
+// ways rather than only the new half — the breach still has to reach every
+// OTHER dead end, or "safety is a place you travel to" would have quietly
+// become "dead ends are safe".
+test("ward: the breach does not reach the stone, and still reaches everywhere else", () => {
+  const at = (band) => { const s = game({ seed: 1 }); E.setTurn(s, band); return s; };
+  for (const [turn, count] of [[1, 3], [11, 4], [21, 5]]) {
+    const s = at(turn);
+    eq(E.breachAfterEvent(s, { deadEnd: true }), count, `an ordinary corner in band ${s.hour}`);
+    eq(E.breachAfterEvent(s, { deadEnd: true, warded: true }), 0, "but never on the stone");
+  }
+});
+
+test("ward: being warded is not the same as not being a dead end", () => {
+  // The distinction matters to the board rather than to the engine: the hole
+  // still opens on a warded dead end, because a run that cannot leave is stuck
+  // whatever the stone does. What the ward changes is what comes through it.
+  const s = game({ seed: 1 });
+  E.setTurn(s, 21);
+  eq(E.breachAfterEvent(s, { deadEnd: true, warded: true }), 0);
+  eq(E.breachAfterEvent(s, { deadEnd: false, warded: false }), 0);
+  eq(E.breachAfterEvent(s, { deadEnd: true, warded: false }), 5, "eleven o'clock, unwarded");
+  // Fleeing still wins on its own, warded or not — two reasons for zero are
+  // not a conflict.
+  eq(E.breachAfterEvent(s, { deadEnd: true, fled: true, warded: true }), 0);
+});
+
 test("ward: the King is not turned by it — only running water declines him", () => {
   // §the amendment: the stone stops what walks the road, not what keeps the
   // appointment. Standing there at midnight is still a meeting.
@@ -1273,6 +1303,7 @@ test("breach: fires after the room's event, in a dead end", () => {
   const s = game({ seed: 1 });
   eq(E.breachAfterEvent(s, { deadEnd: true }), 3, "a corner at nine o'clock");
   eq(E.breachAfterEvent(s, { deadEnd: false }), 0, "a room with a way on is safe");
+  eq(E.breachAfterEvent(s, { deadEnd: true, warded: true }), 0, "and 石敢當's walls hold");
 });
 
 test("breach: fleeing the room's event cancels it — you are not there any more", () => {
