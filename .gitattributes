@@ -1,0 +1,18 @@
+# The working tree matches what ships.
+#
+# core.autocrlf=true was checking text files out as CRLF while git stored — and
+# Cloudflare serves — LF. That is invisible until something fingerprints the
+# files: sw.js's SHELL_DIGEST hashed the working tree, so the digest recorded
+# from one worktree described bytes that never reached a player, and every file
+# looked changed when the next person landed from a worktree checked out the
+# other way. Both are avoided by not having two answers in the first place.
+#
+# Blobs are already LF, so this normalises the checkout rather than the history.
+* text=auto eol=lf
+
+# Binaries never get line-ending treatment, said explicitly rather than left to
+# content sniffing — a mangled woff2 or png is a bug nobody looks for.
+*.png    binary
+*.woff2  binary
+*.ogg    binary
+*.webm   binary
