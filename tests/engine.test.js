@@ -27,14 +27,14 @@ test("setup: starting stats", () => {
 
 // The DoD's setup check, spelled out: ten health, bare hands, three charges,
 // and a pack that begins three-sixths full of rice.
-test("setup: 10 HP, attack 0, 3 charges, 3 rice in 3 of 6 slots", () => {
+test("setup: 10 HP, attack 0, three rice in three of four slots", () => {
   const s = game({ seed: 1 });
   eq(s.health, E.RULES.START_HEALTH);
   eq(s.health, 10);
   eq(E.effectiveAttack(s), 0, "bare-handed is zero, not one");
   eq(E.heldCount(s, "sticky-rice"), 3, "three rice");
   eq(E.slotsUsed(s), 3, "and they cost three slots, one each");
-  eq(E.freeSlots(s), 3, "of six");
+  eq(E.freeSlots(s), 1, "of four — the pack starts nearly full");
 });
 
 test("setup: the starting pack is a copy, not the constant itself", () => {
@@ -498,18 +498,16 @@ test("changeHealth: a run may still be given a lower cap", () => {
 
 // ---- Combat ----------------------------------------------------------------
 // ---- The pack --------------------------------------------------------------
-test("pack: six slots, one per unit, drop to make room", () => {
+test("pack: four slots, one per unit, drop to make room", () => {
   // Filled with consumables, because that is all the pack holds since the
   // hands took the weapon and the charm out of it.
   const s = game({ seed: 1 }); // starts with 3 rice in 3 slots
   eq(E.pickUpItem(s, "soul-banner").ok, true);
-  eq(E.pickUpItem(s, "black-dog-blood").ok, true);
-  eq(E.pickUpItem(s, "golden-elixir").ok, true);
-  eq(E.slotsUsed(s), 6, "full");
+  eq(E.slotsUsed(s), 4, "full — three rice and the banner");
   eq(E.pickUpItem(s, "truefire-talisman").ok, false, "full without a drop");
   eq(E.pickUpItem(s, "truefire-talisman", "sticky-rice").ok, true, "a rice makes room");
   eq(E.heldCount(s, "sticky-rice"), 2, "one rice gone");
-  eq(E.slotsUsed(s), 6);
+  eq(E.slotsUsed(s), 4);
 });
 
 // The rule that makes the pack shape worth having. It is scoped to cat magic
@@ -518,18 +516,19 @@ test("pack: six slots, one per unit, drop to make room", () => {
 test("pack: only talismans stack into one slot", () => {
   const s = game({ seed: 1 });
   eq(E.slotsUsed(s), 3, "three rice, three slots");
+  E.dropItem(s, "sticky-rice"); // room to work in, now the pack is four
 
   E.pickUpItem(s, "truefire-talisman");
-  eq(E.slotsUsed(s), 4);
+  eq(E.slotsUsed(s), 3);
   eq(E.slotCost(s, "truefire-talisman"), 0, "a second of the same joins the stack");
   E.pickUpItem(s, "truefire-talisman");
   E.pickUpItem(s, "truefire-talisman");
   eq(E.heldCount(s, "truefire-talisman"), 3, "three deep");
-  eq(E.slotsUsed(s), 4, "and still one slot");
+  eq(E.slotsUsed(s), 3, "and still one slot");
 
   eq(E.slotCost(s, "sticky-rice"), 1, "rice never stacks");
   E.pickUpItem(s, "sticky-rice");
-  eq(E.slotsUsed(s), 5, "a fourth rice is a fourth slot");
+  eq(E.slotsUsed(s), 4, "a third rice is a fourth slot");
 });
 
 test("pack: a unique already held is refused", () => {
@@ -551,13 +550,11 @@ test("pack: dropping the last of an id removes it entirely", () => {
 
 test("the tablet: slotless, and wins only when held", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "soul-banner");
-  E.pickUpItem(s, "black-dog-blood");
-  E.pickUpItem(s, "golden-elixir"); // six of six
-  eq(E.slotsUsed(s), 6, "pack full");
+  E.pickUpItem(s, "soul-banner"); // four of four
+  eq(E.slotsUsed(s), 4, "pack full");
   E.completeRite(s, "TAKE_TABLET");
   eq(s.tablet, true);
-  eq(E.slotsUsed(s), 6, "the tablet took no slot");
+  eq(E.slotsUsed(s), 4, "the tablet took no slot");
   const empty = game({ seed: 1 });
   eq(E.completeRite(empty, "BURY_TABLET").reason, "no-tablet", "nothing to bury");
   eq(empty.status, "playing", "and no win for standing there");
@@ -783,9 +780,7 @@ test("search: a non-unique can be found again", () => {
 test("search: a full pack offers a drop rather than silently losing the find", () => {
   const s = game({ seed: 1 }); // 3 rice
   E.pickUpItem(s, "soul-banner");
-  E.pickUpItem(s, "black-dog-blood");
-  E.pickUpItem(s, "truefire-talisman");
-  eq(E.slotsUsed(s), 6, "full");
+  eq(E.slotsUsed(s), 4, "full");
 
   s.searchTables = { only: [{ id: "golden-elixir", p: 100 }] };
   const r = E.search(s, "only");
@@ -796,7 +791,7 @@ test("search: a full pack offers a drop rather than silently losing the find", (
   // The offer is finished through the same door every other pickup uses.
   eq(E.pickUpItem(s, r.id, "sticky-rice").ok, true);
   eq(E.held(s, "golden-elixir"), true);
-  eq(E.slotsUsed(s), 6);
+  eq(E.slotsUsed(s), 4);
 });
 
 // THE OTHER DoD NUMBER. The search stream is separate so that a shared seed
@@ -941,7 +936,7 @@ test("hands: both empty at nine o'clock, and neither is luggage", () => {
   eq(E.equippedWeapon(s), null);
   eq(E.hasCharm(s), false);
   eq(E.slotsUsed(s), 3, "three rice and nothing else");
-  eq(E.freeSlots(s), 3);
+  eq(E.freeSlots(s), 1);
 });
 
 test("hands: a weapon and the charm cost no slot at all", () => {
@@ -955,12 +950,10 @@ test("hands: a weapon and the charm cost no slot at all", () => {
   // And a full pack is no obstacle to either, which is the point of the hands.
   const full = game({ seed: 1 });
   E.pickUpItem(full, "soul-banner");
-  E.pickUpItem(full, "black-dog-blood");
-  E.pickUpItem(full, "golden-elixir");
-  eq(E.slotsUsed(full), 6, "not a slot to spare");
+  eq(E.slotsUsed(full), 4, "not a slot to spare");
   eq(E.pickUpItem(full, "sevenstar-sword").ok, true, "the hand does not care");
   eq(E.pickUpItem(full, "protective-charm").ok, true);
-  eq(E.slotsUsed(full), 6, "and the pack is unchanged");
+  eq(E.slotsUsed(full), 4, "and the pack is unchanged");
 });
 
 test("hands: the charm equips itself, because there is only one to argue about", () => {
@@ -1332,15 +1325,13 @@ test("villager: no rice means no choice", () => {
 test("villager: the charm costs a rice and no slot at all", () => {
   const s = game({ seed: 1 }); // 3 rice
   E.pickUpItem(s, "soul-banner");
-  E.pickUpItem(s, "black-dog-blood");
-  E.pickUpItem(s, "golden-elixir");
-  eq(E.slotsUsed(s), 6, "not a slot to spare");
+  eq(E.slotsUsed(s), 4, "not a slot to spare");
   const r = E.resolveVillager(s, { gift: "protective-charm", turnsInto: 4 }, true);
   eq(r.type, "GIFT");
   eq(E.held(s, "protective-charm"), true);
   eq(E.hasCharm(s), true, "worn, not carried");
   eq(E.heldCount(s, "sticky-rice"), 2, "one rice out");
-  eq(E.slotsUsed(s), 5, "and nothing came back to replace it");
+  eq(E.slotsUsed(s), 3, "and nothing came back to replace it");
 });
 
 test("villager: the charm comes from nowhere else in the game", async () => {
@@ -1634,6 +1625,7 @@ test("rite: a dead-end goal room can be three fights in one turn", () => {
 // found, and it cannot reach a sword.
 test("cinnabar: doubles a talisman you hold, and costs no slot", () => {
   const s = game({ seed: 1 });
+  E.dropItem(s, "sticky-rice", 2); // four slots; make room to hold both
   E.pickUpItem(s, "fivethunder-talisman");
   E.pickUpItem(s, "cinnabar");
   const before = E.slotsUsed(s);
@@ -1648,14 +1640,15 @@ test("cinnabar: doubles a talisman you hold, and costs no slot", () => {
 
 test("cinnabar: a stack of any size stays one slot", () => {
   const s = game({ seed: 1 });
+  E.dropItem(s, "sticky-rice", 2);
   E.pickUpItem(s, "blood-talisman");
-  eq(E.slotsUsed(s), 4, "3 rice + 1 talisman");
+  eq(E.slotsUsed(s), 2, "1 rice + 1 talisman");
   for (let i = 0; i < 3; i++) {
     E.pickUpItem(s, "cinnabar");
     E.useCinnabar(s, "blood-talisman");
   }
   eq(E.heldCount(s, "blood-talisman"), 7, "1 + 2 + 2 + 2");
-  eq(E.slotsUsed(s), 4, "seven deep and still one slot");
+  eq(E.slotsUsed(s), 2, "seven deep and still one slot");
 });
 
 test("cinnabar: refuses a talisman you hold none of", () => {
@@ -1687,6 +1680,7 @@ test("cinnabar: needs cinnabar", () => {
 // touch it. Worth pinning because "paint it twice" invites exactly that guess.
 test("cinnabar: cannot push a sword past one 真火符", () => {
   const s = game({ seed: 1 });
+  E.dropItem(s, "sticky-rice", 2);
   E.pickUpItem(s, "sevenstar-sword");
   E.pickUpItem(s, "truefire-talisman");
   E.pickUpItem(s, "cinnabar");

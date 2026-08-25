@@ -38,9 +38,20 @@ export const RULES = {
   // source game started you at 1 and added the weapon on top; here the sword IS
   // your attack, so an unarmed caretaker takes a pack of four full in the face.
   START_ATTACK: 0,
-  MAX_ITEMS: 6, // the tablet is exempt
-  // You start with three rice, which is three of the six slots. The pack begins
-  // full of consumables and converts, rice by rice, into equipment.
+  // Four since #47. The hands took the sword and 護身符 out of the pack, which
+  // dropped its pressure so far that the user ruled it back down with the
+  // numbers in front of them — a decision changed on evidence, not a
+  // contradiction of the two earlier "keep it at six" rulings.
+  //
+  // 鎮屍 is still reachable, and that was checked before this landed rather
+  // than after (tools/pack-4-reachability.md): only TWO of the recipe's six
+  // pieces are ever in the pack at once — 攝魂幡 and 血符 — because the sword is
+  // in hand, the 真火符 is state once burned in, and the 神主牌 is slotless. The
+  // tightest moment is three, the instant before the buff.
+  MAX_ITEMS: 4, // the tablet is exempt
+  // You start with three rice, which is three of the four slots. The pack
+  // begins nearly full of consumables and converts, rice by rice, into the two
+  // things midnight needs you to be holding.
   START_ITEMS: { "sticky-rice": 3 },
 
   // ---- combat --------------------------------------------------------------

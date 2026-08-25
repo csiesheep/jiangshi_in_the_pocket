@@ -198,36 +198,52 @@ test("§13: every winning line spends the banner", () => {
     "so the banner is the one truly compulsory item in the game");
 });
 
-// This row used to read "starting rice plus a full duel kit is exactly 6 of 6",
-// and it died with the second amendment: the kit's sword left the pack for the
-// right hand, so the arithmetic that made it exactly full no longer runs.
+// This row has been re-derived twice, and both times the question underneath
+// survived: how much of the pack does the winning loadout actually cost?
 //
-// Re-derived rather than deleted, because the question it was really asking is
-// still live and still load-bearing — how much of the pack does the winning
-// loadout cost? The answer is now two slots, not four, and the slack is the
-// design consequence the amendment flagged: pack pressure drops, and whether
-// six is still the right number is a separate decision the user has not made.
-test("§13: the duel kit costs two pack slots now, and the sword costs none", () => {
+// It began as "starting rice plus a full duel kit is exactly 6 of 6". The hands
+// (#31) took the sword and 護身符 out of the pack, so it became two slots of six
+// with slack to spare — and that slack is precisely what the user then ruled
+// away (#47). Two slots of FOUR now, which is the same kit against a pack half
+// the size.
+//
+// The two are 攝魂幡 and 血符. Everything else the seal needs is somewhere that
+// is not luggage: the blade in your hand, the 真火符 burned into it and consumed,
+// the 神主牌 slotless. See tools/pack-4-reachability.md — this test is that
+// analysis, executable.
+test("§13: the duel kit costs two of the four pack slots, and nothing else does", () => {
   const s = game({ seed: 1 });
+  eq(E.RULES.MAX_ITEMS, 4, "the pack the rest of this row is about");
   eq(E.slotsUsed(s), 3, "three 糯米 to begin");
 
+  // Neither hand is luggage.
   E.pickUpItem(s, "sevenstar-sword");
-  eq(E.slotsUsed(s), 3, "the blade is in your hand, not on your back");
-  eq(E.equippedWeapon(s), "sevenstar-sword");
-
-  E.pickUpItem(s, "soul-banner");
-  E.pickUpItem(s, "fivethunder-talisman");
-  eq(E.slotsUsed(s), 5, "banner and one talisman stack, on top of the rice");
-  eq(E.freeSlots(s), 1, "and a slot to spare, which the old rule never left");
-
-  // 護身符 is the other resident of the hands, and it is also free.
   E.pickUpItem(s, "protective-charm");
-  eq(E.slotsUsed(s), 5, "the charm costs nothing either");
+  eq(E.slotsUsed(s), 3, "the blade and the charm cost nothing");
+  eq(E.equippedWeapon(s), "sevenstar-sword");
   eq(E.hasCharm(s), true);
 
-  // The stack is still one slot however deep it goes — that rule is untouched.
-  E.pickUpItem(s, "truefire-talisman");
-  eq(E.slotsUsed(s), 6, "a second talisman id is a second slot");
-  E.useCinnabar(s, "fivethunder-talisman");
-  eq(E.slotsUsed(s), 6, "but a deeper stack is free");
+  // The first of the two the pack must hold at midnight fills it.
+  E.pickUpItem(s, "soul-banner");
+  eq(E.slotsUsed(s), 4, "full, with three rice still aboard");
+
+  // And the second has to be paid for, which is the whole of what #47 changed:
+  // a rice buys the slot, and the engine hands that choice back rather than
+  // making it.
+  eq(E.pickUpItem(s, "blood-talisman").ok, false, "no room while three rice ride along");
+  eq(E.pickUpItem(s, "blood-talisman", "sticky-rice").ok, true, "one rice pays for it");
+  eq(E.slotsUsed(s), 4);
+  eq(E.heldCount(s, "sticky-rice"), 2, "two meals left");
+
+  // The tightest moment: 真火符 in hand as well, three ids at once, before
+  // burning it into the blade gives the slot back.
+  eq(E.pickUpItem(s, "truefire-talisman", "sticky-rice").ok, true);
+  eq(E.slotsUsed(s), 4, "banner, blood, fire and one rice");
+  E.buffSword(s, "sevenstar-sword");
+  eq(E.slotsUsed(s), 3, "burning it in returns the slot");
+  eq(E.effectiveAttack(s), 4, "七星劍 with the fire in it");
+
+  // Which leaves the standing requirement at two, and a rice to spare.
+  eq(E.freeSlots(s), 1);
+  eq(E.attackWith(s, { banner: true, talisman: "blood-talisman" }), 13, "the only winning number");
 });
