@@ -1,11 +1,21 @@
 // Service worker. The game is entirely static, so full offline play costs
 // nothing but care about the update path.
 //
-// Bump CACHE when anything in SHELL changes. The name is the version: a new
-// deploy fills a new cache, and activate deletes every older one, so nobody is
-// stranded on a stale shell. That is the failure mode worth designing against —
-// a cache-first worker with one immortal cache name means players keep a build
-// forever and every later fix is invisible to them.
+// CACHE IS DERIVED, NOT CHOSEN. It is a hash of the shell's blobs, written by
+// tools/record_shell.py — run that after committing a shell change and commit
+// sw.js with it. Do not edit the name: tests/shell.test.js recomputes the
+// derivation and a hand-typed one fails.
+//
+// The name is still the version, and that is the failure mode worth designing
+// against: a new deploy fills a new cache and activate deletes every older one,
+// so nobody is stranded on a stale shell. A cache-first worker with one
+// immortal name means players keep a build forever and every later fix is
+// invisible to them.
+//
+// It used to be a number a person picked, and twice two branches independently
+// picked the same one for different shells — both correct, both internally
+// consistent, both green. A counter cannot see that. A hash of the content
+// cannot collide by accident, and nobody has to remember to increment it.
 //
 // The prefix has to be unique per game, and that is not cosmetic. Every game on
 // games.csiesheep.com shares one origin, and Cache Storage is partitioned by
@@ -14,27 +24,30 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-v30";
+const CACHE = "jiangshi-1935b868";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
-// The line four comments up — bump CACHE when anything in SHELL changes — was
-// true and documented and got missed anyway (#28), because it lives in a file
-// nobody opens to edit js/engine.js. So it is a failing test now instead of a
-// sentence: change a shell file and the suite goes red until this block is
-// updated, and updating it means being here, where the bump is.
+// The rule this replaced — bump CACHE when anything in SHELL changes — was
+// true and documented at the top of this file and got missed anyway (#28),
+// because the coupling runs from the file you are editing to a file you have no
+// reason to open. So it is a failing test now instead of a sentence.
 //
-// The version is part of the fingerprint on purpose. Pasting new hashes without
-// bumping CACHE leaves the suite red, so the two cannot come apart.
+// Hashed from the BLOBS (git show HEAD:), not the working tree. This project
+// was fingerprinting a CRLF checkout while git stores and the CDN serve LF, so
+// the record described bytes no player was ever sent and flipped by worktree.
+// The blob is the same on every machine, which matters more now that the cache
+// name is derived from these hashes: a working-tree-derived name would differ
+// per machine for identical content and evict every player's cache on each
+// deploy, silently.
 //
-// The test prints the replacement block on failure — do not compute it by hand.
+// Generated. Run tools/record_shell.py rather than editing by hand.
 //
 // Only SHELL is covered. data/ and assets/audio/ are served network first (see
 // RUNTIME below), so they reach players without a bump; it is the cache-first
 // shell that goes stale, and a new tiles.json against an old engine.js is
 // exactly the mismatch #28 shipped.
 const SHELL_DIGEST = {
-  "@cache":                                 "jiangshi-v30",
   "./":                                     "567fbcc1dc",
   "index.html":                             "567fbcc1dc",
   "game.html":                              "f4926f5f77",

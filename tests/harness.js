@@ -3,6 +3,42 @@
 // summary line ("TESTS: X passed, Y failed") and document.title so results
 // can be read back headlessly.
 
+// The one staleness this file cannot otherwise see. The suite-count guard below
+// catches a cached SUITE, but it lives here — so a cached harness ships a cached
+// guard, and the run comes back green with the old rules quietly applied. That
+// is not hypothetical: the async fix was invisible on an origin holding the
+// pre-fix harness, and a five-file-stale digest printed GREEN on another for the
+// same reason. A wrong red costs time; a wrong green costs trust in every
+// earlier result too.
+//
+// So the harness asks the disk who it is. The running module knows its own id;
+// the file on disk declares one; if they differ, the module in memory is older
+// than the file and NOTHING it reports can be relied on.
+//
+// Stamped by tools/record_shell.py from harness.js's own blob hash, so nobody
+// has to remember to change it. Set by hand it still works — forgetting only
+// costs the protection, it cannot produce a wrong answer.
+export const HARNESS_ID = "4df4529b";
+
+// Pulled out so both directions can be tested without a network.
+export function harnessIdFrom(src) {
+  const m = String(src).match(/export const HARNESS_ID = "([^"]*)"/);
+  return m ? m[1] : null;
+}
+
+async function harnessIsCurrent() {
+  try {
+    const src = await fetch(new URL(import.meta.url), { cache: "no-store" }).then((r) => r.text());
+    const disk = harnessIdFrom(src);
+    // No marker on disk means an older harness than this check — nothing to
+    // compare against, and inventing a failure would be worse than staying quiet.
+    if (disk === null) return { ok: true };
+    return { ok: disk === HARNESS_ID, disk, running: HARNESS_ID };
+  } catch {
+    return { ok: true }; // cannot reach the file; not evidence of anything
+  }
+}
+
 const results = [];
 
 // Async bodies settle after test() has already returned, so their outcomes are
@@ -100,9 +136,27 @@ export async function report(suites = []) {
   const summary = `TESTS: ${passed} passed, ${failed} failed`;
   console.log(summary);
 
-  // Did every test that exists on disk actually run?
+  // Is this harness itself the one on disk? Asked first, because if it is not
+  // then the count below was produced by the wrong rules and comparing it to
+  // anything is theatre.
   let stale = null;
-  if (suites.length) {
+  const identity = await harnessIsCurrent();
+  if (!identity.ok) {
+    stale = {
+      kind: "harness",
+      registered: results.length,
+      expected: results.length,
+      message:
+        `STALE HARNESS — the browser is running harness.js "${identity.running}" ` +
+        `while the file on disk is "${identity.disk}". Every result above was ` +
+        `produced by the older rules and none of them can be trusted. ` +
+        `Reload from a host:port this browser has not used before.`,
+    };
+    console.error(stale.message);
+  }
+
+  // Did every test that exists on disk actually run?
+  if (!stale && suites.length) {
     const declared = await declaredCounts(suites);
     const known = Object.values(declared).filter((n) => n !== null);
     if (known.length === suites.length) {
@@ -124,7 +178,7 @@ export async function report(suites = []) {
   }
 
   document.title = stale
-    ? `STALE (${results.length}/${stale.expected})`
+    ? (stale.kind === "harness" ? "STALE HARNESS" : `STALE (${results.length}/${stale.expected})`)
     : failed === 0
       ? `PASS (${passed})`
       : `FAIL (${failed})`;
@@ -140,7 +194,7 @@ export async function report(suites = []) {
     // Louder than a failure, because a failure at least tells you something
     // true about the code. This says the whole report is untrustworthy.
     const warn = document.createElement("p");
-    warn.textContent =
+    warn.textContent = stale.message ||
       `STALE RUN — ${stale.registered} tests ran, ${stale.expected} exist on disk. ` +
       `A cached suite is being executed; this report cannot be trusted. ` +
       `Reload from a host:port this browser has not used before.`;
