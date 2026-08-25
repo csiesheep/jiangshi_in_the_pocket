@@ -710,6 +710,10 @@ function renderBackpack(game) {
   const el = document.getElementById("hud-items");
   if (!el) return;
   el.textContent = "";
+  // The strip is as wide as the engine says the pack is. Same reason the loop
+  // below asks rather than assumes: this has been six and is now four, and the
+  // CSS should not be the one place that disagrees.
+  el.style.setProperty("--pack-cells", String(RULES.MAX_ITEMS));
   // One entry per SLOT, and a slot is not a unit: a talisman stack fills one
   // cell whatever its count, while three rice fill three.
   const rows = slotRows(s);

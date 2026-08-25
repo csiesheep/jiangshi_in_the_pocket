@@ -719,8 +719,17 @@ body.app .board-pane > .board { min-height: 0; }
    the same dashed-when-empty, quiet-when-full vocabulary the hands use. */
 .backpack {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* One row, MAX_ITEMS wide. Was a 2x2 田 and the cells came out 131px, which
+     put a 75px picture in each — too big for a thing you glance at beside the
+     board. Across the same panel the cells land near 65px and the pictures at
+     roughly half what they were, which is the point of the change.
+
+     Capped so the strip does not stretch when the sidebar becomes full width on
+     a narrow viewport: four cells across a phone is right, four cells across a
+     1200px column would put the pack back where it started. */
+  grid-template-columns: repeat(var(--pack-cells, 4), minmax(0, 1fr));
   gap: 8px;
+  max-width: 320px;
 }
 
 .cell {
@@ -776,7 +785,7 @@ body.app .board-pane > .board { min-height: 0; }
   outline: 2px solid var(--way-new);
   outline-offset: 2px;
 }
-.cellicon { width: 58%; height: 58%; color: var(--gold); }
+.cellicon { width: 62%; height: 62%; color: var(--gold); }
 
 /* The count. A stack is one cell however deep it is, so the number sits on the
    picture rather than beside it — and it has to be here at all because the name
@@ -832,8 +841,11 @@ body.app .board-pane > .board { min-height: 0; }
 /* The last column's tooltip would run off the panel's right edge, and the first
    column's off the left. Nudge them back inside rather than letting the sidebar
    scroll sideways. */
-.cell:nth-child(odd) .celltip { left: 0; transform: none; }
-.cell:nth-child(even) .celltip { left: auto; right: 0; transform: none; }
+/* The panel is wider than a cell, so a tooltip centred on an end cell hangs off
+   the side. The left half anchor left, the right half anchor right, and nothing
+   ever pushes the sidebar sideways. */
+.cell:nth-child(-n+2) .celltip { left: 0; right: auto; transform: none; }
+.cell:nth-child(n+3) .celltip { left: auto; right: 0; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .celltip { transition: none; }
