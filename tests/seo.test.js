@@ -11,7 +11,12 @@
 // caught the same way — and it is the exact drift that had already happened:
 // tiles.html shipped with a canonical and was never added to the list.
 
-import { test, assert, eq } from "./harness.js";
+import { test, assert, eq, suite } from "./harness.js";
+
+// Which copy of this suite is speaking. Stamped by tools/record_shell.py;
+// report() compares it against the file on disk, so a stale module is caught
+// even when the test count happens to match.
+suite(import.meta.url, "63ff683a");
 
 const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits"];
 

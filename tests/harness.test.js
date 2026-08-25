@@ -1,4 +1,10 @@
-import { test, assert, eq, HARNESS_ID, harnessIdFrom, stampFor } from "./harness.js";
+import { test, assert, eq, HARNESS_ID, harnessIdFrom, stampFor, suite,
+         staleSuites, registeredSuites } from "./harness.js";
+
+// Which copy of this suite is speaking. Stamped by tools/record_shell.py;
+// report() compares it against the file on disk, so a stale module is caught
+// even when the test count happens to match.
+suite(import.meta.url, "cdcf8495");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -74,4 +80,62 @@ test("harness: the one running here is the one on disk", async () => {
   assert(disk !== null, "harness.js on disk should declare an id");
   eq(disk, HARNESS_ID,
     `running "${HARNESS_ID}" against a disk copy of "${disk}" — reload from an unused host:port`);
+});
+
+// ---- The third blind spot (#63) ----------------------------------------------
+// The declared-count guard catches a suite that did not run. It cannot catch a
+// suite that ran the WRONG COPY when the counts match — a stale data.test.js
+// once reported "game.html has no #copy-replay", a string that exists nowhere
+// in the tree, and the totals agreed so nothing complained.
+//
+// Every suite now says which copy of itself is speaking, and report() compares
+// that against the file on disk. These exercise the comparison directly; the
+// live case is the first test in this file's neighbour, and the failing
+// direction was demonstrated by serving a stale suite on purpose.
+test("suites: a stale copy is caught even when the count matches", () => {
+  const ran = { "data.test.js": "aaaaaaaa", "engine.test.js": "bbbbbbbb" };
+  const disk = { "data.test.js": "cccccccc", "engine.test.js": "bbbbbbbb" };
+  const bad = staleSuites(ran, disk);
+  eq(bad.length, 1, "one suite disagrees");
+  assert(/data\.test\.js/.test(bad[0]), `and it names itself: ${bad[0]}`);
+  assert(/aaaaaaaa/.test(bad[0]) && /cccccccc/.test(bad[0]),
+    "with both stamps, so the reader can tell which way round it is");
+});
+
+test("suites: a suite that never registered is stale, not absent", () => {
+  // The exact shape of the bug: the module in memory predates the stamp, so it
+  // registers nothing while the file on disk carries one.
+  const bad = staleSuites({}, { "data.test.js": "cccccccc" });
+  eq(bad.length, 1);
+  assert(/older than the stamp/.test(bad[0]), bad[0]);
+});
+
+test("suites: an unstamped file is no opinion, not an accusation", () => {
+  // A suite predating this guard cannot be blamed for a check it does not know
+  // about — inventing a failure there would be worse than staying quiet.
+  eq(staleSuites({}, { "old.test.js": null }), []);
+  eq(staleSuites({ "old.test.js": "aaaaaaaa" }, { "old.test.js": undefined }), []);
+});
+
+test("suites: agreement is silence", () => {
+  const same = { "a.test.js": "11111111", "b.test.js": "22222222" };
+  eq(staleSuites(same, same), []);
+});
+
+test("suites: every suite running here is the one on disk", async () => {
+  // The check itself, for real. If this fails, some suite above ran a copy the
+  // server has since replaced, and its results describe a file that is no
+  // longer there — which is exactly how a failure once named an element that
+  // exists nowhere in the tree.
+  const ran = registeredSuites();
+  const names = Object.keys(ran);
+  assert(names.length >= 8, `every suite should register a stamp, saw ${names.length}`);
+
+  const onDisk = {};
+  for (const name of names) {
+    const src = await fetch(`./${name}`, NO_STORE).then((r) => r.text());
+    const m = src.match(/^suite\(import\.meta\.url, "([^"]*)"\);$/m);
+    onDisk[name] = m ? m[1] : null;
+  }
+  eq(staleSuites(ran, onDisk), [], "a suite here is older than the file being served");
 });

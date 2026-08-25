@@ -1,5 +1,10 @@
 import * as E from "../js/engine.js";
-import { test, assert, eq } from "./harness.js";
+import { test, assert, eq, suite } from "./harness.js";
+
+// Which copy of this suite is speaking. Stamped by tools/record_shell.py;
+// report() compares it against the file on disk, so a stale module is caught
+// even when the test count happens to match.
+suite(import.meta.url, "d06c2ebf");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,

@@ -6,11 +6,16 @@
 // "it exists and it does not hang" — a test that pinned the placeholder art
 // would have to be deleted by the change it is supposed to be protecting.
 
-import { test, assert, eq } from "./harness.js";
+import { test, assert, eq, suite } from "./harness.js";
 import {
   eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   isFast, setFast, resetStageHints,
 } from "../js/eventstage.js";
+
+// Which copy of this suite is speaking. Stamped by tools/record_shell.py;
+// report() compares it against the file on disk, so a stale module is caught
+// even when the test count happens to match.
+suite(import.meta.url, "657299a8");
 
 const NO_STORE = { cache: "no-store" };
 
