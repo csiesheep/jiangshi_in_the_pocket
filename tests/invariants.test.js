@@ -180,16 +180,36 @@ test("§13: every winning line spends the banner", () => {
     "so the banner is the one truly compulsory item in the game");
 });
 
-test("§13: starting rice plus a full duel kit is exactly 6 of 6", () => {
+// This row used to read "starting rice plus a full duel kit is exactly 6 of 6",
+// and it died with the second amendment: the kit's sword left the pack for the
+// right hand, so the arithmetic that made it exactly full no longer runs.
+//
+// Re-derived rather than deleted, because the question it was really asking is
+// still live and still load-bearing — how much of the pack does the winning
+// loadout cost? The answer is now two slots, not four, and the slack is the
+// design consequence the amendment flagged: pack pressure drops, and whether
+// six is still the right number is a separate decision the user has not made.
+test("§13: the duel kit costs two pack slots now, and the sword costs none", () => {
   const s = game({ seed: 1 });
   eq(E.slotsUsed(s), 3, "three 糯米 to begin");
+
   E.pickUpItem(s, "sevenstar-sword");
+  eq(E.slotsUsed(s), 3, "the blade is in your hand, not on your back");
+  eq(E.equippedWeapon(s), "sevenstar-sword");
+
   E.pickUpItem(s, "soul-banner");
   E.pickUpItem(s, "fivethunder-talisman");
-  eq(E.slotsUsed(s), 6, "sword, banner, one talisman stack");
-  eq(E.freeSlots(s), 0, "exactly full, with nothing to spare");
-  eq(E.hasItemSpace(s, "golden-elixir"), false);
-  // And the stack really is one slot however deep it goes.
-  E.pickUpItem(s, "cinnabar-would-not-fit-either");
-  eq(E.slotsUsed(s), 6);
+  eq(E.slotsUsed(s), 5, "banner and one talisman stack, on top of the rice");
+  eq(E.freeSlots(s), 1, "and a slot to spare, which the old rule never left");
+
+  // 護身符 is the other resident of the hands, and it is also free.
+  E.pickUpItem(s, "protective-charm");
+  eq(E.slotsUsed(s), 5, "the charm costs nothing either");
+  eq(E.hasCharm(s), true);
+
+  // The stack is still one slot however deep it goes — that rule is untouched.
+  E.pickUpItem(s, "truefire-talisman");
+  eq(E.slotsUsed(s), 6, "a second talisman id is a second slot");
+  E.useCinnabar(s, "fivethunder-talisman");
+  eq(E.slotsUsed(s), 6, "but a deeper stack is free");
 });

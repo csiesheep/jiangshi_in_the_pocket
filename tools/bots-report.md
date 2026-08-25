@@ -8,109 +8,108 @@ Companions: `tools/sweep.html` replays the same seeds against a patched relic
 table; `tools/diagnose.html` prints the seal funnel stage by stage. Both patch
 data in memory and write nothing.
 
-**Measured after #28** — cowering removed, the shrine's prayer removed, 石敢當
-warded, and the indoor heal moved from 帳房 to 香堂.
+**Measured after #31** — equipment hands: the weapon and 護身符 live outside the
+backpack, and one weapon is carried ever.
 
 ## Batch A — seeds 1..1000
 
 | policy | win % | burial | seal | survived | died | king | reached midnight | avg atk @ midnight | ever held banner |
 |---|---|---|---|---|---|---|---|---|---|
-| hunter  | **33.7 %** | 336 | 1   | 1  | 650 | 12  | 1.5 %  | 5.67  | 10.7 % |
-| duelist | 0.6 %      | 0   | 6   | 0  | 971 | 23  | 2.9 %  | 8.03  | 12.7 % |
-| **adept**   | **23.0 %** | 0 | **230** | 5 | 710 | 55 | **29.2 %** | **11.80** | 37.6 % |
-| turtle  | 0 %        | 0   | 0   | 31 | 969 | 0   | 3.1 %  | 4.97  | 8.0 %  |
-| camper  | 0 %        | 0   | 0   | 0  | 713 | 287 | 28.7 % | 0.82  | 3.5 %  |
+| hunter  | **34.7 %** | 344 | 3   | 1  | 622 | 30  | 3.4 %  | 6.29  | 10.7 % |
+| duelist | 1.1 %      | 0   | 11  | 0  | 927 | 62  | 7.5 %  | 8.87  | 12.9 % |
+| **adept**   | **25.0 %** | 0 | **250** | 5 | 689 | 56 | **31.2 %** | **11.86** | 38.6 % |
+| turtle  | 0 %        | 0   | 0   | 53 | 947 | 0   | 5.3 %  | 5.26  | 8.0 %  |
+| camper  | 0 %        | 0   | 0   | 0  | 627 | 373 | 37.3 % | 1.86  | 3.5 %  |
 
 ## Batch B — seeds 5001..6000
 
 | policy | win % | burial | seal | survived | died | king | reached midnight | avg atk @ midnight |
 |---|---|---|---|---|---|---|---|---|
-| hunter  | 36.6 % | 365 | 1 | 1  | 621 | 12  | 1.4 %  | 5.21  |
-| duelist | 0.2 %  | 0   | 2 | 1  | 972 | 25  | 3.0 %  | 7.30  |
-| **adept**   | **26.6 %** | 0 | **266** | 6 | 685 | 43 | **31.6 %** | **12.04** |
-| turtle  | 0 %    | 0   | 0 | 36 | 964 | 0   | 3.6 %  | 4.69  |
-| camper  | 0 %    | 0   | 0 | 0  | 711 | 289 | 28.9 % | 0.99  |
+| hunter  | 38.0 % | 374 | 6 | 1  | 589 | 30  | 3.7 %  | 6.38  |
+| duelist | 0.9 %  | 0   | 9 | 1  | 915 | 75  | 8.6 %  | 8.45  |
+| **adept**   | **29.0 %** | 0 | **290** | 6 | 659 | 45 | **34.1 %** | **12.06** |
+| turtle  | 0 %    | 0   | 0 | 65 | 935 | 0   | 6.5 %  | 5.09  |
+| camper  | 0 %    | 0   | 0 | 0  | 620 | 380 | 38.0 % | 2.00  |
 
-## Before and after the redesign
+## Before and after the hands
 
-Same seeds, same policies, so every difference is the three rule changes.
+Same seeds, same policies. Every difference is #31.
 
 | policy | before (A / B) | after (A / B) | |
 |---|---|---|---|
-| hunter burial  | 328 / 359 | 336 / 365 | **flat** |
-| adept seal     | 224 / 243 | 230 / 266 | **flat to slightly up** |
-| duelist seal   | 4 / 4     | 6 / 2     | noise either side of nothing |
-| turtle survived| 64 / 81   | 31 / 36   | **halved** |
-| camper → King  | 463 / 507 | 287 / 289 | **collapsed** |
+| hunter burial   | 336 / 365 | 344 / 374 | up a little |
+| adept seal      | 230 / 266 | 250 / 290 | **up ~2 pp** |
+| duelist seal    | 6 / 2     | 11 / 9    | up, off a tiny base |
+| turtle survived | 31 / 36   | 53 / 65   | **up ~70 %** |
+| camper → King   | 287 / 289 | 373 / 380 | **up ~30 %** |
 
-**The hunter did not drop.** This was the expected casualty — it lost the
-prayer, its only mitigation for the grave staying buried in the deck. It is flat
-across both batches, inside a standard deviation either way. The prayer was
-worth close to nothing to it, and the funnel says why: the hunter reaches
-midnight 1.5 % of the time, so it wins by burying *early*, and the prayer only
-paid when the grave was still in the stack late — a case that mostly did not
-arrive before the night did.
+**Everything got easier, and in one direction: survival.** The camper reaches
+midnight 28.7 % → 37.3 %; the turtle's survivals rose by two thirds; even the
+hunter, which barely sees midnight, gained. Nobody's *attack* moved much — the
+adept's average at midnight is 11.86 against 11.80 before.
 
-**The adept held, having lost three free turns and gained a square.** It gave up
-three event-free turns it could carry anywhere and got one place that is
-event-free forever. Net: unchanged to slightly better. That is the redesign
-working exactly as ruled — safety moved from inventory to geography without
-moving the difficulty.
+The reason is not the weapon. It is the pack. Taking the sword and 護身符 out of
+it turned a bag that was half equipment into a bag that is nearly all medicine:
+the same six slots now carry two more rice, and rice is health. The charm helps
+in the same direction and more reliably than before — it used to compete for a
+slot and could be crowded out, and now it is simply worn.
 
-**The two policies that had nothing but charges lost the most.** The camper's
-midnight arrivals fell 46.3 % → 28.7 % and its deaths-by-health rose 537 → 713;
-the turtle's survivals halved. Neither had anywhere to be. Standing still was a
-plan while three charges could absorb the worst three draws of a night; without
-them it is just standing still. The camper also lost a little geometry: the
-indoor heal moved to 香堂, which has two exits where 帳房 had three, so it corners
-itself more often.
+So the honest description of #31 is that it is **a difficulty reduction that
+arrived as an inventory change**, and it was not asked for. The amendment
+flagged the mechanism ("pack pressure drops — kept at 6 per the literal ruling,
+shrinking it is a separate decision") without a number attached. Here is the
+number.
 
-Net: **the redesign cost the policies that carried safety and cost nothing to
-the policy that knows where to stand.** That is the shape the amendment asked
-for.
+## Pricing the pack, since that decision is now live
 
-## One thing the amendment does not settle
+Adept and hunter, 1000 seeds, `MAX_ITEMS` varied and nothing else:
 
-The ward stops the **event**. 破牆 is not an event draw — it is triggered by
-standing in a dead end — so as written the breach still reaches the stone. It
-is not hypothetical:
+| pack | adept seal | adept reaches midnight | hunter burial |
+|---|---|---|---|
+| **6** (shipped) | 250 | 31.2 % | 344 |
+| 5 | 245 | 30.7 % | 343 |
+| 4 | 208 | 26.3 % | 334 |
 
-| | breaches taken while standing on the ward, per 1000 nights |
-|---|---|
-| hunter | 307 (A) / 445 (B) |
-| adept  | 280 (A) / 432 (B) |
+**Shrinking to five buys back almost nothing** — half a point of seal, and the
+hunter does not move at all. The hands freed roughly two slots of pressure and
+taking one back does not undo them. **Four is where it bites**: the adept drops
+4 pp and its midnight arrivals fall by a fifth.
 
-石敢當 has four exits, but `isDeadEnd` turns true once every opening leads to a
-tile already on the table — so late in the night, exactly when the adept is
-waiting there with a finished kit, the safe square can start taking 5-count
-packs.
+So if the intent is to hold the pre-#31 difficulty, five is not the lever —
+four is, and four is a bigger change than "one fewer slot" sounds. If the intent
+is that equipment simply stopped competing with medicine, six is already right
+and the extra survival is the feature.
 
-Measured both ways (`?wardBlocksBreach=1`, a counterfactual switch, never the
-shipped rule):
+## A consequence worth naming: weapon rooms no longer dry up
 
-| | shipped (ward stops events only) | counterfactual (ward stops the breach too) |
-|---|---|---|
-| adept seal | 230 | 240 |
-| hunter burial | 336 | 336 |
-| hunter reaches midnight | 1.5 % | 4.4 % |
+`missChance` used to climb 10 → 35 → 60 → 85 as swords accumulated — every blade
+you owned raised the chance the next rummage handed back a room you had already
+looted, and that was what made weapon tables self-limiting.
 
-**The ruling is worth about one point** on the headline, so it can go either way
-without disturbing the balance. Raising it because the amendment's stated intent
-— "safety is now a place you travel to" — reads oddly against a safe place that
-takes 4 damage a turn at eleven o'clock, and because 破牆 is a jiangshi coming
-through the wall, which is the exact thing a 石敢當 is for. Implemented
-literally, and flagged rather than assumed.
+One weapon ever ends it. You can hold at most one, so the miss reaches 35 and
+stops, and a weapon table stays 65 % productive all night. Swapping is now the
+only way a weapon room disappoints you, and swapping is a choice.
+
+**Open question for the user**, flagged rather than assumed: the amendment says
+the replaced weapon is *left behind and gone*. Implemented literally, "gone"
+means gone from your hands — the search table can still offer it later, because
+nothing tracks destroyed items. If "gone" was meant as gone from the night, that
+is a small change (treat left-behind blades like uniques already held) and it
+would restore the old 10 → 35 → 60 → 85 curve as a side effect, since each
+abandoned sword would also stop turning up. Not built: it adds a rule the
+amendment did not state.
 
 ## Against what the design expected
 
-**"Camper and turtle ≈ never win" — still confirmed**, and more so than before:
-zero wins across 4000 nights, with both policies materially worse off.
+**"Camper and turtle ≈ never win" — still true**, and still zero across 4000
+nights, though both are now materially harder to kill.
 
-**"Banner-less midnight ≈ always fatal" — confirmed.** The camper still reaches
-midnight more often than anyone but the adept and converts none of it: average
-attack 0.82 against a threshold of 12.
+**"Banner-less midnight ≈ always fatal" — confirmed.** The camper reaches
+midnight in 37–38 % of runs and converts none: average attack 1.86 against a
+threshold of 12.
 
-**The seal is a ~25 % ending for a player who knows the recipe**, and the
-knowledge it needs is unchanged by the redesign: rooms can be rummaged every
-turn you stand in them, talismans are consumed, 七星劍 is in the weapon table —
-and now, that there is one square on the map where nothing comes.
+**The seal is a ~25–29 % ending for a player who knows the recipe.** The
+knowledge it needs is unchanged: rooms can be rummaged every turn you stand in
+them, talismans are consumed, 七星劍 is in the weapon table, one square on the
+map draws nothing — and now, that the blade you leave behind does not come back
+to your hand.

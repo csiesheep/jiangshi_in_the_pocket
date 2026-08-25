@@ -153,9 +153,18 @@ export function newGame(data, opts = {}) {
     items: { ...RULES.START_ITEMS },
     // 中毒. A flag, not a counter: it does not stack, and only rice clears it.
     poisoned: false,
+    // The two equipment slots, outside the backpack entirely: right hand a
+    // weapon, left hand 護身符. Both empty at nine o'clock. Neither costs a
+    // pack slot, and neither is ever in `items` — the pack holds consumables
+    // now, and "what am I holding" stopped being a question about inventory.
+    hands: { weapon: null, charm: null },
     // Which swords have a 真火符 burned into them. Permanent, one per sword,
     // and kept beside the pack rather than inside it because a count of swords
     // is not the same question as which one is on fire.
+    //
+    // Still a map rather than a flag, even though only one weapon is ever
+    // carried: a burned blade you leave behind takes its fire with it, and the
+    // way that is said here is by forgetting the entry.
     buffed: {},
     // Set by fleeing or by 黑狗血, cleared at the top of the next turn. It
     // suppresses this turn's HEAL_1 and cancels the breach — you are not in the
@@ -497,16 +506,32 @@ export function freeSlots(state) {
   return Math.max(0, RULES.MAX_ITEMS - slotsUsed(state));
 }
 
-// What one more of this id would cost. Zero for a talisman already held — it
-// joins the stack — and one for anything else.
+// Does this id live in a hand rather than the pack? Weapons and 護身符 do, and
+// asking it in one place is what keeps the rest of the slot arithmetic honest.
+// 攝魂幡 is deliberately NOT here: it is a 法器, not a weapon or a charm, and it
+// rides in the pack like every other thing you spend.
+export function isEquipment(state, itemId) {
+  const def = state.itemsById[itemId];
+  if (!def) return false;
+  return def.cat === "weapon" || itemId === "protective-charm";
+}
+
+// What one more of this id would cost. Zero for anything that goes to a hand,
+// zero for a talisman already held — it joins the stack — and one otherwise.
 export function slotCost(state, itemId) {
+  if (isEquipment(state, itemId)) return 0;
   const def = state.itemsById[itemId];
   if (def && def.cat === "magic" && (state.items[itemId] || 0) > 0) return 0;
   return 1;
 }
 
+// True for the pack AND the hands. Callers ask "do I have this" far more often
+// than "is this in my luggage", and making them say which would only mean every
+// one of them getting it wrong once.
 export function held(state, itemId) {
-  return (state.items[itemId] || 0) > 0;
+  if ((state.items[itemId] || 0) > 0) return true;
+  const h = state.hands || {};
+  return h.weapon === itemId || h.charm === itemId;
 }
 
 export function heldCount(state, itemId) {
@@ -519,7 +544,17 @@ export function heldIds(state) {
   return Object.keys(state.items).filter((id) => state.items[id] > 0);
 }
 
+// Pack plus hands, for anything that wants the whole loadout rather than the
+// luggage — the epilogue's tally, the HUD's summary.
+export function carriedIds(state) {
+  const h = state.hands || {};
+  return [...heldIds(state), h.weapon, h.charm].filter(Boolean);
+}
+
 export function hasItemSpace(state, itemId = null) {
+  // A hand is never full in the sense the pack is: an empty one takes the
+  // thing, a full one is a REPLACE decision, and neither is a slot problem.
+  if (itemId && isEquipment(state, itemId)) return true;
   const cost = itemId ? slotCost(state, itemId) : 1;
   return slotsUsed(state) + cost <= RULES.MAX_ITEMS;
 }
@@ -533,6 +568,10 @@ export function pickUpItem(state, itemId, dropId = null) {
   // finds nothing, per the search rules; this is that rule stated where the
   // pack is, so it holds however the item arrives.
   if (def.unique && held(state, itemId)) return { ok: false, reason: "duplicate" };
+  // Equipment never reaches the pack. An empty hand takes it; a full weapon
+  // hand refuses, because swapping is a decision and the engine does not make
+  // decisions — see search()'s OFFER_REPLACE and replaceWeapon().
+  if (isEquipment(state, itemId)) return equip(state, itemId);
   if (!hasItemSpace(state, itemId)) {
     if (!dropId) return { ok: false, reason: "full" };
     dropItem(state, dropId);
@@ -645,6 +684,15 @@ export function search(state, tableName) {
   // the chance the next search hands you back the room you already looted.
   if (def.unique && held(state, pick.id)) return { result: "NOTHING", reason: "duplicate" };
 
+  // A weapon found while already armed is a REPLACE OR LEAVE, and it goes back
+  // to the caller undecided — the same door OFFER_DROP uses, and for the same
+  // reason: the engine does not choose what the player loses. Both attacks ride
+  // along, because the choice is unanswerable without them and the buffed blade
+  // in hand may be worth more than the better steel on the floor.
+  if (def.cat === "weapon" && equippedWeapon(state)) {
+    return { result: "OFFER_REPLACE", id: pick.id, ...weaponSwapPreview(state, pick.id) };
+  }
+
   if (!hasItemSpace(state, pick.id)) {
     return { result: "OFFER_DROP", id: pick.id, cost: slotCost(state, pick.id) };
   }
@@ -679,6 +727,67 @@ export function useCinnabar(state, targetId) {
            slotsBefore: before, slotsAfter: slotsUsed(state) };
 }
 
+// ---- The hands ---------------------------------------------------------------
+// Two slots outside the pack: a weapon and 護身符. The redesign's point is that
+// what you are HOLDING is a different question from what you are carrying, and
+// the pack went back to being luggage.
+//
+// One weapon, ever. Not "carry several and the best counts" — the blade in your
+// hand is your attack, and finding a better one is a choice to leave the old one
+// on the floor of a room you will not come back to. Weapons are unique, so that
+// choice is permanent, which is the whole reason it is a choice at all.
+
+export function equippedWeapon(state) {
+  return (state.hands && state.hands.weapon) || null;
+}
+
+export function equippedCharm(state) {
+  return (state.hands && state.hands.charm) || null;
+}
+
+// Put it in the empty hand. Refuses rather than swaps — a caller that wants a
+// swap has to say so, and say so after asking the player.
+export function equip(state, itemId) {
+  const def = state.itemsById[itemId];
+  if (!def) return { ok: false, reason: "unknown-item" };
+  if (!isEquipment(state, itemId)) return { ok: false, reason: "not-equipment" };
+  const slot = def.cat === "weapon" ? "weapon" : "charm";
+  if (state.hands[slot]) {
+    // The charm cannot reach here: there is exactly one in the game and it is
+    // unique, so pickUpItem has already refused the second.
+    return { ok: false, reason: "armed", holding: state.hands[slot] };
+  }
+  state.hands[slot] = itemId;
+  return { ok: true, slot, equipped: itemId };
+}
+
+// The swap, made for real. The old blade is LEFT BEHIND AND GONE — it does not
+// fall into the pack, and it does not go back in the deck. Its 真火符 goes with
+// it: the fire was burned into that steel, and forgetting the entry is how this
+// file says so.
+export function replaceWeapon(state, itemId) {
+  const def = state.itemsById[itemId];
+  if (!def || def.cat !== "weapon") return { ok: false, reason: "not-a-sword" };
+  const dropped = state.hands.weapon;
+  if (dropped) delete state.buffed[dropped];
+  state.hands.weapon = itemId;
+  return { ok: true, equipped: itemId, dropped: dropped || null };
+}
+
+// What the player needs to see before answering. Both attacks, from the real
+// arithmetic rather than from the item definitions — a burned-in 真火符 is worth
+// a point and has to show in the number it is about to cost.
+export function weaponSwapPreview(state, itemId) {
+  const current = equippedWeapon(state);
+  return {
+    current,
+    incoming: itemId,
+    currentAttack: current ? swordAttack(state, current) : RULES.START_ATTACK,
+    incomingAttack: swordAttack(state, itemId),
+    currentBuffed: !!(current && state.buffed[current]),
+  };
+}
+
 // ---- Attack -----------------------------------------------------------------
 // THE CENTRAL DEPARTURE FROM THE SOURCE: a sword and a talisman ADD. The source
 // allowed one weapon and one weapon only, so its whole arms race was "find a
@@ -700,18 +809,11 @@ export function swordAttack(state, id) {
   return (def.attack || 0) + (state.buffed[id] ? 1 : 0);
 }
 
-// The one sword that counts — the best held, never summed. Ties go to the first
-// found, which cannot matter: two swords of equal attack are equal.
+// The one sword that counts, and now there is only one to count: the blade in
+// the right hand. This used to search the pack for the best of several, which
+// is the rule the second amendment replaced.
 export function bestSword(state) {
-  let best = null;
-  let bestN = -1;
-  for (const id of heldIds(state)) {
-    const def = state.itemsById[id];
-    if (!def || def.cat !== "weapon") continue;
-    const n = swordAttack(state, id);
-    if (n > bestN) { bestN = n; best = id; }
-  }
-  return best;
+  return equippedWeapon(state);
 }
 
 // Burn a 真火符 into a sword. Permanent, and ONE PER SWORD — so the ceiling is
@@ -719,7 +821,8 @@ export function bestSword(state) {
 export function buffSword(state, swordId) {
   const sword = state.itemsById[swordId];
   if (!sword || sword.cat !== "weapon") return { ok: false, reason: "not-a-sword" };
-  if (!held(state, swordId)) return { ok: false, reason: "not-held" };
+  // The blade in your hand, not one in the pack — there are none in the pack.
+  if (equippedWeapon(state) !== swordId) return { ok: false, reason: "not-held" };
   if (state.buffed[swordId]) return { ok: false, reason: "already-buffed" };
   if (!held(state, "truefire-talisman")) return { ok: false, reason: "no-talisman" };
   dropItem(state, "truefire-talisman");
@@ -731,7 +834,10 @@ export function buffSword(state, swordId) {
 // `use.talisman` names one to throw; neither is consumed here, because this is
 // the question the UI asks four times while the player is deciding.
 export function attackWith(state, use = {}) {
-  const swordId = use.sword && held(state, use.sword) ? use.sword : bestSword(state);
+  // `use.sword` is vestigial: there is one weapon and it is the one in hand.
+  // Honoured only when it names that weapon, so an old caller cannot conjure a
+  // blade it does not have.
+  const swordId = use.sword === equippedWeapon(state) ? use.sword : equippedWeapon(state);
   let sword = swordId ? swordAttack(state, swordId) : RULES.START_ATTACK;
   if (use.banner) sword *= 2;
   const tal = use.talisman ? state.itemsById[use.talisman] : null;
@@ -743,22 +849,6 @@ export function attackWith(state, use = {}) {
 export function effectiveAttack(state) {
   const id = bestSword(state);
   return id ? swordAttack(state, id) : RULES.START_ATTACK;
-}
-
-// Kept for the weapon picker in the UI.
-export function usableWeapons(state) {
-  return heldIds(state).filter((id) => {
-    const d = state.itemsById[id];
-    return d && d.cat === "weapon";
-  });
-}
-
-export function chooseWeapon(state, preferId = null) {
-  if (preferId && held(state, preferId)) {
-    const d = state.itemsById[preferId];
-    if (d && d.cat === "weapon") return preferId;
-  }
-  return bestSword(state);
 }
 
 // ---- Damage -----------------------------------------------------------------
@@ -777,14 +867,17 @@ export function combatDamage(n, attack, hasCharm = false) {
 }
 
 export function hasCharm(state) {
-  return held(state, "protective-charm");
+  return equippedCharm(state) === "protective-charm";
 }
 
 // Fight `n` of them. `use` may name a sword, spend the banner, and throw one
 // talisman; everything spent is consumed here and not before, so a player who
 // backs out of the window has spent nothing.
 export function resolveCombat(state, n, use = {}) {
-  const swordId = use.sword && held(state, use.sword) ? use.sword : bestSword(state);
+  // One weapon, and it is the one in hand — there is nothing to choose between
+  // any more. attackWith resolves it either way; naming it here keeps the
+  // return shape ("which blade did this") honest.
+  const swordId = equippedWeapon(state);
   const attack = attackWith(state, { ...use, sword: swordId });
 
   // 血符 is written in your own blood and costs what it says it costs. Paid on
@@ -897,13 +990,13 @@ export function resolveVillager(state, ev, giveRice) {
     return { type: "FIGHT", n: ev.turnsInto, refused: true };
   }
   // The gift always fits, and it is worth saying why rather than guarding for a
-  // case that cannot arise: the rice you just gave away was one slot (only
-  // talismans stack, so rice is one slot per unit), and the gift costs one — or
-  // zero, if it is a talisman you already hold. Spending the rice is exactly
-  // what makes the room for the thanks. An OFFER_DROP branch here would be
-  // unreachable code pretending to be careful.
+  // case that cannot arise. 護身符 costs no slot at all now — it goes to the
+  // left hand, and there is exactly one in the game, so the hand is empty by
+  // definition the only time this can fire. The talisman gifts cost one slot or
+  // zero, and the rice just given away was one. An OFFER_DROP branch here would
+  // still be unreachable code pretending to be careful.
   dropItem(state, "sticky-rice");
-  pickUpItem(state, ev.gift);
+  pickUpItem(state, ev.gift); // routes the charm to the hand, talismans to the pack
   return { type: "GIFT", id: ev.gift };
 }
 

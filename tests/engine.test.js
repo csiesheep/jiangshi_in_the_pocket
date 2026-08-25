@@ -499,13 +499,15 @@ test("changeHealth: a run may still be given a lower cap", () => {
 // ---- Combat ----------------------------------------------------------------
 // ---- The pack --------------------------------------------------------------
 test("pack: six slots, one per unit, drop to make room", () => {
+  // Filled with consumables, because that is all the pack holds since the
+  // hands took the weapon and the charm out of it.
   const s = game({ seed: 1 }); // starts with 3 rice in 3 slots
-  eq(E.pickUpItem(s, "coin-sword").ok, true);
-  eq(E.pickUpItem(s, "precept-knife").ok, true);
-  eq(E.pickUpItem(s, "peachwood-sword").ok, true);
+  eq(E.pickUpItem(s, "soul-banner").ok, true);
+  eq(E.pickUpItem(s, "black-dog-blood").ok, true);
+  eq(E.pickUpItem(s, "golden-elixir").ok, true);
   eq(E.slotsUsed(s), 6, "full");
-  eq(E.pickUpItem(s, "sevenstar-sword").ok, false, "full without a drop");
-  eq(E.pickUpItem(s, "sevenstar-sword", "sticky-rice").ok, true, "a rice makes room");
+  eq(E.pickUpItem(s, "truefire-talisman").ok, false, "full without a drop");
+  eq(E.pickUpItem(s, "truefire-talisman", "sticky-rice").ok, true, "a rice makes room");
   eq(E.heldCount(s, "sticky-rice"), 2, "one rice gone");
   eq(E.slotsUsed(s), 6);
 });
@@ -532,11 +534,11 @@ test("pack: only talismans stack into one slot", () => {
 
 test("pack: a unique already held is refused", () => {
   const s = game({ seed: 1 });
-  eq(E.pickUpItem(s, "coin-sword").ok, true);
-  const again = E.pickUpItem(s, "coin-sword");
+  eq(E.pickUpItem(s, "soul-banner").ok, true);
+  const again = E.pickUpItem(s, "soul-banner");
   eq(again.ok, false);
   eq(again.reason, "duplicate");
-  eq(E.heldCount(s, "coin-sword"), 1);
+  eq(E.heldCount(s, "soul-banner"), 1);
 });
 
 test("pack: dropping the last of an id removes it entirely", () => {
@@ -549,9 +551,9 @@ test("pack: dropping the last of an id removes it entirely", () => {
 
 test("the tablet: slotless, and wins only when held", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "coin-sword");
-  E.pickUpItem(s, "precept-knife");
-  E.pickUpItem(s, "peachwood-sword"); // six of six
+  E.pickUpItem(s, "soul-banner");
+  E.pickUpItem(s, "black-dog-blood");
+  E.pickUpItem(s, "golden-elixir"); // six of six
   eq(E.slotsUsed(s), 6, "pack full");
   E.completeRite(s, "TAKE_TABLET");
   eq(s.tablet, true);
@@ -697,27 +699,38 @@ test("search: null in a table is a real result — you found nothing", () => {
 // 85% with three, and nothing in the code says so — it falls out of the table
 // once "a unique you already hold finds nothing" is applied. That escalation is
 // what stops weapon searching being a treadmill.
-test("search: the weapon miss climbs 10 -> 35 -> 60 -> 85 as swords accumulate", () => {
+// This used to read 10 -> 35 -> 60 -> 85 as swords piled up, and it was the
+// mechanic that made weapon rooms dry out: every blade you owned raised the
+// chance the next rummage handed back a room you had already looted.
+//
+// One weapon ever ends that. You can hold at most one, so the miss reaches 35
+// and stops, and a weapon table stays 65 % productive all night where it used
+// to strangle itself. That is a real consequence of the second amendment, and
+// it is written down here rather than left to be discovered: swapping is now
+// the only way a weapon room disappoints you, and swapping is a choice.
+test("search: the weapon miss reaches 35 and stops, because one blade is the limit", () => {
   const s = game({ seed: 1 });
   const at = () => Math.round(E.missChance(s, "weapon"));
   eq(at(), 10, "bare-handed: only the table's own null");
   E.pickUpItem(s, "precept-knife");
   eq(at(), 35, "one sword: its 25 now finds nothing");
-  E.pickUpItem(s, "peachwood-sword");
-  eq(at(), 60, "two");
-  E.pickUpItem(s, "coin-sword");
-  eq(at(), 85, "three — only 七星劍 is still worth turning over");
+  // There is no second. The hand is full, so the next blade is a decision
+  // rather than a pickup, and the miss cannot climb on its own.
+  eq(E.pickUpItem(s, "peachwood-sword").reason, "armed");
+  eq(at(), 35, "still 35 — swords cannot accumulate any more");
 });
 
 test("search: a unique already held returns nothing, and does not duplicate", () => {
   const s = game({ seed: 1 });
-  s.searchTables = { only: [{ id: "coin-sword", p: 100 }] };
+  // The banner rather than a sword: a unique that still lives in the pack, so
+  // this tests the duplicate rule rather than the hands.
+  s.searchTables = { only: [{ id: "soul-banner", p: 100 }] };
   eq(E.search(s, "only").result, "TOOK");
-  eq(E.heldCount(s, "coin-sword"), 1);
+  eq(E.heldCount(s, "soul-banner"), 1);
   const again = E.search(s, "only");
   eq(again.result, "NOTHING");
   eq(again.reason, "duplicate");
-  eq(E.heldCount(s, "coin-sword"), 1, "still exactly one");
+  eq(E.heldCount(s, "soul-banner"), 1, "still exactly one");
 });
 
 // Rice is not unique, so a second one is a real find — the duplicate rule is
@@ -731,20 +744,20 @@ test("search: a non-unique can be found again", () => {
 
 test("search: a full pack offers a drop rather than silently losing the find", () => {
   const s = game({ seed: 1 }); // 3 rice
-  E.pickUpItem(s, "precept-knife");
-  E.pickUpItem(s, "peachwood-sword");
-  E.pickUpItem(s, "coin-sword");
+  E.pickUpItem(s, "soul-banner");
+  E.pickUpItem(s, "black-dog-blood");
+  E.pickUpItem(s, "truefire-talisman");
   eq(E.slotsUsed(s), 6, "full");
 
-  s.searchTables = { only: [{ id: "sevenstar-sword", p: 100 }] };
+  s.searchTables = { only: [{ id: "golden-elixir", p: 100 }] };
   const r = E.search(s, "only");
   eq(r.result, "OFFER_DROP");
-  eq(r.id, "sevenstar-sword");
-  eq(E.held(s, "sevenstar-sword"), false, "not taken behind the player's back");
+  eq(r.id, "golden-elixir");
+  eq(E.held(s, "golden-elixir"), false, "not taken behind the player's back");
 
   // The offer is finished through the same door every other pickup uses.
   eq(E.pickUpItem(s, r.id, "sticky-rice").ok, true);
-  eq(E.held(s, "sevenstar-sword"), true);
+  eq(E.held(s, "golden-elixir"), true);
   eq(E.slotsUsed(s), 6);
 });
 
@@ -864,13 +877,124 @@ test("attack: the banner doubles the sword and never the talisman", () => {
   eq(E.attackWith(s, { banner: true, talisman: "fivethunder-talisman" }), 8, "(2×2) + 4, not (2+4)×2");
 });
 
-test("attack: only the best sword counts, never summed", () => {
+// "The best of several, never summed" was the old rule. There is no several
+// now: the blade in the right hand IS the attack, and the second amendment
+// swapped choosing between swords for choosing which one to leave behind.
+test("attack: the blade in hand is the number, and there is only ever one", () => {
   const s = game({ seed: 1 });
   E.pickUpItem(s, "precept-knife"); // 1
+  eq(E.effectiveAttack(s), 1);
+  eq(E.equippedWeapon(s), "precept-knife");
+  eq(E.heldIds(s).includes("precept-knife"), false, "and it is not in the pack");
+  eq(E.slotsUsed(s), 3, "so it costs nothing to carry");
+
+  // A better sword neither stacks nor silently takes over.
+  eq(E.pickUpItem(s, "sevenstar-sword").reason, "armed");
+  eq(E.effectiveAttack(s), 1, "nothing changes until the player says so");
+  E.replaceWeapon(s, "sevenstar-sword");
+  eq(E.effectiveAttack(s), 3, "and then it is simply the new blade");
+  eq(E.held(s, "precept-knife"), false, "the old one is left behind, not pocketed");
+});
+
+// ---- The hands ---------------------------------------------------------------
+test("hands: both empty at nine o'clock, and neither is luggage", () => {
+  const s = game({ seed: 1 });
+  eq(s.hands, { weapon: null, charm: null });
+  eq(E.equippedWeapon(s), null);
+  eq(E.hasCharm(s), false);
+  eq(E.slotsUsed(s), 3, "three rice and nothing else");
+  eq(E.freeSlots(s), 3);
+});
+
+test("hands: a weapon and the charm cost no slot at all", () => {
+  const s = game({ seed: 1 });
+  const before = E.slotsUsed(s);
+  E.pickUpItem(s, "sevenstar-sword");
+  E.pickUpItem(s, "protective-charm");
+  eq(E.slotsUsed(s), before, "the pack has not noticed either of them");
+  eq(E.slotCost(s, "coin-sword"), 0);
+  eq(E.slotCost(s, "protective-charm"), 0);
+  // And a full pack is no obstacle to either, which is the point of the hands.
+  const full = game({ seed: 1 });
+  E.pickUpItem(full, "soul-banner");
+  E.pickUpItem(full, "black-dog-blood");
+  E.pickUpItem(full, "golden-elixir");
+  eq(E.slotsUsed(full), 6, "not a slot to spare");
+  eq(E.pickUpItem(full, "sevenstar-sword").ok, true, "the hand does not care");
+  eq(E.pickUpItem(full, "protective-charm").ok, true);
+  eq(E.slotsUsed(full), 6, "and the pack is unchanged");
+});
+
+test("hands: the charm equips itself, because there is only one to argue about", () => {
+  const s = game({ seed: 1 });
+  eq(E.pickUpItem(s, "protective-charm").ok, true);
+  eq(E.equippedCharm(s), "protective-charm");
+  eq(E.hasCharm(s), true, "and it is working, not sitting in a bag");
+  eq(E.heldIds(s).includes("protective-charm"), false, "never in the pack");
+  // Combat reads the hand: the charm's point comes off after the clamp.
+  eq(E.combatDamage(6, 0, E.hasCharm(s)), 3, "4 clamped, then the charm's one");
+});
+
+// The replace door, both ways. The engine offers and does not decide, which is
+// the same contract OFFER_DROP has.
+test("replace: a weapon found while armed is offered, not taken", () => {
+  const s = game({ seed: 1 });
   E.pickUpItem(s, "coin-sword"); // 2
-  E.pickUpItem(s, "sevenstar-sword"); // 3
-  eq(E.effectiveAttack(s), 3, "the best, not 1+2+3");
-  eq(E.bestSword(s), "sevenstar-sword");
+  s.searchTables = { only: [{ id: "sevenstar-sword", p: 100 }] };
+  const r = E.search(s, "only");
+  eq(r.result, "OFFER_REPLACE");
+  eq(r.id, "sevenstar-sword");
+  eq(r.current, "coin-sword");
+  eq(r.currentAttack, 2);
+  eq(r.incomingAttack, 3, "both numbers, or the choice cannot be made");
+  eq(E.equippedWeapon(s), "coin-sword", "and nothing has changed yet");
+});
+
+test("replace: taking it leaves the old blade behind for good", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword");
+  const r = E.replaceWeapon(s, "sevenstar-sword");
+  eq(r.ok, true);
+  eq(r.dropped, "coin-sword");
+  eq(E.equippedWeapon(s), "sevenstar-sword");
+  eq(E.held(s, "coin-sword"), false, "it is not in the pack");
+  eq(E.heldIds(s).includes("coin-sword"), false);
+  eq(E.slotsUsed(s), 3, "and it did not cost a slot on the way out");
+});
+
+test("replace: declining changes nothing at all", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "sevenstar-sword");
+  E.pickUpItem(s, "truefire-talisman");
+  E.buffSword(s, "sevenstar-sword");
+  const before = E.effectiveAttack(s);
+  s.searchTables = { only: [{ id: "coin-sword", p: 100 }] };
+  const r = E.search(s, "only");
+  eq(r.result, "OFFER_REPLACE");
+  // Worse steel, and the preview says so — this is the case the numbers exist
+  // for, because the buffed blade beats the nominally equal one.
+  eq(r.currentAttack, 4);
+  eq(r.incomingAttack, 2);
+  eq(E.effectiveAttack(s), before, "declining is doing nothing");
+  eq(E.equippedWeapon(s), "sevenstar-sword");
+});
+
+test("replace: the 真火符 burned into a blade goes with it", () => {
+  const s = game({ seed: 1 });
+  E.pickUpItem(s, "coin-sword"); // 2
+  E.pickUpItem(s, "truefire-talisman");
+  E.buffSword(s, "coin-sword");
+  eq(E.effectiveAttack(s), 3, "2 + 1, burned in");
+
+  // 七星劍 is nominally better, and taking it costs the fire in the old blade.
+  E.replaceWeapon(s, "sevenstar-sword");
+  eq(E.effectiveAttack(s), 3, "3 bare — the burned point stayed with the steel");
+  eq(!!s.buffed["coin-sword"], false, "and the old blade's fire is forgotten");
+
+  // Which means the new blade can be burned in its own right, once.
+  E.pickUpItem(s, "truefire-talisman");
+  eq(E.buffSword(s, "sevenstar-sword").ok, true);
+  eq(E.effectiveAttack(s), 4, "the ceiling, reached the long way round");
 });
 
 test("attack: bare-handed is zero", () => {
@@ -1107,17 +1231,22 @@ test("villager: no rice means no choice", () => {
 // Worth pinning, because it is the reason the villager needs no full-pack
 // branch at all: the rice you give away IS the room the gift goes into. One
 // slot out (rice never stacks), one slot in. It cannot fail to fit.
-test("villager: the gift fits even from a full pack, because the rice paid for it", () => {
+// The charm's gift used to be a slot argument: the rice you handed over was
+// exactly the room the thanks needed. The hands settled it more simply — 護身符
+// costs nothing now, so the rice buys a free hand's worth of protection and the
+// pack comes back one lighter than it went in.
+test("villager: the charm costs a rice and no slot at all", () => {
   const s = game({ seed: 1 }); // 3 rice
-  E.pickUpItem(s, "precept-knife");
-  E.pickUpItem(s, "coin-sword");
-  E.pickUpItem(s, "sevenstar-sword");
+  E.pickUpItem(s, "soul-banner");
+  E.pickUpItem(s, "black-dog-blood");
+  E.pickUpItem(s, "golden-elixir");
   eq(E.slotsUsed(s), 6, "not a slot to spare");
   const r = E.resolveVillager(s, { gift: "protective-charm", turnsInto: 4 }, true);
   eq(r.type, "GIFT");
   eq(E.held(s, "protective-charm"), true);
+  eq(E.hasCharm(s), true, "worn, not carried");
   eq(E.heldCount(s, "sticky-rice"), 2, "one rice out");
-  eq(E.slotsUsed(s), 6, "one charm in — still exactly full");
+  eq(E.slotsUsed(s), 5, "and nothing came back to replace it");
 });
 
 test("villager: the charm comes from nowhere else in the game", async () => {

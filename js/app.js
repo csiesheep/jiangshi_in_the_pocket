@@ -890,6 +890,44 @@ class Game {
       return void setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
     }
 
+    // A weapon found while already armed. One hand, one blade, and the one you
+    // put down stays on the floor of a room you have no reason to walk back
+    // into — so this is a real decision and the engine handed it over undecided.
+    //
+    // Both attacks are on the buttons because the choice is unanswerable
+    // without them: a 真火符 burned into the blade you are holding is worth a
+    // point, and it can make worse steel the better weapon. FE's #32 dresses
+    // this; what it must not do is decide it.
+    if (out.result === "OFFER_REPLACE") {
+      const name = (id) => iName(this, id);
+      log(this.line("search-armed", { item: name(out.id), holding: name(out.current) }));
+      return renderActions([
+        {
+          kind: "replace",
+          primary: out.incomingAttack > out.currentAttack,
+          label: this.ui("replace-take", { item: name(out.id), n: out.incomingAttack }),
+          sub: this.ui("replace-take-sub", { item: name(out.current), n: out.currentAttack }),
+          onClick: () => {
+            const r = E.replaceWeapon(this.state, out.id);
+            log(this.line("search-replaced", { item: name(r.equipped), dropped: name(r.dropped) }), "good");
+            this.refresh();
+            this.renderEndTurn();
+          },
+        },
+        {
+          kind: "replace",
+          primary: out.incomingAttack <= out.currentAttack,
+          label: this.ui("replace-keep", { item: name(out.current), n: out.currentAttack }),
+          sub: this.ui("replace-keep-sub", { item: name(out.id) }),
+          onClick: () => {
+            log(this.line("search-left", { item: name(out.id) }), "muted");
+            this.refresh();
+            this.renderEndTurn();
+          },
+        },
+      ], this.ui("replace-prompt", { item: name(out.id) }));
+    }
+
     if (out.result === "OFFER_DROP") {
       log(this.line("search-nowhere", { item: iName(this, out.id) }));
       return showDropDialog(this, out.id, {

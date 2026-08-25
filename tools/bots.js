@@ -124,7 +124,7 @@ function fight(ctx, n, plan = {}) {
 // the best one they have as soon as they can.
 function upkeep(ctx, plan) {
   const { state } = ctx;
-  const sword = E.bestSword(state);
+  const sword = E.equippedWeapon(state);
   const mayBuff = !plan || !plan.buffWhen || plan.buffWhen(state);
   if (mayBuff && sword && !state.buffed[sword] && E.held(state, "truefire-talisman")) {
     // Only if it is not the last attack talisman we hold — burning the one
@@ -216,6 +216,7 @@ const POLICIES = {
       eatAt: (s) => (s.hour === 23 ? 6 : 5),
       giveRice: adeptGift,
       dropChoice: adeptDrop,
+      replaceChoice: adeptReplace,
       buffWhen: adeptBuff,
     };
 
@@ -314,7 +315,7 @@ function spendableTalismans(state) {
       if (E.heldCount(state, id) > 1) return true; // 硃砂 bought us a spare
       if (STRIKE_IDS.includes(id)) return false; // this one is for the King
       if (id === "truefire-talisman") {
-        const sword = E.bestSword(state);
+        const sword = E.equippedWeapon(state);
         return !!(sword && state.buffed[sword]); // already burned in, so free
       }
       return true;
@@ -330,7 +331,7 @@ function adeptWants(state) {
   // 七星劍 is the only blade that reaches the bar; more weapon rummages once we
   // hold it find nothing, because a unique you carry comes back empty.
   if (!E.held(state, "sevenstar-sword")) want.push("weapon");
-  const sword = E.bestSword(state);
+  const sword = E.equippedWeapon(state);
   const buffed = !!(sword && state.buffed[sword]);
   if (!buffed && !E.held(state, "truefire-talisman")) want.push("magic");
   if (!bigTalisman(state)) want.push("magic");
@@ -347,28 +348,28 @@ function adeptGift(state) {
 
 // Returning null refuses the find, which is the right answer more often than
 // the default: a fourth sword is not worth the slot it would cost.
+// OFFER_DROP only ever concerns the pack now: weapons and 護身符 go to the
+// hands and cost nothing, so the old "shed the junk blade" branch went with the
+// rule that made carrying four swords possible.
 function adeptDrop(state, incomingId) {
-  const incoming = state.itemsById[incomingId];
-  const best = E.bestSword(state);
   const ids = E.heldIds(state);
-
-  // A blade that is not the best blade is dead weight the moment there are two.
-  const junk = ids
-    .filter((id) => state.itemsById[id].cat === "weapon" && id !== best)
-    .sort((a, b) => E.swordAttack(state, a) - E.swordAttack(state, b))[0];
-  if (junk) return junk;
-
-  if (incoming && incoming.cat === "weapon" && incoming.id !== "sevenstar-sword") return null;
   if (E.heldCount(state, "sticky-rice") > 1) return "sticky-rice";
-
-  const keep = new Set([best, "soul-banner", bigTalisman(state), "truefire-talisman"].filter(Boolean));
+  const keep = new Set(["soul-banner", bigTalisman(state), "truefire-talisman"].filter(Boolean));
   return ids.find((id) => !keep.has(id)) || null;
+}
+
+// OFFER_REPLACE, a question the pack rules never had to answer: one hand, one
+// blade, and the one put down is gone for good. Take the better number — and
+// the comparison is the ENGINE's, so a 真火符 already burned into the blade in
+// hand counts, which is exactly why better steel is sometimes the worse trade.
+function adeptReplace(state, offer) {
+  return offer.incomingAttack > offer.currentAttack;
 }
 
 // Only 七星劍 is worth a 真火符 while there is still night left to find one in.
 // A lesser blade gets it once being picky has stopped paying.
 function adeptBuff(state) {
-  const sword = E.bestSword(state);
+  const sword = E.equippedWeapon(state);
   if (!sword) return false;
   return sword === "sevenstar-sword" || state.turn >= 20;
 }
@@ -439,6 +440,14 @@ export function playNight(data, policyName, seed, opts = {}) {
       const tile = B.currentTile(board);
       if (tile && tile.def.search) {
         const r = E.search(state, tile.def.search);
+        // One weapon ever: taking the new blade leaves the old one behind for
+        // good, so this is a real decision even for a bot.
+        if (r.result === "OFFER_REPLACE") {
+          const take = plan.replaceChoice
+            ? plan.replaceChoice(state, r)
+            : r.incomingAttack > r.currentAttack;
+          if (take) E.replaceWeapon(state, r.id);
+        }
         if (r.result === "OFFER_DROP") {
           // Drop rice before equipment; a sword outlives a meal. A policy may
           // answer null instead, which refuses the find — sometimes the right
