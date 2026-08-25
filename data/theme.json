@@ -1,6 +1,6 @@
 {
   "_note": "The skin. Every player-visible string lives here; mechanics live in tiles.json / items.json / search.json / events.json and never change. Names follow the vault glossary, which is the naming contract: ids are ASCII and never translated, display strings are 繁體中文 followed by English. The monster is spelled 殭屍 throughout — the 歹-radical form, never the variant with 亻.",
-  "title": "Jiangshi in the Pocket",
+  "title": "The Third Watch: The Jiangshi",
   "tagline": "It is nine at night. At the third watch he comes for you. Lay him to rest, or be standing when he arrives.",
   "words": {
     "monsters": "jiangshi",
@@ -151,7 +151,7 @@
     "half-am": "AM",
     "nav-rulebook": "Rulebook",
     "nav-menu": "Menu",
-    "page-title": "Jiangshi in the Pocket — play in your browser",
+    "page-title": "The Third Watch: The Jiangshi — play in your browser",
     "backpack": "Backpack",
     "seed-label": "Seed",
     "new-game": "New game",
@@ -179,7 +179,7 @@
     "cower-said-none": "no cower charges left",
     "relic-not-yet": "Not yet",
     "relic-held": "Held",
-    "brand": "Jiangshi in the Pocket",
+    "brand": "The Third Watch: The Jiangshi",
     "title-copy": "Copy replay link"
   },
   "tiles": {

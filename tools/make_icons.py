@@ -4,7 +4,7 @@
 
 The four PNGs the manifest points at were still the fork's — a Western pitched
 roof with a chimney, which is a fine icon for the game this one is not. Anyone
-installing 口袋裡的殭屍 got a suburban house on their home screen.
+installing 三更：殭屍 got a suburban house on their home screen.
 
 Same source as the social card and the cold open: the `titlehouse` SVG in
 index.html, read through tools/silhouette.py. Three surfaces, one building, and

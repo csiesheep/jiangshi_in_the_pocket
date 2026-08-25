@@ -325,8 +325,8 @@ def tracked(text, font, y, fill, track=0):
         x += w + track
 
 
-tracked("口袋裡的殭屍", name, 58, TEXT, track=17)
-tracked("JIANGSHI IN THE POCKET", gloss, 196, GOLD, track=9)
+tracked("三更：殭屍", name, 58, TEXT, track=17)
+tracked("THE THIRD WATCH: THE JIANGSHI", gloss, 187, GOLD, track=7)
 tracked("Lay him to rest, or be standing when he arrives.", sub, 246, MUTED)
 
 img.save(OUT, optimize=True)

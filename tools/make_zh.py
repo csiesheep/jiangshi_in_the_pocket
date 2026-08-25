@@ -25,7 +25,7 @@ o["_note"] = ("繁體中文 overlay, merged over data/theme.json key by key (see
               "§9 binds here identically: the threshold appears nowhere but the two labels "
               "on the King's verdict card, and no kit list appears at all.")
 
-o["title"] = "口袋裡的殭屍"
+o["title"] = "三更：殭屍"
 o["tagline"] = "夜裡九點。三更時分，他來找你。"
 o["words"] = {"monsters": "殭屍", "relic": "神主牌"}
 

@@ -1,6 +1,6 @@
 {
   "_note": "繁體中文 overlay, merged over data/theme.json key by key (see js/lang.js). Register follows the English: spare, concrete, grim, nothing over-explained. Naming follows the vault glossary — 中毒 is the state, 屍毒 the substance. §9 binds here identically: the threshold appears nowhere but the two labels on the King's verdict card, and no kit list appears at all.",
-  "title": "口袋裡的殭屍",
+  "title": "三更：殭屍",
   "tagline": "夜裡九點。三更時分，他來找你。",
   "words": {
     "monsters": "殭屍",
@@ -340,7 +340,7 @@
     "half-am": "",
     "nav-rulebook": "規則",
     "nav-menu": "主選單",
-    "page-title": "口袋裡的殭屍 — 在瀏覽器裡玩",
+    "page-title": "三更：殭屍 — 在瀏覽器裡玩",
     "backpack": "行囊",
     "seed-label": "種子",
     "new-game": "重新開始",
@@ -368,7 +368,7 @@
     "cower-said-none": "沒有躲藏額度了",
     "relic-not-yet": "還沒",
     "relic-held": "在身上",
-    "brand": "口袋裡的殭屍",
+    "brand": "三更：殭屍",
     "title-copy": "複製重玩連結"
   },
   "landing": {
