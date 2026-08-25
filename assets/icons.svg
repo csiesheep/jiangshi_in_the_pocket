@@ -875,7 +875,8 @@
        in full robes, standing, hands folded inside the sleeves, nothing bared
        and nothing reaching. He does not need to reach.
 
-       The face is its own group behind --king-face, because calm mode's promise
+       The face is its own group behind the king-face custom property,
+       because calm mode's promise
        is that he never turns it to the screen. Robes and shadow are the whole
        of him at that setting, which is if anything worse.
 
@@ -903,6 +904,166 @@
     <path d="M36 20h48" stroke-width="3"/>
     <path d="M60 8V2" stroke-width="2.4"/>
     <circle cx="60" cy="2" r="2.6" fill="currentColor" stroke="none"/>
+
+<!-- ==== The four, as four ======================================================
+     #45 restaged the room around a sprite nobody redrew. The dressing escalated
+     correctly and the creature never did: every tier drew #scare-zombie, flat
+     outline line art in one inherited colour, scaled and repeated N times, so
+     六 copies of one cartoon skull was what actually reached the screen.
+
+     These are four creatures. The escalation has to be legible WITH THE
+     DRESSING TURNED OFF, so it is carried by the bodies themselves:
+
+       白殭  pale, intact, upright, eyes shut. Still wearing the 符.
+       黑殭  lacquered dark, hard, the paper gone, mouth beginning to open.
+       跳殭  grave-wax yellow, head back, jaw wide, the neck gone to cord.
+       飛殭  frost-white, filling the frame, hair rimed, eyes returning light.
+
+     Modelled in TONE, not line — a lit plane up-left, the body mid, a shadow
+     plane down-right, and holes punched dark. Almost no strokes: an outline at
+     this size is a diagram, and the scenes this has to sit beside are painted.
+
+     The 符 belongs to 白殭 alone and is drawn on it rather than toggled by a
+     property, because "the paper is gone" is the thing the second tier is
+     saying and it should be a different picture, not the same picture with a
+     layer switched off. -->
+
+<!-- 白殭. The one that still has its paper. Pale, unmarked, standing straight,
+     eyes closed — the least wrong thing in the set, which is the point. -->
+<symbol id="scare-n3" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="n3rim" x1=".15" y1="0" x2=".8" y2=".9">
+      <stop offset="0" stop-color="#e2e8ee"/><stop offset=".28" stop-color="#8b949d"/>
+      <stop offset=".62" stop-color="#2a2f36" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="n3lift" cx="30%" cy="22%" r="62%">
+      <stop offset="0" stop-color="#767e88" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#767e88" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="n3pap" x1="0" y1="0" x2="1" y2=".2">
+      <stop offset="0" stop-color="#e6dcbd"/><stop offset=".6" stop-color="#a89d81"/>
+      <stop offset="1" stop-color="#4e4839"/>
+    </linearGradient>
+    <filter id="n3b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="n3bb" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <path d="M26 120c3-17 14-27 30-31l4-1 4 1c16 4 27 14 30 31z" fill="#0b0c0f"/>
+  <path d="M60 21c17 0 29 14 29 32 0 11-3 19-7 24l-2 10c-1 8-8 15-20 15s-19-7-20-15l-2-10c-4-5-7-13-7-24 0-18 12-32 29-32z" fill="#0e1013"/>
+  <path d="M60 21c17 0 29 14 29 32 0 11-3 19-7 24l-2 10c-1 8-8 15-20 15s-19-7-20-15l-2-10c-4-5-7-13-7-24 0-18 12-32 29-32z" fill="url(#n3lift)" opacity=".5"/>
+  <path d="M60 21c-13 0-23 8-27 20 5-14 15-23 27-23 5 0 10 2 14 4-4-1-9-1-14-1z" fill="url(#n3rim)" filter="url(#n3b)"/>
+  <path d="M33 44c-1 3-2 6-2 9 0 11 3 19 7 24l2 10c1 5 4 9 9 12-7-2-11-7-12-12l-2-10c-4-5-7-13-7-24 0-3 2-6 5-9z" fill="url(#n3rim)" filter="url(#n3b)" opacity=".8"/>
+  <ellipse cx="47" cy="52" rx="10" ry="7.5" fill="#050608" filter="url(#n3b)"/>
+  <ellipse cx="73" cy="52" rx="10" ry="7.5" fill="#050608" filter="url(#n3b)"/>
+  <path d="M38 45c5-3 11-4 16-2" stroke="#aab3bc" stroke-width="2" fill="none" opacity=".42" filter="url(#n3b)"/>
+  <path d="M49 76c6 3 16 3 22 0" stroke="#7d858e" stroke-width="1.8" fill="none" opacity=".3" filter="url(#n3b)"/>
+  <g transform="rotate(-3.5 60 20)">
+    <path d="M49.5 2.5h21l1.5 31-23 1.5z" fill="url(#n3pap)"/>
+    <path d="M60 8v20M53 14h13.5M53 21.5h13.5" stroke="#8e1c16" stroke-width="2.1" stroke-linecap="round" fill="none" opacity=".85"/>
+    <path d="M48 35l23-1.5-.6 4.5c-8 2-15 2-22 0z" fill="#6d6553"/>
+  </g>
+  <path d="M44 36c10 4 22 4 32 0l-2 6c-10 3-20 3-30 0z" fill="#000" opacity=".7" filter="url(#n3bb)"/>
+</symbol>
+
+<!-- 黑殭. Lacquered. The skin has gone hard and dark and takes a highlight like
+     varnish; the paper is gone and the mouth has started to open. -->
+<symbol id="scare-n4" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="n4rim" x1=".12" y1="0" x2=".78" y2=".9">
+      <stop offset="0" stop-color="#e8e0ee"/><stop offset=".22" stop-color="#8d8496"/>
+      <stop offset=".55" stop-color="#221e28" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="n4lift" cx="30%" cy="18%" r="60%">
+      <stop offset="0" stop-color="#7b7186" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#5f5668" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="n4b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="n4bb" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <path d="M24 120c3-18 15-28 32-32l4-1 4 1c17 4 29 14 32 32z" fill="#08070a"/>
+  <path d="M60 12c19 0 32 15 32 34 0 12-3 21-8 26l-2 11c-1 9-9 17-22 17s-21-8-22-17l-2-11c-5-5-8-14-8-26 0-19 13-34 32-34z" fill="#0a090c"/>
+  <path d="M60 12c19 0 32 15 32 34 0 12-3 21-8 26l-2 11c-1 9-9 17-22 17s-21-8-22-17l-2-11c-5-5-8-14-8-26 0-19 13-34 32-34z" fill="url(#n4lift)" opacity=".55"/>
+  <path d="M60 12c-14 0-25 8-30 21 6-15 17-24 30-24 6 0 12 2 17 5-5-1-11-2-17-2z" fill="url(#n4rim)" filter="url(#n4b)"/>
+  <path d="M29 38c-1 3-1 5-1 8 0 12 3 21 8 26l2 11c1 6 5 12 12 15-9-2-14-8-15-15l-2-11c-5-5-8-14-8-26 0-3 2-6 4-8z" fill="url(#n4rim)" filter="url(#n4b)" opacity=".85"/>
+  <path d="M88 32c3 5 4 9 4 14 0 12-3 21-8 26l-2 11c-1 6-5 11-11 14 6-4 8-9 9-14l2-11c5-5 8-14 8-26 0-5-1-10-2-14z" fill="#d6cee0" filter="url(#n4b)" opacity=".3"/>
+  <path d="M50 26c8-4 16-4 22 0-6-1-15-1-22 0z" fill="#efe9f4" opacity=".5" filter="url(#n4b)"/>
+  <ellipse cx="46" cy="53" rx="12" ry="9" fill="#030204" filter="url(#n4b)"/>
+  <ellipse cx="74" cy="53" rx="12" ry="9" fill="#030204" filter="url(#n4b)"/>
+  <path d="M34 46c6-4 13-5 19-2" stroke="#b3aabb" stroke-width="2.2" fill="none" opacity=".4" filter="url(#n4b)"/>
+  <path d="M43 87c6 8 28 8 34 0l-2 9c-2 6-8 9-15 9s-13-3-15-9z" fill="#020103"/>
+  <path d="M47.5 88.5l2.6.6-1.2 6.6M71 88.2l-2.6.6 1.2 6.4" stroke="#cec6d6" stroke-width="1.7" fill="none" opacity=".5" filter="url(#n4b)"/>
+</symbol>
+
+<!-- 跳殭. Grave-wax — the yellow-grey of fat gone to soap underground. Head
+     back, jaw open, the neck reduced to cord. This is the one that hops. -->
+<symbol id="scare-n5" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="n5rim" x1=".14" y1="0" x2=".8" y2=".9">
+      <stop offset="0" stop-color="#d9c99b"/><stop offset=".26" stop-color="#8b7f5c"/>
+      <stop offset=".58" stop-color="#2b2719" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="n5lift" cx="32%" cy="20%" r="62%">
+      <stop offset="0" stop-color="#7d7252" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#7d7252" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="n5b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.2"/></filter>
+    <filter id="n5bb" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6.5"/></filter>
+  </defs>
+  <path d="M22 120c4-15 14-24 28-29l6-2 8 2c16 5 28 14 32 29z" fill="#0b0a06"/>
+  <path d="M56 82c3 7 7 12 13 14-9 3-16 7-21 12 1-10 4-19 8-26z" fill="#100e08"/>
+  <path d="M57 80c-3-4-5-9-6-14M69 78c3-4 5-9 6-14" stroke="#8a7d59" stroke-width="4" stroke-linecap="round" fill="none" opacity=".45" filter="url(#n5b)"/>
+  <path d="M60 10c19 0 33 15 33 33 0 11-4 20-9 25l-3 9c-1 9-9 16-21 16s-20-7-21-16l-3-9c-5-5-9-14-9-25 0-18 14-33 33-33z" fill="#0c0b07"/>
+  <path d="M60 10c19 0 33 15 33 33 0 11-4 20-9 25l-3 9c-1 9-9 16-21 16s-20-7-21-16l-3-9c-5-5-9-14-9-25 0-18 14-33 33-33z" fill="url(#n5lift)" opacity=".5"/>
+  <path d="M60 10c-14 0-26 8-31 21 6-15 18-24 31-24 6 0 12 2 17 5-5-1-11-2-17-2z" fill="url(#n5rim)" filter="url(#n5b)"/>
+  <path d="M28 37c-1 2-1 4-1 6 0 11 4 20 9 25l3 9c1 5 4 9 9 12-7-3-11-7-12-12l-3-9c-5-5-9-14-9-25 0-2 2-4 4-6z" fill="url(#n5rim)" filter="url(#n5b)" opacity=".85"/>
+  <ellipse cx="45" cy="51" rx="12" ry="8.5" fill="#040301" filter="url(#n5b)" transform="rotate(-8 45 51)"/>
+  <ellipse cx="75" cy="48" rx="12" ry="8.5" fill="#040301" filter="url(#n5b)" transform="rotate(-8 75 48)"/>
+  <path d="M33 44c6-5 14-6 20-3" stroke="#c6b98e" stroke-width="2.2" fill="none" opacity=".38" filter="url(#n5b)"/>
+  <path d="M40 82c7 13 34 13 41 0l-3 17c-2 8-10 12-18 12s-16-4-18-12z" fill="#020100"/>
+  <path d="M45 84.5l3 1-2.5 12M76 84l-3 1 2.5 12" stroke="#cdbf92" stroke-width="1.9" fill="none" opacity=".45" filter="url(#n5b)"/>
+  <path d="M28 32c9-7 18-9 26-7" stroke="#6d6344" stroke-width="3" fill="none" opacity=".35" filter="url(#n5b)"/>
+</symbol>
+
+<!-- 飛殭. Frost in the hair, skin gone blue-white, the mouth open past what a
+     jaw does, and eyes that give the light back. Fills the frame. -->
+<symbol id="scare-n6" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="n6rim" x1=".12" y1="0" x2=".78" y2=".88">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".24" stop-color="#a8bcc6"/>
+      <stop offset=".56" stop-color="#28323a" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="n6lift" cx="32%" cy="16%" r="62%">
+      <stop offset="0" stop-color="#93a6b0" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#93a6b0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="n6shine" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f4ffe8"/><stop offset=".4" stop-color="#c0dcae"/>
+      <stop offset="1" stop-color="#5f7a55" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="n6b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.4"/></filter>
+    <filter id="n6bb" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="n6r" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.8"/></filter>
+  </defs>
+  <path d="M14 120c2-14 10-23 22-29l8-4 16-4 16 4 8 4c12 6 20 15 22 29z" fill="#080b0e"/>
+  <path d="M60 3c23 0 39 18 39 40 0 14-4 24-11 30l-3 12c-2 11-11 20-25 20s-23-9-25-20l-3-12c-7-6-11-16-11-30 0-22 16-40 39-40z" fill="#0a0e12"/>
+  <path d="M60 3c23 0 39 18 39 40 0 14-4 24-11 30l-3 12c-2 11-11 20-25 20s-23-9-25-20l-3-12c-7-6-11-16-11-30 0-22 16-40 39-40z" fill="url(#n6lift)" opacity=".55"/>
+  <path d="M60 3c-17 0-30 10-36 25 7-17 21-28 36-28 8 0 15 2 21 6-6-2-13-3-21-3z" fill="url(#n6rim)" filter="url(#n6b)"/>
+  <path d="M25 34c-2 3-4 6-4 9 0 14 4 24 11 30l3 12c2 7 6 13 13 17-10-3-16-10-18-17l-3-12c-7-6-11-16-11-30 0-3 4-6 9-9z" fill="url(#n6rim)" filter="url(#n6b)" opacity=".9"/>
+  <g fill="#e6f1f8" filter="url(#n6r)">
+    <path d="M30 30c3-5 5-3 6 1 1-4 4-6 6-2 2-4 5-3 5 2-4 2-13 3-17-1z" opacity=".55"/>
+    <path d="M50 20c2-6 5-4 6 0 2-5 5-4 6 1 1-5 4-5 6 0-4 3-14 3-18-1z" opacity=".65"/>
+    <path d="M70 22c3-5 6-3 6 1 2-4 5-3 6 1-3 3-10 2-12-2z" opacity=".5"/>
+    <path d="M84 34c2-4 5-3 5 1 2-3 4-1 4 2-3 2-8 1-9-3z" opacity=".45"/>
+  </g>
+  <ellipse cx="44" cy="51" rx="14" ry="10.5" fill="#020406" filter="url(#n6b)"/>
+  <ellipse cx="76" cy="51" rx="14" ry="10.5" fill="#020406" filter="url(#n6b)"/>
+  <ellipse cx="44" cy="51" rx="4.4" ry="3.4" fill="url(#n6shine)"/>
+  <ellipse cx="76" cy="51" rx="4.4" ry="3.4" fill="url(#n6shine)"/>
+  <ellipse cx="44" cy="50.6" rx="1.5" ry="1.2" fill="#fbfff5"/>
+  <ellipse cx="76" cy="50.6" rx="1.5" ry="1.2" fill="#fbfff5"/>
+  <path d="M36 84c9 15 39 15 48 0l-3 22c-2 9-10 14-21 14s-19-5-21-14z" fill="#010305"/>
+  <path d="M41 86l3.4 1.2-3 15M79 85.6l-3.4 1.2 3 15" stroke="#e8f3f9" stroke-width="2" fill="none" opacity=".5" filter="url(#n6b)"/>
+  <path d="M52 100c6 3 12 3 17 0" stroke="#cfe0ea" stroke-width="1.6" fill="none" opacity=".3" filter="url(#n6b)"/>
+</symbol>
 
     <!-- The face. Calm never lets this arrive. -->
     <g opacity="var(--king-face, 1)">

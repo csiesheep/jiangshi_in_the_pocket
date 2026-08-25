@@ -799,3 +799,45 @@ test("icons: the four weapons stay apart at the size the choice is made", async 
     }
   }
 });
+
+// ---- The sprite sheet itself (#65) ---------------------------------------------
+
+test("icons: the sprite sheet is well-formed XML", () => {
+  // It was NOT, for four landings. A comment in the King's symbol read
+  // "--king-face", and an XML comment may not contain a double hyphen, so a
+  // strict parser stopped at that line and silently dropped everything after
+  // it — 42 of 94 symbols, including the King and every 僵屍 tier.
+  //
+  // The game never showed it: the sheet is injected as HTML, and the HTML
+  // parser forgives what the XML parser will not. What DID show it was my own
+  // icon test quietly passing, because item-* happens to sit above the broken
+  // line and so was the only part of the file being tested at all.
+  //
+  // This is the guard for the whole class: parse it strictly, and count what
+  // came out.
+  const doc = new DOMParser().parseFromString(ICON_SVG, "image/svg+xml");
+  const err = doc.querySelector("parsererror");
+  assert(!err, "icons.svg is not well-formed: " +
+    (err ? err.textContent.replace(/\s+/g, " ").slice(0, 160) : ""));
+  const symbols = doc.querySelectorAll("symbol").length;
+  assert(symbols >= 90,
+    `only ${symbols} symbols parsed — the sheet is being truncated by a parse error`);
+});
+
+test("icons: each 僵屍 tier has its own artwork", () => {
+  // #45 restaged the room around a sprite nobody redrew: every tier drew the
+  // same #scare-zombie, so six copies of one head was what reached the screen.
+  // Four tiers, four symbols, and none of them the same markup.
+  const doc = new DOMParser().parseFromString(ICON_SVG, "image/svg+xml");
+  const bodies = [];
+  for (const tier of ["n3", "n4", "n5", "n6"]) {
+    const sym = doc.getElementById("scare-" + tier);
+    assert(sym, "no artwork for " + tier);
+    bodies.push(sym.innerHTML.replace(/\s+/g, ""));
+  }
+  for (let i = 0; i < bodies.length; i++) {
+    for (let j = i + 1; j < bodies.length; j++) {
+      assert(bodies[i] !== bodies[j], "two tiers share the same artwork");
+    }
+  }
+});

@@ -1414,6 +1414,11 @@ function dressScare(el, tier) {
 // The slots stay exactly where they were — same fixed positions, same
 // determinism — and the direction is one extra transform axis on the way in:
 // the faces enter from that edge of the screen rather than scaling up in place.
+// How far off true each slot sits. Small: these are bodies that have stopped
+// bending, so the variation is in how they are STANDING rather than in how they
+// are moving, and a head at twelve degrees reads as falling over.
+const FACE_TILT = [0, -5, 4, -7, 6, -3];
+
 const SCARE_ENTRY = {
   N: [0, -34],
   S: [0, 34],
@@ -1501,7 +1506,7 @@ function scareNow(count, from = null) {
       const heldFaces = Math.max(1, Math.min(count || 1, SCARE_SLOTS.length));
       for (let i = 0; i < heldFaces; i++) {
         const [hx, hy, hscale] = SCARE_SLOTS[i];
-        const held = icon("scare", "zombie", "scare-art");
+        const held = icon("scare", tier.cls, "scare-art");
         if (!held) break;
         const seat = document.createElement("span");
         seat.className = "scare-face";
@@ -1570,14 +1575,32 @@ function scareNow(count, from = null) {
 
     for (let i = 0; i < faces; i++) {
       const [x, y, scale, at] = SCARE_SLOTS[i];
-      const art = icon("scare", "zombie", "scare-art");
+      // Each tier is its own creature, not one creature scaled. 白殭 still has
+      // its 符, 黑殭 is lacquered and bare, 跳殭 is grave-wax with its jaw open,
+      // 飛殭 is rimed and gives light back — and that escalation has to read
+      // with the dressing turned off, because at playing brightness the dressing
+      // is the quieter half.
+      const art = icon("scare", tier.cls, "scare-art");
       if (!art) break;
       const seat = document.createElement("span");
       seat.className = "scare-face";
       seat.style.left = `${x}%`;
       seat.style.top = `${y}%`;
       seat.style.setProperty("--face-scale", String(scale));
-      seat.appendChild(art);
+      // Angle and handedness per slot, so six of them is a crowd rather than
+      // one head stamped six times. Indexed rather than random: a seeded run
+      // has to replay to the same picture, and this is presentation reading
+      // position, never rng.
+      // Its own layer between the seat and the art, because both of those are
+      // already animating a transform — the seat by the entry keyframes and the
+      // art by 白殭's paper flutter — and a fourth writer of the same property
+      // is how one of them silently wins.
+      const poser = document.createElement("span");
+      poser.className = "scare-pose";
+      poser.style.setProperty("--face-tilt", `${FACE_TILT[i % FACE_TILT.length]}deg`);
+      poser.style.setProperty("--face-flip", i % 2 ? "-1" : "1");
+      poser.appendChild(art);
+      seat.appendChild(poser);
       el.appendChild(seat);
 
       // The one in front lunges; the pack behind snaps in after it. The size
@@ -3112,7 +3135,7 @@ function packRow(count) {
   row.className = "packrow";
   row.setAttribute("aria-hidden", "true"); // the prompt already says how many
   for (let i = 0; i < count; i++) {
-    const fig = icon("scare", "zombie", "packfig");
+    const fig = icon("scare", "n4", "packfig");
     if (!fig) break;
     row.appendChild(fig);
   }
