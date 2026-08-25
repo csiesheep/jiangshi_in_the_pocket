@@ -99,7 +99,11 @@ def stamp_harness():
     line itself is blanked before hashing, or it would be hashing itself.
     """
     path = os.path.join(ROOT, "tests", "harness.js")
-    pattern = re.compile(r'export const HARNESS_ID = "([^"]*)";')
+    # Anchored to the declaration LINE. Unanchored it also matched the copies
+    # of the pattern inside harness.js itself and rewrote stampFor's own
+    # neutraliser — the stamper corrupting the thing that computes the stamp.
+    # harness.js anchors identically; shell/harness tests compare the two.
+    pattern = re.compile(r'^export const HARNESS_ID = "([^"]*)";$', re.M)
 
     def fn(src):
         neutral = pattern.sub('export const HARNESS_ID = "";', src)

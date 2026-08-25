@@ -18,12 +18,40 @@
 // Stamped by tools/record_shell.py from harness.js's own blob hash, so nobody
 // has to remember to change it. Set by hand it still works — forgetting only
 // costs the protection, it cannot produce a wrong answer.
-export const HARNESS_ID = "4df4529b";
+export const HARNESS_ID = "82d7b6d5";
 
 // Pulled out so both directions can be tested without a network.
+// Anchored to the DECLARATION line, and that is load-bearing rather than tidy:
+// unanchored, this pattern also matches the copies of itself further down this
+// file, and record_shell.py rewrote the replacement literal inside stampFor —
+// so the stamper corrupted its own neutraliser and the hash chased its own
+// tail. Both sides anchor the same way now, and the suite compares them.
+const STAMP = /^export const HARNESS_ID = "([^"]*)";$/m;
+const STAMP_ALL = /^export const HARNESS_ID = "[^"]*";$/gm;
+const BLANK_DECL = "export const HARNESS_ID = " + '"";';
+
 export function harnessIdFrom(src) {
-  const m = String(src).match(/export const HARNESS_ID = "([^"]*)"/);
+  const m = String(src).match(STAMP);
   return m ? m[1] : null;
+}
+
+// What the id SHOULD be for this source: a hash of the file with the stamp line
+// blanked, because otherwise it would be hashing itself.
+//
+// This is the half that stops the guard from quietly retiring. Comparing the
+// running id against the disk id catches a stale module — but edit this file
+// and forget to restamp, and both copies carry the same stale value, so they
+// agree, the check passes, and nothing is being guarded. A verifier that can
+// quietly verify nothing is worse than no verifier, and that sentence was
+// already in this file while the verifier's own verifier had the hole.
+//
+// tools/record_shell.py computes exactly this. If the two drift apart the suite
+// fails, which is the same arrangement derive_name and deriveName already have.
+export async function stampFor(src) {
+  const neutral = String(src).replace(STAMP_ALL, BLANK_DECL);
+  const bytes = new TextEncoder().encode(neutral);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 8);
 }
 
 async function harnessIsCurrent() {
