@@ -11,7 +11,7 @@
 // Every fragment lives in theme.json with the rest of the writing, so a
 // re-theme changes what the house says about you along with everything else.
 
-import { RULES, heldIds, OUTCOMES } from "./engine.js";
+import { RULES, carriedIds, OUTCOMES } from "./engine.js";
 import { distanceTo } from "./board.js";
 
 // A run needs a fair few zombies at once for this to read as a swarm rather
@@ -34,9 +34,19 @@ function fill(text, values) {
 
 // The weapon the run will be remembered by: the best one still on you at the
 // end, which is not always the one that failed you.
+//
+// carriedIds, NOT heldIds. #31 (e1708c4) moved the blade out of the pack and
+// into state.hands and never switched this line, so from that commit onward
+// every armed run in the game closed on "nothing in your hands" — the one
+// thing the sentence must never get wrong. There are no weapons in the pack at
+// all any more, so heldIds could only ever have returned none of them.
+//
+// It survived one day and was found by playing, not by testing: 280 suites and
+// a bot farm drive the engine and read `outcome`, and none of them had ever
+// rendered this sentence. See tools/one-night-4242.md.
 function bestWeapon(state) {
   let best = null;
-  for (const id of heldIds(state)) {
+  for (const id of carriedIds(state)) {
     const def = state.itemsById[id];
     if (!def || def.cat !== "weapon") continue;
     if (!best || def.attack > best.def.attack) best = { id, def };

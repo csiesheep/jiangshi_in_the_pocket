@@ -7,10 +7,16 @@ Died at 10:06 PM, twelve turns into thirty — 傷重不治, the tablet on me, u
 this night, I did not watch it. Every claim below about text, timing and
 sequence is from the live page. Nothing below is a claim about how it looked.
 
-**Which build this was.** Played at `1bad884`, six commits behind `origin/main`.
-Those six are #65's four creatures, #60's thirteen refined icons, and the CSS,
-`render.js`, `sw.js` and `stage.test.js` that came with them — **none of them
-touch `engine.js`, `app.js` or `epilogue.js`.** So the rules, the numbers and
+**Which build this was.** Corrected after the fact, and worth saying plainly
+because getting this wrong is a habit this project has paid for twice: the night
+was served from the read-only `-be` worktree, which sat at **`d7043d2`** —
+SEVEN commits behind `origin/main`, not six, and one older than the `1bad884`
+first recorded here. The extra commit is #63's per-suite stamps, which touches
+`tests/` and `tools/` only: `git diff d7043d2 1bad884 -- js/ data/` is empty, so
+the game played is byte-identical to `1bad884`'s and the account stands as
+written. The other six are #65's four creatures, #60's thirteen refined icons,
+and the CSS, `render.js`, `sw.js` and `stage.test.js` that came with them —
+**none of them touch `engine.js`, `app.js` or `epilogue.js`.** So the rules, the numbers and
 the text I played are byte-identical to what ships; only the art was stale, and
 the art was invisible to me anyway. The three defects at the bottom were
 re-checked against `origin/main`'s blobs, not this checkout, and are live there

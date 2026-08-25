@@ -480,7 +480,9 @@ class Game {
 
     if (goal === "TAKE_TABLET") {
       relicFound();
-      this.tally.found += 1;
+      // NOT counted as an item found. The 神主牌 is the object of the night —
+      // it has its own line on the verdict card two rows down, and counting it
+      // here said "1 item found" to a player who had found four and the tablet.
       this.tell(this.line("relic-found", { relic: this.word("relic") }), "good");
       this.refresh();
       return wait(RESULT_BEAT_MS);
@@ -772,11 +774,25 @@ class Game {
     // strike, and the pack is still standing when the run ends.
     if (r.diedPaying) {
       paperFlutter();
+      // Not counted. The 血符 took the last of you before the swing, so the
+      // pack is still standing — the one branch where a fight puts nobody down.
       this.refresh();
       this.tell(this.line("died-paying", { item: this.itemName("blood-talisman") }), "toll");
       await wait(RESULT_BEAT_MS);
       return done();
     }
+
+    // The pack goes down here and nowhere else. resolveCombat has no branch
+    // that leaves them standing once the strike lands — not even one that kills
+    // you, which still counts, because they went down too. By n rather than by
+    // one: a pack of four is four.
+    //
+    // A fight you RAN from is not a fight you won, and that rule needs no test
+    // of its own: doFlee and doEscape never reach this line.
+    //
+    // Until #67 this counter was initialised, printed, and incremented nowhere
+    // at all, so every run ever played closed on "0 put down".
+    this.tally.putDown += n;
 
     // Paper first, then the swing. Keyed off what resolveCombat actually
     // consumed rather than off what was chosen, so a loadout that never got to
@@ -855,7 +871,7 @@ class Game {
     if (res.type === "GIFT") {
       itemPickup(res.id);
       this.refresh();
-      this.tally.found += 1;
+      this.noteFound();
       this.tell(String(t.gave || "").replace("{gift}", this.itemName(res.id)), "good");
       return wait(RESULT_BEAT_MS);
     }
@@ -959,6 +975,7 @@ class Game {
     renderActions([]);
 
     if (out.result === "TOOK") {
+      this.noteFound();
       log(this.line("search-took", { item: iName(this, out.id) }), "good");
       this.refresh();
       return void setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
@@ -983,6 +1000,7 @@ class Game {
           sub: this.ui("replace-take-sub", { item: name(out.current), n: out.currentAttack }),
           onClick: () => {
             const r = E.replaceWeapon(this.state, out.id);
+            this.noteFound();
             log(this.line("search-replaced", { item: name(r.equipped), dropped: name(r.dropped) }), "good");
             this.refresh();
             this.renderEndTurn();
@@ -1037,9 +1055,22 @@ class Game {
     setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
   }
 
+  // What "{n} items found" counts: things you picked up and had in your hands.
+  // Not the 神主牌, which is the night's object and gets its own row. Not a
+  // find you looked at and left, and not the blade you dropped to take a better
+  // one — that was counted when you found IT. Every acquisition route calls
+  // this, and there are four: a clean take, a blade swap, a take-after-drop,
+  // and the villager's thanks.
+  //
+  // Until #67 only two of the four counted, and one of those was the tablet.
+  noteFound() {
+    this.tally.found += 1;
+  }
+
   takeInstead(foundId, dropId) {
     const got = E.pickUpItem(this.state, foundId, dropId);
     if (got.ok) {
+      this.noteFound();
       if (dropId) log(this.line("search-swap", {
         dropped: iName(this, dropId), found: iName(this, foundId) }), "good");
       else log(this.line("search-kept", { item: iName(this, foundId) }), "good");
