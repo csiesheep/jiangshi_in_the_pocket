@@ -312,10 +312,10 @@ test("scare: nothing on the overlay ever repeats a luminance change", () => {
   // than an intention in a comment — it covers the 僵屍 dressing and the six
   // event scenes together, since both paint full-screen.
   assert(tierCss.length > 500, "the overlay CSS block was not found — this guard is not looking at anything");
-  assert(!/infinite/.test(tierCss), "a full-screen overlay animation repeats");
-  assert(!/alternate/.test(tierCss), "a full-screen overlay animation ping-pongs");
+  assert(!tierCss.includes("infinite"), "a full-screen overlay animation repeats");
+  assert(!tierCss.includes("alternate"), "a full-screen overlay animation ping-pongs");
   // steps() is how a flicker gets written when someone wants one.
-  assert(!/steps\s*\(/.test(tierCss), "a full-screen overlay animation is stepped");
+  assert(!tierCss.includes("steps("), "a full-screen overlay animation is stepped");
 });
 
 test("scare: the dressing is cumulative, so the tiers only ever escalate", () => {
@@ -450,7 +450,7 @@ test("king: calm never lets him turn his face to the screen", () => {
 });
 
 test("king: nothing in his scene repeats a luminance change", () => {
-  assert(!/infinite|alternate|steps\s*\(/.test(kingCss),
+  assert(!["infinite", "alternate", "steps("].some((s) => kingCss.includes(s)),
     "the King's scene has a repeating or stepped animation");
 });
 
@@ -471,4 +471,53 @@ test("king: he replaces the generic scare, and running water still short-circuit
   const king = beat.indexOf("await kingScene(");
   assert(water !== -1 && water < king,
     "the running-water ending no longer short-circuits before the King's scene");
+});
+
+// ---- The room's voice (#41) ---------------------------------------------------
+// duckForScare() takes the bed and the murmur away for a scare and unduck() puts
+// them back. unduck() was called from NOWHERE, so after the first fight of any
+// run the ambience stayed down for the whole night — every fight in the game
+// since the fork was followed by permanent silence, which read as atmosphere.
+//
+// Source guards, because the audible version needs a live AudioContext and a
+// user gesture. The behaviour itself was verified by spying on the gain
+// automation: after a fight the bed ramps back to 0.013, and after midnight's
+// duck nothing ramps at all.
+
+// Comments name unduck() several times over while explaining it, so they go
+// first — the same trap the §9 guards fell into twice.
+const noComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+
+test("audio: unduck() is actually called from somewhere", () => {
+  // The whole bug in one line. A function that restores something and is never
+  // invoked is not a safeguard, it is a comment with a body.
+  const app = noComments(appSrc);
+  const calls = app.split("unduck()").length - 1;
+  assert(calls >= 1,
+    "unduck() has no call sites — the room never comes back after a scare");
+});
+
+test("audio: the combat window gives the room back when it closes", () => {
+  const beat = noComments(
+    appSrc.slice(appSrc.indexOf("fightBeat(n, opts = {})"), appSrc.indexOf("kitOptions()")));
+  assert(/unduck\(\)/.test(beat),
+    "fightBeat never restores the ambience it ducked");
+  // Closed in ONE place rather than at each exit: died-paying, the swing,
+  // escape, flight and two status checks all leave through the same door, and a
+  // fix that must be remembered at every return will be missed at the next one.
+  assert(/const close = \(\) => \{/.test(beat),
+    "the combat window has no single close — every exit has to remember to unduck");
+  assert(!/paintFight\(n, opts, resolve\)/.test(beat),
+    "a combat exit still resolves directly, bypassing the close");
+});
+
+test("audio: midnight keeps its silence", () => {
+  // The King's room is quiet by design, and it can only MEAN that once every
+  // other room stops being quiet by accident. midnightBeat ducks and never
+  // restores — the silence holds through the kit prompt to the verdict.
+  const beat = noComments(
+    appSrc.slice(appSrc.indexOf("async midnightBeat()"), appSrc.indexOf("kitOptions()")));
+  assert(/duckForScare\(\)/.test(beat), "midnightBeat no longer ducks the room");
+  assert(!/unduck\(\)/.test(beat),
+    "midnightBeat restores the ambience — the third watch is supposed to stay silent");
 });

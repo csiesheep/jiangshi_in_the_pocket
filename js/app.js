@@ -24,7 +24,8 @@ import { eventStage, kingScene, isFast, setFast, resetStageHints,
          BEAT_MS as STAGE_BEAT_MS } from "./eventstage.js";
 import { isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
          startAmbience, stopAmbience, stopScore, itemPickup, tollBell,
-         watchDrum, paperFlutter, kingArrives, combatHit, duckForScare } from "./audio.js";
+         watchDrum, paperFlutter, kingArrives, combatHit, duckForScare,
+         unduck } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -593,9 +594,30 @@ class Game {
       // Choices are cleared first so a key mashed during it finds nothing —
       // the same rule the dark door and the search beat follow.
       clearChoices();
+
+      // The room comes back when the window closes, and this is the ONE place
+      // that can promise it. jumpScare ducks the bed and the murmur on the way
+      // in; unduck() existed to put them back and was called from nowhere, so
+      // after the first fight of any run the ambience stayed down for the rest
+      // of the night. Every fight in the game since the fork has been followed
+      // by permanent silence, which read as atmosphere and was a leak.
+      //
+      // Closed here rather than at each exit because there are six of them —
+      // died-paying, the swing, escape, flight, and two status checks — and a
+      // fix that has to be remembered at every return is a fix that will be
+      // missed at the next one.
+      //
+      // midnightBeat does NOT come through here, and that is the point of
+      // fixing this: the King's room stays quiet on purpose, and it can only
+      // mean something once every other room stops being quiet by accident.
+      const close = () => {
+        unduck();
+        resolve();
+      };
+
       jumpScare(n, false, { from: opts.from || null }).then(() => {
-        if (this.state.status !== "playing") return resolve();
-        this.paintFight(n, opts, resolve);
+        if (this.state.status !== "playing") return close();
+        this.paintFight(n, opts, close);
       });
     });
   }
