@@ -2,14 +2,16 @@
 // board -> render. Owns the RNG seed.
 //
 // The turn, in the order §8 sets out: the poison tick, one action — move or
-// stay — then the room answers with an event, then the rite if this room has
-// one, then the breach if there is nowhere on, then the search, then six
-// minutes off the clock.
+// stay, and there is no third — then the room answers with an event, then the
+// rite if this room has one, then the breach if there is nowhere on, then the
+// search, then six minutes off the clock. 石敢當 is the one room that skips the
+// answer: standing on the ward draws nothing, arriving or staying.
 //
-// Cowering used to be a third action and the one exception to that order. The
-// post-launch amendment removed it, and the exception moved rather than went:
-// safety is a PLACE now — the warded 石敢當 — rather than a resource you carry,
-// so the only turn that draws no event is a turn spent on the right ground.
+// Cowering used to be that third action, and the one exception to that order.
+// The post-launch amendment removed it, and the exception moved rather than
+// went: safety is a PLACE now — the warded stone — rather than a resource you
+// carry, so the only turn that draws no event is a turn spent on the right
+// ground.
 //
 // Most of that is arithmetic and lives in the engine. Two things are not: a
 // fight and a villager come back from resolveEvent unresolved, because both are
@@ -249,7 +251,6 @@ class Game {
     // doorways, and "rest" would send the whole step to the action panel.
     acts.push({ kind: "stay", label: this.ui("stay"), sub: this.ui("stay-sub"),
       primary: acts.length === 0, onClick: () => this.doStay() });
-
     renderActions(acts, this.ui("move-prompt"));
   }
 
@@ -351,12 +352,6 @@ class Game {
     caption(line, tone);
   }
 
-  // Whether the ground you are standing on turns the night away.
-  warded() {
-    const def = Bd.currentTile(this.board).def || {};
-    return (def.flags || []).includes("WARDED");
-  }
-
   eventLine(ev) {
     const table = (this.data.theme.events || {})[eventKey(ev)] || {};
     return table[E.bandKey(this.state)] || "";
@@ -368,14 +363,14 @@ class Game {
   async eventBeat() {
     if (this.state.status !== "playing") return;
 
-    // 石敢當. The stone has warded this ground for as long as anybody has been
-    // putting stones at junctions, and now it does it: nothing is drawn here,
-    // entering or staying. Said out loud, because a turn that quietly skips its
-    // own event is indistinguishable from a turn that broke.
+    // 石敢當 turns what walks the road: no event here, arriving or staying.
+    // Said out loud, because a turn that quietly skips its own event is
+    // indistinguishable from a turn that broke.
     //
-    // Read off the tile's flag rather than off a null event — a null could mean
-    // anything, and this has to mean one thing.
-    if (this.warded()) {
+    // Asked of the board rather than read off the tile: isWarded is the one
+    // place the flag is read, and the engine refusing the draw and the player
+    // being told why should not be two separate opinions about the same stone.
+    if (Bd.isWarded(this.board)) {
       this.tell(this.line("warded"));
       return wait(RESULT_BEAT_MS);
     }
@@ -849,8 +844,10 @@ class Game {
   // room's event — so it belongs here, between the event and the clock.
   endTurnChoices() {
     const choices = [];
-    // Nothing to rummage after: you arrived here running, no event was drawn
-    // where you landed, and the turn is already over (§8).
+    // Nothing to rummage after: running means no event was drawn where you
+    // landed (§8), and the turn is already over. Standing on the ward is the
+    // opposite case — no event was drawn, but you are still here, so the room
+    // is still yours to search.
     if (this.state.fled) return choices;
     const tile = Bd.currentTile(this.board);
     const table = tile && tile.def && tile.def.search;
@@ -866,6 +863,9 @@ class Game {
       });
     }
 
+    // 香堂's coil and 土地廟's prayer both stood here, free and once per run.
+    // The post-launch redesign took the mechanics they belonged to, and no tile
+    // carries an `action` any more — the shrine keeps only its search.
     return choices;
   }
 

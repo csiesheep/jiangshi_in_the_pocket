@@ -147,8 +147,9 @@ function upkeep(ctx, plan) {
 // Each answers one question: where do I want to be standing?
 
 const POLICIES = {
-  // Chase the burial. Find the crypt, take the 神主牌, get outdoors, pray if the
-  // ground has not turned up, and bury it.
+  // Chase the burial. Find the crypt, take the 神主牌, get outdoors, and bury
+  // it. The shrine's prayer used to shortcut the hunt for the grave; the
+  // post-launch redesign took it, so the ground is turned up the long way now.
   hunter(ctx) {
     const { board, state, data } = ctx;
     const crypt = goalTile(data, "TAKE_TABLET");
@@ -158,7 +159,7 @@ const POLICIES = {
       return { doRites: true, explore: "indoor" };
     }
     if (placed(board, grave.id)) return { doRites: true, seek: (x) => x.id === grave.id };
-    return { doRites: true, explore: "outdoor", pray: true };
+    return { doRites: true, explore: "outdoor" };
   },
 
   // Assemble a kit that reaches the threshold, then meet him. Searches
@@ -197,8 +198,10 @@ const POLICIES = {
   //      糯米, so the camp that hunts the banner feeds the camper.
   //   2. Talismans are consumed. Spending the heavy one to win a corridor
   //      fight is how you reach midnight holding nothing.
-  //   3. Cower charges are worth the draw they skip, and the draws get worse
-  //      every hour, so they belong to eleven o'clock.
+  //   3. The night has one safe square. 石敢當 draws no event at all, so a
+  //      finished kit is carried there and waited out — every turn spent
+  //      standing anywhere else is a free draw against a player who has
+  //      already won if they simply arrive.
   //
   // It is not an oracle: it never reads the rng, and it plans only against
   // tiles already on the table. Deterministic — it takes no dice of its own.
@@ -210,7 +213,6 @@ const POLICIES = {
       hoardBanner: true,
       keepStrike: true,
       smartStrike: true,
-      cowerWhen: adeptCower,
       eatAt: (s) => (s.hour === 23 ? 6 : 5),
       giveRice: adeptGift,
       dropChoice: adeptDrop,
@@ -251,9 +253,13 @@ const POLICIES = {
     // the banner is what is missing, because that is the deck the shrine is in.
     if (want.length) return { ...base, explore: want.includes("relic") ? "outdoor" : "any" };
 
-    // The recipe is finished. Nothing left to want, so stop walking into rooms:
-    // standing still draws the same event and risks nothing extra.
-    return base;
+    // The recipe is finished, so the only thing left to lose is the night.
+    // 石敢當 draws nothing at all — go and stand on it. This is the redesign's
+    // whole answer to where safety comes from: a place you travel to.
+    const ward = [...data.tiles.indoor, ...data.tiles.outdoor]
+      .find((t) => (t.flags || []).includes("WARDED"));
+    if (ward && placed(board, ward.id)) return { ...base, seek: (x) => x.id === ward.id };
+    return { ...base, explore: "outdoor" }; // not turned up yet; it is outdoor ground
   },
 
   // Hide. Find the 溪澗 and stand in it until the clock runs out — the one
@@ -261,7 +267,7 @@ const POLICIES = {
   turtle(ctx) {
     const { board } = ctx;
     const stream = [...board.worlds.outdoor.values()].find((t) => (t.def.flags || []).includes("RUNNING_WATER"));
-    if (stream) return { seek: (x) => (x.def.flags || []).includes("RUNNING_WATER"), thenStay: true };
+    if (stream) return { seek: (x) => (x.def.flags || []).includes("RUNNING_WATER") };
     return { explore: "outdoor" };
   },
 
@@ -271,7 +277,7 @@ const POLICIES = {
     const { board } = ctx;
     const heal = [...board.worlds.indoor.values(), ...board.worlds.outdoor.values()]
       .find((t) => t.def.onTurnEnd === "HEAL_1");
-    if (heal) return { seek: (x) => x.def.onTurnEnd === "HEAL_1", thenStay: true };
+    if (heal) return { seek: (x) => x.def.onTurnEnd === "HEAL_1" };
     return { explore: "any" };
   },
 };
@@ -331,13 +337,6 @@ function adeptWants(state) {
   return want;
 }
 
-// Charges are worth exactly the draw they skip, and the draws get worse every
-// hour — so they are hoarded for eleven o'clock unless the emergency is now.
-function adeptCower(state) {
-  if (state.health <= 2) return true;
-  return state.hour === 23 && state.health <= 5;
-}
-
 // The charm is the only damage reduction in the game and the late gifts are
 // talismans. All of them beat the band's worst pack, which is what refusing
 // buys you.
@@ -380,11 +379,17 @@ function adeptBuff(state) {
 const BANNER_DEADLINE = 11;
 
 // ---- One night ------------------------------------------------------------------
-export function playNight(data, policyName, seed) {
+// `wardBlocksBreach` is a COUNTERFACTUAL, off by default and never the shipped
+// rule. The amendment says 石敢當 draws no event; 破牆 is not an event draw, so
+// as written the breach still reaches the stone. Whether that was intended is
+// the user's call, and this switch is here so the call can be made against a
+// number instead of an intuition.
+export function playNight(data, policyName, seed, opts = {}) {
   const state = E.newGame(data, { seed });
   const board = B.createBoard(data, { seed });
   const die = E.makeRng((seed ^ 0x2545f491) >>> 0);
-  const stats = { gifts: 0, giftIds: [], everHadBanner: false, bestAttack: 0 };
+  const stats = { gifts: 0, giftIds: [], everHadBanner: false, bestAttack: 0,
+                  wardTurns: 0, breachesOnWard: 0 };
   const ctx = { state, board, data, die, stats };
   const policy = POLICIES[policyName];
 
@@ -396,90 +401,88 @@ export function playNight(data, policyName, seed) {
 
     const plan = policy(ctx) || {};
 
-    // ---- the action
-    const charges = state.cowerCharges;
-    const wantCower = charges > 0 && (plan.cowerWhen
-      ? plan.cowerWhen(state)
-      : (state.health <= 3 || (plan.thenStay && state.hour === 23 && die() < 0.5)));
-    if (wantCower) {
-      E.cower(state);
-    } else {
-      const moves = B.listMoves(board);
-      const here = B.currentTile(board);
-      let dir = null;
-      if (plan.seek && !plan.seek(here)) dir = stepToward(board, plan.seek);
-      if (!dir && plan.explore) {
-        const outs = moves.filter((m) => m.type === "explore" || m.type === "outside");
-        const want = plan.explore === "any" ? outs
-          : outs.filter((m) => m.type === "outside" || board.player.world === plan.explore);
-        const chosen = (want.length ? want : outs)[0];
-        if (chosen) dir = chosen.dir;
-        else if (plan.explore === "outdoor" && board.player.world === "indoor") {
-          const out = moves.find((m) => m.type === "cross" || m.type === "outside");
-          if (out) dir = out.dir;
+    // ---- the action: MOVE or STAY, and there is no third
+    const moves = B.listMoves(board);
+    const here = B.currentTile(board);
+    let dir = null;
+    if (plan.seek && !plan.seek(here)) dir = stepToward(board, plan.seek);
+    if (!dir && plan.explore) {
+      const outs = moves.filter((m) => m.type === "explore" || m.type === "outside");
+      const want = plan.explore === "any" ? outs
+        : outs.filter((m) => m.type === "outside" || board.player.world === plan.explore);
+      const chosen = (want.length ? want : outs)[0];
+      if (chosen) dir = chosen.dir;
+      else if (plan.explore === "outdoor" && board.player.world === "indoor") {
+        const out = moves.find((m) => m.type === "cross" || m.type === "outside");
+        if (out) dir = out.dir;
+      }
+    }
+    if (dir) {
+      const m = moves.find((x) => x.dir === dir);
+      if (m && m.type === "explore") B.explore(board, m.dir, B.pickExploreRotation(board, m.dir));
+      else if (m && m.type === "outside") B.goOutside(board);
+      else if (m) B.moveTo(board, m.dir);
+    }
+
+    // ---- the event
+    // 石敢當 turns what walks the road: nothing is drawn standing on it.
+    const warded = B.isWarded(board);
+    if (warded) stats.wardTurns++;
+    const ev = E.drawEvent(state, { warded });
+    const feed = plan.giveRice ? plan.giveRice(state) : E.heldCount(state, "sticky-rice") > 1;
+    const out = E.resolveEvent(state, ev, { giveRice: feed });
+    if (out.type === "GIFT") { stats.gifts++; stats.giftIds.push(out.id); }
+    if (out.type === "FIGHT") fight(ctx, out.n, plan);
+
+    if (state.status === "playing" && !state.fled) {
+      survive(ctx, plan);
+      const tile = B.currentTile(board);
+      if (tile && tile.def.search) {
+        const r = E.search(state, tile.def.search);
+        if (r.result === "OFFER_DROP") {
+          // Drop rice before equipment; a sword outlives a meal. A policy may
+          // answer null instead, which refuses the find — sometimes the right
+          // answer, since a fourth blade is not worth the slot.
+          const spare = plan.dropChoice
+            ? plan.dropChoice(state, r.id)
+            : (E.held(state, "sticky-rice") ? "sticky-rice" : E.heldIds(state)[0]);
+          if (spare) E.pickUpItem(state, r.id, spare);
         }
       }
-      if (dir) {
-        const m = moves.find((x) => x.dir === dir);
-        if (m && m.type === "explore") B.explore(board, m.dir, B.pickExploreRotation(board, m.dir));
-        else if (m && m.type === "outside") B.goOutside(board);
-        else if (m) B.moveTo(board, m.dir);
+      upkeep(ctx, plan);
+
+      // Only the hunter performs a rite. Everyone else standing in a goal
+      // room is standing in an ordinary room — without this the duelist and
+      // the turtle won burials by walking past the grave, which measures
+      // nothing about either line.
+      const goal = plan.doRites ? tile && tile.def.goal : null;
+      const riteAllowed = plan.doRites === true || plan.doRites === goal;
+      if (goal && riteAllowed && E.riteDraws(state, goal)) {
+        const rev = E.riteEvent(state);
+        const rfeed = plan.giveRice ? plan.giveRice(state) : E.heldCount(state, "sticky-rice") > 1;
+        const rout = E.resolveEvent(state, rev, { giveRice: rfeed });
+        if (rout.type === "FIGHT") fight(ctx, rout.n, plan);
+        if (state.status === "playing") E.completeRite(state, goal);
       }
+    }
 
-      // ---- the event
-      const ev = E.drawEvent(state);
-      const feed = plan.giveRice ? plan.giveRice(state) : E.heldCount(state, "sticky-rice") > 1;
-      const out = E.resolveEvent(state, ev, { giveRice: feed });
-      if (out.type === "GIFT") { stats.gifts++; stats.giftIds.push(out.id); }
-      if (out.type === "FIGHT") fight(ctx, out.n, plan);
-
-      if (state.status === "playing" && !state.fled) {
-        survive(ctx, plan);
-        const tile = B.currentTile(board);
-        if (tile && tile.def.search) {
-          const r = E.search(state, tile.def.search);
-          if (r.result === "OFFER_DROP") {
-            // Drop rice before equipment; a sword outlives a meal. A policy may
-            // answer null instead, which refuses the find — sometimes the right
-            // answer, since a fourth blade is not worth the slot.
-            const spare = plan.dropChoice
-              ? plan.dropChoice(state, r.id)
-              : (E.held(state, "sticky-rice") ? "sticky-rice" : E.heldIds(state)[0]);
-            if (spare) E.pickUpItem(state, r.id, spare);
-          }
-        }
-        if (tile && tile.def.action === "RESTORE_COWER_ONCE") E.restoreCowerCharge(state);
-        if (tile && tile.def.action === "PRAY_ONCE" && plan.pray && B.canPray(board)) B.pray(board);
-        upkeep(ctx, plan);
-
-        // Only the hunter performs a rite. Everyone else standing in a goal
-        // room is standing in an ordinary room — without this the duelist and
-        // the turtle won burials by walking past the grave, which measures
-        // nothing about either line.
-        const goal = plan.doRites ? tile && tile.def.goal : null;
-        const riteAllowed = plan.doRites === true || plan.doRites === goal;
-        if (goal && riteAllowed && E.riteDraws(state, goal)) {
-          const rev = E.riteEvent(state);
-          const rfeed = plan.giveRice ? plan.giveRice(state) : E.heldCount(state, "sticky-rice") > 1;
-          const rout = E.resolveEvent(state, rev, { giveRice: rfeed });
-          if (rout.type === "FIGHT") fight(ctx, rout.n, plan);
-          if (state.status === "playing") E.completeRite(state, goal);
-        }
+    if (state.status === "playing") {
+      const deadEnd = B.isDeadEnd(board) && !(opts.wardBlocksBreach && warded);
+      const n = E.breachAfterEvent(state, { deadEnd });
+      // Counted because the amendment is silent on it: the ward stops the
+      // EVENT, and 破牆 is not an event draw. If this number is ever large the
+      // ward is not the safe square it was ruled to be.
+      if (n && warded) stats.breachesOnWard++;
+      if (n) {
+        const wall = B.pickZombieDoorWall(board);
+        if (wall) B.openZombieDoor(board, wall);
+        fight(ctx, n, plan);
       }
+    }
 
-      if (state.status === "playing") {
-        const n = E.breachAfterEvent(state, { deadEnd: B.isDeadEnd(board) });
-        if (n) {
-          const wall = B.pickZombieDoorWall(board);
-          if (wall) B.openZombieDoor(board, wall);
-          fight(ctx, n, plan);
-        }
-      }
-
-      const end = B.currentTile(board);
-      if (state.status === "playing" && !state.fled && end && end.def.onTurnEnd === "HEAL_1") {
-        E.changeHealth(state, 1);
-      }
+    const end = B.currentTile(board);
+    if (state.status === "playing" && !state.fled && end && end.def.onTurnEnd === "HEAL_1") {
+      E.changeHealth(state, 1);
     }
 
     if (E.held(state, "soul-banner")) stats.everHadBanner = true;
@@ -506,8 +509,9 @@ export function playNight(data, policyName, seed) {
       // banner. Read afterwards it is false for exactly the runs that used one,
       // which is the opposite of the question being asked.
       const hadBanner = !!use.banner;
+      const atWard = B.isWarded(board);
       const r = E.midnight(state, { runningWater: water, use });
-      return finish(state, board, { atMidnight, threshold: r.threshold, water, hadBanner, ...stats });
+      return finish(state, board, { atMidnight, threshold: r.threshold, water, hadBanner, atWard, ...stats });
     }
     E.advanceTurn(state);
   }
@@ -527,7 +531,7 @@ function finish(state, board, extra) {
 }
 
 // ---- A thousand nights -----------------------------------------------------------
-export function run(data, policyName, seeds = 1000, from = 1) {
+export function run(data, policyName, seeds = 1000, from = 1, opts = {}) {
   const tally = { WIN_BURIAL: 0, WIN_SEAL: 0, SURVIVED: 0, LOSS_HEALTH: 0, LOSS_KING: 0 };
   let reachedMidnight = 0;
   let bannerAtMidnight = 0;
@@ -536,12 +540,15 @@ export function run(data, policyName, seeds = 1000, from = 1) {
   let gifts = 0;
   let runsWithGift = 0;
   let everBanner = 0;
+  let wardTurns = 0;
+  let breachesOnWard = 0;
+  let wardedAtMidnight = 0;
   let bestAttackSum = 0;
   const giftKinds = {};
   const errors = [];
   for (let seed = from; seed < from + seeds; seed++) {
     try {
-      const r = playNight(data, policyName, seed);
+      const r = playNight(data, policyName, seed, opts);
       if (r.outcome in tally) tally[r.outcome]++;
       else errors.push(`seed ${seed}: outcome ${r.outcome}`);
       turns += r.turn;
@@ -549,6 +556,9 @@ export function run(data, policyName, seeds = 1000, from = 1) {
       if (r.gifts) runsWithGift++;
       for (const g of r.giftIds || []) giftKinds[g] = (giftKinds[g] || 0) + 1;
       if (r.everHadBanner) everBanner++;
+      wardTurns += r.wardTurns || 0;
+      breachesOnWard += r.breachesOnWard || 0;
+      if (r.atWard) wardedAtMidnight++;
       bestAttackSum += r.bestAttack || 0;
       if (r.atMidnight !== undefined) {
         reachedMidnight++;
@@ -579,6 +589,11 @@ export function run(data, policyName, seeds = 1000, from = 1) {
     giftKinds,
     // Did the compulsory item ever turn up at all?
     everHeldBanner: +((everBanner / seeds) * 100).toFixed(1),
+    // Did the policy actually use the night's one safe square, and did the
+    // breach reach it anyway?
+    avgWardTurns: +(wardTurns / seeds).toFixed(2),
+    breachesOnWard,
+    wardedAtMidnight,
     avgBestAttack: +(bestAttackSum / seeds).toFixed(2),
     errors: errors.slice(0, 5),
   };

@@ -6,7 +6,7 @@ import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          watchDrum, hopThud,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
-         muffle, passingSteps, setScoreHour, buzz, isCalm,
+         setScoreHour, buzz, isCalm,
          setSpace, wickHiss, setScoreRelief, splintering, startPounding, stopPounding,
          floodMurmur } from "./audio.js";
 
@@ -119,9 +119,9 @@ export function formatClock(c) {
   }).trim();
 }
 
-// Health is capped at ten, but the hearts still draw against the start rather
-// there is no "x of y" to draw. Hearts show damage against the starting health
-// while the number stays small, and fall back to a count once it does not.
+// Health is capped at the starting ten, but the bar is drawn the same way it
+// always was: hearts show damage against the starting health while the number
+// stays small, and fall back to a count once it does not.
 const HEART_BASELINE = RULES.START_HEALTH;
 const MAX_HEARTS = 10;
 
@@ -311,6 +311,7 @@ function renderAttack(game) {
   el.title = held0;
   el.appendChild(srOnly(held0));
 }
+
 
 // 中毒: shown only while it is true. The tick itself is announced by the turn
 // loop — this is the standing reminder that it has not stopped, which is the
@@ -2760,7 +2761,8 @@ export function renderActions(actions, prompt = "", opts = {}) {
   // for the entire turn.
   const isWalk = (a) => a.kind === "move" && a.dir;
   const isStay = (a) => a.kind === "stay";
-  const boardOnly = actions.some(isWalk) && actions.every((a) => isWalk(a) || isStay(a));
+  const boardOnly =
+    actions.some(isWalk) && actions.every((a) => isWalk(a) || isStay(a));
 
   // A decision is open: the board starts closing in. Moves are not a decision
   // in this sense — walking is what you do between them, and a push-in that

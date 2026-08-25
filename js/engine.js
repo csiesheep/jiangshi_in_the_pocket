@@ -43,13 +43,6 @@ export const RULES = {
   // full of consumables and converts, rice by rice, into equipment.
   START_ITEMS: { "sticky-rice": 3 },
 
-  // ---- cowering ------------------------------------------------------------
-  // A charge SKIPS THE EVENT and heals nothing. Its whole value is being the
-  // only event-free turn in the game, which makes a charge worth the expected
-  // damage of whatever you did not draw — so charges are worth hoarding for the
-  // eleven o'clock band, and no rule has to say so.
-  COWER_CHARGES: 3,
-
   // ---- combat --------------------------------------------------------------
   MAX_COMBAT_DAMAGE: 4,
   MIN_COMBAT_DAMAGE: 0,
@@ -73,8 +66,8 @@ export const RULES = {
 };
 
 // House rules, baked in as the defaults. Only the one that still has anything
-// to govern: the other two were about cowering and the two-card rites, and both
-// of those went with the card system.
+// to govern: the others were about the two-card rites and about cowering, and
+// those went with the card system and the post-launch redesign respectively.
 export const HOUSE_RULES = {
   FLEE_ADJACENT_ONLY: true, // enforced by board.js
 };
@@ -158,10 +151,6 @@ export function newGame(data, opts = {}) {
     // that creates duplicates by rule, and a count is the honest shape for that
     // — see slotsUsed for why a count is not the same as a slot.
     items: { ...RULES.START_ITEMS },
-    // Three charges, and the one the Incense Hall gives back. Tracked here
-    // rather than on the tile because it is the player who is out of nerve.
-    cowerCharges: RULES.COWER_CHARGES,
-    cowerRestored: false,
     // 中毒. A flag, not a counter: it does not stack, and only rice clears it.
     poisoned: false,
     // Which swords have a 真火符 burned into them. Permanent, one per sword,
@@ -288,12 +277,11 @@ export function clockTime(state) {
 // The weights are a judgement, not a measurement, and they are written out
 // rather than folded together so they can be argued with:
 export const DREAD_WEIGHTS = {
-  night: 0.32, // how late it is — the one pressure that never goes down
-  hurt: 0.3, // how close to dead
-  fought: 0.15, // how violent this hour has already been
-  running: 0.09, // how little deck is left before the hour turns
+  night: 0.34, // how late it is — the one pressure that never goes down
+  hurt: 0.32, // how close to dead
+  fought: 0.16, // how violent this hour has already been
+  running: 0.1, // how little deck is left before the hour turns
   carrying: 0.08, // the relic makes you worth following
-  exposed: 0.06, // out of cowers, and late enough for that to matter
 };
 
 // Risen in an hour before that term saturates. Seven draws an hour and packs
@@ -314,27 +302,13 @@ export function dread(state) {
   const fought = Math.min(1, (state.foughtThisHour || 0) / FOUGHT_FULL);
   const running = c.perHour > 0 ? 1 - c.left / c.perHour : 0;
   const carrying = state.tablet ? 1 : 0;
-  // Cowering is the only way the game lets you skip a turn's draw, so running
-  // out is the moment the night stops having an exit. Read against the clock
-  // rather than on its own, because the same empty coil means two different
-  // things: at nine there are three hours to find 香堂 and refill it, and at
-  // eleven it is the thing you hoarded and did not have. That multiply is the
-  // whole term — at a fresh nine o'clock it contributes exactly nothing.
-  //
-  // Clamped at both ends: 香堂 can leave you one above the starting three, and
-  // a spare charge should read as "not exposed" rather than as negative fear.
-  const ceiling = RULES.COWER_CHARGES || 1;
-  const spent = Math.min(1, Math.max(0, 1 - Math.max(0, state.cowerCharges || 0) / ceiling));
-  const exposed = spent * night;
-
   const w = DREAD_WEIGHTS;
   const score =
     night * w.night +
     hurt * w.hurt +
     fought * w.fought +
     running * w.running +
-    carrying * w.carrying +
-    exposed * w.exposed;
+    carrying * w.carrying;
 
   // Relief. Everything above ratchets up inside an hour and never comes down,
   // and tension that only rises stops being tension — there has to be a trough
@@ -705,27 +679,6 @@ export function useCinnabar(state, targetId) {
            slotsBefore: before, slotsAfter: slotsUsed(state) };
 }
 
-// ---- Cowering ---------------------------------------------------------------
-// Spend a charge to skip the event. It heals nothing — that is the point, and
-// the reason a charge is worth more at eleven than at nine: what it buys is the
-// expected damage of a draw you did not make.
-export function cower(state) {
-  if (state.status !== "playing") return { ok: false, reason: "not-playing" };
-  if (state.cowerCharges <= 0) return { ok: false, reason: "no-charges" };
-  state.cowerCharges -= 1;
-  return { ok: true, charges: state.cowerCharges };
-}
-
-// 香堂, once per run. The gate lives on the player rather than the tile because
-// what is spent is the coil: you only burn it once, however many times you walk
-// back through the room.
-export function restoreCowerCharge(state) {
-  if (state.cowerRestored) return { ok: false, reason: "spent" };
-  state.cowerRestored = true;
-  state.cowerCharges += 1;
-  return { ok: true, charges: state.cowerCharges };
-}
-
 // ---- Attack -----------------------------------------------------------------
 // THE CENTRAL DEPARTURE FROM THE SOURCE: a sword and a talisman ADD. The source
 // allowed one weapon and one weapon only, so its whole arms race was "find a
@@ -894,7 +847,16 @@ export function flee(state) {
 // Drawn per band WITH REPLACEMENT — it is a distribution, not a deck, so the
 // same event may fire twice in a row and nothing is "used up". Its own stream,
 // for the same reason searches have one: a shared seed must meet the same night.
-export function drawEvent(state) {
+// `warded` is 石敢當's stone: standing there draws nothing, on the turn you
+// arrive and on every turn you stay. Told rather than looked up, for the same
+// reason midnight() is told about 活水 — the engine does not know the board, and
+// board.isWarded() is the one place that reads the flag.
+//
+// It short-circuits BEFORE the draw rather than discarding afterwards, so a
+// warded turn does not spend the event stream. Two nights on one seed that
+// differ only in whether the player stood on the ward stay in step.
+export function drawEvent(state, { warded = false } = {}) {
+  if (warded) return null;
   const table = (state.eventTables || {})[bandKey(state)];
   if (!table) return null;
   return weightedPick(table, state.eventRng);

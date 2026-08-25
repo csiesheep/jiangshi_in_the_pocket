@@ -36,9 +36,11 @@
     const q = new URLSearchParams(location.search);
     const SEEDS = Number(q.get("seeds") || 1000);
     const FROM = Number(q.get("from") || 1);
+    // Counterfactual only — see playNight. Never on for a published table.
+    const OPTS = { wardBlocksBreach: q.get("wardBlocksBreach") === "1" };
     const rows = [];
     for (const name of POLICY_NAMES) {
-      rows.push(run(data, name, SEEDS, FROM));
+      rows.push(run(data, name, SEEDS, FROM, OPTS));
       document.getElementById("status").textContent = `Running… ${name} done`;
     }
 

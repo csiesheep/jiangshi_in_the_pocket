@@ -162,10 +162,10 @@ function audio() {
     // is everything happening somewhere else, and it runs through a lowpass
     // that is transparent until something closes it.
     //
-    // The split exists so a set-piece can muffle the house without muffling the
-    // sound of you holding your breath in it. #78 wants this routing too, for
-    // placing sounds rather than dulling them; the bus is built here because
-    // this is the issue that first needed it.
+    // The split exists so a scene can muffle the house without muffling what
+    // is happening at your ear. #78 wants this routing too, for placing sounds
+    // rather than dulling them; the bus is built here because this is the
+    // issue that first needed it.
     world = ctx.createBiquadFilter();
     world.type = "lowpass";
     world.frequency.value = OPEN_HZ;
@@ -823,6 +823,16 @@ export function stopPounding() {
   pounding = null;
 }
 
+
+// What each thing sounds like coming off a shelf. Every id here is a jiangshi
+// item; the inherited map was still the other game's, so a 七星劍 came up
+// sounding like a candle and every one of the thirteen fell through to the same
+// small rustle.
+//
+// 桃木劍 is wood because it IS wood — that is the entire point of a peachwood
+// sword, and it would be a strange thing for the game to say otherwise. The
+// talismans and the banner are paper and get the flutter, which is the same cue
+// that plays when one is spent: picking one up and throwing one are the same
 // material doing the same thing.
 const ITEM_CUE = {
   "precept-knife": "metal", "coin-sword": "metal", "sevenstar-sword": "metal",
@@ -1632,8 +1642,8 @@ export function unduck() {
 // rather than as nothing; a game with no score has no way to take one away.
 //
 // On master rather than the world bus, deliberately: a score is not in the
-// house. A set-piece muffles the room and leaves the music where it is, which is
-// what film does — the score does not duck because a character is hiding.
+// house. Muffling the room leaves the music where it is, which is what film
+// does — the score does not duck because the room has gone quiet.
 //
 // A1, its fifth, and the octave. Low, close together, and detuned enough to
 // beat slowly against each other rather than sound like a chord.

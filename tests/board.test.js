@@ -67,11 +67,18 @@ test("tiles.json: the goal rooms and the tile actions use spec §2 names", () =>
   const all = [...tiles.indoor, ...tiles.outdoor];
   const goals = all.filter((d) => d.goal).map((d) => `${d.id}:${d.goal}`).sort();
   eq(goals, ["mass-grave:BURY_TABLET", "sealed-crypt:TAKE_TABLET"]);
+  // No tile carries an action since the post-launch redesign: the shrine's
+  // prayer and 香堂's coil went with the mechanics they belonged to.
   const actions = all.filter((d) => d.action).map((d) => `${d.id}:${d.action}`).sort();
-  eq(actions, ["earth-god-shrine:PRAY_ONCE", "incense-hall:RESTORE_COWER_ONCE"]);
-  const flagged = all.filter((d) => d.flags);
-  eq(flagged.map((d) => d.id), ["stream"]);
-  eq(flagged[0].flags, ["RUNNING_WATER"]);
+  eq(actions, [], "the prayer and the coil are gone");
+  const flagged = all.filter((d) => d.flags).map((d) => `${d.id}:${d.flags.join("+")}`).sort();
+  eq(flagged, ["stone-ward:WARDED", "stream:RUNNING_WATER"]);
+  // Two rooms heal, one each side of the seam, and 香堂 is the indoor one now
+  // that 帳房 keeps only its 丹藥.
+  const heals = all.filter((d) => d.onTurnEnd === "HEAL_1").map((d) => d.id).sort();
+  eq(heals, ["incense-hall", "pagoda-tree"]);
+  eq(all.find((d) => d.id === "counting-room").onTurnEnd, undefined, "帳房 searches, it does not mend");
+  eq(all.find((d) => d.id === "earth-god-shrine").search, "relic", "the shrine keeps its rummage");
 });
 
 // Every tile has to be enterable from any direction, or a stack can jam: the
@@ -92,8 +99,6 @@ test("createBoard: start tile at origin, decks minus the two set aside", () => {
   eq(b.decks.indoor.length, 9, "10 indoor minus the Gatehouse");
   eq(b.decks.outdoor.length, 9, "10 outdoor minus the Back Steps");
   eq(t.exits, ["N", "E", "W"]);
-  eq(b.prayerTarget, null);
-  eq(b.prayerSpent, false);
 });
 
 test("the Gatehouse offers its three ways on, and is no dead end", () => {
@@ -372,92 +377,42 @@ test("seam: stepping through the gate places the landing tile", () => {
   eq(b.player.world, "indoor");
 });
 
-// ---- The shrine's prayer -----------------------------------------------------
-// Stand on the shrine with the grave still in the stack. Returns the board with
-// the player on the shrine, the outdoor deck a known order, and the grave
-// buried in the middle of it — never on top, so a passing test cannot be the
-// deck agreeing by accident.
-function atTheShrine(seed = 1) {
+// ---- The ward ----------------------------------------------------------------
+// 石敢當. isWarded is the one place the flag is read; everything else is told.
+function onTile(id, world = "outdoor", seed = 1) {
   const b = board({ seed });
-  b.decks.indoor = ["courtyard"];
-  B.explore(b, "N", 0);
-  B.goOutside(b);
-  b.decks.outdoor = ["pavilion", "stream", "mass-grave", "dry-well"];
-  // Put the shrine under our feet: it is where the prayer is made from.
-  b.worlds.outdoor.set(
-    B.cellKey(0, 0),
-    { id: "earth-god-shrine", world: "outdoor", x: 0, y: 0, rotation: 0,
-      exits: ["E", "S"], holes: [], def: DATA.tiles.outdoor.find((d) => d.id === "earth-god-shrine") }
+  if (world === "outdoor") { b.decks.indoor = ["courtyard"]; B.explore(b, "N", 0); B.goOutside(b); }
+  const def = DATA.tiles[world].find((d) => d.id === id);
+  b.worlds[world].set(
+    B.cellKey(b.player.x, b.player.y),
+    { id, world, x: b.player.x, y: b.player.y, rotation: 0,
+      exits: def.exits, holes: [], def }
   );
   return b;
 }
 
-test("pray: the next tile placed is the one the shrine names", () => {
-  const b = atTheShrine();
-  assert(B.canPray(b), "the grave is still in the stack");
-  eq(B.pray(b).ok, true);
-  eq(b.prayerTarget, "mass-grave");
-  eq(B.peekTile(b, "outdoor"), "mass-grave", "and it is what comes up next");
-
-  const r = B.explore(b, "E", B.pickExploreRotation(b, "E"));
-  assert(r.ok);
-  eq(r.tile.id, "mass-grave", "the land god knows where the dead are buried");
-  eq(b.prayerTarget, null, "the prayer is answered, not standing");
-  eq(b.decks.outdoor, ["pavilion", "stream", "dry-well"], "the rest of the stack keeps its order");
+test("ward: the stone is warded and nothing else is", () => {
+  assert(B.isWarded(onTile("stone-ward")), "石敢當 turns what walks the road");
+  eq(B.isWarded(onTile("stream")), false, "running water is a different mercy");
+  eq(B.isWarded(onTile("earth-god-shrine")), false);
+  eq(B.isWarded(onTile("incense-hall", "indoor")), false);
 });
 
-// The rotation offered has to be the grave's, not the tile that happened to be
-// on top — validate one and place the other and the grave goes down sideways.
-test("pray: the rotations offered are the summoned tile's", () => {
-  const b = atTheShrine();
-  const topFirst = B.validExploreRotations(b, "E");
-  B.pray(b);
-  const prayed = B.validExploreRotations(b, "E");
-  const placed = B.explore(b, "E", prayed[0]);
-  assert(placed.ok, "the rotation the board offered is one it accepts");
-  assert(placed.tile.exits.includes("W"), "and the grave still faces back the way we came");
-  assert(
-    JSON.stringify(topFirst) !== JSON.stringify(prayed),
-    "the two tiles genuinely turn differently, so this test can fail"
-  );
+// Arriving and staying are the same question asked twice, and the amendment
+// answers both the same way: the flag is a fact about the tile, not about how
+// you came to be standing on it.
+test("ward: it holds on the turn you arrive and on every turn you stay", () => {
+  const b = onTile("stone-ward");
+  eq(B.isWarded(b), true, "on arrival");
+  for (let i = 0; i < 5; i++) eq(B.isWarded(b), true, "and it does not wear off");
 });
 
-test("pray: once per night, and never for a tile already on the table", () => {
-  const b = atTheShrine();
-  B.pray(b);
-  B.explore(b, "E", B.pickExploreRotation(b, "E"));
-  // Back to the shrine, and ask again.
-  b.player = { world: "outdoor", x: 0, y: 0 };
-  eq(B.canPray(b), false, "the incense is burnt");
-  eq(B.pray(b).reason, "spent");
-
-  // And a fresh night, where the grave is already down.
-  const c = atTheShrine(2);
-  c.decks.outdoor = ["pavilion", "stream"];
-  eq(B.canPray(c), false, "nothing left to summon");
-  eq(B.pray(c).reason, "already-placed");
+test("ward: the stone offers nothing to rummage", () => {
+  const def = DATA.tiles.outdoor.find((d) => d.id === "stone-ward");
+  eq(def.search, undefined, "safety is the whole of what it gives");
+  eq(def.action, undefined);
 });
 
-test("pray: an indoor detour does not spend the answer", () => {
-  const b = atTheShrine();
-  B.pray(b);
-  // Walk back in and explore the village. The prayer names an outdoor tile, so
-  // the indoor stack cannot answer it and must not swallow it either.
-  B.moveTo(b, B.currentTile(b).seamDir || "N");
-  eq(b.player.world, "indoor", "back inside");
-  b.decks.indoor = ["woodshed", "blacksmith"];
-  const inside = B.explore(b, "E", B.pickExploreRotation(b, "E"));
-  assert(inside.ok, "explored a room indoors");
-  assert(inside.tile.id !== "mass-grave", "the village has no grave in it");
-  eq(b.prayerTarget, "mass-grave", "the prayer is still owed");
-});
-
-test("pray: refused anywhere but the shrine", () => {
-  const b = board({ seed: 1 });
-  eq(B.canPray(b), false);
-  eq(B.pray(b).reason, "not-a-shrine");
-  eq(b.prayerSpent, false, "and a refused prayer costs nothing");
-});
 
 // ---- Is every run actually winnable? ---------------------------------------
 // The win needs the Sealed Crypt, which sits at a random depth in the indoor deck,

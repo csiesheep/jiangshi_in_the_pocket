@@ -67,9 +67,9 @@ function noteFor(def, world, theme) {
       : f === "WARDED" ? note(theme, "warded")
       : note(theme, "unknown", { what: f }));
   }
-  // No tile carries an action any more — cowering and the prayer both went in
-  // the post-launch amendment. Anything that turns up here is therefore new and
-  // undocumented, and says so rather than being dropped.
+  // No tile carries an `action` since the post-launch redesign took the
+  // prayer and the coil, but the branch stays: the field is still read, and a
+  // tile that grows one should say so rather than say nothing.
   if (def.action) notes.push(note(theme, "unknown", { what: def.action }));
   if (def.goal) {
     const key = def.goal === "TAKE_TABLET" ? "take-tablet"
@@ -142,6 +142,7 @@ function chipsFor(def) {
   if (def.search) chips.push([CHIP_SEARCH[def.search] || def.search, `tilechip--${def.search}`, true]);
   if (def.onTurnEnd === "HEAL_1") chips.push(["+1 health", "", false]);
   if ((def.flags || []).includes("RUNNING_WATER")) chips.push(["no damage", "", false]);
+  if ((def.flags || []).includes("WARDED")) chips.push(["no events", "", false]);
   if (def.action) chips.push(["once per night", "", false]);
   if (def.goal) chips.push(["goal", "tilechip--goal", false]);
   if (def.start) chips.push(["start", "", false]);
