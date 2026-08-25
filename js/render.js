@@ -687,19 +687,155 @@ function slotRows(state) {
   return rows;
 }
 
+// ---- The pack, as 田 ------------------------------------------------------------
+// Four cells of pictures. The name and what it does arrive when you point at
+// one, which is the whole ruling: the panel stops being a list of labels and
+// becomes a thing you look at, and the words are there when you want them.
+//
+// The cell count comes from RULES.MAX_ITEMS and is never written down here. The
+// pack has already been six and is now four, and the seal-reachability question
+// could move it again — a grid that disagrees with the engine about how much you
+// can carry is a worse bug than an ugly grid.
+//
+// Empty cells are drawn as empty, for the same reason both hands are drawn empty
+// at nine o'clock: the limit is a rule, and a rule you can see costs nothing to
+// teach.
 function renderBackpack(game) {
   const s = game.state;
   const el = document.getElementById("hud-items");
   if (!el) return;
   el.textContent = "";
-
-  // One row per SLOT, and a slot is not a unit: a talisman stack fills one row
-  // whatever its count, while three rice fill three. slotRows spells that out
-  // so the panel and slotsUsed() can never disagree about how full you are.
+  // One entry per SLOT, and a slot is not a unit: a talisman stack fills one
+  // cell whatever its count, while three rice fill three.
   const rows = slotRows(s);
   for (let i = 0; i < RULES.MAX_ITEMS; i++) {
-    el.appendChild(rows[i] ? packSlot(game, rows[i], { onUse: packUse }) : emptySlot());
+    el.appendChild(rows[i] ? packCell(game, rows[i], i) : emptyCell(game));
   }
+}
+
+// One cell: a picture, a count if it stacks, and the words behind it.
+//
+// The structure is deliberate. The face is a <button> so it is reachable by
+// keyboard and announced as a control; the tooltip is its SIBLING rather than
+// its child, because the Use control lives in the tooltip and a button inside a
+// button is not a thing. The cell reveals on :hover, on :focus-within — which is
+// what carries both the keyboard path and, because the tooltip stays open while
+// Use has focus, the second action — and on an explicit toggle for touch.
+function packCell(game, id, index) {
+  const s = game.state;
+  const def = s.itemsById[id] || {};
+  const n = def.cat === "magic" ? heldCount(s, id) : 1;
+  const name = itemName(game, id);
+  const effect = itemEffect(game, id);
+  const blurb = (game.data.theme.itemBlurbs || {})[id] || "";
+
+  const cell = document.createElement("div");
+  cell.className = "cell";
+
+  const face = document.createElement("button");
+  face.type = "button";
+  face.className = "cellface";
+  // The accessible name carries the item AND the count whether or not the
+  // tooltip is showing. A picture-only cell that only says what it is when
+  // hovered is a cell a screen reader never learns anything from, and the count
+  // used to live in the name text that this design removed.
+  const said = n > 1 ? ui(game, "pack-said-many", { item: name, n }) : name;
+  face.setAttribute("aria-label", effect ? `${said} — ${effect}` : said);
+
+  const art = icon("item", id, "cellicon");
+  if (art) face.appendChild(art);
+
+  if (n > 1) {
+    const badge = document.createElement("span");
+    badge.className = "cellcount";
+    badge.textContent = `×${n}`;
+    // Said in words as well: "×3" is a picture, and the pack has to be playable
+    // without seeing it.
+    badge.setAttribute("aria-hidden", "true");
+    face.appendChild(badge);
+  }
+  cell.appendChild(face);
+
+  const tip = document.createElement("div");
+  tip.className = "celltip";
+  tip.setAttribute("role", "tooltip");
+  const tipName = document.createElement("p");
+  tipName.className = "tipname";
+  tipName.textContent = n > 1 ? `${name} ×${n}` : name;
+  tip.appendChild(tipName);
+  if (effect) {
+    const e = document.createElement("p");
+    e.className = "tipeffect";
+    e.textContent = effect;
+    tip.appendChild(e);
+  }
+  if (blurb) {
+    const b = document.createElement("p");
+    b.className = "tipblurb";
+    b.textContent = blurb;
+    tip.appendChild(b);
+  }
+
+  // What the pack itself can spend: medicine, and 硃砂. Both are used outside a
+  // fight and neither has anything to do with one — the weapons and talismans
+  // are spent by the fight that needs them, in the window that prices them.
+  //
+  // 硃砂 needs a target, so its button opens a picker rather than resolving. It
+  // is greyed with a reason when there is nothing to paint: grinding it over an
+  // empty pack would be a wasted item and a surprise.
+  const isCinnabar = id === "cinnabar";
+  const canUse = isCinnabar ? cinnabarTargets(game).length > 0 : def.cat === "medicine";
+  if ((isCinnabar || def.cat === "medicine") && typeof packUse === "function") {
+    const use = document.createElement("button");
+    use.type = "button";
+    use.className = "slotuse";
+    use.textContent = ui(game, "use");
+    use.disabled = !canUse;
+    use.setAttribute("aria-label", canUse
+      ? ui(game, "use-item", { item: name })
+      : ui(game, "use-blocked", { item: name }));
+    if (!canUse) use.title = ui(game, "use-blocked-title");
+    use.addEventListener("click", (e) => {
+      e.stopPropagation();
+      packUse(id);
+    });
+    tip.appendChild(use);
+  }
+  cell.appendChild(tip);
+
+  // The touch path. A tap has to REVEAL rather than act — the item stays usable
+  // in a second action, which is the Use control inside the tooltip — so the
+  // face toggles the cell open and does nothing else. On a pointer device this
+  // is redundant with :hover and harmless.
+  face.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = cell.classList.contains("cell--open");
+    closeAllCells();
+    if (!open) cell.classList.add("cell--open");
+  });
+  return cell;
+}
+
+function emptyCell(game) {
+  const cell = document.createElement("div");
+  cell.className = "cell cell--empty";
+  const face = document.createElement("span");
+  face.className = "cellface";
+  face.textContent = "";
+  face.setAttribute("aria-label", ui(game, "slot-empty"));
+  cell.appendChild(face);
+  return cell;
+}
+
+function closeAllCells() {
+  for (const c of document.querySelectorAll(".cell--open")) c.classList.remove("cell--open");
+}
+
+// One listener for the whole document rather than one per cell: the panel is
+// rebuilt on every refresh, and a handler registered per cell would be
+// registered again every turn.
+if (typeof document !== "undefined") {
+  document.addEventListener("click", closeAllCells);
 }
 
 // The pack can spend medicine, and spending is a turn-loop action — but the
@@ -710,15 +846,6 @@ export function onPackUse(fn) {
   packUse = fn;
 }
 
-function emptySlot() {
-  const row = document.createElement("div");
-  row.className = "slot slot--empty";
-  const name = document.createElement("span");
-  name.className = "slotname";
-  name.textContent = ui(drawing, "slot-empty");
-  row.appendChild(name);
-  return row;
-}
 
 // One filled slot. Talismans carry a ×N because the stack is the slot; anything
 // else is one unit per row and a count there would be a lie.

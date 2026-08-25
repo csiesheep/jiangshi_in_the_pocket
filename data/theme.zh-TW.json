@@ -372,7 +372,8 @@
     "replace-take": "拿{item}——攻擊力 {n}",
     "replace-take-sub": "{item}（{n}）就永遠留在這裡了",
     "replace-keep": "留著{item}——攻擊力 {n}",
-    "replace-keep-sub": "{item}就永遠留在這裡了"
+    "replace-keep-sub": "{item}就永遠留在這裡了",
+    "pack-said-many": "{item}，{n} 個"
   },
   "landing": {
     "tagline": "夜裡九點。三更時分，他來找你。讓他入土，或是等他來的時候還站著。",

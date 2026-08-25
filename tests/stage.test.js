@@ -659,3 +659,27 @@ test("audio: midnight keeps its silence", () => {
   assert(!/unduck\(\)/.test(beat),
     "midnightBeat restores the ambience — the third watch is supposed to stay silent");
 });
+
+// ---- The pack as 田 (#48) --------------------------------------------------------
+
+test("pack: the grid takes its cell count from the engine, not from a number here", async () => {
+  // The pack has been six and is now four, and the seal-reachability question
+  // could move it again. A grid that disagrees with the engine about how much
+  // you can carry is worse than an ugly grid, and the way that happens is
+  // someone typing the current answer into the view.
+  const src = noComments(await fetch("../js/render.js", NO_STORE).then((r) => r.text()));
+  const loop = src.slice(src.indexOf("function renderBackpack"), src.indexOf("function packCell"));
+  assert(loop.includes("RULES.MAX_ITEMS"), "the grid does not ask the engine for the limit");
+  assert(!/i < 4/.test(loop), "the grid hard-codes four cells");
+});
+
+test("pack: both languages can say a stack out loud", () => {
+  // The cell is a picture now, so the count that used to live in the name text
+  // has to reach a screen reader some other way.
+  for (const t of [themeEn, themeZh]) {
+    const said = (t.ui || {})["pack-said-many"];
+    assert(said, "no string for a stack's accessible name");
+    assert(said.includes("{item}") && said.includes("{n}"),
+      "the stack's accessible name drops the item or the count: " + said);
+  }
+});

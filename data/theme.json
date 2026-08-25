@@ -185,7 +185,8 @@
     "replace-take": "Take {item} — attack {n}",
     "replace-take-sub": "{item} ({n}) stays here for good",
     "replace-keep": "Keep {item} — attack {n}",
-    "replace-keep-sub": "{item} stays here for good"
+    "replace-keep-sub": "{item} stays here for good",
+    "pack-said-many": "{item}, {n} of them"
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",

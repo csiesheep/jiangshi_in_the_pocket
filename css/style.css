@@ -615,7 +615,14 @@ body.app .board-pane > .board { min-height: 0; }
   opacity: .5;
 }
 
-.backpack { display: flex; flex-direction: column; gap: 8px; }
+/* ---- The found-item row ---------------------------------------------------------
+   What packSlot() still draws, and the pack no longer does. These were the
+   backpack's vocabulary until the 田 grid replaced it; the drop dialog and the
+   "you found this" card still show one item as a row with its name and effect
+   beside it, which is right there — a dialog is a place for words.
+
+   Kept rather than deleted with the panel, because deleting them would have left
+   that dialog unstyled and nothing would have said so. */
 .slot {
   display: flex; align-items: flex-start; gap: 9px;
   padding: 8px 10px;
@@ -646,6 +653,115 @@ body.app .board-pane > .board { min-height: 0; }
   font-family: var(--font-body);
   font-size: .68rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- The pack as 田 -------------------------------------------------------------
+   Four cells of pictures. The words arrive when you point at one, and the panel
+   stops being a list of labels — which is what it had become — and goes back to
+   being a thing you glance at.
+
+   The grid is 2x2 by CSS and MAX_ITEMS by count. If the engine's limit moves
+   again the cells follow; auto-fill rather than a fixed template is what makes
+   that true rather than a coincidence.
+
+   House language: no new boxed chrome competing with the board. The cells are
+   the same dashed-when-empty, quiet-when-full vocabulary the hands use. */
+.backpack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+}
+
+.cellface {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--gold);
+  cursor: pointer;
+}
+.cell--empty .cellface {
+  border-style: dashed;
+  background: transparent;
+  cursor: default;
+}
+.cellface:focus-visible {
+  outline: 2px solid var(--way-new);
+  outline-offset: 2px;
+}
+.cellicon { width: 58%; height: 58%; color: var(--gold); }
+
+/* The count. A stack is one cell however deep it is, so the number sits on the
+   picture rather than beside it — and it has to be here at all because the name
+   used to carry it and the name is gone. */
+.cellcount {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--border));
+  border-radius: 999px;
+  background: var(--bg);
+  color: #dfc077;
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+/* The words. Hidden until asked for, and asked for in three ways: the pointer,
+   keyboard focus, and a tap.
+   :focus-within is the load-bearing one — it keeps the panel open while the Use
+   button inside it holds focus, which is what makes the second action reachable
+   without the tooltip closing under it. */
+.celltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  z-index: 30;
+  width: max-content;
+  max-width: min(240px, 66vw);
+  transform: translateX(-50%);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .55);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .12s ease-out;
+  pointer-events: none;
+}
+.cell:hover .celltip,
+.cell:focus-within .celltip,
+.cell--open .celltip {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.tipname { margin: 0; font-size: .84rem; color: var(--text); }
+.tipeffect { margin: 3px 0 0; font-size: .74rem; color: var(--accent); }
+.tipblurb { margin: 4px 0 0; font-size: .72rem; color: var(--muted); line-height: 1.45; }
+.celltip .slotuse { margin-top: 8px; width: 100%; }
+
+/* The last column's tooltip would run off the panel's right edge, and the first
+   column's off the left. Nudge them back inside rather than letting the sidebar
+   scroll sideways. */
+.cell:nth-child(odd) .celltip { left: 0; transform: none; }
+.cell:nth-child(even) .celltip { left: auto; right: 0; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .celltip { transition: none; }
 }
 
 /* Medicine is the only thing the pack spends by itself, so it is the only row
