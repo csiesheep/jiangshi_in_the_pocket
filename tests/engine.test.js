@@ -1399,13 +1399,17 @@ test("breach: a dead-end goal room is legal as three fights in one turn", () => 
 // appointment, and what happens there decides it. These five are the whole set.
 
 // A kit that reaches 12: 七星劍 + 真火符 + banner + 五雷符 → (3+1)×2 + 4.
+// The only kit that wins, and it needs his name as well. 七星劍 3, a 真火符
+// burned in for 4, doubled to 8 by 攝魂幡, plus 血符 5 — thirteen exactly,
+// against a bar of thirteen that only the 神主牌 brings within reach.
 function sealKit(s) {
   E.pickUpItem(s, "sevenstar-sword");
   E.pickUpItem(s, "truefire-talisman");
   E.buffSword(s, "sevenstar-sword");
   E.pickUpItem(s, "soul-banner");
-  E.pickUpItem(s, "fivethunder-talisman");
-  return { banner: true, talisman: "fivethunder-talisman" };
+  E.pickUpItem(s, "blood-talisman");
+  s.tablet = true;
+  return { banner: true, talisman: "blood-talisman" };
 }
 
 test("outcome: WIN_BURIAL — survive the rite holding the tablet", () => {
@@ -1418,14 +1422,28 @@ test("outcome: WIN_BURIAL — survive the rite holding the tablet", () => {
   eq(s.status, "won");
 });
 
-test("outcome: WIN_SEAL — meet him at the threshold", () => {
+test("outcome: WIN_SEAL — meet him at the threshold, carrying his name", () => {
   const s = game({ seed: 1 });
   const use = sealKit(s);
   const r = E.midnight(s, { use });
-  eq(r.attack, 12);
-  eq(r.threshold, 12);
+  eq(r.attack, 13);
+  eq(r.threshold, E.RULES.KING_THRESHOLD_WITH_TABLET);
   eq(r.outcome, "WIN_SEAL");
   eq(s.status, "won");
+});
+
+// The other half of the same rule, and the reason the bar sits above the
+// ceiling: the identical kit without the 神主牌 is not a near miss, it is not a
+// line at all.
+test("outcome: the same kit without the tablet cannot win", () => {
+  const s = game({ seed: 1 });
+  const use = sealKit(s);
+  s.tablet = false;
+  const r = E.midnight(s, { use });
+  eq(r.attack, 13, "the best the game can produce");
+  eq(r.threshold, E.RULES.KING_THRESHOLD);
+  eq(r.outcome, "LOSS_KING");
+  assert(r.attack < r.threshold, "and it is short, by construction rather than by luck");
 });
 
 test("outcome: SURVIVED — running water, and no exchange at all", () => {
@@ -1459,7 +1477,7 @@ test("outcome: LOSS_KING — turn 30 resolves under the threshold", () => {
   const s = game({ seed: 1 });
   const r = E.midnight(s, {});
   eq(r.attack, 0, "bare-handed");
-  eq(r.threshold, 12);
+  eq(r.threshold, E.RULES.KING_THRESHOLD);
   eq(r.outcome, "LOSS_KING");
   eq(s.status, "lost");
 });
@@ -1486,33 +1504,38 @@ test("outcome: the first ending is the ending", () => {
 // ---- The threshold ---------------------------------------------------------------
 // The DoD asks for both sides of it, and this is the tablet's second job: a
 // burial run that fails still leaves you one better off than never going.
-test("midnight: the tablet lowers the threshold from 12 to 11", () => {
+test("midnight: the tablet is what brings the bar within reach at all", () => {
   const without = game({ seed: 1 });
-  eq(E.kingThreshold(without), 12);
+  eq(E.kingThreshold(without), E.RULES.KING_THRESHOLD);
   const with_ = game({ seed: 1 });
   with_.tablet = true;
-  eq(E.kingThreshold(with_), 11);
+  eq(E.kingThreshold(with_), E.RULES.KING_THRESHOLD_WITH_TABLET);
+  eq(E.kingThreshold(without) - E.kingThreshold(with_), 1, "still one, as it always was");
 });
 
-test("midnight: eleven seals him with the tablet and fails without it", () => {
-  // 七星劍 + banner + 血符 → 3×2 + 5 = 11
+// The same pair of runs the old "eleven seals him" test made, moved up to the
+// only numbers that still do it: 七星劍 with a 真火符 burned in, doubled, plus
+// 血符 — thirteen, which is both the game's ceiling and the tablet's bar.
+test("midnight: thirteen seals him with the tablet and fails without it", () => {
   const kit = (s) => {
     E.pickUpItem(s, "sevenstar-sword");
+    E.pickUpItem(s, "truefire-talisman");
+    E.buffSword(s, "sevenstar-sword");
     E.pickUpItem(s, "soul-banner");
     E.pickUpItem(s, "blood-talisman");
     return { banner: true, talisman: "blood-talisman" };
   };
   const bare = game({ seed: 1 });
   const r1 = E.midnight(bare, { use: kit(bare) });
-  eq(r1.attack, 11);
-  eq(r1.outcome, "LOSS_KING", "eleven is not twelve");
+  eq(r1.attack, 13);
+  eq(r1.outcome, "LOSS_KING", "the ceiling is still short of a bar set above it");
 
   const carrying = game({ seed: 1 });
   carrying.tablet = true;
   const r2 = E.midnight(carrying, { use: kit(carrying) });
-  eq(r2.attack, 11);
-  eq(r2.threshold, 11);
-  eq(r2.outcome, "WIN_SEAL", "the same eleven, and now it is enough");
+  eq(r2.attack, 13);
+  eq(r2.threshold, E.RULES.KING_THRESHOLD_WITH_TABLET);
+  eq(r2.outcome, "WIN_SEAL", "the same thirteen, and now it is enough");
 });
 
 test("midnight: every winning line spends the banner", () => {
@@ -1546,7 +1569,7 @@ test("midnight: the loss carries the numbers the verdict card needs", () => {
   E.pickUpItem(s, "coin-sword");
   const r = E.midnight(s, {});
   eq(r.attack, 2, "what you brought");
-  eq(r.threshold, 12, "what was needed");
+  eq(r.threshold, E.RULES.KING_THRESHOLD, "what was needed");
 });
 
 // ---- The rites ---------------------------------------------------------------------

@@ -59,10 +59,24 @@ export const RULES = {
 
   // ---- the King ------------------------------------------------------------
   // What your attack must reach at midnight. Carrying the 神主牌 lowers it by
-  // one, which is the tablet's second job and the reason a burial run that
+  // one — which is the tablet's second job, and the reason a burial run that
   // fails still leaves you better off than one that never went looking.
-  KING_THRESHOLD: 12,
-  KING_THRESHOLD_WITH_TABLET: 11,
+  //
+  // 14 IS ABOVE THE GAME'S CEILING, AND THAT IS THE RULE. The most this game
+  // can produce is 13 — 七星劍 3, one 真火符 burned in, doubled by 攝魂幡, plus
+  // 血符 — so a bar of 14 means the tablet is not an advantage but a
+  // requirement, and 13-with-tablet is the only reachable line. Written as two
+  // thresholds rather than as a `tabletRequired` flag because it IS the same
+  // rule: measured both ways, the numbers were identical.
+  //
+  // 鎮屍 is a hidden ending (§9): never explained, never announced. It measured
+  // 0.4 % when that was ruled, and the equipment/ward/blade landings carried it
+  // to ~26-30 %, which is not hidden by any reading. The user ruled the number
+  // comes back to the name rather than the name to the number. Priced in
+  // tools/lever-pricing.md; this bar plus 攝魂幡 at 2 % lands 1.7 % across both
+  // seed batches with burials and survivals unmoved.
+  KING_THRESHOLD: 14,
+  KING_THRESHOLD_WITH_TABLET: 13,
 };
 
 // House rules, baked in as the defaults. Only the one that still has anything

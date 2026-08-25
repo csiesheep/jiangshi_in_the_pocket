@@ -127,18 +127,31 @@ test("§13: a warded turn is worth ~0.85 / ~1.25 / ~2.3 at Attack 2", () => {
     "and standing there is worth nearly three times as much at eleven as at nine");
 });
 
-test("§13: ~7 searches for 七星劍, ~7 for 攝魂幡", () => {
+// These used to be the same number. They are not any more, and the gap IS the
+// hidden ending: the sword is something a good player expects to find, and the
+// banner is something they mostly will not.
+test("§13: ~7 searches for 七星劍, ~50 for 攝魂幡", () => {
   const p = (table, id) => search[table].find((e) => e.id === id).p;
   eq(p("weapon", "sevenstar-sword"), 15);
-  eq(p("relic", "soul-banner"), 15);
-  eq(Math.round(100 / 15), 7, "one in fifteen, so about seven rummages apiece");
+  eq(Math.round(100 / p("weapon", "sevenstar-sword")), 7, "one in fifteen, about seven rummages");
+  eq(p("relic", "soul-banner"), 2);
+  eq(Math.round(100 / p("relic", "soul-banner")), 50, "one in fifty, and only at 土地廟");
+  // Which is the point: a night has thirty turns, so fifty rummages is not a
+  // budget anyone has. 鎮屍 is meant to be a thing that happens to almost nobody.
+  assert(100 / p("relic", "soul-banner") > E.RULES.TOTAL_TURNS,
+    "the expected hunt is longer than the night itself");
 });
 
-// Enumerated rather than transcribed. The spec lists four kits; this builds
-// every sword × buff × banner × talisman combination the game allows and counts
-// the ones that clear each threshold, so a new talisman or a changed sword
-// moves the count here before anyone notices in play.
-test("§13: 2 kits reach 12, and 4 reach 11", () => {
+// Enumerated rather than transcribed: this builds every sword x buff x banner x
+// talisman combination the game allows and counts the ones that clear each bar,
+// so a new talisman or a changed sword moves the count here before anyone
+// notices in play. Derived from RULES rather than restated, so the day the
+// thresholds move this fails with the real number instead of a stale one.
+//
+// The bar is 14 now, and the game's ceiling is 13. That is not a mistake: it
+// means NO kit wins without the 神主牌 and exactly one wins with it. "Bar 14"
+// and "the tablet is mandatory" are the same rule written two ways.
+test("§13: no kit reaches the bar bare, and exactly one reaches it with the tablet", () => {
   const swords = items.filter((i) => i.cat === "weapon");
   const talismans = items.filter((i) => i.cat === "magic" && i.attack);
   const reached = [];
@@ -156,9 +169,14 @@ test("§13: 2 kits reach 12, and 4 reach 11", () => {
       }
     }
   }
-  eq(reached.filter((a) => a >= 12).length, 2, "at threshold 12");
-  eq(reached.filter((a) => a >= 11).length, 4, "at threshold 11, carrying the tablet");
-  eq(Math.max(...reached), 13, "and 13 is the most the game can produce");
+  const ceiling = Math.max(...reached);
+  eq(ceiling, 13, "13 is the most the game can produce: 七星劍 + 真火符, doubled, + 血符");
+  eq(reached.filter((a) => a >= E.RULES.KING_THRESHOLD).length, 0,
+    `nothing reaches ${E.RULES.KING_THRESHOLD} — without his name there is no line at all`);
+  eq(reached.filter((a) => a >= E.RULES.KING_THRESHOLD_WITH_TABLET).length, 1,
+    `exactly one kit reaches ${E.RULES.KING_THRESHOLD_WITH_TABLET}, and only carrying the tablet`);
+  assert(E.RULES.KING_THRESHOLD > ceiling,
+    "the bare bar is above the ceiling on purpose; that is what makes the tablet compulsory");
 });
 
 test("§13: every winning line spends the banner", () => {

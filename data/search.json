@@ -1,20 +1,78 @@
 {
   "weapon": [
-    {"id":"precept-knife","p":25}, {"id":"peachwood-sword","p":25},
-    {"id":"coin-sword","p":25},    {"id":"sevenstar-sword","p":15},
-    {"id":null,"p":10}
+    {
+      "id": "precept-knife",
+      "p": 25
+    },
+    {
+      "id": "peachwood-sword",
+      "p": 25
+    },
+    {
+      "id": "coin-sword",
+      "p": 25
+    },
+    {
+      "id": "sevenstar-sword",
+      "p": 15
+    },
+    {
+      "id": null,
+      "p": 10
+    }
   ],
   "magic": [
-    {"id":"truefire-talisman","p":30}, {"id":"blood-talisman","p":20},
-    {"id":"cinnabar","p":20},          {"id":"fivethunder-talisman","p":20},
-    {"id":null,"p":10}
+    {
+      "id": "truefire-talisman",
+      "p": 30
+    },
+    {
+      "id": "blood-talisman",
+      "p": 20
+    },
+    {
+      "id": "cinnabar",
+      "p": 20
+    },
+    {
+      "id": "fivethunder-talisman",
+      "p": 20
+    },
+    {
+      "id": null,
+      "p": 10
+    }
   ],
   "medicine": [
-    {"id":"sticky-rice","p":40}, {"id":"black-dog-blood","p":25},
-    {"id":"golden-elixir","p":15}, {"id":null,"p":20}
+    {
+      "id": "sticky-rice",
+      "p": 40
+    },
+    {
+      "id": "black-dog-blood",
+      "p": 25
+    },
+    {
+      "id": "golden-elixir",
+      "p": 15
+    },
+    {
+      "id": null,
+      "p": 20
+    }
   ],
   "relic": [
-    {"id":"sticky-rice","p":40}, {"id":"soul-banner","p":15},
-    {"id":null,"p":45}
+    {
+      "id": "sticky-rice",
+      "p": 40
+    },
+    {
+      "id": "soul-banner",
+      "p": 2
+    },
+    {
+      "id": null,
+      "p": 58
+    }
   ]
 }
