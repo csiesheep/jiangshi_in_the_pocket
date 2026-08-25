@@ -1,5 +1,9 @@
 # Is 鎮屍 still reachable at a four-slot pack? (#47)
 
+> **Written before #47 landed, and left as written.** The reachability answer
+> held — the pack is not what stops a seal. The tripwires quoted below reason
+> against a "< 2 %" target that has since been superseded; neither fired.
+
 Answered before any code, as asked. **Yes — reachable, and without a discard
 order anyone would have to be clever to find.** The reasoning, from the rules as
 they actually stand after the hands (#31), option A (#43) and the sword (#46).

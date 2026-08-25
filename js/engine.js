@@ -83,9 +83,17 @@ export const RULES = {
   // 鎮屍 is a hidden ending (§9): never explained, never announced. It measured
   // 0.4 % when that was ruled, and the equipment/ward/blade landings carried it
   // to ~26-30 %, which is not hidden by any reading. The user ruled the number
-  // comes back to the name rather than the name to the number. Priced in
-  // tools/lever-pricing.md; this bar plus 攝魂幡 at 2 % lands 1.7 % across both
-  // seed batches with burials and survivals unmoved.
+  // comes back to the name rather than the name to the number, and this bar is
+  // half of how. Priced in tools/lever-pricing.md.
+  //
+  // The other half is the shrine, and it has moved since: 攝魂幡 went 15 % -> 2 %
+  // with this bar (seal 1.7 %), then back to 10 % because at 2 % 土地廟 was a
+  // rice tile with a rumour attached and it has had no other identity since the
+  // prayer was removed. 鎮屍 sits at 3.5-4.2 % now, and the "< 2 %" target is
+  // SUPERSEDED — the user chose the shrine over the lower number with the curve
+  // in front of them. §9 is untouched: still never explained, never announced,
+  // simply no longer rare to the point of vanishing. Live numbers live in
+  // tools/bots-report.md, never here.
   KING_THRESHOLD: 14,
   KING_THRESHOLD_WITH_TABLET: 13,
 };

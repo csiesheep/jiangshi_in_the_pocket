@@ -107,32 +107,41 @@ as the case that actually kills runs — hungry with nothing to eat — not ever
 possible regret. A run that dropped a talisman it would have thrown at midnight
 is not counted.
 
-## The live conflict
+## The trade, resolved
 
-**鎮屍 sits at 3.5 % and 4.2 %, above the "< 2 %" ruled for it**, because #52
-raised the shrine's 攝魂幡 from 2 % to 10 %. Both are the user's rulings, and the
-measurement is not going to choose between them.
+There was a real conflict here between two of the same user's rulings — 鎮屍
+"under 2 %" in the morning, 攝魂幡 at 10 % in the afternoon, which the measurement
+put at 3.5–4.2 %. It has been decided, with the curve below in front of them:
+**keep the shrine at 10 % and accept the seal where it lands.** A shrine worth
+walking to beat the lower number.
 
-The conflict is clean: #52 moved the conversion term only. Burial, 活水 and
-camper arrivals are unchanged to the run; attack at the door went 9.08 → 11.11,
-which is three times as many players arriving with a banner and is the whole
-mechanism.
+**So "< 2 %" is superseded.** Anything still stating it — including the per-lever
+history further down this file, and tools/lever-pricing.md, both of which were
+written while it stood — is a record of what was true then, not a target now.
 
-**No free lever is left to have both.** The bar is at its useful ceiling — 14
-makes the 神主牌 compulsory, and 15 would make 鎮屍 impossible rather than hidden.
-Everything else costs survival, which three rulings have already spent. So the
-shrine's odds are the dial:
+§9 is untouched by any of this. 鎮屍 is still never explained and never
+announced; it is simply no longer rare to the point of vanishing.
+
+**What the choice cost**, for the record: the seal went from where option A
+deliberately placed it (1.7 %) to roughly twice that. Nothing else moved — #52
+touches the conversion term only, so burial, 活水 and camper arrivals are
+unchanged to the run. The mechanism is entirely "three times as many players
+arrive holding a banner": attack at the door went 9.08 → 11.11.
+
+**The curve is kept in case it is ever revisited.** The bar cannot help — 14
+already makes the 神主牌 compulsory and 15 would make 鎮屍 impossible rather than
+hidden — so the shrine's odds are the only dial that does not cost survival:
 
 | 攝魂幡 | adept seal |
 |---|---|
 | 2 % | 0.9 % |
 | 3 % | 1.5 % |
-| **4 %** | **2.1 % — crosses** |
+| 4 % | 2.1 % |
 | 5 % | 2.4 % |
-| **10 %** | **3.5 / 4.2 % — shipped** |
+| **10 %** | **3.5 / 4.2 % — chosen** |
 
-Three per cent is the most that buys both, and it is still a shrine three times
-better than the one #52 was filed to fix.
+Three per cent was the most that would have bought both. It was not chosen, and
+the reason is on the record rather than inferable from the number.
 
 ---
 
@@ -140,6 +149,13 @@ better than the one #52 was filed to fix.
 
 What each change cost on its own, kept because "where does it sit" and "what did
 that one do" are different questions.
+
+**Everything below is a snapshot, true when it was taken.** Several of these
+sections reason against a "< 2 %" target for 鎮屍 that has since been superseded
+(see *The trade, resolved*, above), and one of them offers advice — restore the
+seal to 1.7 % — that the user has now declined. They are left as written rather
+than rewritten: a record that gets edited to agree with the present stops being
+a record. The tables at the top of this file are the current numbers.
 
 ## What option A cost
 
