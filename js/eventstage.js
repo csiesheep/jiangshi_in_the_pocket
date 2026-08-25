@@ -128,6 +128,82 @@ export function eventStage(kind, opts = {}) {
   const calm = isCalm();
   const budget = reduced ? REDUCED_MS : calm ? CALM_MS : STAGE_MS;
 
+  return runStage({
+    cls: `evstage--${kind}`,
+    build: (inner, ctx) => scene(inner, ctx),
+    ctx: { ...opts, calm, reduced },
+    budget, calm, reduced,
+    skipHint: opts.skipHint,
+    // A scene that throws still owes the caller the beat it was pacing on.
+    onBuildError: () => wait(BEAT_MS),
+  });
+}
+
+// ---- 殭屍王 ---------------------------------------------------------------------
+// His own set-piece, and the reason it is here rather than in the SCENES table:
+// it is not an event beat. It plays once a night, at the appointment the whole
+// night has been walking toward, and it is exempt from the thirty-times tax the
+// event scenes are capped by — so it gets its own budget and no registry entry.
+//
+// Everything the pack does, inverted. The pack RISES: an approaching rhythm,
+// the question being how fast they reach you. He FALLS. There is no hop, no
+// rush and no lunge — the frame opens on him ALREADY STANDING, and the only
+// movement in the whole scene is one slow step that changes nothing.
+//
+// §9 BINDS HARDER HERE THAN ANYWHERE. This plays immediately before the one
+// comparison the game never explains, so there is no text in this scene at all:
+// no numbers, no hint of a threshold, nothing that grades what you are holding.
+// The safest way to keep a secret in a scene is to give the scene nothing to
+// say, and that is what this does.
+const KING_MS = 2500;
+const KING_CALM_MS = 2100;
+const KING_REDUCED_MS = 1400;
+
+export function kingScene(opts = {}) {
+  // Fast mode keeps what the game did before this scene existed: the sting, and
+  // then straight to the question. Nothing is skipped that carries information,
+  // because this scene never carried any.
+  if (fast) return Promise.resolve();
+  if (typeof document === "undefined" || !document.body) return Promise.resolve();
+
+  const reduced = reducedMotion();
+  const calm = isCalm();
+  const budget = reduced ? KING_REDUCED_MS : calm ? KING_CALM_MS : KING_MS;
+
+  return runStage({
+    cls: "kingscene",
+    build: buildKing,
+    ctx: { calm, reduced },
+    budget, calm, reduced,
+    skipHint: opts.skipHint,
+    onBuildError: () => undefined,
+  });
+}
+
+// He is already there. The only thing that arrives is the room's reaction to
+// him: the frost off his feet, the light leaning away, the shadow reaching out
+// past the frame. Layers, like everything else that paints full screen.
+function buildKing(inner, ctx) {
+  for (const part of ["dark", "bow", "frost", "shadow"]) {
+    const n = document.createElement("span");
+    n.className = `king-${part}`;
+    n.setAttribute("aria-hidden", "true");
+    inner.appendChild(n);
+  }
+  const fig = document.createElement("span");
+  fig.className = "king-fig";
+  fig.setAttribute("aria-hidden", "true");
+  const art = icon("king", "figure", "king-art");
+  if (art) fig.appendChild(art);
+  inner.appendChild(fig);
+}
+
+// ---- The frame ----------------------------------------------------------------
+// One owner for enter, skip, deadline and exit, shared by the event scenes and
+// by the King. Extracted rather than copied: a second copy of the skip handling
+// is a second place for a listener to leak, and the whole reason skipping is
+// safe is a property of this function rather than of any scene.
+function runStage({ cls, build, ctx, budget, calm, reduced, skipHint, onBuildError }) {
   return new Promise((resolve) => {
     // Never stack. A fight can follow a rite in the same turn and each would
     // otherwise leave its own full-screen layer behind — the same rule the
@@ -136,7 +212,7 @@ export function eventStage(kind, opts = {}) {
     if (stale) stale.remove();
 
     const el = document.createElement("div");
-    el.className = `evstage evstage--${kind}`;
+    el.className = `evstage ${cls}`;
     // The log already said what happened, in the live region, before this was
     // called. This layer is the same sentence drawn in paint, so announcing it
     // again would be the screen reader hearing the news twice.
@@ -151,17 +227,17 @@ export function eventStage(kind, opts = {}) {
     // Build before showing, so a scene that throws takes the stage down with it
     // rather than leaving a black rectangle over the board.
     try {
-      scene(inner, { ...opts, calm, reduced });
+      build(inner, ctx);
     } catch {
       el.remove();
-      return resolve(wait(BEAT_MS));
+      return resolve(onBuildError ? onBuildError() : undefined);
     }
 
-    if (hintsLeft > 0 && opts.skipHint) {
+    if (hintsLeft > 0 && skipHint) {
       hintsLeft--;
       const hint = document.createElement("p");
       hint.className = "evstage-hint";
-      hint.textContent = opts.skipHint;
+      hint.textContent = skipHint;
       el.appendChild(hint);
     }
 
@@ -358,6 +434,14 @@ export function stageKinds() {
 // The budget a stage is held to, given the gates in force.
 export function stageBudgetMs({ calm = false, reduced = false } = {}) {
   return reduced ? REDUCED_MS : calm ? CALM_MS : STAGE_MS;
+}
+
+// The King's, which is a different number for a different reason: once a night
+// rather than thirty times, so it is exempt from the tax the event scenes are
+// capped by. Still a deadline rather than a duration — cut off, never extended,
+// because the kit question must not wait on an animation.
+export function kingBudgetMs({ calm = false, reduced = false } = {}) {
+  return reduced ? KING_REDUCED_MS : calm ? KING_CALM_MS : KING_MS;
 }
 
 // What the whole feature costs a night, which is the number the header does the

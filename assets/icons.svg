@@ -830,6 +830,52 @@
        one is shown full-window and needs the detail. Square to square, so it
        still scales cleanly through the standard 24x24 wrapper. -->
 
+  <!-- 殭屍王, and everything about him is the pack inverted. Where scare-zombie
+       is a face filling the frame, this is a WHOLE FIGURE seen at a distance:
+       the pack is how fast they reach you, and he is the fact that he is
+       already there.
+
+       Tall box on purpose. The proportions are the point — a 清 court official
+       in full robes, standing, hands folded inside the sleeves, nothing bared
+       and nothing reaching. He does not need to reach.
+
+       The face is its own group behind --king-face, because calm mode's promise
+       is that he never turns it to the screen. Robes and shadow are the whole
+       of him at that setting, which is if anything worse.
+
+       Built like scare-zombie: layered fill-opacity of currentColor, no palette
+       of its own, so he takes the hour's cold the way everything else does. -->
+  <symbol id="king-figure" viewBox="0 0 120 200">
+    <!-- the robe, one bell from shoulder to floor -->
+    <path d="M60 46c14 0 22 7 25 18l9 44c3 15 5 30 5 44H21c0-14 2-29 5-44l9-44c3-11 11-18 25-18z"
+          fill="currentColor" fill-opacity=".16" stroke-width="2.4"/>
+    <!-- the hem, where it stops being cloth and starts being floor -->
+    <path d="M21 152h78" stroke-width="2" stroke-opacity=".5"/>
+    <!-- sleeves, folded across; the hands never come out -->
+    <path d="M38 92c8 5 18 7 22 7s14-2 22-7" stroke-width="2.4"/>
+    <path d="M35 78l-6 26M85 78l6 26" stroke-width="2" stroke-opacity=".6"/>
+    <!-- the rank badge, a square where a 補子 sits. Blank on purpose: naming
+         his rank would be a number about him, and this scene has none. -->
+    <path d="M48 66h24v22H48z" stroke-width="1.8" stroke-opacity=".55"/>
+    <!-- collar and neck -->
+    <path d="M50 46l10 10 10-10" stroke-width="2.2"/>
+    <!-- head -->
+    <path d="M60 16c7 0 12 6 12 14s-5 16-12 16-12-8-12-16 5-14 12-14z"
+          fill="currentColor" fill-opacity=".13" stroke-width="2.2"/>
+    <!-- the hat: 清 official's, upturned brim and a finial -->
+    <path d="M40 20c0-7 9-12 20-12s20 5 20 12" stroke-width="2.6"/>
+    <path d="M36 20h48" stroke-width="3"/>
+    <path d="M60 8V2" stroke-width="2.4"/>
+    <circle cx="60" cy="2" r="2.6" fill="currentColor" stroke="none"/>
+
+    <!-- The face. Calm never lets this arrive. -->
+    <g opacity="var(--king-face, 1)">
+      <path d="M53 28a3 2 0 1 0 6 0 3 2 0 1 0-6 0Z" fill="currentColor" fill-opacity=".7" stroke="none"/>
+      <path d="M61 28a3 2 0 1 0 6 0 3 2 0 1 0-6 0Z" fill="currentColor" fill-opacity=".7" stroke="none"/>
+      <path d="M55 38h10" stroke-width="1.8" stroke-opacity=".75"/>
+    </g>
+  </symbol>
+
   <symbol id="scare-zombie" viewBox="0 0 120 120">
     <!-- Built for poster size, not for the 24x24 grid. Depth comes from layered
          fill-opacity of currentColor rather than its own palette, so the scare

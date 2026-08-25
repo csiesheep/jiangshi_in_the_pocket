@@ -2382,6 +2382,107 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   }
 }
 
+/* ---- 殭屍王 ---------------------------------------------------------------------
+   The pack scene inverted, in every axis it has. Those four tiers escalate by
+   arriving harder and faster; he does not arrive at all. The frame opens on him
+   already standing, and the only movement in the whole scene is one slow step
+   that changes nothing about the outcome.
+
+   There is no text here, and that is a §9 decision rather than a stylistic one:
+   this plays immediately before the one comparison the game never explains, so
+   the scene is given nothing to say. No numbers, no threshold, nothing that
+   grades what you are holding.
+
+   No strobe, same as everywhere: every animation below runs once, monotonically,
+   and reduced motion holds the whole composition instead. */
+.kingscene { background: rgba(3, 2, 3, .94); }
+
+.king-dark, .king-bow, .king-frost, .king-shadow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.king-dark {
+  background: radial-gradient(70% 55% at 50% 46%, transparent 30%, rgba(2, 1, 2, .8) 100%);
+  animation: king-fade 1s ease-out both;
+}
+
+/* The candles bow away. The warm light starts near him and leans outward over
+   the whole scene — the room declining to be near him, which is the one piece of
+   set-dressing that says what he is without saying anything. */
+.king-bow {
+  background:
+    radial-gradient(46% 34% at 22% 62%, color-mix(in srgb, var(--gold) 15%, transparent), transparent 70%),
+    radial-gradient(46% 34% at 78% 62%, color-mix(in srgb, var(--gold) 15%, transparent), transparent 70%);
+  animation: king-bow 2.2s ease-out both;
+}
+
+/* Frost off his feet, outward along the floor. */
+.king-frost {
+  background: radial-gradient(58% 26% at 50% 88%,
+              rgba(150, 200, 214, .22), transparent 72%);
+  animation: king-frost 2s ease-out both;
+}
+
+/* The shadow reaches toward you and off the bottom of the frame. It is the only
+   part of him that comes any closer. */
+.king-shadow {
+  background: linear-gradient(to bottom, transparent 62%, rgba(0, 0, 0, .85) 100%);
+  animation: king-shadow 2.2s ease-out both;
+}
+
+.king-fig {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  /* One slow step. Small enough that it reads as weight rather than motion —
+     a lunge here would make him the pack, which is the one thing he is not. */
+  animation: king-step 2.3s cubic-bezier(.33,.02,.4,1) both;
+}
+.king-art {
+  display: block;
+  width: min(30vmin, 260px);
+  height: min(48vmin, 420px);
+  color: var(--text);
+  opacity: .92;
+  filter: drop-shadow(0 0 30px rgba(0, 0, 0, .95));
+}
+
+/* Calm keeps its promise: he never turns his face to the screen. Robes, hat and
+   shadow are the whole of him — which is, if anything, worse. */
+.evstage--calm .king-art { --king-face: 0; opacity: .8; }
+.evstage--calm .king-bow, .evstage--calm .king-frost { opacity: .7; }
+
+/* Reduced motion: one held composition — the doorway, him mid-frame, the light
+   already bowed away. Arrived at rather than travelled to. */
+.evstage--still .king-dark,
+.evstage--still .king-bow,
+.evstage--still .king-frost,
+.evstage--still .king-shadow,
+.evstage--still .king-fig { animation: none; opacity: 1; }
+.evstage--still .king-fig { transform: translate(-50%, -50%) scale(1.03); }
+
+@keyframes king-fade   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes king-bow    { from { opacity: 0; transform: scale(.86); }
+                         to   { opacity: 1; transform: scale(1.06); } }
+@keyframes king-frost  { from { opacity: 0; transform: scaleX(.5); }
+                         to   { opacity: 1; transform: scaleX(1); } }
+@keyframes king-shadow { from { opacity: 0; } to { opacity: 1; } }
+@keyframes king-step {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to   { transform: translate(-50%, calc(-50% + 1.4%)) scale(1.03); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .king-dark, .king-bow, .king-frost, .king-shadow, .king-fig {
+    animation: none;
+    opacity: 1;
+  }
+  .king-fig { transform: translate(-50%, -50%) scale(1.03); }
+}
+
 /* ---- Article pages (rulebook, credits) ---- */
 .article { max-width: 760px; }
 .article h1 { font-size: 2rem; margin-bottom: 4px; }

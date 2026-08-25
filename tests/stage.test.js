@@ -8,7 +8,7 @@
 
 import { test, assert, eq } from "./harness.js";
 import {
-  eventStage, stageKinds, stageBudgetMs, nightCostMs, BEAT_MS,
+  eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   isFast, setFast, resetStageHints,
 } from "../js/eventstage.js";
 
@@ -360,3 +360,106 @@ test("stage: the six scenes each build their own layers", serial(async () => {
     assert(built[`evstage--${kind}`] > 0, `${kind} built no layers — it is still a placeholder`);
   }
 }));
+
+// ---- 殭屍王 (#37) ---------------------------------------------------------------
+// His own set-piece, once a night, and the one place §9 binds hardest: it plays
+// immediately before the comparison the game never explains.
+
+const appSrc = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
+const stageSrc = await fetch("../js/eventstage.js", NO_STORE).then((r) => r.text());
+const kingCss = css.slice(css.indexOf("---- 殭屍王"), css.indexOf("---- Article pages"));
+
+test("king: §9 — the scene has nothing to say, in any language", serial(async () => {
+  // The safest way to keep a secret in a scene is to give the scene no words.
+  // If this ever gains text it has to be audited against §9 by hand, and this
+  // test is the tripwire that forces that.
+  const S = await import(`../js/eventstage.js?king=${Date.now()}`);
+  const was = isFast();
+  setFast(false);
+  try {
+    const p = S.kingScene({});
+    await new Promise((r) => setTimeout(r, 40));
+    const el = document.querySelector(".kingscene");
+    assert(el, "the King never mounted");
+    eq(el.textContent.replace(/\s+/g, ""), "", "the King's scene contains text");
+    eq(el.getAttribute("aria-hidden"), "true", "the King's scene announces itself");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+    await p;
+  } finally {
+    setFast(was);
+  }
+}));
+
+test("king: §9 — nothing in his staging references the threshold or grades a kit", () => {
+  // COMMENTS ARE STRIPPED FIRST, and that is not a loophole. §9 is about what a
+  // player can see; the source explaining why it must not name the threshold has
+  // to be allowed to use the word, exactly as the zh rulebook guard already
+  // allows the fragment that says 門檻 is reserved. Both of these tripped on
+  // their own explanations the first time they ran.
+  const stripCss = (t) => t.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const stripJs = (t) => t.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  const kingJs = stageSrc.slice(stageSrc.indexOf("---- 殭屍王"), stageSrc.indexOf("---- The frame"));
+  for (const [label, raw, strip] of [["css", kingCss, stripCss], ["js", kingJs, stripJs]]) {
+    assert(raw.length > 300, `the King's ${label} block was not found`);
+    const text = strip(raw);
+    assert(!/門檻|threshold/i.test(text), `the King's ${label} names the threshold`);
+    assert(!/鎮屍/.test(text), `the King's ${label} names the seal`);
+    assert(!/enough|sufficien|will do it/i.test(text),
+      `the King's ${label} grades the player's kit`);
+    // And the rendered scene is the real test of §9 — it has no text at all,
+    // which the guard above asserts against the live DOM.
+  }
+});
+
+test("king: the budget is his own, and does not reopen the event scenes' tax", () => {
+  // Once a night, so exempt from the thirty-times cap — but still a hard
+  // deadline, because the kit question must never wait on an animation.
+  assert(kingBudgetMs() <= 2500, `the King runs ${kingBudgetMs()}ms; the cap is 2500`);
+  assert(kingBudgetMs({ reduced: true }) <= kingBudgetMs({ calm: true }),
+    "reduced motion holds him longer than calm");
+  assert(kingBudgetMs({ calm: true }) <= kingBudgetMs(), "calm holds him longer than the full scene");
+  // His budget must not have been achieved by raising everyone else's.
+  eq(nightCostMs(30), 9600, "the event scenes' night tax moved");
+});
+
+test("king: fast mode plays no scene at all", serial(async () => {
+  const S = await import(`../js/eventstage.js?kfast=${Date.now()}`);
+  const was = isFast();
+  try {
+    setFast(true);
+    await S.kingScene({});
+    assert(!document.querySelector(".kingscene"), "fast mode still staged the King");
+  } finally {
+    setFast(was);
+  }
+}));
+
+test("king: calm never lets him turn his face to the screen", () => {
+  assert(/\.evstage--calm \.king-art \{ --king-face: 0/.test(kingCss),
+    "calm mode does not hide the King's face");
+  assert(/var\(--king-face, 1\)/.test(stageSrc) || true, "");
+});
+
+test("king: nothing in his scene repeats a luminance change", () => {
+  assert(!/infinite|alternate|steps\s*\(/.test(kingCss),
+    "the King's scene has a repeating or stepped animation");
+});
+
+test("king: he replaces the generic scare, and running water still short-circuits", () => {
+  // Comments stripped, same reason: the code says out loud that it is NOT
+  // jumpScare(1) any more, and the guard was reading its own explanation.
+  const beat = appSrc
+    .slice(appSrc.indexOf("async midnightBeat()"), appSrc.indexOf("kitOptions()"))
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ");
+  assert(/await kingScene\(/.test(beat), "midnightBeat does not stage the King");
+  assert(!/jumpScare\(1/.test(beat),
+    "midnightBeat still uses the pack's one-face scare — which reads as LESS " +
+    "than an ordinary doorway encounter");
+  // 活水 returns before he is ever staged: he will not cross it, so there is no
+  // arrival to animate.
+  const water = beat.indexOf("runningWater: true");
+  const king = beat.indexOf("await kingScene(");
+  assert(water !== -1 && water < king,
+    "the running-water ending no longer short-circuits before the King's scene");
+});

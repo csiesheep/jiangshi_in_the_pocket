@@ -20,11 +20,11 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
-import { eventStage, isFast, setFast, resetStageHints, BEAT_MS as STAGE_BEAT_MS }
-  from "./eventstage.js";
+import { eventStage, kingScene, isFast, setFast, resetStageHints,
+         BEAT_MS as STAGE_BEAT_MS } from "./eventstage.js";
 import { isMuted, setMuted, isCalm, setCalm, relicFound, seamCross, verdictSting,
          startAmbience, stopAmbience, stopScore, itemPickup, tollBell,
-         watchDrum, paperFlutter, kingArrives, combatHit } from "./audio.js";
+         watchDrum, paperFlutter, kingArrives, combatHit, duckForScare } from "./audio.js";
 import {
   renderHud,
   renderBoard,
@@ -1145,8 +1145,23 @@ class Game {
 
     // Not the pack's sting. That one rises because the question is how fast
     // they reach you; this one falls, because there is no question.
+    //
+    // The room goes quiet and STAYS quiet. duckForScare takes the bed and the
+    // murmur away and nothing here puts them back — the silence is the sound
+    // design, and it holds through the strike to the verdict. Every other
+    // set-piece unducks when its fight ends; this one has no fight.
     kingArrives();
-    await jumpScare(1, false, {});
+    duckForScare();
+
+    // His own scene, not jumpScare(1). One face from the pack's art read as
+    // LESS than an ordinary doorway encounter, which is exactly backwards for
+    // the one arrival the whole night walks toward.
+    //
+    // Skippable like any stage, and safe to skip for the usual reason turned up
+    // as far as it goes: there is no text in it at all. §9 binds hardest here —
+    // the kit question is the next thing that happens, and nothing about this
+    // scene may hint at what the kit is worth.
+    await kingScene({ skipHint: this.ui("stage-skip") });
     if (this.state.status !== "playing") return this.gameOver();
 
     const use = await this.askKit();
