@@ -645,146 +645,255 @@
 
   <!-- 戒刀 Precept Knife: a monk's ring-handled blade, the only curved one -->
   <symbol id="item-precept-knife" viewBox="0 0 24 24">
-  <path d="M15.6 3.6c1.9 2.4 2.4 5 1.4 7.8l-1.2 3.2-4.6-1.7 1.3-3.4c1-2.6 2-4.6 3.1-5.9z" fill="#767e87"/>
-  <path d="M15.6 3.6c1.9 2.4 2.4 5 1.4 7.8l-1.2 3.2-1.6-.6 1.4-10.4z" fill="#c2cad2"/>
-  <path d="M10.6 12.6l5.4 2-.7 1.9-5.4-2z" fill="#33383f"/>
-  <path d="M9.4 15.4l3.6 1.3-1.5 4.1-3.6-1.3z" fill="#5a4a36"/>
-  <circle cx="7" cy="21.4" r="1.9" fill="none" stroke="#8a929a" stroke-width="1.5"/>
+  <defs>
+    <linearGradient id="pkB" x1=".1" y1="0" x2=".9" y2=".4">
+      <stop offset="0" stop-color="#dfe6ec"/><stop offset=".38" stop-color="#8b939c"/>
+      <stop offset="1" stop-color="#3b4148"/>
+    </linearGradient>
+    <linearGradient id="pkH" x1="0" y1="0" x2="1" y2=".3">
+      <stop offset="0" stop-color="#7a6144"/><stop offset="1" stop-color="#3a2e20"/>
+    </linearGradient>
+    <linearGradient id="pkR" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b9c2ca"/><stop offset="1" stop-color="#4c535a"/>
+    </linearGradient>
+  </defs>
+  <path d="M15.6 3.6c1.9 2.4 2.4 5 1.4 7.8l-1.2 3.2-4.6-1.7 1.3-3.4c1-2.6 2-4.6 3.1-5.9z" fill="url(#pkB)"/>
+  <path d="M15.6 3.6c1.4 1.8 2.1 3.7 2 5.7l-3.4-1.2c.4-1.7.9-3.2 1.4-4.5z" fill="#eef3f7" opacity=".55"/>
+  <path d="M10.6 12.6l5.4 2-.7 1.9-5.4-2z" fill="#2a2e34"/>
+  <path d="M10.6 12.6l5.4 2-.2.6-5.4-2z" fill="#767d85"/>
+  <path d="M9.4 15.4l3.6 1.3-1.5 4.1-3.6-1.3z" fill="url(#pkH)"/>
+  <path d="M7 19.5a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zm0 1.2a.7.7 0 1 1 0 1.4.7.7 0 0 1 0-1.4z" fill="url(#pkR)"/>
 </symbol>
 
   <!-- 桃木劍 Peachwood Sword: straight, with a peach for a pommel -->
   <symbol id="item-peachwood-sword" viewBox="0 0 24 24">
-  <path d="M7.4 2.4h9.2v11.2H7.4z" fill="#6b543c"/>
-  <path d="M7.4 2.4h3v11.2h-3z" fill="#96795a"/>
-  <path d="M7.4 2.4h9.2v1.6H7.4z" fill="#4a3a29"/>
-  <path d="M3.2 13.6h17.6v3.1H3.2z" fill="#54412e"/>
-  <path d="M3.2 13.6h4.8v3.1H3.2z" fill="#7d6549"/>
-  <path d="M10.4 16.7h3.2v5.1h-3.2z" fill="#6b543c"/>
-  <path d="M9.4 21.8h5.2v1.5H9.4z" fill="#4a3a29"/>
+  <defs>
+    <linearGradient id="pwB" x1="0" y1="0" x2="1" y2=".15">
+      <stop offset="0" stop-color="#c09363"/><stop offset=".42" stop-color="#7a5a37"/>
+      <stop offset="1" stop-color="#33230f"/>
+    </linearGradient>
+    <linearGradient id="pwG" x1="0" y1="0" x2="1" y2=".2">
+      <stop offset="0" stop-color="#8a6d4f"/><stop offset="1" stop-color="#2c2317"/>
+    </linearGradient>
+  </defs>
+  <path d="M7.9 1.4h8.2v13.2H7.9z" fill="url(#pwB)"/>
+  <path d="M9.5 1.4h.8v13.2h-.8zM12.5 1.4h.55v13.2h-.55zM14.4 1.4h.45v13.2h-.45z" fill="#3d3021" opacity=".35"/>
+  <path d="M7.9 1.4h8.2v1.1H7.9z" fill="#241c13" opacity=".8"/>
+  <path d="M3.6 14.6h16.8v2.6H3.6z" fill="url(#pwG)"/>
+  <path d="M3.6 14.6h16.8v.6H3.6z" fill="#b8905f" opacity=".55"/>
+  <path d="M10.5 17.2h3v4.6h-3z" fill="url(#pwB)"/>
+  <path d="M9.4 21.8h5.2v1.5H9.4z" fill="#2c2317"/>
 </symbol>
 
   <!-- 銅錢劍 Coin Sword: coins on a cord. The one made of circles. -->
   <symbol id="item-coin-sword" viewBox="0 0 24 24">
-  <g fill="#55684f">
+  <defs>
+    <radialGradient id="csC" cx="34%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#a9d6c0"/><stop offset=".46" stop-color="#4f8474"/>
+      <stop offset="1" stop-color="#16332c"/>
+    </radialGradient>
+  </defs>
+  <g fill="url(#csC)">
     <circle cx="12" cy="4" r="3.2"/><circle cx="12" cy="9.3" r="3.2"/>
     <circle cx="12" cy="14.6" r="3.2"/><circle cx="12" cy="19.9" r="3.2"/>
   </g>
-  <g fill="#83a077">
-    <path d="M12 .8a3.2 3.2 0 0 0-3.2 3.2h1.6A1.6 1.6 0 0 1 12 2.4z"/>
-    <path d="M12 6.1a3.2 3.2 0 0 0-3.2 3.2h1.6A1.6 1.6 0 0 1 12 7.7z"/>
-    <path d="M12 11.4a3.2 3.2 0 0 0-3.2 3.2h1.6a1.6 1.6 0 0 1 1.6-1.6z"/>
-    <path d="M12 16.7a3.2 3.2 0 0 0-3.2 3.2h1.6a1.6 1.6 0 0 1 1.6-1.6z"/>
-  </g>
-  <g fill="#1e2419">
+  <g fill="#0d201c" opacity=".92">
     <path d="M10.9 2.9h2.2v2.2h-2.2zM10.9 8.2h2.2v2.2h-2.2zM10.9 13.5h2.2v2.2h-2.2zM10.9 18.8h2.2v2.2h-2.2z"/>
+  </g>
+  <g fill="#d6f0e2" opacity=".5">
+    <path d="M10 1.6a3.2 3.2 0 0 0-1.1 1.3l1 .5a2 2 0 0 1 .7-.9z"/>
+    <path d="M10 6.9a3.2 3.2 0 0 0-1.1 1.3l1 .5a2 2 0 0 1 .7-.9z"/>
+    <path d="M10 12.2a3.2 3.2 0 0 0-1.1 1.3l1 .5a2 2 0 0 1 .7-.9z"/>
+    <path d="M10 17.5a3.2 3.2 0 0 0-1.1 1.3l1 .5a2 2 0 0 1 .7-.9z"/>
   </g>
 </symbol>
 
   <!-- 七星劍 Seven-Star Sword: the Big Dipper down the blade. Seven really is
        seven — the dots are filled so they survive being 0.5px across. -->
   <symbol id="item-sevenstar-sword" viewBox="0 0 24 24">
-  <path d="M12 .8l1.7 2.4-.5 12.4h-2.4l-.5-12.4z" fill="#79828c"/>
-  <path d="M12 .8l1.7 2.4-.5 12.4h-1.2z" fill="#d3dae1"/>
-  <g fill="#f2f6fa">
-    <circle cx="12" cy="4.2" r=".55"/><circle cx="12" cy="5.8" r=".55"/>
-    <circle cx="12" cy="7.4" r=".55"/><circle cx="12" cy="9" r=".55"/>
-    <circle cx="12" cy="10.6" r=".55"/><circle cx="12" cy="12.2" r=".55"/>
-    <circle cx="12" cy="13.8" r=".55"/>
+  <defs>
+    <linearGradient id="ssB" x1=".05" y1="0" x2=".95" y2=".2">
+      <stop offset="0" stop-color="#f0f5fa"/><stop offset=".34" stop-color="#93a0ab"/>
+      <stop offset=".72" stop-color="#4d565f"/><stop offset="1" stop-color="#7f8b95"/>
+    </linearGradient>
+    <linearGradient id="ssG" x1="0" y1="0" x2="1" y2=".4">
+      <stop offset="0" stop-color="#d5dde5"/><stop offset="1" stop-color="#5a636c"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 .8l1.7 2.4-.5 12.4h-2.4l-.5-12.4z" fill="url(#ssB)"/>
+  <path d="M12 .8l.6.8-.3 14h-.6l-.3-14z" fill="#0f1418" opacity=".35"/>
+  <g fill="#f8fcff" opacity=".9">
+    <circle cx="12" cy="4.2" r=".5"/><circle cx="12" cy="5.8" r=".5"/>
+    <circle cx="12" cy="7.4" r=".5"/><circle cx="12" cy="9" r=".5"/>
+    <circle cx="12" cy="10.6" r=".5"/><circle cx="12" cy="12.2" r=".5"/>
+    <circle cx="12" cy="13.8" r=".5"/>
   </g>
-  <path d="M3.4 15.6h17.2v2.1H3.4z" fill="#98a1aa"/>
-  <path d="M3.4 15.6h4.6v2.1H3.4z" fill="#d3dae1"/>
-  <path d="M11.1 17.7h1.8v4.2h-1.8z" fill="#3f3a32"/>
-  <circle cx="12" cy="22.4" r="1.3" fill="#98a1aa"/>
+  <path d="M3.4 15.6h17.2v2.1H3.4z" fill="url(#ssG)"/>
+  <path d="M3.4 15.6h17.2v.6H3.4z" fill="#eef4f9" opacity=".55"/>
+  <path d="M11.1 17.7h1.8v4.2h-1.8z" fill="#332e28"/>
+  <circle cx="12" cy="22.4" r="1.3" fill="url(#ssG)"/>
 </symbol>
 
   <!-- 真火符 True Fire Talisman: the strip, with a flame drawn open -->
   <symbol id="item-truefire-talisman" viewBox="0 0 24 24">
-  <path d="M8.2 2.4h7.6l-.4 19.2H8.6z" fill="#bcae90"/>
-  <path d="M8.2 2.4h2l-.3 19.2H8.6z" fill="#d8cdb2"/>
-  <g stroke="#8e1b16" stroke-width="1.15" stroke-linecap="round" fill="none">
-    <path d="M12 5.2v4.4M10.4 6.6h3.2M10.8 11.4h2.4M11 14h2M11.2 16.6h1.6"/>
-  </g>
-  <path d="M15.8 2.4l-.1 3.4-2.6-3.4z" fill="#3a2f22"/>
-  <path d="M8.6 21.6l.7-1.8 1 1.8z" fill="#3a2f22"/>
+  <defs>
+    <linearGradient id="tfP" x1="0" y1="0" x2="1" y2=".1">
+      <stop offset="0" stop-color="#e3d8ba"/><stop offset=".5" stop-color="#b9ac8e"/>
+      <stop offset="1" stop-color="#6d654f"/>
+    </linearGradient>
+  </defs>
+  <path d="M8.2 2.4h7.6l-.4 19.2H8.6z" fill="url(#tfP)"/>
+  <path d="M10.4 2.4h.35l-.3 19.2h-.35zM13.2 2.4h.3l-.3 19.2h-.3z" fill="#8b7f63" opacity=".45"/>
+  <path d="M12 5.2v4.4M10.4 6.6h3.2M10.8 11.4h2.4M11 14h2M11.2 16.6h1.6" stroke="#8e1b16" stroke-width="1" stroke-linecap="round" fill="none" opacity=".92"/>
+  <path d="M15.8 2.4l-.1 3.4-2.6-3.4z" fill="#2e2519"/>
+  <path d="M14.6 2.4l1.2 1.6v-1.6z" fill="#6b5a3c" opacity=".7"/>
+  <path d="M8.6 21.6l.7-1.8 1 1.8z" fill="#2e2519"/>
 </symbol>
 
   <!-- 五雷符 Five Thunder Talisman: the same strip, struck -->
   <symbol id="item-fivethunder-talisman" viewBox="0 0 24 24">
-  <path d="M8.2 2.4h7.6l-.4 19.2H8.6z" fill="#bcae90"/>
-  <path d="M8.2 2.4h2l-.3 19.2H8.6z" fill="#d8cdb2"/>
-  <path d="M13.4 4.6l-3.3 7h2.4l-1.6 7 4.3-8.2h-2.5z" fill="#8e1b16"/>
-  <path d="M9.4 19.8h5.2" stroke="#8e1b16" stroke-width="1.1" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="ftP" x1="0" y1="0" x2="1" y2=".1">
+      <stop offset="0" stop-color="#e3d8ba"/><stop offset=".5" stop-color="#b9ac8e"/>
+      <stop offset="1" stop-color="#6d654f"/>
+    </linearGradient>
+    <linearGradient id="ftB" x1="0" y1="0" x2=".6" y2="1">
+      <stop offset="0" stop-color="#a8302a"/><stop offset="1" stop-color="#7a1611"/>
+    </linearGradient>
+  </defs>
+  <path d="M8.2 2.4h7.6l-.4 19.2H8.6z" fill="url(#ftP)"/>
+  <path d="M10.4 2.4h.35l-.3 19.2h-.35zM13.2 2.4h.3l-.3 19.2h-.3z" fill="#8b7f63" opacity=".45"/>
+  <path d="M13.4 4.6l-3.3 7h2.4l-1.6 7 4.3-8.2h-2.5z" fill="url(#ftB)"/>
+  <path d="M9.4 19.8h5.2" stroke="#8e1b16" stroke-width=".95" stroke-linecap="round" opacity=".85"/>
 </symbol>
 
   <!-- 血符 Blood Talisman: the same strip again, and the only mark that is
        solid — written in something that does not stay an outline -->
   <symbol id="item-blood-talisman" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="btP" x1="0" y1="0" x2="1" y2=".1">
+      <stop offset="0" stop-color="#d9cdad"/><stop offset=".5" stop-color="#aea082"/>
+      <stop offset="1" stop-color="#645c47"/>
+    </linearGradient>
+    <radialGradient id="btS" cx="38%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#b23a2c"/><stop offset=".55" stop-color="#7c1712"/>
+      <stop offset="1" stop-color="#420a08"/>
+    </radialGradient>
+  </defs>
   <path d="M8.2 2.4h7.6l-.4 19.2H8.6z" fill="#b3a487"/>
-  <path d="M8.2 2.4h2l-.3 19.2H8.6z" fill="#cfc3a6"/>
-  <path d="M12 5.4c2.1 2.4 3.1 4.4 3.1 6.1 0 1.9-1.4 3.1-3.1 3.1s-3.1-1.2-3.1-3.1c0-1.7 1-3.7 3.1-6.1z" fill="#7c1712"/>
-  <path d="M12 5.4c-2.1 2.4-3.1 4.4-3.1 6.1 0 1 .4 1.8 1 2.3-.2-.6-.3-1.2-.3-1.9 0-1.6.8-3.5 2.4-6.5z" fill="#a8342a"/>
-  <path d="M10.4 17.6h3.2M10.8 19.8h2.4" stroke="#7c1712" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M8.2 2.4h2.1l-.3 19.2H8.6z" fill="#cfc3a6"/>
+  <path d="M12 5.4c2.1 2.4 3.1 4.4 3.1 6.1 0 1.9-1.4 3.1-3.1 3.1s-3.1-1.2-3.1-3.1c0-1.7 1-3.7 3.1-6.1z" fill="url(#btS)"/>
+  <path d="M10.9 7.6c-.9 1.5-1.4 2.7-1.4 3.6 0 .6.1 1.1.4 1.5-.6-.6-.9-1.3-.9-2.1 0-.9.6-2 1.9-3z" fill="#c4523f" opacity=".7"/>
+  <path d="M10.4 17.6h3.2M10.8 19.8h2.4" stroke="#6d1410" stroke-width=".95" stroke-linecap="round" opacity=".85"/>
 </symbol>
 
   <!-- 硃砂 Cinnabar: a wide, low pot of ground mineral -->
   <symbol id="item-cinnabar" viewBox="0 0 24 24">
-  <path d="M4.4 13.2h15.2c0 4-3.4 6.6-7.6 6.6s-7.6-2.6-7.6-6.6z" fill="#4c4640"/>
-  <path d="M4.4 13.2h4c0 3.3 1.6 5.6 4 6.4-3.9-.2-8-2.7-8-6.4z" fill="#6b6459"/>
-  <path d="M6.6 13.2c.6-3 2.7-5 5.4-5s4.8 2 5.4 5z" fill="#8e1b16"/>
-  <path d="M8.4 13.2c.4-2 1.6-3.4 3.1-3.8-1 1-1.7 2.3-1.9 3.8z" fill="#c04a3a"/>
-  <circle cx="14.6" cy="10.6" r=".7" fill="#c04a3a"/>
+  <defs>
+    <radialGradient id="cbP" cx="36%" cy="24%" r="76%">
+      <stop offset="0" stop-color="#d4553f"/><stop offset=".45" stop-color="#9a231b"/>
+      <stop offset="1" stop-color="#4d0d0a"/>
+    </radialGradient>
+    <linearGradient id="cbD" x1="0" y1="0" x2=".4" y2="1">
+      <stop offset="0" stop-color="#7b7568"/><stop offset="1" stop-color="#33302a"/>
+    </linearGradient>
+  </defs>
+  <path d="M4.4 13.2h15.2c0 4-3.4 6.6-7.6 6.6s-7.6-2.6-7.6-6.6z" fill="url(#cbD)"/>
+  <path d="M4.4 13.2h15.2c0 .9-.2 1.7-.5 2.4H4.9c-.3-.7-.5-1.5-.5-2.4z" fill="#241f19" opacity=".45"/>
+  <path d="M6.6 13.2c.6-3 2.7-5 5.4-5s4.8 2 5.4 5z" fill="url(#cbP)"/>
+  <path d="M9 12c.5-1.6 1.5-2.7 2.8-3.1-.9.9-1.6 1.9-2 3.1z" fill="#e07a5f" opacity=".55"/>
 </symbol>
 
   <!-- 攝魂幡 Soul-Snatching Banner: a pennant on a pole, swallow-tailed -->
   <symbol id="item-soul-banner" viewBox="0 0 24 24">
-  <path d="M6.4 1.8h1.5v20.4H6.4z" fill="#5c5348"/>
-  <path d="M6.4 1.8h.6v20.4h-.6z" fill="#8b8072"/>
-  <path d="M7.9 3.2h9.9l-1.4 3.4 1.4 3.4-1.4 3.4 1.4 3.4-2.4 2.2-7.5-.9z" fill="#7e7566"/>
-  <path d="M7.9 3.2h2.4l-.4 14.9-2 .2z" fill="#a49a88"/>
-  <path d="M10.8 6.2h4.4M10.6 9.6h4.6M10.8 13h4.2" stroke="#3f3a32" stroke-width=".95" stroke-linecap="round"/>
-  <circle cx="7.2" cy="1.5" r="1.1" fill="#8a929a"/>
+  <defs>
+    <linearGradient id="sbC" x1="0" y1="0" x2="1" y2=".1">
+      <stop offset="0" stop-color="#b3a996"/><stop offset=".45" stop-color="#7d7466"/>
+      <stop offset="1" stop-color="#3d382f"/>
+    </linearGradient>
+    <linearGradient id="sbP" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b8072"/><stop offset="1" stop-color="#3b352c"/>
+    </linearGradient>
+  </defs>
+  <path d="M6.4 1.8h1.5v20.4H6.4z" fill="url(#sbP)"/>
+  <path d="M7.9 3.2h9.9l-1.4 3.4 1.4 3.4-1.4 3.4 1.4 3.4-2.4 2.2-7.5-.9z" fill="url(#sbC)"/>
+  <path d="M10.6 6.2h4.6M10.4 9.6h4.8M10.6 13h4.4" stroke="#2f2b24" stroke-width=".85" stroke-linecap="round" opacity=".8"/>
+  <circle cx="7.2" cy="1.5" r="1.1" fill="#9aa3ab"/>
+  <circle cx="6.9" cy="1.2" r=".5" fill="#d5dde4" opacity=".8"/>
 </symbol>
 
   <!-- 糯米 Sticky Rice: a sack, gathered and tied -->
   <symbol id="item-sticky-rice" viewBox="0 0 24 24">
-  <path d="M7.4 9.6c0-2 2-3.2 4.6-3.2s4.6 1.2 4.6 3.2c1 2.4 1.4 5 1.1 7.6-.2 2-2.6 3.2-5.7 3.2s-5.5-1.2-5.7-3.2c-.3-2.6.1-5.2 1.1-7.6z" fill="#a89e8a"/>
-  <path d="M7.4 9.6c0-2 2-3.2 4.6-3.2v13.9c-3.1 0-5.5-1.1-5.7-3.1-.3-2.6.1-5.2 1.1-7.6z" fill="#c6bda8"/>
-  <path d="M7.6 8.6c1.2-1.4 7.6-1.4 8.8 0" stroke="#6d6555" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-  <g fill="#efe9d8">
+  <defs>
+    <radialGradient id="srB" cx="32%" cy="26%" r="78%">
+      <stop offset="0" stop-color="#d5cbb6"/><stop offset=".5" stop-color="#9e947f"/>
+      <stop offset="1" stop-color="#4b463b"/>
+    </radialGradient>
+  </defs>
+  <path d="M7.4 9.6c0-2 2-3.2 4.6-3.2s4.6 1.2 4.6 3.2c1 2.4 1.4 5 1.1 7.6-.2 2-2.6 3.2-5.7 3.2s-5.5-1.2-5.7-3.2c-.3-2.6.1-5.2 1.1-7.6z" fill="url(#srB)"/>
+  <path d="M7.6 8.6c1.2-1.4 7.6-1.4 8.8 0-1.6-.8-7.2-.8-8.8 0z" fill="#5d5648"/>
+  <g fill="#f0ebdc">
     <ellipse cx="10" cy="5.2" rx="1.5" ry=".85" transform="rotate(-22 10 5.2)"/>
     <ellipse cx="13.6" cy="4.6" rx="1.5" ry=".85" transform="rotate(14 13.6 4.6)"/>
     <ellipse cx="12" cy="6.6" rx="1.5" ry=".85" transform="rotate(-6 12 6.6)"/>
+  </g>
+  <g fill="#fffdf6" opacity=".55">
+    <ellipse cx="9.6" cy="4.9" rx=".7" ry=".35" transform="rotate(-22 9.6 4.9)"/>
+    <ellipse cx="13.2" cy="4.3" rx=".7" ry=".35" transform="rotate(14 13.2 4.3)"/>
   </g>
 </symbol>
 
   <!-- 黑狗血 Black Dog Blood: a corked bottle, filled to a line -->
   <symbol id="item-black-dog-blood" viewBox="0 0 24 24">
-  <path d="M10 1.8h4v2.6h-4z" fill="#5a4a36"/>
-  <path d="M9 4.4h6l1.4 3.2v11.6c0 1.6-1.4 2.6-4.4 2.6s-4.4-1-4.4-2.6V7.6z" fill="#20191c"/>
-  <path d="M9 4.4h1.8l-.9 3.4v13.5c-1.2-.4-1.8-1.1-1.8-2.1V7.6z" fill="#3d3238"/>
-  <path d="M8.6 10.2h6.8v9c0 1.6-1.4 2.6-3.4 2.6s-3.4-1-3.4-2.6z" fill="#120c0e"/>
-  <path d="M10.2 6.4v13.4" stroke="#6f6a72" stroke-width=".85" stroke-linecap="round" opacity=".65"/>
+  <defs>
+    <linearGradient id="bdG" x1=".1" y1="0" x2=".9" y2=".3">
+      <stop offset="0" stop-color="#4a3f48"/><stop offset=".4" stop-color="#221b21"/>
+      <stop offset="1" stop-color="#0c080b"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 1.8h4v2.6h-4z" fill="#4a3c2b"/>
+  <path d="M10 1.8h1.3v2.6H10z" fill="#6d5940"/>
+  <path d="M9 4.4h6l1.4 3.2v11.6c0 1.6-1.4 2.6-4.4 2.6s-4.4-1-4.4-2.6V7.6z" fill="url(#bdG)"/>
+  <path d="M8.6 10.2h6.8v9c0 1.6-1.4 2.6-3.4 2.6s-3.4-1-3.4-2.6z" fill="#080508"/>
+  <path d="M10.2 6.6v13" stroke="#8e8794" stroke-width=".8" stroke-linecap="round" opacity=".5"/>
+  <path d="M10.6 6.4v3.4" stroke="#c9c2ce" stroke-width=".55" stroke-linecap="round" opacity=".5"/>
 </symbol>
 
   <!-- 金丹 Golden Elixir: one pill, and what it thinks of itself -->
   <symbol id="item-golden-elixir" viewBox="0 0 24 24">
-  <path d="M3.8 12.6h16.4c0 4.3-3.7 7.1-8.2 7.1s-8.2-2.8-8.2-7.1z" fill="#474038"/>
-  <path d="M3.8 12.6h4.3c0 3.5 1.7 6 4.3 6.8-4.2-.2-8.6-2.9-8.6-6.8z" fill="#665d4d"/>
-  <circle cx="12" cy="10.4" r="4.1" fill="#8a7742"/>
-  <path d="M12 6.3a4.1 4.1 0 0 0-4.1 4.1h2a2.1 2.1 0 0 1 2.1-2.1z" fill="#c0a765"/>
-  <circle cx="10.3" cy="8.9" r=".8" fill="#d8c48c"/>
+  <defs>
+    <radialGradient id="geP" cx="34%" cy="26%" r="74%">
+      <stop offset="0" stop-color="#e2caa0"/><stop offset=".42" stop-color="#9c8850"/>
+      <stop offset="1" stop-color="#4a3e21"/>
+    </radialGradient>
+    <linearGradient id="geD" x1="0" y1="0" x2=".4" y2="1">
+      <stop offset="0" stop-color="#6f685a"/><stop offset="1" stop-color="#2e2b25"/>
+    </linearGradient>
+  </defs>
+  <path d="M3.8 12.6h16.4c0 4.3-3.7 7.1-8.2 7.1s-8.2-2.8-8.2-7.1z" fill="url(#geD)"/>
+  <path d="M3.8 12.6h16.4c0 1-.2 1.9-.6 2.7H4.4c-.4-.8-.6-1.7-.6-2.7z" fill="#201e18" opacity=".45"/>
+  <circle cx="12" cy="10.4" r="4.1" fill="url(#geP)"/>
+  <ellipse cx="10.4" cy="8.8" rx="1.2" ry=".85" fill="#f2e2b8" opacity=".65" transform="rotate(-30 10.4 8.8)"/>
 </symbol>
 
   <!-- 護身符 Protective Charm: an amulet hung on a cord, with its tassel. A
        pouch rather than paper, so it does not read as a fourth 符. -->
   <symbol id="item-protective-charm" viewBox="0 0 24 24">
-  <path d="M12 2.2c-3.4 0-5.6 1.9-5.6 4.4" stroke="#6d6555" stroke-width="1.25" fill="none" stroke-linecap="round"/>
-  <path d="M12 2.2c3.4 0 5.6 1.9 5.6 4.4" stroke="#6d6555" stroke-width="1.25" fill="none" stroke-linecap="round"/>
-  <path d="M8.2 7.6h7.6l1.1 2.2-1.1 2.2H8.2L7.1 9.8z" fill="#7c1712"/>
-  <path d="M8.2 7.6h2.2l-.6 4.4H8.2L7.1 9.8z" fill="#a8342a"/>
-  <path d="M9 12h6l-.7 8.6c0 .9-.9 1.4-2.3 1.4s-2.3-.5-2.3-1.4z" fill="#9c9280"/>
-  <path d="M9 12h1.9l-.5 9.8c-.9-.2-1.4-.7-1.4-1.2z" fill="#bdb49f"/>
-  <path d="M10.2 15h3.6M10.4 17.6h3.2" stroke="#5d5546" stroke-width=".95" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="pcK" x1="0" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#b23a2c"/><stop offset=".5" stop-color="#7c1712"/>
+      <stop offset="1" stop-color="#3d0806"/>
+    </linearGradient>
+    <linearGradient id="pcB" x1="0" y1="0" x2="1" y2=".2">
+      <stop offset="0" stop-color="#c2b9a4"/><stop offset=".45" stop-color="#8d8471"/>
+      <stop offset="1" stop-color="#413c33"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 2.2c-3.4 0-5.6 1.9-5.6 4.4M12 2.2c3.4 0 5.6 1.9 5.6 4.4" stroke="#6a6152" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <path d="M8.2 7.6h7.6l1.1 2.2-1.1 2.2H8.2L7.1 9.8z" fill="url(#pcK)"/>
+  <path d="M8.2 7.6h2.3l-.6 4.4H8.2L7.1 9.8z" fill="#c4523f" opacity=".55"/>
+  <path d="M9 12h6l-.7 8.6c0 .9-.9 1.4-2.3 1.4s-2.3-.5-2.3-1.4z" fill="url(#pcB)"/>
+  <path d="M10.2 15h3.6M10.4 17.6h3.2" stroke="#4f4a3e" stroke-width=".8" stroke-linecap="round" opacity=".8"/>
 </symbol>
 
   <!-- ========================== Status ============================
