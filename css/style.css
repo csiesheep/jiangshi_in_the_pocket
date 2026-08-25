@@ -706,6 +706,33 @@ body.app .board-pane > .board { min-height: 0; }
   font-variant-numeric: tabular-nums;
 }
 
+/* The comfort-mode mark. Empty and invisible unless a mode is actually hiding
+   something, so the ordinary HUD is unchanged — an always-present control is
+   what #55 removed, and this is not that.
+
+   Bare, in the house language: no fill, no icon, a word and a hairline. It is
+   quiet because it is not urgent; it is present because a player who cannot see
+   the 僵屍 deserves to know why. */
+.modemarks:empty { display: none; }
+.modemarks {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.modemark {
+  padding: 1px 8px;
+  border: 1px dashed color-mix(in srgb, var(--gold) 42%, var(--border));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .7rem;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.modemark:hover { color: var(--text); border-style: solid; }
+.modemark:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
+
 /* ---- The pack as 田 -------------------------------------------------------------
    Four cells of pictures. The words arrive when you point at one, and the panel
    stops being a list of labels — which is what it had become — and goes back to

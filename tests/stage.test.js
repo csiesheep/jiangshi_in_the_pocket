@@ -15,7 +15,7 @@ import {
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "a8551fd3");
+suite(import.meta.url, "0bd94bdc");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -850,5 +850,31 @@ test("icons: each 僵屍 tier has its own artwork", () => {
     for (let j = i + 1; j < bodies.length; j++) {
       assert(bodies[i] !== bodies[j], "two tiers share the same artwork");
     }
+  }
+});
+
+// ---- The comfort-mode mark (#62) ------------------------------------------------
+
+test("modes: the game screen can say a comfort mode is hiding something", async () => {
+  // The person who owns this game concluded three times that the animations
+  // were broken, and it was calm mode each time. Calm removes the 僵屍
+  // entirely, #55 moved its switch to the menu, and nothing in the game said
+  // so — a setting that removes the headline feature has to be visible from
+  // inside the feature.
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  assert(/id="hud-modes"/.test(html), "the game screen has nowhere to say a mode is on");
+});
+
+test("modes: it says what the mode is doing, not just that it is on", () => {
+  // "Calm mode is on" does not tell anyone why the room went quiet, which is
+  // the thing they are actually confused about.
+  for (const [lang, t] of [["en", themeEn], ["zh", themeZh]]) {
+    for (const key of ["mode-calm", "mode-fast", "mode-calm-said", "mode-fast-said"]) {
+      assert((t.ui || {})[key], lang + " is missing ui." + key);
+    }
+    const calm = t.ui["mode-calm-said"];
+    assert(calm.length > 24, lang + " calm mark says too little: " + calm);
+    assert(/僵屍|殭屍/.test(calm),
+      lang + " calm mark does not say the 僵屍 are what is missing: " + calm);
   }
 });

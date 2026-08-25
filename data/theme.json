@@ -186,7 +186,11 @@
     "pack-said-many": "{item}, {n} of them",
     "use-elsewhere": "{item} — not from the pack",
     "use-elsewhere-title": "Spent in the fight that needs it, not from here",
-    "menu-settings": "Settings"
+    "menu-settings": "Settings",
+    "mode-calm": "Calm",
+    "mode-fast": "Fast",
+    "mode-calm-said": "Calm mode is on — the 僵屍 never arrive and the scenes stay gentle. Press to turn it off.",
+    "mode-fast-said": "Fast mode is on — the event scenes are skipped entirely. Press to turn it off."
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",

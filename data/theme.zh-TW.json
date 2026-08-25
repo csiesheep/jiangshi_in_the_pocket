@@ -370,7 +370,11 @@
     "pack-said-many": "{item}，{n} 個",
     "use-elsewhere": "{item}——不能從行囊用",
     "use-elsewhere-title": "要用的時候在打鬥裡花掉，不是在這裡",
-    "menu-settings": "設定"
+    "menu-settings": "設定",
+    "mode-calm": "平靜",
+    "mode-fast": "快速",
+    "mode-calm-said": "平靜模式開著——殭屍不會出現，場面也放輕了。按一下關掉。",
+    "mode-fast-said": "快速模式開著——事件動畫整個跳過。按一下關掉。"
   },
   "landing": {
     "tagline": "夜裡九點。三更時分，他來找你。讓他入土，或是等他來的時候還站著。",

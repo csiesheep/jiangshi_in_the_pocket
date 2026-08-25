@@ -216,7 +216,7 @@ class Game {
   // Themed nouns, so nothing player-visible is hardcoded to one setting.
   word(key) { return (this.data.theme.words && this.data.theme.words[key]) || key; }
 
-  refresh() { renderHud(this); renderBoard(this); }
+  refresh() { renderHud(this); renderBoard(this); paintModeMarks(); }
 
   start() {
     E.beginTurn(this.state);
@@ -1468,6 +1468,44 @@ function openNote() {
 
 
 
+// A mode that removes the game's headline feature has to be visible from inside
+// the game. Calm takes the 僵屍 away entirely and fast takes the stages, and the
+// person who owns this game concluded three separate times that the animations
+// were broken — with the source open and someone helping.
+//
+// So: nothing at all when neither is on, and when one is, a small mark that
+// says which and turns it off when pressed. The mark IS the way back, rather
+// than a link to the menu, because the player is here and not there.
+//
+// This is not the #55 toggles coming back. Those were always-present controls
+// for setting a preference; this exists only while a preference is hiding
+// something, and it is the only chrome in the panel that can say so.
+function paintModeMarks() {
+  const box = document.getElementById("hud-modes");
+  if (!box) return;
+  box.textContent = "";
+  const modes = [
+    { on: isCalm(), key: "calm", off: () => setCalm(false) },
+    { on: isFast(), key: "fast", off: () => setFast(false) },
+  ];
+  for (const m of modes) {
+    if (!m.on) continue;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "modemark";
+    b.textContent = uiWord("mode-" + m.key);
+    // The accessible name carries what the mode is DOING and how to leave it.
+    // "Calm mode on" alone does not tell anyone why the room went quiet.
+    b.setAttribute("aria-label", uiWord("mode-" + m.key + "-said"));
+    b.title = uiWord("mode-" + m.key + "-said");
+    b.addEventListener("click", () => {
+      m.off();
+      paintModeMarks();
+    });
+    box.appendChild(b);
+  }
+}
+
 function paintSoundToggle() {
   const btn = document.getElementById("btn-sound");
   if (!btn) return;
@@ -1537,6 +1575,7 @@ async function useLanguage(lang) {
   // The furniture and the two toggles are static nodes: nothing redraws them,
   // so a switch has to write them itself.
   paintChrome();
+  paintModeMarks();
   paintSoundToggle();
   repaintFullscreen();
   if (!game) return;
