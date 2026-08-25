@@ -615,6 +615,57 @@ body.app .board-pane > .board { min-height: 0; }
   opacity: .5;
 }
 
+/* New game, in the top bar (#55). Styled as a sibling of the two links rather
+   than as a panel button, and last in the bar: it abandons a run in progress and
+   should not sit where a thumb reaching for "Menu" lands. */
+.topbtn {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .86rem;
+  cursor: pointer;
+}
+.topbtn:hover { color: var(--text); border-color: var(--way-known); }
+.topbtn:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
+
+/* The menu's settings (#55). Quiet, under the charms, in the landing page's own
+   register rather than the game HUD's — these are read once and set once, not
+   glanced at during a run. */
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 26px 0 0;
+}
+.settings-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: .96rem;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+.setting {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.setting:hover { color: var(--text); border-color: var(--way-known); }
+.setting:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
+.setting[aria-pressed="true"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--border));
+}
+
 /* ---- The found-item row ---------------------------------------------------------
    What packSlot() still draws, and the pack no longer does. These were the
    backpack's vocabulary until the 田 grid replaced it; the drop dialog and the
@@ -674,9 +725,34 @@ body.app .board-pane > .board { min-height: 0; }
 
 .cell {
   position: relative;
-  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
+/* The picture keeps the square; the control sits under it rather than over it,
+   so nothing is ever covering the thing you are trying to recognise. */
+.cellface { aspect-ratio: 1; }
+
+/* Use, visible at rest (#53). Bare-arrow discipline: no filled box competing
+   with the board, just a quiet labelled control the width of its own cell. It
+   is present on every occupied cell and disabled with a reason on the ones the
+   pack cannot spend — a missing button and a button that is not for this look
+   identical otherwise. */
+.cellact {
+  padding: 3px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: .72rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.cellact:hover:not(:disabled) { border-color: var(--way-known); color: var(--way-new); }
+.cellact:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
+.cellact:disabled { color: var(--muted); border-style: dashed; cursor: default; opacity: .65; }
+.cell--empty .cellact { display: none; }
 
 .cellface {
   display: flex;
@@ -752,7 +828,6 @@ body.app .board-pane > .board { min-height: 0; }
 .tipname { margin: 0; font-size: .84rem; color: var(--text); }
 .tipeffect { margin: 3px 0 0; font-size: .74rem; color: var(--accent); }
 .tipblurb { margin: 4px 0 0; font-size: .72rem; color: var(--muted); line-height: 1.45; }
-.celltip .slotuse { margin-top: 8px; width: 100%; }
 
 /* The last column's tooltip would run off the panel's right edge, and the first
    column's off the left. Nudge them back inside rather than letting the sidebar

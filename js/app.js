@@ -1404,8 +1404,12 @@ function seedFromUrl() {
 }
 
 // ---- Run controls ----------------------------------------------------------
+// The seed, copied. The HUD button that used to call this is gone (#55), and the
+// verdict card is where it belongs anyway — a seed is worth sharing at the end
+// of a night rather than in the middle of one. The caller always hands us its
+// own button now, so the old lookup fallback would only ever have found nothing.
 async function copyReplayLink(btn) {
-  btn = btn || document.getElementById("btn-copy-seed");
+  if (!btn) return;
   const url = `${location.origin}${location.pathname}?seed=${game.seed}`;
   try {
     await navigator.clipboard.writeText(url);
@@ -1466,34 +1470,7 @@ function openNote() {
   showNote(note, markSeen);
 }
 
-function paintCalmToggle() {
-  const btn = document.getElementById("btn-calm");
-  if (!btn) return;
-  const on = isCalm();
-  btn.setAttribute("aria-pressed", on ? "true" : "false");
-  const label = document.getElementById("calm-label");
-  if (label) label.textContent = uiWord(on ? "calm-on" : "calm-off");
-  const slot = document.getElementById("calm-icon");
-  if (slot) {
-    slot.textContent = "";
-    const art = uiIcon("calm", "utilicon-svg");
-    if (art) slot.appendChild(art);
-  }
-  document.body.classList.toggle("calm", on);
-}
 
-// Pace, not intensity: this is its own control beside calm mode rather than a
-// mode of it, for the same reason calm is not folded into prefers-reduced-motion.
-// Someone can want every scare and none of the waiting.
-function paintFastToggle() {
-  const btn = document.getElementById("btn-fast");
-  if (!btn) return;
-  const on = isFast();
-  btn.setAttribute("aria-pressed", on ? "true" : "false");
-  const label = document.getElementById("fast-label");
-  if (label) label.textContent = uiWord(on ? "fast-on" : "fast-off");
-  document.body.classList.toggle("fast", on);
-}
 
 function paintSoundToggle() {
   const btn = document.getElementById("btn-sound");
@@ -1510,15 +1487,8 @@ function paintSoundToggle() {
   }
 }
 
-function paintCopyIcon() {
-  const slot = document.getElementById("copy-icon");
-  if (!slot || slot.childNodes.length) return;
-  const art = uiIcon("copy", "soundicon-svg");
-  if (art) slot.appendChild(art);
-}
 
 function wireControls() {
-  document.getElementById("btn-copy-seed").addEventListener("click", () => copyReplayLink());
   document.getElementById("btn-sound").addEventListener("click", () => {
     setMuted(!isMuted());
     paintSoundToggle();
@@ -1527,21 +1497,6 @@ function wireControls() {
   const noteBtn = document.getElementById("btn-note");
   if (noteBtn) noteBtn.addEventListener("click", openNote);
 
-  const fastBtn = document.getElementById("btn-fast");
-  if (fastBtn) {
-    fastBtn.addEventListener("click", () => {
-      setFast(!isFast());
-      paintFastToggle();
-    });
-  }
-
-  const calmBtn = document.getElementById("btn-calm");
-  if (calmBtn) {
-    calmBtn.addEventListener("click", () => {
-      setCalm(!isCalm());
-      paintCalmToggle();
-    });
-  }
   // M is off the 1-9 action path on purpose, and ignored while typing.
   document.addEventListener("keydown", (e) => {
     if (e.key !== "m" && e.key !== "M") return;
@@ -1587,8 +1542,6 @@ async function useLanguage(lang) {
   // so a switch has to write them itself.
   paintChrome();
   paintSoundToggle();
-  paintCalmToggle();
-  paintFastToggle();
   repaintFullscreen();
   if (!game) return;
   game.data.theme = data.theme;
@@ -1608,7 +1561,7 @@ function paintChrome() {
   const text = {
     "nav-rulebook": "nav-rulebook", "nav-menu": "nav-menu",
     "page-title": "page-title", backpack: "backpack", "seed-label": "seed-label",
-    "note-again": "note-again", "copy-replay": "copy-replay",
+    "note-again": "note-again",
     "hands-title": "hands-title",
     brand: "brand",
   };
@@ -1631,9 +1584,8 @@ function paintChrome() {
   }
   const titles = [
     ["btn-sound", "title-sound"], ["btn-note", "title-note"],
-    ["btn-calm", "title-calm"], ["btn-fast", "title-fast"],
     ["btn-fullscreen", "title-fullscreen"],
-    ["btn-lang", "title-lang"], ["btn-copy-seed", "title-copy"],
+    ["btn-lang", "title-lang"],
   ];
   for (const [id, key] of titles) {
     const el = document.getElementById(id);
@@ -1662,10 +1614,7 @@ async function main() {
   wireSleep();
   registerWorker();
     paintSoundToggle();
-    paintCalmToggle();
-    paintFastToggle();
-    paintCopyIcon();
-    paintLangToggle();
+          paintLangToggle();
     paintChrome();
     // Size the board off its pane before the first render, and keep it sized as
     // the pane changes — the sidebar growing counts, not just the window.

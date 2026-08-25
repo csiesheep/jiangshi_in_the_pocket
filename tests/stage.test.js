@@ -319,11 +319,21 @@ test("stage: the skip hint says what to press, not what is lost", () => {
 // ---- The control ---------------------------------------------------------------
 
 test("stage: the fast control exists and is a real toggle", serial(async () => {
-  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
-  assert(/id="btn-fast"/.test(html), "game.html has no fast-mode control");
-  assert(/id="fast-label"/.test(html), "the fast control has no screen-reader label");
-  const btn = html.slice(html.indexOf('id="btn-fast"') - 200, html.indexOf('id="fast-label"'));
-  assert(/aria-pressed/.test(btn), "the fast control is not announced as a toggle");
+  // It lives on the MENU now, not the game HUD (#55). The feature did not move
+  // — the preference is localStorage-backed and survives — only the door to it,
+  // so this follows the door rather than being deleted with the old button.
+  const html = await fetch("../index.html", NO_STORE).then((r) => r.text());
+  assert(/id="menu-fast"/.test(html), "the menu has no fast-mode control");
+  assert(/id="menu-fast-label"/.test(html), "the fast control has no screen-reader label");
+  const btn = html.slice(html.indexOf('id="menu-fast"'), html.indexOf('id="menu-fast-label"'));
+  assert(/aria-pressed/.test(html.slice(html.indexOf('id="menu-fast"') - 120, html.indexOf('id="menu-fast-label"'))),
+    "the fast control is not announced as a toggle");
+  assert(btn !== null, "");
+  // And the HUD really has stopped carrying it.
+  const game = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  for (const gone of ["btn-fast", "btn-calm", "btn-copy-seed", "hud-attack"]) {
+    assert(!game.includes('id="' + gone + '"'), "the game HUD still carries " + gone);
+  }
 }));
 
 // ---- The four 僵屍 (#34) -------------------------------------------------------

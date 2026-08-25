@@ -146,7 +146,6 @@
     "seed-label": "Seed",
     "new-game": "New game",
     "note-again": "Read the note again",
-    "copy-replay": "Copy replay link",
     "aria-board-pane": "Board",
     "aria-board": "Game board",
     "aria-actions": "Your move",
@@ -167,7 +166,6 @@
     "relic-not-yet": "Not yet",
     "relic-held": "Held",
     "brand": "The Third Watch: The Jiangshi",
-    "title-copy": "Copy replay link",
     "fast-on": "Fast mode on",
     "fast-off": "Fast mode off",
     "title-fast": "Fast mode — the beats without the animations",
@@ -186,7 +184,10 @@
     "replace-take-sub": "{item} ({n}) stays here for good",
     "replace-keep": "Keep {item} — attack {n}",
     "replace-keep-sub": "{item} stays here for good",
-    "pack-said-many": "{item}, {n} of them"
+    "pack-said-many": "{item}, {n} of them",
+    "use-elsewhere": "{item} — not from the pack",
+    "use-elsewhere-title": "Spent in the fight that needs it, not from here",
+    "menu-settings": "Settings"
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",

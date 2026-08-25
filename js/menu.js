@@ -2,7 +2,8 @@
 // everything here is atmosphere, and none of it is allowed to stand between a
 // player and the Start button.
 
-import { tollBell, isMuted } from "./audio.js";
+import { tollBell, isMuted, isCalm, setCalm } from "./audio.js";
+import { isFast, setFast } from "./eventstage.js";
 import { houseLine } from "./tally.js";
 import { wireSleep } from "./shell.js";
 import * as L from "./lang.js";
@@ -62,7 +63,40 @@ async function applyLanguage(lang) {
   const foot = document.getElementById("footnote");
   if (tag && land.tagline) tag.textContent = land.tagline;
   if (foot && land.footnote) foot.textContent = land.footnote;
+  paintSettings();
   paintSwitch(lang);
+}
+
+// The two comfort settings, which used to be buttons on the game HUD and now
+// live here (#55). The features did not move — both are localStorage-backed and
+// anyone who had set one still has it — only the door to them did.
+//
+// Labelled from the theme like everything else, so they follow the language
+// switch rather than staying in whichever language the page opened in.
+function paintSettings() {
+  const ui = (currentTheme && currentTheme.ui) || {};
+  const wrap = document.getElementById("menu-settings-wrap");
+  if (!wrap) return;
+  const title = document.getElementById("menu-settings");
+  if (title && ui["menu-settings"]) title.textContent = ui["menu-settings"];
+
+  const paint = (id, on, onKey, offKey) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    const label = document.getElementById(id + "-label");
+    const word = ui[on ? onKey : offKey];
+    if (label && word) label.textContent = word;
+  };
+  paint("menu-calm", isCalm(), "calm-on", "calm-off");
+  paint("menu-fast", isFast(), "fast-on", "fast-off");
+}
+
+function wireSettings() {
+  const calm = document.getElementById("menu-calm");
+  if (calm) calm.addEventListener("click", () => { setCalm(!isCalm()); paintSettings(); });
+  const fast = document.getElementById("menu-fast");
+  if (fast) fast.addEventListener("click", () => { setFast(!isFast()); paintSettings(); });
 }
 
 // One control, two languages, so it names the language you would GET. Built in
@@ -102,6 +136,7 @@ async function rememberYou() {
     const res = await fetch("data/theme.json", { cache: "no-cache" });
     if (!res.ok) return;
     base = await res.json();
+    wireSettings();
     await applyLanguage(L.preferred());
     tallyTable = currentTheme.tallyLine;
   } catch {

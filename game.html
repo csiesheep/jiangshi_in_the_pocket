@@ -64,6 +64,10 @@
     <span class="spacer"></span>
     <a href="rulebook.html" id="nav-rulebook">Rulebook</a>
     <a href="index.html" id="nav-menu">Menu</a>
+    <!-- Last in the bar and after the two links, on purpose: this abandons a run
+         in progress, and a control that does that should not sit where a thumb
+         reaching for "Menu" lands. -->
+    <button class="topbtn" type="button" id="btn-new-game">New game</button>
   </header>
 
 
@@ -86,7 +90,6 @@
         <div class="clockbox" id="hud-hour"></div>
         <div class="statgrid">
           <div class="stat"><span class="statlabel" id="stat-health">Health</span><span class="statval" id="hud-health"></span></div>
-          <div class="stat"><span class="statlabel" id="stat-attack">Attack</span><span class="statval" id="hud-attack"></span></div>
           <div class="stat"><span class="statlabel" id="stat-relic">Relic</span><span class="statval" id="hud-tablet"></span></div>
         </div>
         <!-- 中毒 is a state, not a quantity, so it is a band across the panel
@@ -114,25 +117,13 @@
           <button class="utilbtn" type="button" id="btn-note" title="The note from the hall">
             <span class="utilicon" id="note-icon">✉</span><span class="sr-only" id="note-again">Read the note again</span>
           </button>
-          <button class="utilbtn" type="button" id="btn-calm" aria-pressed="false"
-                  title="Calm mode — the game without the scares">
-            <span class="utilicon" id="calm-icon"></span><span class="sr-only" id="calm-label">Calm mode off</span>
-          </button>
-          <button class="utilbtn" type="button" id="btn-fast" aria-pressed="false"
-                  title="Fast mode — the beats without the animations">
-            <span class="utilicon" id="fast-icon" aria-hidden="true">&#187;</span><span class="sr-only" id="fast-label">Fast mode off</span>
-          </button>
           <button class="utilbtn" type="button" id="btn-fullscreen" aria-pressed="false"
                   title="Fullscreen" hidden>
             <span class="utilicon" id="fs-icon">⛶</span><span class="sr-only" id="fs-label">Fullscreen</span>
           </button>
-          <button class="utilbtn" type="button" id="btn-copy-seed" title="Copy replay link">
-            <span class="utilicon" id="copy-icon"></span><span class="sr-only" id="copy-replay">Copy replay link</span>
-          </button>
           <button class="utilbtn" type="button" id="btn-lang" title="語言 / Language">
             <span class="utilicon" id="lang-icon">文</span><span class="sr-only" id="lang-label">Language</span>
           </button>
-          <button class="utilbtn utilbtn--wide" type="button" id="btn-new-game">New game</button>
         </div>
       </div>
     </aside>

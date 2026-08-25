@@ -153,7 +153,7 @@ export function renderHud(game) {
     health > 0 && health <= LOW_HEALTH && game.state.status === "playing"
   );
 
-  for (const id of ["stat-health", "stat-attack", "stat-relic"]) {
+  for (const id of ["stat-health", "stat-relic"]) {
     const el = document.getElementById(id);
     if (el) el.textContent = ui(game, id);
   }
@@ -273,6 +273,11 @@ function attackCeiling(game) {
   return best;
 }
 
+// The clock panel no longer carries an Attack number (#55) — it was the second
+// copy of one, and the first lives on the weapon in the hands panel where the
+// thing producing it lives. statBox returns nothing now and this returns early,
+// which is why the function stays: the element is a choice, not a guarantee, and
+// putting it back should be enough to bring the number back with it.
 function renderAttack(game) {
   const s = game.state;
   const el = statBox("hud-attack");
@@ -776,32 +781,37 @@ function packCell(game, id, index) {
     tip.appendChild(b);
   }
 
-  // What the pack itself can spend: medicine, and 硃砂. Both are used outside a
-  // fight and neither has anything to do with one — the weapons and talismans
-  // are spent by the fight that needs them, in the window that prices them.
-  //
-  // 硃砂 needs a target, so its button opens a picker rather than resolving. It
-  // is greyed with a reason when there is nothing to paint: grinding it over an
-  // empty pack would be a wasted item and a surprise.
-  const isCinnabar = id === "cinnabar";
-  const canUse = isCinnabar ? cinnabarTargets(game).length > 0 : def.cat === "medicine";
-  if ((isCinnabar || def.cat === "medicine") && typeof packUse === "function") {
-    const use = document.createElement("button");
-    use.type = "button";
-    use.className = "slotuse";
-    use.textContent = ui(game, "use");
-    use.disabled = !canUse;
-    use.setAttribute("aria-label", canUse
-      ? ui(game, "use-item", { item: name })
-      : ui(game, "use-blocked", { item: name }));
-    if (!canUse) use.title = ui(game, "use-blocked-title");
-    use.addEventListener("click", (e) => {
-      e.stopPropagation();
-      packUse(id);
-    });
-    tip.appendChild(use);
-  }
   cell.appendChild(tip);
+
+  // Use, VISIBLE AT REST (#53). It was inside the reveal panel, which made the
+  // action wait on discovering the gesture — a picture whose only control is
+  // behind a hover reads as decoration, which is what the ruling says it did.
+  //
+  // Every occupied cell carries one. The pack can only spend medicine and 硃砂;
+  // a talisman is spent by the fight that prices it, and the banner by the
+  // strike. So the others get the control DISABLED with the reason rather than
+  // no control at all — "there is no button here" and "the button is not for
+  // this" look identical, and only one of them is true.
+  const isCinnabar = id === "cinnabar";
+  const spendable = isCinnabar || def.cat === "medicine";
+  const canUse = isCinnabar ? cinnabarTargets(game).length > 0 : def.cat === "medicine";
+  const use = document.createElement("button");
+  use.type = "button";
+  use.className = "cellact";
+  use.textContent = ui(game, "use");
+  use.disabled = !canUse || typeof packUse !== "function";
+  use.setAttribute("aria-label", canUse
+    ? ui(game, "use-item", { item: name })
+    : ui(game, spendable ? "use-blocked" : "use-elsewhere", { item: name }));
+  use.title = canUse
+    ? ""
+    : ui(game, spendable ? "use-blocked-title" : "use-elsewhere-title");
+  use.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (typeof packUse === "function") packUse(id);
+  });
+  cell.appendChild(use);
+
 
   // The touch path. A tap has to REVEAL rather than act — the item stays usable
   // in a second action, which is the Use control inside the tooltip — so the
