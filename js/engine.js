@@ -158,6 +158,11 @@ export function newGame(data, opts = {}) {
     // pack slot, and neither is ever in `items` — the pack holds consumables
     // now, and "what am I holding" stopped being a question about inventory.
     hands: { weapon: null, charm: null },
+    // Blades that passed through a decision and did not stay. A weapon left at
+    // an OFFER_REPLACE is lying on the floor of a room, not circulating, so no
+    // table offers it again for the rest of the night. An array rather than a
+    // Set because this state is serialised to storage between sessions.
+    lostWeapons: [],
     // Which swords have a 真火符 burned into them. Permanent, one per sword,
     // and kept beside the pack rather than inside it because a count of swords
     // is not the same question as which one is on fire.
@@ -528,6 +533,17 @@ export function slotCost(state, itemId) {
 // True for the pack AND the hands. Callers ask "do I have this" far more often
 // than "is this in my luggage", and making them say which would only mean every
 // one of them getting it wrong once.
+// "Has this left the night?" — the question the search tables mean when they
+// ask whether a unique is already spoken for. Holding it is one way; having
+// abandoned it at a replace decision is the other, and from a rummage's point
+// of view they are the same fact: it is not out there to be found.
+export function outOfPlay(state, itemId) {
+  const def = state.itemsById[itemId];
+  if (!def || !def.unique) return false;
+  if (held(state, itemId)) return true;
+  return (state.lostWeapons || []).includes(itemId);
+}
+
 export function held(state, itemId) {
   if ((state.items[itemId] || 0) > 0) return true;
   const h = state.hands || {};
@@ -651,7 +667,7 @@ export function missChance(state, tableName) {
     if (e.id === null) miss += e.p;
     else {
       const def = state.itemsById[e.id];
-      if (def && def.unique && held(state, e.id)) miss += e.p;
+      if (def && def.unique && outOfPlay(state, e.id)) miss += e.p;
     }
   }
   return (miss / total) * 100;
@@ -683,6 +699,9 @@ export function search(state, tableName) {
   // searches self-limiting rather than a treadmill: every sword you own raises
   // the chance the next search hands you back the room you already looted.
   if (def.unique && held(state, pick.id)) return { result: "NOTHING", reason: "duplicate" };
+  // Left on a floor somewhere earlier tonight. Same silence as a duplicate, and
+  // a different reason so a reader of the log can tell them apart.
+  if (outOfPlay(state, pick.id)) return { result: "NOTHING", reason: "abandoned" };
 
   // A weapon found while already armed is a REPLACE OR LEAVE, and it goes back
   // to the caller undecided — the same door OFFER_DROP uses, and for the same
@@ -769,9 +788,31 @@ export function replaceWeapon(state, itemId) {
   const def = state.itemsById[itemId];
   if (!def || def.cat !== "weapon") return { ok: false, reason: "not-a-sword" };
   const dropped = state.hands.weapon;
-  if (dropped) delete state.buffed[dropped];
+  if (dropped) {
+    delete state.buffed[dropped];
+    loseWeapon(state, dropped);
+  }
   state.hands.weapon = itemId;
   return { ok: true, equipped: itemId, dropped: dropped || null };
+}
+
+// The other half of the same decision. Keeping the blade in your hand abandons
+// the one on the floor, and the ruling treats both exits alike: whichever
+// weapon leaves a RESOLVED replace un-held is out of the night.
+//
+// Only at a decision. A weapon merely offered and then taken is an ordinary
+// find, and one you never had the chance to refuse is still out there.
+export function declineWeapon(state, itemId) {
+  const def = state.itemsById[itemId];
+  if (!def || def.cat !== "weapon") return { ok: false, reason: "not-a-sword" };
+  if (equippedWeapon(state) === itemId) return { ok: false, reason: "in-hand" };
+  loseWeapon(state, itemId);
+  return { ok: true, lost: itemId };
+}
+
+function loseWeapon(state, itemId) {
+  if (!state.lostWeapons) state.lostWeapons = [];
+  if (!state.lostWeapons.includes(itemId)) state.lostWeapons.push(itemId);
 }
 
 // What the player needs to see before answering. Both attacks, from the real
