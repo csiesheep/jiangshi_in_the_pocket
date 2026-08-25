@@ -334,18 +334,125 @@ test("stage: the fast control exists and is a real toggle", serial(async () => {
 const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
 const tierCss = css.slice(css.indexOf("---- The four"), css.indexOf("---- Article pages"));
 
-test("scare: nothing on the overlay ever repeats a luminance change", () => {
-  // PHOTOSENSITIVITY. The eyes glow and 飛殭's candles die and relight exactly
-  // once; there is no repeating brightness change at any tier, and there must
-  // never be one. This is the guard that makes that a fact about the file rather
-  // than an intention in a comment — it covers the 僵屍 dressing and the six
-  // event scenes together, since both paint full-screen.
-  assert(tierCss.length > 500, "the overlay CSS block was not found — this guard is not looking at anything");
-  const overlay = noComments(tierCss);
-  assert(!overlay.includes("infinite"), "a full-screen overlay animation repeats");
-  assert(!overlay.includes("alternate"), "a full-screen overlay animation ping-pongs");
-  // steps() is how a flicker gets written when someone wants one.
-  assert(!overlay.includes("steps("), "a full-screen overlay animation is stepped");
+// ---- Photosensitivity, read from the parsed stylesheet -------------------------
+// PARSED, not scraped, and that is the whole of the #50 fix.
+//
+// The previous version sliced style.css between two marker strings and ran a
+// hand-rolled comment stripper over the result, then looked for the words
+// "infinite", "alternate" and "steps(". Every part of that was a liability:
+//
+//   - The slice STARTED INSIDE A COMMENT — the marker is text within the
+//     "/* ---- The four" header — so the stripper was handed a fragment whose
+//     comment delimiters were already unbalanced, and what it treated as code
+//     depended on the comment structure of everything after it. Editing a
+//     comment could change what the guard checked.
+//   - It matched WORDS, so a comment saying "nothing alternates" failed the
+//     build (which is how this was found) while `animation: f 1s 2 both` — a
+//     genuine two-cycle flash — passed, because "2" is not one of the words.
+//   - It only ever saw the slice, so a strobe inside an @media block outside
+//     those markers was invisible.
+//
+// A CSSOM has no comments in it at all. There is nothing to strip, no slice to
+// get wrong, and the properties are read after the shorthand has been expanded
+// by the browser, so `animation: f .1s infinite alternate` and
+// `animation-iteration-count: infinite` are the same fact rather than two
+// spellings to remember.
+//
+// The read is deterministic: same bytes in, same rules out, no timing involved.
+// No retry and no sleep anywhere near it — if this ever goes red again it is
+// reporting something real.
+const styleSheetText = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+
+// Every rule that repeats, ping-pongs or steps its animation. Returns the
+// offenders rather than a boolean so a failure can name what it found.
+function repeatingAnimations(cssText, selectorFilter) {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(cssText);
+  const found = [];
+  const walk = (rules) => {
+    for (const r of rules) {
+      // Dispatch on type. r.cssRules is a truthy EMPTY list on a plain style
+      // rule, so branching on it recurses into nothing and silently skips every
+      // rule in the sheet — which is exactly what the first draft of this did,
+      // and it reported the file clean by checking none of it.
+      if (r.type === CSSRule.KEYFRAMES_RULE) continue;
+      if (r.type === CSSRule.MEDIA_RULE || r.type === CSSRule.SUPPORTS_RULE) {
+        walk(r.cssRules);
+        continue;
+      }
+      if (r.type !== CSSRule.STYLE_RULE || !r.style) continue;
+      if (selectorFilter && !selectorFilter(r.selectorText || "")) continue;
+      const s = r.style;
+      const bad = [];
+      // "1" and "" are the only acceptable counts. Anything else runs the
+      // brightness change more than once, including a plain 2.
+      if (s.animationIterationCount && !["1", ""].includes(s.animationIterationCount)) {
+        bad.push("iteration-count: " + s.animationIterationCount);
+      }
+      if (s.animationDirection && s.animationDirection.includes("alternate")) {
+        bad.push("direction: " + s.animationDirection);
+      }
+      // steps() is how a flicker gets written when someone wants one.
+      if (s.animationTimingFunction && s.animationTimingFunction.includes("steps")) {
+        bad.push("timing-function: " + s.animationTimingFunction);
+      }
+      if (bad.length) found.push((r.selectorText || "?") + " — " + bad.join(", "));
+    }
+  };
+  walk(sheet.cssRules);
+  return found;
+}
+
+// SCOPE, stated rather than assumed, because the first version of this test
+// asserted the whole stylesheet and was WRONG. Run against every rule, it names
+// twenty-seven: drifting fog, falling leaves, swaying bamboo, the dread breath
+// on the board, the low-health pulse, the lantern on the title screen. Those are
+// the game being alive. They loop slowly, at low amplitude, on small elements.
+//
+// The photosensitivity claim was never about them. It is about the FULL-SCREEN
+// registers — the 僵屍 tiers, the six event scenes and the King — where a
+// repeat would be a high-contrast whole-frame flash. Scoping it to those is the
+// honest version; asserting the whole sheet and then carrying an allowlist of
+// exceptions is how a guard turns into noise nobody reads.
+//
+// Worth knowing and deliberately not fixed here: .grain on the title screen runs
+// steps(1) infinite. It is film grain at low opacity rather than a luminance
+// flash, it predates all of this, and changing it belongs to whoever owns that
+// screen rather than to a flaky-test fix.
+test("photosensitivity: the guard can actually fail", () => {
+  // A guard with a safety claim on it has to be shown failing, in the same run
+  // that reports it passing. Three vacuous guards in this project's history is
+  // three too many, and one of them was this one.
+  const strobes = [
+    ".x { animation: flick .1s infinite alternate; }",
+    ".y { animation-name: f; animation-iteration-count: infinite; }",
+    ".z { animation: f 1s steps(4) both; }",
+    "@media (min-width: 1px) { .w { animation: f .2s infinite; } }",
+    ".v { animation: f 1s 2 both; }",
+  ];
+  for (const css of strobes) {
+    assert(repeatingAnimations(css, null).length > 0,
+      "the guard did not catch: " + css);
+  }
+  // ...and does not fire on a comment that merely talks about strobing, which
+  // is what the word-matching version did.
+  const innocent =
+    "/* nothing repeats, nothing alternates, nothing steps */\n" +
+    ".ok { animation: fade .3s ease-out both; }";
+  assert(repeatingAnimations(innocent, null).length === 0,
+    "the guard fired on a comment or on a one-shot animation");
+});
+
+test("photosensitivity: the overlays specifically are clean", () => {
+  // The same read, narrowed to the full-screen registers — the 僵屍 tiers, the
+  // six event scenes and the King. A named claim per feature, so a failure says
+  // which of them broke rather than only that something did.
+  const overlay = (sel) =>
+    sel.includes(".scare") || sel.includes(".evs-") ||
+    sel.includes(".evstage") || sel.includes(".king");
+  const offenders = repeatingAnimations(styleSheetText, overlay);
+  assert(offenders.length === 0,
+    "a full-screen overlay repeats a luminance change: " + offenders.join(" | "));
 });
 
 test("scare: the dressing is cumulative, so the tiers only ever escalate", () => {
@@ -480,9 +587,12 @@ test("king: calm never lets him turn his face to the screen", () => {
 });
 
 test("king: nothing in his scene repeats a luminance change", () => {
-  const kingRules = noComments(kingCss);
-  assert(!["infinite", "alternate", "steps("].some((s) => kingRules.includes(s)),
-    "the King's scene has a repeating or stepped animation");
+  // Kept as its own named claim — the King is the one scene that plays at the
+  // moment the whole night walks toward — but reading the parsed rules rather
+  // than a text slice, like everything else photosensitivity now checks.
+  const offenders = repeatingAnimations(styleSheetText, (sel) => sel.includes(".king"));
+  assert(offenders.length === 0,
+    "the King's scene repeats a luminance change: " + offenders.join(" | "));
 });
 
 test("king: he replaces the generic scare, and running water still short-circuits", () => {
