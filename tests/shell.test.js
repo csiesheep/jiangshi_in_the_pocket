@@ -1,4 +1,5 @@
 import { test, assert, eq } from "./harness.js";
+import { shouldReloadOnHandover, HANDOVER_GRACE_MS } from "../js/shell.js";
 
 const NO_STORE = { cache: "no-store" };
 
@@ -206,4 +207,54 @@ test("shell: line-ending drift is diagnosed, and says which side is wrong", asyn
   // dressed up as one.
   const c = await diagnoseLineEndings({ "f.js": "9999999999" }, "f.js", lfBytes);
   eq(c, null, "an ordinary edit gets no line-ending excuse");
+});
+
+// ---- The handover (#51) -------------------------------------------------------
+// The first visit after a deploy showed the PREVIOUS build, which is how "I
+// cannot see the animations" reached us: the shell is cache-first, so the page
+// that triggers the update was itself served from the old cache. These read the
+// sources as text — the same way seo.test.js reads the Worker — because a
+// service-worker handover cannot be exercised headlessly, and an untested claim
+// about it would be worse than an honest source assertion.
+const shellSrc = await fetch("../js/shell.js", NO_STORE).then((r) => r.text());
+
+test("handover: the worker takes over at once rather than waiting for a spare tab", () => {
+  assert(/self\.skipWaiting\(\)/.test(sw), "install should not leave the new worker waiting");
+  assert(/self\.clients\.claim\(\)/.test(sw), "activate should claim the pages already open");
+});
+
+test("handover: the page is wired to notice a new worker arriving", () => {
+  assert(/addEventListener\("controllerchange"/.test(shellSrc),
+    "somebody has to notice the new worker arriving");
+  assert(/location\.reload\(\)/.test(shellSrc), "and act on it");
+});
+
+// The decision itself, exercised rather than asserted to exist. Source-level
+// checks can only say a guard is present; these say it is right.
+test("handover: it reloads on a fresh load, when a controller has arrived", () => {
+  eq(shouldReloadOnHandover({ hasController: true, openedAt: 1000, now: 1200, reloading: false }), true);
+  // The boundary itself counts as fresh.
+  eq(shouldReloadOnHandover({
+    hasController: true, openedAt: 0, now: HANDOVER_GRACE_MS, reloading: false,
+  }), true, "exactly at the grace is still the opening moments");
+});
+
+test("handover: it NEVER reloads a page somebody has been sitting on", () => {
+  // The constraint that matters: a deploy landing mid-run must not pull the
+  // floor out from under a player on turn twenty-two. They get the new build
+  // the next time they open it.
+  eq(shouldReloadOnHandover({
+    hasController: true, openedAt: 0, now: HANDOVER_GRACE_MS + 1, reloading: false,
+  }), false, "one millisecond past the grace is already somebody's game");
+  eq(shouldReloadOnHandover({
+    hasController: true, openedAt: 0, now: 30 * 60 * 1000, reloading: false,
+  }), false, "half an hour in, certainly");
+});
+
+test("handover: it cannot loop, however many deploys land", () => {
+  eq(shouldReloadOnHandover({ hasController: true, openedAt: 0, now: 1, reloading: true }), false,
+    "a reload already under way is not a reason for another");
+  // And a worker LEAVING is not an arrival: controllerchange fires for both.
+  eq(shouldReloadOnHandover({ hasController: false, openedAt: 0, now: 1, reloading: false }), false,
+    "no controller means nothing has taken over yet");
 });

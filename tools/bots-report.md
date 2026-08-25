@@ -170,15 +170,29 @@ part of #46 or #47.
 
 ## Where the endings sit now
 
-- **鎮屍 (seal)**: 1.7 % for a player who knows the recipe, and effectively zero
-  for anyone who does not — the other four policies score 1 seal between them
-  per 1000 nights, down from 14–15.
-- **鎮墓 (burial)**: 34.4 / 37.4 %, untouched by any of this.
-- **活水 (survived)**: the turtle's 5.3–6.6 %, untouched.
-- Everything else is a loss, and the King now takes 31–33 % of adept nights
-  where he used to take 5 %: the runs that would have sealed now arrive and fall
-  short. That is the ending being hidden rather than removed — the door is still
-  reached, and what happens there is simply usually not enough.
+**No numbers here.** This section used to restate them in prose beside the
+tables, and it went stale the moment #46 landed — it was still claiming the seal
+was 1.7 % and 活水 "untouched" two paragraphs below a table showing 活水 halved.
+A reader who trusted the summary would have taken away the opposite of the
+finding.
+
+That is the same defect as a digest describing bytes nobody is served, and the
+fix is the same one: not a second copy kept in step, but no second copy. **The
+tables above are the numbers.** What belongs here is only what a table cannot
+say:
+
+- **鎮屍 (seal)** is hidden again by the number as well as by §9, and it is now
+  hidden further than it was deliberately placed — see the stacked table.
+  Effectively zero for anyone not following the recipe: the other four policies
+  score one seal between them per thousand nights, against 14–15 before.
+- **鎮墓 (burial)** is the ending the game is actually about, and it has taken
+  the least damage of any of them, because nothing aimed at it.
+- **活水 (survived)** is the one with the least room left. Nothing was ever
+  aimed at it either, and it lost the most proportionally — it is downstream of
+  the sword and the food, so every change to those lands on it.
+- The King takes most adept nights now. The runs that would have sealed still
+  reach the door and fall short, which is what "hidden" looks like from the
+  inside: not a locked ending, an ending you usually cannot pay for.
 
 ## Against what the design expected
 

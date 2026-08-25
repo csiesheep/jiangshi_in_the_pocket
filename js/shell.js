@@ -9,9 +9,52 @@ import { sleep as sleepAudio } from "./audio.js";
 // ---- Service worker ---------------------------------------------------------
 // Registered relative, because this ships under a subpath and an absolute "/sw.js"
 // would ask for the domain root and get a 404 (or worse, somebody else's worker).
+// The first visit after a deploy used to show the PREVIOUS build, and that is
+// what "I cannot see the animations" turned out to be: the shell is cache-first,
+// so the page you are reading was served from the old cache before the new
+// worker existed. sw.js already calls skipWaiting and clients.claim, so the new
+// worker takes over during that same visit — but by then this document and its
+// modules have already been handed over from the old one. The player has to
+// come back a second time to see what shipped.
+//
+// So when the controller actually changes, reload once and let the new worker
+// serve the page it was installed for.
+//
+// GUARDED BY HOW LONG THE PAGE HAS BEEN OPEN, deliberately. A deploy that lands
+// while somebody is on turn twenty-two must not pull the floor out from under
+// them; they will get the new build the next time they open it. Only a handover
+// during the opening moments of a load is one nobody is standing in.
+export const HANDOVER_GRACE_MS = 10000;
+
+// The decision, pulled out of the listener so it can be tested rather than
+// merely asserted to exist. Every branch here is a way of NOT reloading, and
+// the two that matter are the last two: a handover long after the page opened
+// belongs to somebody who is playing, and a second handover must never turn
+// into a loop.
+export function shouldReloadOnHandover({ hasController, openedAt, now, reloading }) {
+  if (reloading) return false; // controllerchange can fire more than once
+  if (!hasController) return false; // a worker leaving, not one arriving
+  return now - openedAt <= HANDOVER_GRACE_MS;
+}
+
 export function registerWorker() {
   if (!("serviceWorker" in navigator)) return;
   if (location.protocol !== "https:" && location.hostname !== "localhost") return;
+
+  const openedAt = Date.now();
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    const go = shouldReloadOnHandover({
+      hasController: !!navigator.serviceWorker.controller,
+      openedAt,
+      now: Date.now(),
+      reloading,
+    });
+    if (!go) return;
+    reloading = true;
+    location.reload();
+  });
+
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch(() => {
       /* offline play is a bonus, never a requirement */
