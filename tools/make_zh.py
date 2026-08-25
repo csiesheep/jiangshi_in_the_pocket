@@ -9,10 +9,15 @@ Chinese understates.
 Naming is the vault glossary, not invention. 中毒 is the STATE and 屍毒 the
 SUBSTANCE, and they are not interchangeable.
 
+NOT the source of truth any more. The zh file has been edited directly for
+many issues since this ran, so this script is 59 keys behind it and would
+delete them; the write at the bottom refuses when that is true. Read that
+comment before adding anything here.
+
 §9 binds identically here: no threshold anywhere, no kit list, and the only
 place either number lives is the two labels on the King's card.
 """
-import io, json, collections
+import io, json, collections, os
 
 BASE = r"C:\Users\sheep\code\jiangshi_in_the_pocket-fe\data\theme.json"
 OUT = r"C:\Users\sheep\code\jiangshi_in_the_pocket-fe\data\theme.zh-TW.json"
@@ -160,12 +165,6 @@ o["lines"] = collections.OrderedDict([
     ("reveal", "你推開門，是{room}，走了進去。"),
     ("move", "你走進{room}。"),
     ("step-out", "你踏上{room}。外面是夜氣，還有更糟的東西。"),
-    ("cower", "你縮到{room}的角落，不動了。"),
-    ("cower-passed", "要來的東西過去了。還剩{n}。"),
-    ("cower-charges-one", "一次"),
-    ("cower-charges-many", "{n}次"),
-    ("coil-lit", "你把最後一盤香點著。它能再給你一個角落躲。"),
-    ("prayer-answered", "你問了，土地公答了。下一塊翻出來的外面土地就是{room}。"),
     ("hp-gain", "回了{n}點血。"),
     ("hp-loss", "掉了{n}點血。"),
     ("heal-tile", "你在這裡定了定神。回一點血。"),
@@ -216,14 +215,10 @@ o["ui"] = collections.OrderedDict([
     ("moon-gate", "從月門走出去"), ("moon-gate-sub", "出村的路"),
     ("walk", "往{dirWord} — {room}"),
     ("stay", "留在原地"), ("stay-sub", "一樣要花六分鐘"),
-    ("cower-sub", "跳過這間房的事件 · 還剩{n}"),
-    ("cower-spent", "沒有額度了——香已經燒完"),
     ("move-prompt", "走、留、或躲——都是六分鐘。"),
     ("search", "搜索這個房間"),
     ("next-turn", "下一回合"), ("next-turn-sub", "六分鐘"),
     ("quiet-prompt", "房裡很安靜。"),
-    ("coil", "{cower} — 點香"), ("coil-sub", "多一次額度，今晚只有一次"),
-    ("pray", "祈求土地公"), ("pray-sub", "下一塊翻出來的土地就是那座墳場"),
     ("fight-prompt", "{n}隻。"),
     ("fight-with", "用{item}打"), ("fight-bare", "空手迎上去"),
     ("attack", "攻擊力 {n}"), ("attack-blood", "攻擊力 {n} · 其中{blood}是你自己的血"),
@@ -264,11 +259,11 @@ o["ui"] = collections.OrderedDict([
     # The four panel labels. Short on purpose: the panel is narrow and these sit
     # above the value rather than beside it.
     ("stat-health", "血"), ("stat-attack", "攻擊力"),
-    ("stat-cower", "躲藏"), ("stat-relic", "神主牌"),
+    ("stat-relic", "神主牌"),
     # The clock. Chinese counts the hour and does not say the half at all, so
     # the meridiem keys are deliberately empty rather than translated — and the
     # template drops the space with a trim.
-    ("hour", "{n}點"), ("hour-midnight", "三更"),
+    ("hour", "{n}點"),
     ("clock", "{time}"), ("half-pm", ""), ("half-am", ""),
 ])
 
@@ -310,7 +305,6 @@ o["room"] = collections.OrderedDict([
 o["effects"] = collections.OrderedDict([
     ("join", " · "),
     ("weapon-attack", "攻擊力 {n}"), ("talisman-attack", "打{n}"),
-    ("buff-sword", "或永久給一把劍 +{n}"),
     ("cost-hp", "寫它要{n}點血"),
     ("duplicate", "複製一張你有的符，+{n}"),
     ("double-sword", "劍的攻擊力加倍，一次"),
@@ -330,8 +324,6 @@ o["tileNotes"] = collections.OrderedDict([
     ("search-other", "在這裡搜索{what}。"),
     ("moon-gate", "帶著月門——它{dir}邊那條路通到村外，不是通到別的房間。"),
     ("seam", "沿著接縫和村子相連，也是回去的路。"),
-    ("restore-cower", "點香：拿回一次躲藏額度。一晚一次，不花回合。"),
-    ("pray", "祈求：下一塊翻出來的外面土地就是{room}。一晚一次，不花回合。"),
     ("take-tablet", "{tablet}在這裡。先解決這間房的事件，再解決開棺的那一件。撐過去而且人還站在這裡，它就是你的。"),
     ("bury-tablet", "先破土，再解決挖掘的那一件。帶著{tablet}撐過去，你就贏了。"),
     ("heal-1", "回合在這裡結束就回1點血。"),
@@ -403,9 +395,6 @@ o["epilogue"] = collections.OrderedDict([
     ])),
 ])
 
-io.open(OUT, "w", encoding="utf-8", newline="\n").write(
-    json.dumps(o, ensure_ascii=False, indent=2) + "\n")
-
 # ---- Coverage ----------------------------------------------------------------
 def leaves(node, path=""):
     if isinstance(node, dict):
@@ -430,3 +419,35 @@ if missing:
         print("   ", m)
 if extra:
     print("EXTRA (not in English):", extra)
+
+# ---- The write, and why it is guarded -----------------------------------------
+# This script is a one-shot batch that was never retired, and the zh file moved
+# on without it: #32 equipment, #55 menu, #62 mode marks, #68 fight-spend and a
+# few dozen more were written straight into data/theme.zh-TW.json and never came
+# back here. The write used to be the first statement after the table, so
+# running this deleted every one of those translations, and the coverage report
+# printed AFTERWARDS -- describing a file it had already destroyed.
+#
+# Nothing chose that; it is what a batch script becomes when it outlives its
+# batch. So the write compares itself against the file on disk and refuses when
+# it would take a key away. Refusing is the correct outcome: this script cannot
+# regenerate the current file, and saying so is more useful than clobbering it.
+existing = {}
+if os.path.exists(OUT):
+    existing = json.load(io.open(OUT, encoding="utf-8"),
+                         object_pairs_hook=collections.OrderedDict)
+lost = sorted(set(leaves(existing)) - zh_keys) if existing else []
+if lost:
+    print()
+    print(f"REFUSING TO WRITE: {len(lost)} translations already in the file are")
+    print("not declared here, and writing would delete them:")
+    for k in lost:
+        print("   ", k)
+    print()
+    print("Add them here, or edit the JSON directly and leave this script alone.")
+    raise SystemExit(1)
+
+io.open(OUT, "w", encoding="utf-8", newline="\n").write(
+    json.dumps(o, ensure_ascii=False, indent=2) + "\n")
+print(f"wrote {OUT}")
+
