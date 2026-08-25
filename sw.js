@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-441f30a0";
+const CACHE = "jiangshi-b3d9a6e9";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -48,22 +48,22 @@ const CACHE = "jiangshi-441f30a0";
 // shell that goes stale, and a new tiles.json against an old engine.js is
 // exactly the mismatch #28 shipped.
 const SHELL_DIGEST = {
-  "./":                                     "567fbcc1dc",
-  "index.html":                             "567fbcc1dc",
-  "game.html":                              "f4926f5f77",
+  "./":                                     "0e80592383",
+  "index.html":                             "0e80592383",
+  "game.html":                              "dda8741ca1",
   "rulebook.html":                          "e8b5d34b2b",
   "tiles.html":                             "4223b8bd14",
   "credits.html":                           "44405f11d9",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "6c904341b6",
-  "css/style.css":                          "dc58646a37",
-  "js/app.js":                              "bfcb74b7bd",
+  "css/style.css":                          "bc8401bcc5",
+  "js/app.js":                              "b8f55d0523",
   "js/eventstage.js":                       "9b2b92a8d9",
   "js/engine.js":                           "25ddb41e16",
   "js/board.js":                            "766fddc50b",
-  "js/render.js":                           "3d8f9800db",
+  "js/render.js":                           "77b54df57a",
   "js/audio.js":                            "048485f39d",
-  "js/menu.js":                             "b264b1ff1a",
+  "js/menu.js":                             "8430882653",
   "js/tiles.js":                            "2c0ee7043c",
   "js/shell.js":                            "5756f16e8a",
   "js/tally.js":                            "6d9c240fc0",
