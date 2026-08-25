@@ -1120,19 +1120,20 @@ export function breachAfterEvent(state, { deadEnd = false, fled = false, warded 
 export const OUTCOMES = {
   WIN_BURIAL: "WIN_BURIAL", // survived the rite at 亂葬崗 holding the tablet
   WIN_SEAL: "WIN_SEAL", // met the King at or above the threshold
-  // UNREACHABLE since #56 removed 溪澗's running-water rule. Kept declared, and
-  // kept in STATUS_FOR below, because retiring the ending is a separate decision
-  // — the strings, the epilogue branch and the verdict card all still exist and
-  // would have to go with it.
-  SURVIVED: "SURVIVED",
+  // FOUR OUTCOMES, NOT FIVE. 見到天亮 was reachable exactly one way — standing in
+  // 溪澗 at midnight, which declined the exchange — and #56 removed that rule.
+  // #59 retired the ending rather than leaving it declared and orphaned, so
+  // there is no SURVIVED here, in the epilogue, in either theme, or in the bot
+  // tallies. Everything that enumerates endings enumerates four.
   LOSS_HEALTH: "LOSS_HEALTH", // health reached 0 — combat, event, or a poison tick
   LOSS_KING: "LOSS_KING", // met him under the threshold
 };
 
+// Two ways to win and two to lose, and no third kind of ending. The "over"
+// status went with 見到天亮 — it existed for the one outcome that was neither.
 const STATUS_FOR = {
   WIN_BURIAL: "won",
   WIN_SEAL: "won",
-  SURVIVED: "over",
   LOSS_HEALTH: "lost",
   LOSS_KING: "lost",
 };
@@ -1212,11 +1213,10 @@ export function kingThreshold(state) {
 // it bought the only ending that cost nothing and proved nothing. #56 removed
 // that rule, so midnight is now the same appointment wherever you are standing.
 //
-// SURVIVED IS THEREFORE UNREACHABLE. It is deliberately still declared (see
-// OUTCOMES) rather than deleted: whether 見到天亮 is retired or given another
-// route is the user's decision and not this change's to make. Nothing in the
-// engine produces it, and tests/engine.test.js pins that it stays that way
-// until somebody rules otherwise.
+// 見到天亮 WENT WITH IT (#59). The ending had exactly that one route, the user
+// ruled it retired rather than rerouted, and it is gone from the outcomes, the
+// epilogue, both themes and the bot tallies — not left declared and orphaned.
+// Four endings now, and everything that enumerates them enumerates four.
 export function midnight(state, { use = {} } = {}) {
   if (state.status !== "playing") return { outcome: state.outcome };
 

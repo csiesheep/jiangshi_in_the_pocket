@@ -568,7 +568,9 @@ function finish(state, board, extra) {
 
 // ---- A thousand nights -----------------------------------------------------------
 export function run(data, policyName, seeds = 1000, from = 1, opts = {}) {
-  const tally = { WIN_BURIAL: 0, WIN_SEAL: 0, SURVIVED: 0, LOSS_HEALTH: 0, LOSS_KING: 0 };
+  // Four endings since #59 retired 見到天亮. Enumerated rather than tolerant:
+  // an outcome that is not one of these lands in `errors` and is meant to.
+  const tally = { WIN_BURIAL: 0, WIN_SEAL: 0, LOSS_HEALTH: 0, LOSS_KING: 0 };
   let reachedMidnight = 0;
   let bannerAtMidnight = 0;
   let sealAttackSum = 0;

@@ -61,7 +61,6 @@ function roomsPhrase(theme, n) {
 // to its last clause. Only the close says which one happened.
 function openKey(state, won) {
   if (won) return state.health <= 1 ? "won-hurt" : "won";
-  if (state.outcome === OUTCOMES.SURVIVED) return "water";
   if (state.outcome === OUTCOMES.LOSS_KING) return "king";
   if (state.lossReason === "combat") {
     return (state.foughtThisHour || 0) >= SWARMED ? "combat-swarmed" : "combat";

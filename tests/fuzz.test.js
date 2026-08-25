@@ -25,7 +25,9 @@ const [items, search, events, tiles] = await Promise.all([
 ]);
 const DATA = { items, search, events, tiles };
 
-const OUTCOMES = ["WIN_BURIAL", "WIN_SEAL", "SURVIVED", "LOSS_HEALTH", "LOSS_KING"];
+// Four, not five, and not "at least these four": a run that ends any other way
+// is a failure this suite exists to catch. 見到天亮 was retired in #59.
+const OUTCOMES = ["WIN_BURIAL", "WIN_SEAL", "LOSS_HEALTH", "LOSS_KING"];
 
 // A whole night, start to ending. The policy rolls from its OWN rng so it never
 // disturbs the game's streams — a fuzz that shifted the seeds it is testing

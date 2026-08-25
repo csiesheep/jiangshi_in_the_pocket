@@ -40,7 +40,6 @@
     "use-plain": "{item}.",
     "cinnabar-painted": "You grind the {item} and paint it again. {target} ×{n}.",
     "third-watch": "三更. The drum goes, and then nothing goes at all.",
-    "running-water": "He stops at the bank. Whatever he is, it will not cross running water.",
     "died-paying": "You write the {item} and there is not enough of you left to finish it.",
     "search-nowhere": "{item}, and nowhere to put it.",
     "replay-link": "Replay link: {url}",
@@ -230,7 +229,7 @@
     "pavilion": "Somewhere to sit, if this were a different night.",
     "pagoda-tree": "鬼樹. It heals because it is literally a medicine tree.",
     "stone-ward": "The stone at the junction, cut with its own name. Nothing comes onto this ground while it stands.",
-    "stream": "活水. They cannot cross it, so their blows land on nothing.",
+    "stream": "溪澗. Water over stones. Nothing to find, and nothing to keep you.",
     "earth-god-shrine": "The land god knows where the dead are buried. Ask once.",
     "mass-grave": "The pit for the unclaimed. Bury the 神主牌 here."
   },
@@ -359,7 +358,6 @@
     "_note": "The place, for flavour text. 屍毒 is the substance and 中毒 the state of having it — see poison.",
     "corpse-hostel": "義莊 the corpse hostel",
     "village": "村子 the village",
-    "running-water": "活水 running water",
     "corpse-poison": "屍毒 corpse-poison",
     "ghost-tree": "鬼樹 the ghost tree"
   },
@@ -367,14 +365,12 @@
     "_note": "How the night ended. WIN_SEAL and WIN_BURIAL must read as equals — same register, same length, neither grander. The seal is the hidden ending, not the better one.",
     "WIN_BURIAL": "下葬 The tablet is back in the ground",
     "WIN_SEAL": "鎮屍 The paper is on his forehead",
-    "SURVIVED": "見到天亮 You saw the night out",
     "LOSS_HEALTH": "傷重不治 You did not last the night",
     "LOSS_KING": "王帶走了你 The King took you",
     "subs": {
       "_note": "The line under each verdict title. WIN_BURIAL and WIN_SEAL are held to the same register AND the same length on purpose (§9): the seal is the hidden ending, not the better one, and a longer or louder sentence would be the game congratulating you for finding it. Nothing here explains the seal, and nothing anywhere else mentions it.",
       "WIN_BURIAL": "You filled the hole in before the light came.",
       "WIN_SEAL": "He did not take another step after that.",
-      "SURVIVED": "The water ran all night between you and him.",
       "LOSS_KING": "You met him at the third watch, and came up short.",
       "LOSS_HEALTH_combat": "The dead pulled you under.",
       "LOSS_HEALTH_health": "Your wounds were too deep."
@@ -401,8 +397,7 @@
       "health": "You bled out at {hour}",
       "health-worn": "The village wore you through by {hour}",
       "midnight": "The third watch found you still inside",
-      "king": "He came for you at the third watch",
-      "water": "You stood in running water until the sky went grey"
+      "king": "He came for you at the third watch"
     },
     "hand": {
       "armed": "{weapon} in hand",
@@ -500,7 +495,6 @@
     "search-other": "搜索 Search here for {what}.",
     "moon-gate": "Carries the 月門 moon gate — its {dir} way out leads outside the village, not to another room.",
     "seam": "Joins the village along its seam edge, the way back in.",
-    "running-water": "活水 running water. 殭屍 cannot cross it, so their attacks do you no harm while you stand here.",
     "take-tablet": "The {tablet} is here. Resolve the room's event, then one more for the opening of the coffin. Survive it and still be standing here, and it is yours.",
     "bury-tablet": "Break ground, then one more for the digging. Survive that holding the {tablet} and you have won.",
     "heal-1": "+1 Health if you end your turn here.",
