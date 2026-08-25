@@ -385,7 +385,17 @@ export function playNight(data, policyName, seed, opts = {}) {
   const board = B.createBoard(data, { seed });
   const die = E.makeRng((seed ^ 0x2545f491) >>> 0);
   const stats = { gifts: 0, giftIds: [], everHadBanner: false, bestAttack: 0,
-                  wardTurns: 0, breachesOnWard: 0 };
+                  wardTurns: 0, breachesOnWard: 0,
+                  // The pack is the lever now, so the cost of a small pack is
+                  // worth counting rather than inferring. `forcedChoices` is
+                  // every find that arrived at a full pack; `paidWithFood` is
+                  // the subset paid for with 糯米; `starvedAfter` is whether the
+                  // run later stood at 3 health or less with no food left.
+                  // Together they answer "how often was a run made to give up
+                  // something it turned out to need" — approximately, and the
+                  // approximation is stated rather than hidden: it counts the
+                  // case that actually kills runs, not every possible regret.
+                  forcedChoices: 0, paidWithFood: 0, starvedAfter: false };
   const ctx = { state, board, data, die, stats };
   const policy = POLICIES[policyName];
 
@@ -450,9 +460,11 @@ export function playNight(data, policyName, seed, opts = {}) {
           // Drop rice before equipment; a sword outlives a meal. A policy may
           // answer null instead, which refuses the find — sometimes the right
           // answer, since a fourth blade is not worth the slot.
+          stats.forcedChoices++;
           const spare = plan.dropChoice
             ? plan.dropChoice(state, r.id)
             : (E.held(state, "sticky-rice") ? "sticky-rice" : E.heldIds(state)[0]);
+          if (spare === "sticky-rice") stats.paidWithFood++;
           if (spare) E.pickUpItem(state, r.id, spare);
         }
       }
@@ -492,6 +504,11 @@ export function playNight(data, policyName, seed, opts = {}) {
     }
 
     if (E.held(state, "soul-banner")) stats.everHadBanner = true;
+    // Hungry and out of food, at any point after a pack decision. This is the
+    // shape "I had to drop something I needed" takes in play.
+    if (state.health <= 3 && !E.held(state, "sticky-rice") && stats.paidWithFood > 0) {
+      stats.starvedAfter = true;
+    }
     stats.bestAttack = Math.max(stats.bestAttack, E.effectiveAttack(state));
 
     if (state.status !== "playing") break;
@@ -557,6 +574,9 @@ export function run(data, policyName, seeds = 1000, from = 1, opts = {}) {
   let runsWithGift = 0;
   let everBanner = 0;
   let wardTurns = 0;
+  let forcedChoices = 0;
+  let paidWithFood = 0;
+  let starvedRuns = 0;
   let breachesOnWard = 0;
   let wardedAtMidnight = 0;
   let bestAttackSum = 0;
@@ -573,6 +593,9 @@ export function run(data, policyName, seeds = 1000, from = 1, opts = {}) {
       for (const g of r.giftIds || []) giftKinds[g] = (giftKinds[g] || 0) + 1;
       if (r.everHadBanner) everBanner++;
       wardTurns += r.wardTurns || 0;
+      forcedChoices += r.forcedChoices || 0;
+      paidWithFood += r.paidWithFood || 0;
+      if (r.starvedAfter) starvedRuns++;
       breachesOnWard += r.breachesOnWard || 0;
       if (r.atWard) wardedAtMidnight++;
       bestAttackSum += r.bestAttack || 0;
@@ -608,6 +631,10 @@ export function run(data, policyName, seeds = 1000, from = 1, opts = {}) {
     // Did the policy actually use the night's one safe square, and did the
     // breach reach it anyway?
     avgWardTurns: +(wardTurns / seeds).toFixed(2),
+    // The pack's cost, per run.
+    forcedChoicesPerRun: +(forcedChoices / seeds).toFixed(2),
+    paidWithFoodPerRun: +(paidWithFood / seeds).toFixed(2),
+    starvedAfterDropping: +((starvedRuns / seeds) * 100).toFixed(1),
     breachesOnWard,
     wardedAtMidnight,
     avgBestAttack: +(bestAttackSum / seeds).toFixed(2),
