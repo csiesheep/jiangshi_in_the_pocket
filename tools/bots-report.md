@@ -82,6 +82,44 @@ your way for, not on ordinary competence.
 "a heavy talisman", it is **血符 specifically** — the one that costs a point of
 your own blood at the door. Six things, not five, if you count the tablet.
 
+## What #46 cost — 七星劍 15 % → 10 %
+
+Landed after option A and measured against it, since the sword is in the seal
+recipe and the two interact. The five points went to the weapon table's blank,
+so the sword got rarer without the junk blades getting commoner — under #36 that
+second route would have compounded the dry-up curve rather than isolating the
+lever.
+
+| | after A | after #46 | |
+|---|---|---|---|
+| **hunter burial** | 344 / 374 | **330 / 354** | −14 / −20 |
+| **turtle survived (活水)** | 53 / 66 | **40 / 46** | −13 / −20, the largest proportional hit |
+| adept reaches midnight | 32.9 / 34.7 % | **26.1 / 27.4 %** | −6.8 / −7.3 points |
+| camper reaches midnight | 37.6 / 38.0 % | 35.4 / 35.5 % | −2.2 / −2.5 |
+| adept seal | 17 / 17 (1.7 %) | **10 / 13 (1.0 / 1.3 %)** | −7 / −4 |
+| adept attack at midnight | 9.16 / 9.03 | 9.11 / 8.93 | unmoved |
+
+**This is the expensive lever behaving exactly as priced**, and the pricing
+report said so before it was chosen: sword supply is what keeps you alive, so
+starving it starves survival. The 5 % experiment cost 29 burials; 10 % costs
+14–20, which is about the proportional half you would expect.
+
+Two things worth the user seeing rather than discovering:
+
+**活水 took the biggest relative hit.** Turtle survivals fell by a quarter to a
+third (53 → 40, 66 → 46). It is a whole ending, and nothing about #46 was aimed
+at it — the turtle simply fights the same nights with a worse blade. Burials
+fell 4–5 % relative, which is the milder version of the same thing.
+
+**The seal went further under target than the ruling asked for.** It was 1.7 %
+and at target after option A; it is now 1.0 % and 1.3 %. Still inside "< 2 %", so
+nothing is broken — but the ending was already where the user put it, and this
+change moved it another third of the way down as a side effect of a decision
+about swords. If 1.7 % was the intended resting place, 攝魂幡 could go back from
+2 % to 3 % to recover it without touching survival at all; the pricing table has
+that row (banner 3 + bar 13/13 was 7.0/5.9, but banner 3 at bar 14/13 is not yet
+measured and would be a single cheap run).
+
 ## Where the endings sit now
 
 - **鎮屍 (seal)**: 1.7 % for a player who knows the recipe, and effectively zero

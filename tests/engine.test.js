@@ -738,22 +738,24 @@ test("search: null in a table is a real result — you found nothing", () => {
 // changing what "spoken for" means: a blade you abandoned at a replace is lying
 // on some floor, not circulating. So the curve is back, and it climbs through
 // weapons that PASSED THROUGH your hands rather than weapons you still hold.
-test("search: the weapon miss climbs 10 -> 35 -> 60 -> 85 as blades pass through", () => {
+test("search: the weapon miss climbs 15 -> 40 -> 65 -> 90 as blades pass through", () => {
   const s = game({ seed: 1 });
   const at = () => Math.round(E.missChance(s, "weapon"));
-  eq(at(), 10, "bare-handed: only the table's own null");
+  // The floor is the table's own blank, which went 10 -> 15 when 七星劍 dropped
+  // to 10 %: the five points came off the sword and went to finding nothing.
+  eq(at(), 15, "bare-handed: only the table's own null");
 
   E.pickUpItem(s, "precept-knife");
-  eq(at(), 35, "one sword: its 25 now finds nothing");
+  eq(at(), 40, "one sword: its 25 now finds nothing");
 
   // Swap it away. The knife is on a floor somewhere and never comes back, so
   // two blades are out of the night while only one is in hand.
   E.replaceWeapon(s, "peachwood-sword");
-  eq(at(), 60, "two — the one held and the one left behind");
+  eq(at(), 65, "two — the one held and the one left behind");
 
   // And refusing counts the same: it was offered at a decision and declined.
   E.declineWeapon(s, "coin-sword");
-  eq(at(), 85, "three — only 七星劍 is still worth turning over");
+  eq(at(), 90, "three — only 七星劍 is still worth turning over, at one in ten");
 });
 
 test("search: a unique already held returns nothing, and does not duplicate", () => {

@@ -130,10 +130,10 @@ test("§13: a warded turn is worth ~0.85 / ~1.25 / ~2.3 at Attack 2", () => {
 // These used to be the same number. They are not any more, and the gap IS the
 // hidden ending: the sword is something a good player expects to find, and the
 // banner is something they mostly will not.
-test("§13: ~7 searches for 七星劍, ~50 for 攝魂幡", () => {
+test("§13: ~10 searches for 七星劍, ~50 for 攝魂幡", () => {
   const p = (table, id) => search[table].find((e) => e.id === id).p;
-  eq(p("weapon", "sevenstar-sword"), 15);
-  eq(Math.round(100 / p("weapon", "sevenstar-sword")), 7, "one in fifteen, about seven rummages");
+  eq(p("weapon", "sevenstar-sword"), 10);
+  eq(Math.round(100 / p("weapon", "sevenstar-sword")), 10, "one in ten, about ten rummages");
   eq(p("relic", "soul-banner"), 2);
   eq(Math.round(100 / p("relic", "soul-banner")), 50, "one in fifty, and only at 土地廟");
   // Which is the point: a night has thirty turns, so fifty rummages is not a
