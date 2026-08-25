@@ -165,7 +165,11 @@
     "relic-not-yet": "Not yet",
     "relic-held": "Held",
     "brand": "The Third Watch: The Jiangshi",
-    "title-copy": "Copy replay link"
+    "title-copy": "Copy replay link",
+    "fast-on": "Fast mode on",
+    "fast-off": "Fast mode off",
+    "title-fast": "Fast mode — the beats without the animations",
+    "stage-skip": "press anything to go on"
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",
