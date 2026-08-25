@@ -516,8 +516,18 @@ export function playNight(data, policyName, seed, opts = {}) {
       // which is the opposite of the question being asked.
       const hadBanner = !!use.banner;
       const atWard = B.isWarded(board);
+      // The five things the seal needs, recorded one by one so the funnel can
+      // say WHICH of them was missing rather than only that the total was short.
+      const blade = E.equippedWeapon(state);
+      const kit = {
+        sevenstar: blade === "sevenstar-sword",
+        buffed: !!(blade && state.buffed[blade]),
+        banner: !!use.banner,
+        heavyTalisman: use.talisman === "blood-talisman" || use.talisman === "fivethunder-talisman",
+        tablet: !!state.tablet,
+      };
       const r = E.midnight(state, { runningWater: water, use });
-      return finish(state, board, { atMidnight, threshold: r.threshold, water, hadBanner, atWard, ...stats });
+      return finish(state, board, { atMidnight, threshold: r.threshold, water, hadBanner, atWard, kit, ...stats });
     }
     E.advanceTurn(state);
   }

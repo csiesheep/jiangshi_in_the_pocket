@@ -4,112 +4,102 @@ Produced by `tools/bots.html` (`?seeds=N`, `?from=S` for a disjoint batch).
 Deterministic: the same seed replays the same night. Regenerate after any change
 to the tables, the engine, or the map.
 
-Companions: `tools/sweep.html` replays the same seeds against a patched relic
-table; `tools/diagnose.html` prints the seal funnel stage by stage. Both patch
-data in memory and write nothing.
+Companions: `tools/diagnose.html` prints the seal funnel stage by stage;
+`tools/sweep.html` replays the same seeds against a patched relic table. Both
+patch data in memory and write nothing. Lever pricing for #43 is in
+`tools/lever-pricing.md`.
 
-**Measured after #31, #35 and #36 together** — equipment hands, 石敢當 stopping
-破牆, and abandoned blades leaving the night. One measurement of the final
-world, taken from a detached read-only checkout on a fresh origin.
+**Measured after #43 option A** — 攝魂幡 2 % at the shrine, and the bar at 14
+(13 carrying the 神主牌).
 
 ## Batch A — seeds 1..1000
 
-| policy | win % | burial | seal | survived | died | king | reached midnight | avg atk @ midnight | ever held banner |
-|---|---|---|---|---|---|---|---|---|---|
-| hunter  | **34.7 %** | 344 | 3   | 1  | 593 | 59  | 6.3 %  | 5.16  | 10.7 % |
-| duelist | 1.1 %      | 0   | 11  | 0  | 926 | 63  | 7.7 %  | 8.86  | 13.0 % |
-| **adept**   | **25.9 %** | 0 | **259** | 5 | 680 | 56 | **32.0 %** | **11.88** | 38.6 % |
-| turtle  | 0 %        | 0   | 0   | 53 | 947 | 0   | 5.3 %  | 5.26  | 8.0 %  |
-| camper  | 0 %        | 0   | 0   | 0  | 627 | 373 | 37.3 % | 1.86  | 3.5 %  |
+| policy | win % | burial | seal | survived | died | king | reached midnight | avg atk @ midnight |
+|---|---|---|---|---|---|---|---|---|
+| hunter  | **34.4 %** | 344 | 0 | 1  | 592 | 63  | 6.4 %  | 4.77 |
+| duelist | 0.1 %      | 0   | 1 | 0  | 926 | 73  | 7.7 %  | 7.84 |
+| **adept**   | **1.7 %** | 0 | **17** | 0 | 671 | 312 | **32.9 %** | 9.16 |
+| turtle  | 0 %        | 0   | 0 | 53 | 947 | 0   | 5.3 %  | 5.00 |
+| camper  | 0 %        | 0   | 0 | 0  | 624 | 376 | 37.6 % | 1.83 |
 
 ## Batch B — seeds 5001..6000
 
 | policy | win % | burial | seal | survived | died | king | reached midnight | avg atk @ midnight |
 |---|---|---|---|---|---|---|---|---|
-| hunter  | 38.0 % | 374 | 6 | 1  | 541 | 78  | 8.5 %  | 4.27  |
-| duelist | 0.9 %  | 0   | 9 | 1  | 914 | 76  | 8.7 %  | 8.39  |
-| **adept**   | **29.9 %** | 0 | **299** | 6 | 650 | 45 | **35.0 %** | **12.08** |
-| turtle  | 0 %    | 0   | 0 | 65 | 935 | 0   | 6.5 %  | 5.09  |
-| camper  | 0 %    | 0   | 0 | 0  | 620 | 380 | 38.0 % | 2.00  |
+| hunter  | 37.4 % | 374 | 0 | 1  | 540 | 85  | 8.6 %  | 3.80 |
+| duelist | 0.1 %  | 0   | 1 | 1  | 913 | 85  | 8.7 %  | 7.37 |
+| **adept**   | **1.7 %** | 0 | **17** | 2 | 653 | 328 | **34.7 %** | 9.03 |
+| turtle  | 0 %    | 0   | 0 | 66 | 934 | 0   | 6.6 %  | 4.82 |
+| camper  | 0 %    | 0   | 0 | 0  | 620 | 380 | 38.0 % | 1.99 |
 
-## What each of the three changes actually did
+## What option A cost
 
-Same seeds throughout, so every difference is the rule named.
+Same seeds, so every difference is the two constants and one table value.
 
-| | hunter burial | adept seal | hunter reaches midnight |
+| | before A | after A | |
 |---|---|---|---|
-| before the hands (#28 world) | 336 / 365 | 230 / 266 | 1.5 % / 1.4 % |
-| **#31** hands | 344 / 374 | 250 / 290 | 3.4 % / 3.7 % |
-| **#35** ward blocks 破牆 | 344 / 374 | 259 / 299 | 6.3 % / 8.5 % |
-| **#36** abandoned blades | 344 / 374 | 259 / 299 | 6.3 % / 8.5 % |
+| **adept seal** | 259 / 299 | **17 / 17** | the target: 25.9 % → 1.7 %, both batches |
+| hunter burial | 344 / 374 | 344 / 374 | **identical** |
+| turtle survived | 53 / 66 | 53 / 66 | **identical** |
+| camper → King | 373 / 380 | 376 / 380 | +3 / +0 |
+| adept reaches midnight | 32.0 / 35.0 % | 32.9 / 34.7 % | +0.9 / −0.3 |
+| adept attack at midnight | 11.88 / 12.08 | 9.16 / 9.03 | the mechanism, not a side effect |
 
-**#31 (the hands) was the difficulty change**, and it landed on survival rather
-than on power: attack at midnight barely moved, but the pack stopped being half
-equipment and became nearly all medicine. Everyone lived longer.
+Burials and survivals are untouched to the run. The only number that moved
+materially other than the seal is the attack players bring to the door, and that
+is the change itself: most arrivals no longer hold a banner.
 
-**#35 (the ward) is worth about a point of seal and doubles the hunter's
-midnight arrivals** — 1.5 % → 6.3 % across the whole arc. That second number is
-the interesting one and it is not about the adept at all: the hunter blunders
-into dead ends far more often than it plans to, and a corner that no longer
-kills it is a corner it walks out of. Its burials do not move, because a hunter
-that reaches midnight has already failed to bury anything — the deaths simply
-move from `LOSS_HEALTH` to `LOSS_KING` (30 → 59, 30 → 78).
+## The funnel — what actually stops a seal now
 
-**#36 (abandoned blades) measured no change at all**, in either batch, to any
-policy — the tables are byte-identical to the #35 run. That is the correct
-result rather than a suspicious one, and it is worth writing down why:
+`tools/diagnose.html`, adept, both batches, on the landed world. This answers
+the question directly: **option A left P(reach the door) alone and cut P(what
+you brought was enough) from ~81 % to ~5 %.**
 
-- `search` consumes exactly one draw from the stream whatever the outcome, so
-  turning an OFFER_REPLACE into a NOTHING does not shift a single later roll.
-- The only re-findable blade is one you already put down, which by construction
-  you judged worse than what you are holding. Pre-#36 the bot was offered it and
-  declined; post-#36 it is not offered. Same state either way.
+| stage | batch A | batch B |
+|---|---|---|
+| reached midnight | 329 (32.9 %) | 347 (34.7 %) |
+| …not standing in 活水 | 329 | 345 (2 presented nothing) |
+| …七星劍 in hand | 97.6 % | 95.7 % |
+| …with 真火符 burned in | 90.3 % | 89.9 % |
+| …**攝魂幡 to spend** | **24.3 %** | **21.3 %** |
+| …a heavy talisman | 94.8 % | 96.0 % |
+| …**carrying the 神主牌** | **40.7 %** | **47.0 %** |
+| …all five at once | 7.6 % | 7.8 % |
+| …**cleared the bar** | **5.2 %** | **4.9 %** |
 
-So #36's value is not in the bot numbers. It is in the dry-up curve it restores
-for a human, and in the map making sense — the sword you abandoned is lying in a
-room, not circulating.
+Before A, the same conditional was 259/320 ≈ 81 % and 299/350 ≈ 85 %.
 
-## Weapon rooms dry up again
+**Two gates carry the whole reduction**, and they are the two the ruling chose:
+the banner (24 %, down from 84 %) and the tablet (41–47 %, unchanged in absolute
+terms but now compulsory rather than a discount). Sword, buff and talisman all
+sit at 90–98 % — a competent player still assembles those almost every time,
+which is the point: the ending is gated on the two things you have to go out of
+your way for, not on ordinary competence.
 
-`missChance` climbs 10 → 35 → 60 → 85 once more. #31 had nearly killed it: one
-weapon in hand meant the miss stopped at 35 and a weapon table stayed 65 %
-productive all night. #36 restores the curve by changing what "spoken for"
-means, and the restored version is the better one — it counts blades that
-*passed through* your hands rather than blades you are implausibly carrying at
-once, which is what the old rule had to pretend.
+**One detail sharper than the recipe suggests.** All five pieces at once happens
+7.6 % of the time, but only 5.2 % clear the bar. The gap is players holding 五雷
+(4) rather than 血符 (5): 8 + 4 = 12, one short of 13. So the fifth piece is not
+"a heavy talisman", it is **血符 specifically** — the one that costs a point of
+your own blood at the door. Six things, not five, if you count the tablet.
 
-## Pricing the pack, re-measured in this world
+## Where the endings sit now
 
-The amendment flagged that the hands drop pack pressure and left the size open.
-Adept and hunter, 1000 seeds, `MAX_ITEMS` varied and nothing else:
-
-| pack | adept seal | adept reaches midnight | hunter burial |
-|---|---|---|---|
-| **6** (shipped) | 259 | 32.0 % | 344 |
-| 5 | 254 | 31.5 % | 343 |
-| 4 | 218 | 27.2 % | 334 |
-
-**Five buys back almost nothing** — half a point of seal, and the hunter does not
-move. The hands freed roughly two slots of pressure and taking one back does not
-undo them. **Four is where it bites**: the adept drops 4 pp and its midnight
-arrivals fall by a sixth.
-
-So if the intent is to hold the pre-#31 difficulty, five is not the lever and
-four is a bigger change than "one fewer slot" sounds. If the intent is that
-equipment simply stopped competing with medicine, six is already right and the
-extra survival is the feature. Unchanged conclusion from the #31 measurement,
-now taken in the world that actually ships.
+- **鎮屍 (seal)**: 1.7 % for a player who knows the recipe, and effectively zero
+  for anyone who does not — the other four policies score 1 seal between them
+  per 1000 nights, down from 14–15.
+- **鎮墓 (burial)**: 34.4 / 37.4 %, untouched by any of this.
+- **活水 (survived)**: the turtle's 5.3–6.6 %, untouched.
+- Everything else is a loss, and the King now takes 31–33 % of adept nights
+  where he used to take 5 %: the runs that would have sealed now arrive and fall
+  short. That is the ending being hidden rather than removed — the door is still
+  reached, and what happens there is simply usually not enough.
 
 ## Against what the design expected
 
-**"Camper and turtle ≈ never win" — still true**, zero across 4000 nights, though
-both are materially harder to kill than before the hands.
+**"Camper and turtle ≈ never win" — still true**, zero across 4000 nights.
 
-**"Banner-less midnight ≈ always fatal" — confirmed.** The camper reaches
-midnight in 37–38 % of runs and converts none: average attack 1.86 against a
-threshold of 12.
+**"Banner-less midnight ≈ always fatal" — now the ordinary case**, and by
+design: 76–79 % of arrivals have no banner at all.
 
-**The seal is a ~26–30 % ending for a player who knows the recipe.** What that
-knowledge now amounts to: rooms can be rummaged every turn you stand in them,
-talismans are consumed, 七星劍 is in the weapon table, one square on the map draws
-nothing and is not a trap — and the blade you leave behind is not coming back.
+**"鎮屍 is hidden" — true again by the number as well as the presentation**, at
+1.7 % against the 0.4 % it measured when the ruling was made.

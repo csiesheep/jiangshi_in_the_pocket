@@ -22,7 +22,11 @@
 
     const q = new URLSearchParams(location.search);
     const SEEDS = Number(q.get("seeds") || 2000);
-    const P = Number(q.get("p") || 15);
+    // Defaults to WHAT SHIPS. It used to default to 15, which quietly re-wrote
+    // the relic table on every run — so after 攝魂幡 dropped to 2 % this page
+    // was still measuring the old odds and would have reported the wrong number
+    // for the very change it was being used to close out.
+    const P = q.get("p") === null ? null : Number(q.get("p"));
     const POLICY = q.get("policy") || "duelist";
     const ADD = (q.get("relicAdd") || "").split(",").filter(Boolean);
     // A disjoint seed range, so "reproducible" means a second sample rather
@@ -30,10 +34,13 @@
     const FROM = Number(q.get("from") || 1);
 
     const data = await loadData("..");
-    const rice = Math.min(40, 100 - P);
-    const blank = 100 - P - rice;
-    data.search.relic = [{ id: "sticky-rice", p: rice }, { id: "soul-banner", p: P }]
-      .concat(blank > 0 ? [{ id: null, p: blank }] : []);
+    if (P !== null) {
+      const rice = Math.min(40, 100 - P);
+      const blank = 100 - P - rice;
+      data.search.relic = [{ id: "sticky-rice", p: rice }, { id: "soul-banner", p: P }]
+        .concat(blank > 0 ? [{ id: null, p: blank }] : []);
+    }
+    const shippedP = (data.search.relic.find((e) => e.id === "soul-banner") || {}).p;
     for (const w of ["indoor", "outdoor"]) {
       for (const t of data.tiles[w]) if (ADD.includes(t.id)) t.search = "relic";
     }
@@ -42,6 +49,9 @@
     // exactly one of these, and the point is to find out which one carries the
     // losses rather than assuming.
     let reachedMidnight = 0, withBanner = 0, sealed = 0;
+    let onWater = 0;
+    const held = { sevenstar: 0, buffed: 0, banner: 0, heavyTalisman: 0, tablet: 0 };
+    let allFive = 0;
     let shortOfThreshold = 0, noBannerAtMidnight = 0;
     const shortfalls = [];
     const atkHist = {};
@@ -52,6 +62,11 @@
       if (r.everHadBanner) everBanner++;
       if (r.atMidnight === undefined) continue;
       reachedMidnight++;
+      if (r.water) onWater++;
+      if (r.kit) {
+        for (const k of Object.keys(held)) if (r.kit[k]) held[k]++;
+        if (Object.keys(held).every((k) => r.kit[k])) allFive++;
+      }
       if (r.everHadBanner) everBannerAtMidnight++;
       atkHist[r.atMidnight] = (atkHist[r.atMidnight] || 0) + 1;
       if (r.hadBanner) withBanner++; else noBannerAtMidnight++;
@@ -66,7 +81,8 @@
     const median = (a) => a.length ? a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)] : 0;
 
     const lines = [
-      `policy ${POLICY} · seeds ${FROM}..${FROM + SEEDS - 1} · banner ${P} % · relic tiles ${1 + ADD.length}`,
+      `policy ${POLICY} · seeds ${FROM}..${FROM + SEEDS - 1} · banner ${shippedP} %` +
+        `${P === null ? " (as shipped)" : " (patched)"} · relic tiles ${1 + ADD.length}`,
       ``,
       `ever held the banner        ${everBanner}  (${pct(everBanner, SEEDS)} of all runs)`,
       `reached midnight            ${reachedMidnight}  (${pct(reachedMidnight, SEEDS)} of all runs)`,
@@ -75,6 +91,18 @@
       `  ...without it             ${noBannerAtMidnight}  (${pct(noBannerAtMidnight, reachedMidnight)} of arrivals)`,
       `  ...sealed                 ${sealed}  (${pct(sealed, reachedMidnight)} of arrivals)`,
       `  ...short of the threshold ${shortOfThreshold}  (${pct(shortOfThreshold, reachedMidnight)} of arrivals)`,
+      ``,
+      ``,
+      `THE FUNNEL, stage by stage:`,
+      `  reached midnight            ${reachedMidnight}  (${pct(reachedMidnight, SEEDS)} of all runs)`,
+      `  ...not standing in 活水     ${reachedMidnight - onWater}  (${onWater} presented nothing at all)`,
+      `  ...七星劍 in hand           ${held.sevenstar}  (${pct(held.sevenstar, reachedMidnight)})`,
+      `  ...with 真火符 burned in    ${held.buffed}  (${pct(held.buffed, reachedMidnight)})`,
+      `  ...攝魂幡 to spend          ${held.banner}  (${pct(held.banner, reachedMidnight)})`,
+      `  ...a heavy talisman         ${held.heavyTalisman}  (${pct(held.heavyTalisman, reachedMidnight)})`,
+      `  ...carrying the 神主牌      ${held.tablet}  (${pct(held.tablet, reachedMidnight)})`,
+      `  ...ALL FIVE                 ${allFive}  (${pct(allFive, reachedMidnight)} of arrivals)`,
+      `  ...cleared the bar          ${sealed}  (${pct(sealed, reachedMidnight)} of arrivals)`,
       ``,
       `median shortfall at midnight: ${median(shortfalls)} attack`,
       `attack at midnight, histogram:`,
