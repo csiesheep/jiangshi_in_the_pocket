@@ -120,6 +120,54 @@ about swords. If 1.7 % was the intended resting place, 攝魂幡 could go back f
 that row (banner 3 + bar 13/13 was 7.0/5.9, but banner 3 at bar 14/13 is not yet
 measured and would be a single cheap run).
 
+## What #47 cost — the pack from six to four
+
+| | after #46 | after #47 | |
+|---|---|---|---|
+| hunter burial | 330 / 354 | 322 / 342 | −8 / −12 |
+| **turtle survived (活水)** | 40 / 46 | **31 / 33** | −9 / −13 |
+| camper reaches midnight | 35.4 / 35.5 % | **27.0 / 28.2 %** | −8.4 / −7.3 points |
+| adept reaches midnight | 26.1 / 27.4 % | 23.3 / 24.3 % | −2.8 / −3.1 |
+| adept seal | 10 / 13 | **9 / 10 (0.9 / 1.0 %)** | −1 / −3 |
+| adept attack at midnight | 9.11 / 8.93 | 9.08 / 8.91 | unmoved |
+
+Exactly the predicted shape: the loss is in the **arrivals** term, not the
+conversion term. Attack at the door has not moved across either change — players
+who get there are as well armed as ever. Fewer of them get there.
+
+## The three changes together, which is the part worth looking at
+
+Each was ruled separately and each is defensible on its own. Stacked, same seeds
+throughout:
+
+| | post-A | after #46 | after #47 | total |
+|---|---|---|---|---|
+| hunter burial | 344 / 374 | 330 / 354 | 322 / 342 | **−6 % / −9 %** |
+| **turtle survived (活水)** | 53 / 66 | 40 / 46 | 31 / 33 | **−42 % / −50 %** |
+| adept reaches midnight | 32.9 / 34.7 % | 26.1 / 27.4 % | 23.3 / 24.3 % | **−29 % / −30 %** |
+| adept seal | 17 / 17 (1.7 %) | 10 / 13 | 9 / 10 (0.9 / 1.0 %) | **−47 % / −41 %** |
+
+**活水 has been halved.** It was never the target of either ruling — the turtle
+simply fights the same nights with a worse sword and less food. It is a whole
+ending, and of the five it now has the least room left: 31–33 nights in a
+thousand.
+
+**The seal sits at 0.9–1.0 %, against the 1.7 % option A was deliberately tuned
+to.** Still inside the "< 2 %" the user asked for, and still above the ~0.5 %
+tripwire where I would have stopped rather than continued. But it arrived there
+as a side effect of two decisions about swords and slots, not as a decision
+about the seal — and it is now roughly half of where it was consciously placed.
+
+Neither of these is a reason not to have landed the rulings. Both are the kind
+of thing that is easy to miss when changes land one at a time and each looks
+small, which is why they are here in one table.
+
+**If the user wants the seal back at 1.7 % it costs nothing elsewhere**: 攝魂幡
+from 2 % to 3 % moves the conversion term only, and the pricing work showed
+banner odds leave burial and survival untouched. 活水 has no equally free lever —
+it is downstream of the sword and the food, so recovering it means giving back
+part of #46 or #47.
+
 ## Where the endings sit now
 
 - **鎮屍 (seal)**: 1.7 % for a player who knows the recipe, and effectively zero
