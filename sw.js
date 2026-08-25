@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-d5e91e88";
+const CACHE = "jiangshi-79c3ae37";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -51,17 +51,17 @@ const SHELL_DIGEST = {
   "./":                                     "0e80592383",
   "index.html":                             "0e80592383",
   "game.html":                              "dda8741ca1",
-  "rulebook.html":                          "2cfe41c9f0",
+  "rulebook.html":                          "76baac288c",
   "tiles.html":                             "4223b8bd14",
   "credits.html":                           "44405f11d9",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "6c904341b6",
-  "css/style.css":                          "e7bb60a2a3",
+  "css/style.css":                          "8afbe18df0",
   "js/app.js":                              "2911c374ec",
   "js/eventstage.js":                       "9b2b92a8d9",
   "js/engine.js":                           "07ae6d5cf9",
   "js/board.js":                            "766fddc50b",
-  "js/render.js":                           "0ab89d5073",
+  "js/render.js":                           "3368865d8f",
   "js/audio.js":                            "048485f39d",
   "js/menu.js":                             "8430882653",
   "js/tiles.js":                            "50b050f809",
@@ -70,7 +70,7 @@ const SHELL_DIGEST = {
   "js/epilogue.js":                         "a0348584ac",
   "js/lang.js":                             "1e7b3f3b4a",
   "js/rulebook.js":                         "11dd15125f",
-  "assets/icons.svg":                       "eb03d26019",
+  "assets/icons.svg":                       "a995441027",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
   "assets/icons/icon-192.png":              "83b7d80dc2",
   "assets/icons/icon-512.png":              "8114a3228c",
