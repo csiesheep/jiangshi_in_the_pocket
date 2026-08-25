@@ -4,10 +4,25 @@
 // can be read back headlessly.
 
 const results = [];
+// Async bodies settle after test() has returned. Their promises are collected
+// here and report() waits on them before counting anything.
+const settling = [];
 
 export function test(name, fn) {
   try {
-    fn();
+    const out = fn();
+    if (out && typeof out.then === "function") {
+      // An async test used to be incapable of failing. test() wrote down "ok"
+      // the moment fn() returned a promise, and the rejection arrived later as
+      // an unhandled one — so three suites carried tests that had never once
+      // been checked, and a fourth was about to. The entry is recorded in
+      // registration order to keep the report readable, then corrected in
+      // place if the promise rejects.
+      const entry = { name, ok: true };
+      results.push(entry);
+      settling.push(out.then(null, (err) => { entry.ok = false; entry.err = err; }));
+      return;
+    }
     results.push({ name, ok: true });
   } catch (err) {
     results.push({ name, ok: false, err });
@@ -68,6 +83,8 @@ async function declaredCounts(suites) {
 // `suites` is the same list index.html imported, in the same order. Pass it and
 // the report can tell you the run is stale; omit it and it reports as before.
 export async function report(suites = []) {
+  // Nothing is counted until every async body has settled.
+  await Promise.all(settling);
   const passed = results.filter((r) => r.ok).length;
   const failed = results.length - passed;
 

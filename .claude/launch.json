@@ -98,6 +98,18 @@
         "../jiangshi_in_the_pocket"
       ],
       "port": 8825
+    },
+    {
+      "name": "verify-alt",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8833",
+        "--directory",
+        "../jiangshi_in_the_pocket"
+      ],
+      "port": 8833
     }
   ]
 }

@@ -16,6 +16,54 @@
 
 const CACHE = "jiangshi-v23";
 
+// A fingerprint of every file in SHELL, checked by tests/shell.test.js.
+//
+// The line four comments up — bump CACHE when anything in SHELL changes — was
+// true and documented and got missed anyway (#28), because it lives in a file
+// nobody opens to edit js/engine.js. So it is a failing test now instead of a
+// sentence: change a shell file and the suite goes red until this block is
+// updated, and updating it means being here, where the bump is.
+//
+// The version is part of the fingerprint on purpose. Pasting new hashes without
+// bumping CACHE leaves the suite red, so the two cannot come apart.
+//
+// The test prints the replacement block on failure — do not compute it by hand.
+//
+// Only SHELL is covered. data/ and assets/audio/ are served network first (see
+// RUNTIME below), so they reach players without a bump; it is the cache-first
+// shell that goes stale, and a new tiles.json against an old engine.js is
+// exactly the mismatch #28 shipped.
+const SHELL_DIGEST = {
+  "@cache":                                 "jiangshi-v23",
+  "./":                                     "4be996b2dc",
+  "index.html":                             "4be996b2dc",
+  "game.html":                              "4927d8bfaf",
+  "rulebook.html":                          "b1ca06f6e1",
+  "tiles.html":                             "da533137c2",
+  "credits.html":                           "1c3770a50d",
+  "manifest.webmanifest":                   "7cb5f47143",
+  "favicon.svg":                            "b60eec3587",
+  "css/style.css":                          "177ed38bf1",
+  "js/app.js":                              "5de875cb99",
+  "js/engine.js":                           "1982da598a",
+  "js/board.js":                            "fa1ad58cb1",
+  "js/render.js":                           "08ed7be5af",
+  "js/audio.js":                            "df974b7abb",
+  "js/menu.js":                             "9a208967ba",
+  "js/tiles.js":                            "7a64ef7abf",
+  "js/shell.js":                            "6b3810be0a",
+  "js/tally.js":                            "758853a682",
+  "js/epilogue.js":                         "b01470afde",
+  "js/lang.js":                             "1e39e11bb9",
+  "js/rulebook.js":                         "a2a55d1dab",
+  "assets/icons.svg":                       "39bee1b54d",
+  "assets/fonts/imfellenglish-latin.woff2": "248300df16",
+  "assets/icons/icon-192.png":              "83b7d80dc2",
+  "assets/icons/icon-512.png":              "8114a3228c",
+  "assets/icons/icon-192-maskable.png":     "62f6319064",
+  "assets/icons/icon-512-maskable.png":     "2ac5be310e",
+};
+
 // Everything needed to open the game with no network. Relative paths on
 // purpose: this ships under a subpath (…/jiangshi_in_the_pocket/) and absolute
 // ones would silently point at the domain root.
