@@ -851,6 +851,16 @@
     <path d="M60 12C77 12 90 27 90 45c0 12-3 19-7 24l-2 11c-1 9-9 16-21 16s-20-7-21-16l-2-11c-4-5-7-12-7-24 0-18 13-33 30-33Z"
           stroke-width="2.6"/>
 
+    <!-- The 符 on the brow. This is what keeps a 僵屍 docile, so it is present
+         on the weakest tier and GONE on every tier above it: losing the paper
+         is the escalation, not a decoration on top of one.
+         Toggled from CSS through a custom property because inherited properties
+         are the only thing that crosses a <use> shadow boundary. -->
+    <g opacity="var(--zb-seal, 1)">
+      <path d="M53 6h14v26H53z" fill="currentColor" fill-opacity=".30" stroke-width="2"/>
+      <path d="M60 10v18M56 15h8M56 21h8" stroke-width="1.6" stroke-opacity=".75"/>
+    </g>
+
     <!-- brow, and the rims that catch the light -->
     <path d="M34 40c6-4 13-6 19-5M67 35c6-1 13 1 19 5" stroke-width="2.6"/>
     <path d="M37 47a10.5 9 0 1 0 21 0 10.5 9 0 1 0-21 0Z" stroke-width="2.2"/>

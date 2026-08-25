@@ -1155,6 +1155,62 @@ const SCARE_SLOTS = [
   [50, 21, 0.5, 0.34],
 ];
 
+// ---- The four 僵屍 -------------------------------------------------------------
+// Strength is HOW IT ARRIVES, not just how many faces. n runs 3 to 6 and each
+// is its own staging: 白殭 is a stiff thing at the door and 飛殭 is already on
+// top of you, with the grammar escalating on every axis at once — how close it
+// lands, how late it commits, the rhythm of the hops, and how much the room
+// gives up about it.
+//
+// The names are design vocabulary and never reach a player: no strings, ASCII
+// class names only, per the glossary contract.
+//
+// `lead` is the scale the front face enters at, which is the whole of "distance
+// is the tier" — under reduced motion it becomes the held scale, because that is
+// the one axis that survives with no movement at all. `at` is how late the front
+// face commits, as a fraction of the envelope. `beats` is the hop rhythm in
+// seconds, and it is what carries the tier in calm mode where no face arrives.
+//
+// NO NEW TIME. Every tier plays inside SCARE_BASE_MS + weight×200, the envelope
+// that was already written for this band — #33 capped the thirty-times tax and
+// this does not reopen it.
+const SCARE_TIERS = {
+  3: { cls: "n3", lead: 0.82, at: 0.34, beats: [0, 0.26] },
+  4: { cls: "n4", lead: 1.00, at: 0.22, beats: [0, 0.16, 0.32] },
+  // The fourth hop lands off the grid on purpose — three even and one late is
+  // the first rhythm that does not resolve, and an unresolved rhythm is the
+  // sound of something that is not walking.
+  5: { cls: "n5", lead: 1.16, at: 0.12, beats: [0, 0.11, 0.22, 0.30] },
+  6: { cls: "n6", lead: 1.42, at: 0.00, beats: [0, 0.07, 0.14, 0.21, 0.28] },
+};
+
+// What the room gives up, by tier. This is the half that survives calm mode:
+// the faces are the assault and go, the room's own reaction is information and
+// stays. Cumulative on purpose — the lantern never comes back up.
+const SCARE_DRESSING = {
+  n3: ["dim"],
+  n4: ["dim", "frost"],
+  n5: ["dim", "frost", "close"],
+  n6: ["dim", "frost", "close", "gutter"],
+};
+
+function scareTier(count) {
+  const n = Math.max(3, Math.min(Number(count) || 3, 6));
+  return SCARE_TIERS[n];
+}
+
+// Painted on whether or not the faces are coming, and aria-hidden throughout:
+// the log has already said what walked in, and a second telling in the only
+// channel a screen-reader player has would be noise rather than atmosphere.
+function dressScare(el, tier) {
+  for (const part of SCARE_DRESSING[tier.cls] || []) {
+    const n = document.createElement("span");
+    n.className = `scare-${part}`;
+    n.setAttribute("aria-hidden", "true");
+    el.appendChild(n);
+  }
+}
+
 // Where they come from, when the game knows. A card fight is a pack that is
 // simply there and gets the centred burst it always had; a break-in came
 // through a particular wall, and the difference between "they are here" and
@@ -1193,17 +1249,34 @@ export function jumpScare(count = 0, silent = false, opts = {}) {
 // mashed key from finding anything depends on this taking time too.
 function stingOnly(count, from = null) {
   return new Promise((resolve) => {
+    const tier = scareTier(count);
     // A silent directional scare is just the panned sting — which is the whole
     // of it in calm mode too, where the sound carries the direction because
     // audio is not motion.
     //
-    // The hopping lands under it either way. Calm mode takes away the faces,
-    // not the fact that something is coming: the rhythm is how many and which
-    // side, and that is information rather than assault.
-    hopThud(count, from);
+    // The hopping lands under it either way, and now it lands in the tier's own
+    // rhythm. Calm mode takes away the faces, not the fact that something is
+    // coming and not how bad it is: two slow thuds and a rapid volley are
+    // different pieces of information, and information is the half calm keeps.
+    hopThud(count, from, tier.beats);
     combatSting(count, from);
     buzz([18, 40, 18]);
-    setTimeout(resolve, reducedMotion() ? 0 : 420);
+
+    // The room still reacts. No faces at any tier — that is the promise calm
+    // makes — but the lantern still drops and the frost still arrives, so a
+    // calm player can tell 白殭 from 飛殭 by looking as well as by listening.
+    if (reducedMotion()) return void setTimeout(resolve, 0);
+    enterScene();
+    const el = document.createElement("div");
+    el.className = `scare scare--calm scare--${tier.cls}`;
+    el.setAttribute("aria-hidden", "true");
+    dressScare(el, tier);
+    document.body.appendChild(el);
+    setTimeout(() => {
+      el.remove();
+      leaveScene();
+      resolve();
+    }, 420);
   });
 }
 
@@ -1211,12 +1284,45 @@ function scareNow(count, from = null) {
   return new Promise((resolve) => {
     enterScene();
     const endScene = () => leaveScene();
+    const tier = scareTier(count);
     // Same rule as the door: the cue is sound, not motion, so it plays whether
-    // or not the picture does.
-    hopThud(count, from);
+    // or not the picture does — and it plays in the tier's rhythm, which is the
+    // one channel that reaches every player at every setting.
+    hopThud(count, from, tier.beats);
     combatSting(count, from);
     buzz([26, 50, 90]);
-    if (reducedMotion()) { endScene(); return resolve(); }
+
+    // Reduced motion used to mean no picture at all. It should mean no MOVEMENT
+    // — one composition, arrived at rather than travelled to, held for the same
+    // envelope. Distance is the tier, and a still frame carries distance
+    // perfectly well; what it must not do is move, so the faces are placed at
+    // the tier's scale and simply sit there.
+    if (reducedMotion()) {
+      const still = document.createElement("div");
+      still.className = `scare scare--still scare--${tier.cls}`;
+      still.setAttribute("aria-hidden", "true");
+      dressScare(still, tier);
+      const heldFaces = Math.max(1, Math.min(count || 1, SCARE_SLOTS.length));
+      for (let i = 0; i < heldFaces; i++) {
+        const [hx, hy, hscale] = SCARE_SLOTS[i];
+        const held = icon("scare", "zombie", "scare-art");
+        if (!held) break;
+        const seat = document.createElement("span");
+        seat.className = "scare-face";
+        seat.style.left = `${hx}%`;
+        seat.style.top = `${hy}%`;
+        seat.style.setProperty("--face-scale", String(hscale * (i ? 1 : tier.lead)));
+        seat.appendChild(held);
+        still.appendChild(seat);
+      }
+      document.body.appendChild(still);
+      setTimeout(() => {
+        still.remove();
+        endScene();
+        resolve();
+      }, SCARE_BASE_MS + 200);
+      return;
+    }
 
     // A card fight can be followed straight away by a zombie door; never stack.
     const stale = document.querySelector(".scare");
@@ -1225,8 +1331,9 @@ function scareNow(count, from = null) {
     if (!document.getElementById("scare-zombie")) { endScene(); return resolve(); } // no art, no hold-up
 
     const el = document.createElement("div");
-    el.className = "scare";
+    el.className = `scare scare--${tier.cls}`;
     el.setAttribute("aria-hidden", "true");
+    dressScare(el, tier);
     document.body.appendChild(el);
 
     if (typeof el.animate !== "function") {
@@ -1239,6 +1346,26 @@ function scareNow(count, from = null) {
     const faces = Math.max(1, Math.min(count || 1, SCARE_SLOTS.length));
     const weight = Math.min(Math.max((faces - 3) / 3, 0), 1);
     const duration = SCARE_BASE_MS + Math.round(weight * 200);
+
+    // 跳殭's nails and 飛殭's glow belong to the thing arriving rather than to
+    // the room, which is why they are here with the faces and not in the
+    // dressing: calm mode takes away what is coming for you and keeps what the
+    // room does about it, and a hand at the edge of the frame is the former.
+    //
+    // Appended before the faces so they sit under them — nails first, then the
+    // face on top of them.
+    if (tier.cls === "n5" || tier.cls === "n6") {
+      const nails = document.createElement("span");
+      nails.className = "scare-nails";
+      nails.setAttribute("aria-hidden", "true");
+      el.appendChild(nails);
+    }
+    if (tier.cls === "n6") {
+      const glow = document.createElement("span");
+      glow.className = "scare-glow";
+      glow.setAttribute("aria-hidden", "true");
+      el.appendChild(glow);
+    }
 
     for (let i = 0; i < faces; i++) {
       const [x, y, scale, at] = SCARE_SLOTS[i];
@@ -1262,7 +1389,10 @@ function scareNow(count, from = null) {
       // one in front still comes in largest — it is nearest, and coming through
       // first.
       const [ex, ey] = from ? SCARE_ENTRY[from] : [0, 0];
-      const lead = i ? 0.8 : 1.2;
+      // The front face enters at the tier's distance; the pack behind it always
+      // snaps in from just off its landing size, because they are the same
+      // middle distance at every tier and only the one in front is the news.
+      const lead = i ? 0.8 : tier.lead;
       const enterFrom = from
         ? `translate(calc(-50% + ${ex}vw), calc(-50% + ${ey}vh)) scale(${lead})`
         : `translate(-50%, -50%) scale(${lead})`;
@@ -1271,7 +1401,15 @@ function scareNow(count, from = null) {
           { opacity: 0, transform: enterFrom },
           { opacity: 1, transform: "translate(-50%, -50%) scale(1)" },
         ],
-        { duration: Math.round(duration * 0.34), delay: Math.round(duration * at), fill: "backwards", easing: "cubic-bezier(.2,.8,.3,1)" }
+        {
+          duration: Math.round(duration * 0.34),
+          // The front face waits for the tier: 白殭 commits late and small,
+          // 飛殭 is already there on frame one. The pack keeps the slot delays
+          // it always had, so the shape of the burst is unchanged.
+          delay: Math.round(duration * (i ? at : tier.at)),
+          fill: "backwards",
+          easing: "cubic-bezier(.2,.8,.3,1)",
+        }
       );
     }
 

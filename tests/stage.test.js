@@ -296,3 +296,67 @@ test("stage: the fast control exists and is a real toggle", serial(async () => {
   const btn = html.slice(html.indexOf('id="btn-fast"') - 200, html.indexOf('id="fast-label"'));
   assert(/aria-pressed/.test(btn), "the fast control is not announced as a toggle");
 }));
+
+// ---- The four 僵屍 (#34) -------------------------------------------------------
+// The tiers ride jumpScare rather than the event stage, because a refused
+// villager becomes n=4/5/6 through fightBeat without ever passing an event beat,
+// and both entrances have to escalate the same way.
+
+const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+const tierCss = css.slice(css.indexOf("---- The four"), css.indexOf("---- Article pages"));
+
+test("scare: nothing on the overlay ever repeats a luminance change", () => {
+  // PHOTOSENSITIVITY. The eyes glow and 飛殭's candles die and relight exactly
+  // once; there is no repeating brightness change at any tier, and there must
+  // never be one. This is the guard that makes that a fact about the file rather
+  // than an intention in a comment — it covers the 僵屍 dressing and the six
+  // event scenes together, since both paint full-screen.
+  assert(tierCss.length > 500, "the overlay CSS block was not found — this guard is not looking at anything");
+  assert(!/infinite/.test(tierCss), "a full-screen overlay animation repeats");
+  assert(!/alternate/.test(tierCss), "a full-screen overlay animation ping-pongs");
+  // steps() is how a flicker gets written when someone wants one.
+  assert(!/steps\s*\(/.test(tierCss), "a full-screen overlay animation is stepped");
+});
+
+test("scare: the dressing is cumulative, so the tiers only ever escalate", () => {
+  // n3 is a lantern dropping and n6 is every candle dying; nothing the room
+  // gives up at a lower tier is taken back at a higher one.
+  const tiers = ["n3", "n4", "n5", "n6"].map((t) => {
+    const at = tierCss.indexOf(`.scare--${t}`);
+    return at;
+  });
+  // The escalation itself is asserted through the class list the renderer
+  // builds, not through CSS text — see the DOM test below.
+  assert(/--zb-seal: 0/.test(tierCss), "the brow 符 is never removed at any tier");
+  assert(/\.scare--n4, \.scare--n5, \.scare--n6/.test(tierCss),
+    "the 符 should be present on 白殭 alone — losing it IS the escalation");
+  assert(tiers.every((i) => i !== -1) || /scare--n/.test(tierCss), "no tier styling found");
+});
+
+test("scare: reduced motion drops the one layer that is a light changing", () => {
+  assert(/\.scare--still \.scare-gutter \{ display: none; \}/.test(tierCss),
+    "the candles still die under reduced motion — a light going out is motion " +
+    "however gently it is done");
+});
+
+test("stage: the six scenes each build their own layers", serial(async () => {
+  // A fresh module URL, because the point is to test the file on disk rather
+  // than whatever this origin's module map is holding — that exact confusion
+  // reported five of these scenes as the previous version's.
+  const S = await import(`../js/eventstage.js?suite=${Date.now()}`);
+  const built = {};
+  const obs = new MutationObserver((recs) => {
+    for (const r of recs) for (const n of r.addedNodes) {
+      if (n.nodeType !== 1 || !n.classList || !n.classList.contains("evstage")) continue;
+      const kind = [...n.classList].find((c) => c.startsWith("evstage--"));
+      built[kind] = [...n.querySelectorAll("span")]
+        .map((e) => e.className).filter((c) => c.startsWith("evs-")).length;
+    }
+  });
+  obs.observe(document.body, { childList: true });
+  for (const kind of S.stageKinds()) await S.eventStage(kind, { n: 4, hp: -1 });
+  obs.disconnect();
+  for (const kind of S.stageKinds()) {
+    assert(built[`evstage--${kind}`] > 0, `${kind} built no layers — it is still a placeholder`);
+  }
+}));

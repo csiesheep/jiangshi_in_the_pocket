@@ -533,18 +533,29 @@ export function watchDrum(strikes = 1) {
 // Two halves per hop: the landing, and the robe catching up with it a beat
 // later. Repeated per body in the pack with a little drift between them, so a
 // pack lands like a pack and not like one animal with loud feet.
-export function hopThud(count = 1, dir = null) {
+// `beats` is an explicit rhythm in seconds, and it is how the four 僵屍 tiers
+// are told apart with the sound alone. That matters more than it looks: in calm
+// mode the faces never arrive at any tier, so the rhythm and the set-dressing
+// are the ONLY things carrying how bad this is — which is information, and calm
+// takes away the assault rather than the information.
+//
+// Without it the hops are evenly spaced with a little drift, which is what every
+// caller that does not care about tiers still gets.
+export function hopThud(count = 1, dir = null, beats = null) {
   const c = live();
   if (!c) return;
   const out = dir ? placed(dir, master) : master;
   const t0 = c.currentTime;
-  const hops = Math.max(1, Math.min(count, 4));
+  const pattern = Array.isArray(beats) && beats.length ? beats : null;
+  const hops = pattern ? pattern.length : Math.max(1, Math.min(count, 4));
   const scale = bite();
 
   for (let i = 0; i < hops; i++) {
     // Drift, not randomness of consequence: this is texture and never touches
-    // the seeded run, the same licence noise() takes.
-    const t = t0 + i * (0.19 + Math.random() * 0.05);
+    // the seeded run, the same licence noise() takes. A given rhythm is played
+    // as written — the drift is what makes an unshaped volley sound alive, and
+    // it is exactly what would blur an off-beat into the beat before it.
+    const t = pattern ? t0 + pattern[i] : t0 + i * (0.19 + Math.random() * 0.05);
     if (sample("hop", 0.85 * scale, t - t0, out)) continue;
 
     // The landing: dead weight onto boards. Almost no attack and no ring — a

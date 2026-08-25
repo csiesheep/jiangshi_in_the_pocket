@@ -216,25 +216,36 @@ export function eventStage(kind, opts = {}) {
 }
 
 // ---- The scenes ---------------------------------------------------------------
-// PLACEHOLDERS. Each one is #34's slot: distinct enough to tell apart at a
-// glance, built from art the game already ships, and deliberately not the
-// finished thing. A scene receives the stage's inner element and a context, and
-// its whole job is to fill that element — it does not time itself, does not
-// listen for anything and does not clean up. The frame above owns all of that,
-// which is what makes them replaceable one at a time.
+// The pictures (#34). Each one fills the stage the frame above has already
+// built, timed and gated; a scene does not time itself, does not listen for
+// anything and does not clean up, which is what keeps them replaceable one at a
+// time.
 //
 // ctx: { n, hp, calm, reduced, ... }
 //
-// Two rules a scene may not break, both of them load-bearing above:
-//   1. Illustrate the line, never carry it — skipping must never lose news.
-//   2. Honour ctx.reduced by composing rather than animating. The frame will
-//      not stop a scene from animating; it only stops it from running long.
+// Three rules, all load-bearing above:
+//   1. Illustrate the line, never carry it. eventBeat writes the news to the
+//      log BEFORE calling in, and that is the only reason skipping is safe. A
+//      scene that became the only place something was said would turn the skip
+//      affordance into a way to miss the game.
+//   2. Honour ctx.reduced by composing rather than animating. The frame will not
+//      stop a scene from animating; it only stops it running long.
+//   3. Nothing strobes, at any tier, ever. Same rule the 僵屍 tiers are held to.
+//
+// Built from layer spans plus a centrepiece, the same grammar the scare dressing
+// uses, so the two full-screen registers are made of the same material.
 
-// A scene's centrepiece, at a consistent size so six different placeholders do
-// not read as six different amounts of care.
+// A wash, a vignette, a drift — whatever the scene needs behind its subject.
+function layer(inner, name) {
+  const n = document.createElement("span");
+  n.className = `evs-${name}`;
+  n.setAttribute("aria-hidden", "true");
+  inner.appendChild(n);
+  return n;
+}
+
 function art(kind, id, cls = "") {
-  const svg = icon(kind, id, `evstage-art ${cls}`.trim());
-  return svg; // null when the sprite is missing; callers append conditionally
+  return icon(kind, id, `evstage-art ${cls}`.trim());
 }
 
 function seat(inner, node, { x = 50, y = 50, scale = 1 } = {}) {
@@ -249,9 +260,9 @@ function seat(inner, node, { x = 50, y = 50, scale = 1 } = {}) {
   return box;
 }
 
-// Where a pack stands. Same shape of idea as the scare's slots — the one in
-// front is nearest and largest — but its own table, because this is a
-// composition rather than a lunge and #34 will want to move these.
+// Where a pack stands. Same idea as the scare's slots — the one in front is
+// nearest and largest — but its own table, because this is a composition rather
+// than a lunge.
 const PACK_SLOTS = [
   [50, 54, 1.00], [30, 58, 0.82], [70, 58, 0.82],
   [17, 62, 0.66], [83, 62, 0.66], [50, 66, 0.58],
@@ -259,63 +270,75 @@ const PACK_SLOTS = [
 
 const SCENES = {
   // 僵屍, scaling with n. Registered and reachable, but eventBeat does NOT run
-  // it: a drawn JIANGSHI goes on to fightBeat, which already stages the pack
-  // with jumpScare, and two full-screen layers back to back is one too many.
-  // fightBeat has three callers and only one arrives through an event beat, so
-  // the scare has to stay where it is. #34's job is to make this good enough to
-  // replace it, and then one line in eventBeat changes.
+  // it: a drawn JIANGSHI goes on to fightBeat, which stages the pack with
+  // jumpScare and its four tiers, and two full-screen layers back to back is one
+  // too many. fightBeat has three callers and only one arrives through an event
+  // beat — the breach and the refused villager reach it directly — so the scare
+  // has to stay where it is, and the tiers ride it rather than this.
   pack(inner, ctx) {
     const n = Math.max(1, Math.min(Number(ctx.n) || 1, PACK_SLOTS.length));
+    layer(inner, "dark");
     for (let i = 0; i < n; i++) {
       const [x, y, scale] = PACK_SLOTS[i];
       seat(inner, art("scare", "zombie"), { x, y, scale });
     }
   },
 
-  // −1 HP. The blow, not the wound: this runs before resolveEvent, so the
-  // hearts in the HUD have not moved yet and the stage is the moment they are
-  // about to.
+  // −1 HP. The blow, not the wound: this runs before resolveEvent, so the hearts
+  // in the HUD have not moved yet and the stage is the moment they are about to.
+  // The frame is struck from one side — a bad step in the dark has a direction
+  // even when the game does not name one.
   hurt(inner, ctx) {
-    seat(inner, art("stat", "heart", "evstage-art--hurt"));
+    layer(inner, "strike");
+    layer(inner, "bleed");
+    seat(inner, art("stat", "heart", "evstage-art--hurt"), { y: 46 });
     inner.appendChild(tally(ctx.hp, "hurt"));
   },
 
-  // +1 HP, the same picture read the other way. Distinct from hurt by colour
-  // and by the sign, which is the whole of the difference and should stay that
-  // legible when the real art lands.
+  // +1 HP. The same organ read the other way, and the opposite motion: the hurt
+  // scene arrives from the edge, this one rises from underneath. Distinct by
+  // colour, by direction and by sign — three ways, because two hearts a night
+  // apart should never be mistaken for each other.
   mend(inner, ctx) {
-    seat(inner, art("stat", "heart", "evstage-art--mend"));
+    layer(inner, "warm");
+    seat(inner, art("stat", "heart", "evstage-art--mend"), { y: 46 });
     inner.appendChild(tally(ctx.hp, "mend"));
   },
 
-  // Nothing happens — which is an event, and the one most easily mistaken for
-  // the game having failed to do anything. It gets a stage for exactly that
-  // reason: the room was looked at and there was nothing in it.
+  // Nothing happens — which IS an event, and the one most easily mistaken for
+  // the game having failed to do anything. That is exactly why it gets a stage:
+  // the room was looked at, and there was nothing in it. A held ring and the
+  // dust still settling, rather than an empty frame.
   nothing(inner) {
-    const dot = document.createElement("span");
-    dot.className = "evstage-nil";
-    inner.appendChild(dot);
+    layer(inner, "dust");
+    const ring = document.createElement("span");
+    ring.className = "evstage-nil";
+    inner.appendChild(ring);
   },
 
-  // 中毒 onset. Not a hit — a change of state — so it is the only placeholder
-  // that washes the whole stage rather than putting something in the middle of
-  // it.
+  // 中毒 onset. Not a blow — a change of state — so it is the only scene that
+  // takes the whole frame rather than putting something in the middle of it. The
+  // grey comes in from the edges, the way it comes in from your hands.
   poison(inner) {
     inner.classList.add("evstage-inner--wash");
+    layer(inner, "creep");
     seat(inner, art("ui", "skull", "evstage-art--poison"));
   },
 
-  // 村民受傷. Someone is alive in here and hurt, and the rice is the decision
-  // that follows — so the placeholder is the rice, which is what the player is
-  // about to be asked about.
+  // 村民受傷. Someone is alive in here and hurt, and the rice is the question
+  // that follows — so the picture is the person, with what you could spend on
+  // them beside it. The figure is the same silhouette the board uses for you,
+  // which is the point: it could have been.
   villager(inner) {
-    seat(inner, art("item", "sticky-rice", "evstage-art--villager"));
+    layer(inner, "lantern");
+    seat(inner, art("scene", "standing", "evstage-art--villager"), { x: 42, y: 52, scale: 1 });
+    seat(inner, art("item", "sticky-rice", "evstage-art--rice"), { x: 63, y: 60, scale: 0.5 });
   },
 };
 
-// The number, drawn big. Placeholder typography on purpose: it is the clearest
-// way to tell two otherwise identical hearts apart while the real art is
-// pending, and it is the first thing #34 should be able to throw away.
+// The number, drawn big. The one piece of text on any stage, and it is a numeral
+// that the log has already said in words — so it needs no theme key and carries
+// nothing a skipping player loses.
 function tally(hp, tone) {
   const n = Number(hp);
   const p = document.createElement("p");
