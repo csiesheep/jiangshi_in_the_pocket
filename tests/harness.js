@@ -5,13 +5,44 @@
 
 const results = [];
 
+// Async tests settle after test() has already returned, so their outcome is
+// collected here and awaited by report().
+//
+// This was a hole rather than a design: test() called fn() inside a synchronous
+// try/catch, which cannot see a promise reject. Every `test(name, async () => …)`
+// therefore passed no matter what it asserted — measured, not guessed: a probe
+// registering one sync failure and one async failure reported exactly one.
+// Three suites here declare async tests, two of them guards against exactly the
+// kind of silent drift this file's other comment is about. A verifier that can
+// quietly verify nothing is worse than no verifier.
+const pending = [];
+
 export function test(name, fn) {
+  let out;
   try {
-    fn();
-    results.push({ name, ok: true });
+    out = fn();
   } catch (err) {
     results.push({ name, ok: false, err });
+    return;
   }
+  if (out && typeof out.then === "function") {
+    // The slot goes in now so the report keeps declaration order, and is marked
+    // down later if the promise rejects. Optimistic by default is safe only
+    // because report() will not print until every one of these has settled.
+    const slot = { name, ok: true };
+    results.push(slot);
+    pending.push(
+      out.then(
+        () => {},
+        (err) => {
+          slot.ok = false;
+          slot.err = err instanceof Error ? err : new Error(String(err));
+        }
+      )
+    );
+    return;
+  }
+  results.push({ name, ok: true });
 }
 
 export function assert(cond, msg = "assertion failed") {
@@ -68,6 +99,10 @@ async function declaredCounts(suites) {
 // `suites` is the same list index.html imported, in the same order. Pass it and
 // the report can tell you the run is stale; omit it and it reports as before.
 export async function report(suites = []) {
+  // Nothing is counted until every async test has settled. Without this the
+  // count below is a snapshot of the optimistic slots.
+  await Promise.all(pending);
+
   const passed = results.filter((r) => r.ok).length;
   const failed = results.length - passed;
 
