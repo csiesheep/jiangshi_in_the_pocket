@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-7a4f512e";
+const CACHE = "jiangshi-5fcd6614";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -51,17 +51,18 @@ const SHELL_DIGEST = {
   "./":                                     "0e80592383",
   "index.html":                             "0e80592383",
   "game.html":                              "9445dfbf79",
-  "rulebook.html":                          "76baac288c",
+  "rulebook.html":                          "0bcc77fa35",
   "tiles.html":                             "4223b8bd14",
   "credits.html":                           "44405f11d9",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "6c904341b6",
-  "css/style.css":                          "2d43a280be",
+  "css/style.css":                          "12f90e2037",
   "js/app.js":                              "da7cefeade",
   "js/eventstage.js":                       "9b2b92a8d9",
   "js/engine.js":                           "07ae6d5cf9",
   "js/board.js":                            "766fddc50b",
-  "js/render.js":                           "0401438c07",
+  "js/render.js":                           "db3eea7955",
+  "js/icons.js":                            "36c76d4f67",
   "js/audio.js":                            "048485f39d",
   "js/menu.js":                             "8430882653",
   "js/tiles.js":                            "50b050f809",
@@ -69,7 +70,7 @@ const SHELL_DIGEST = {
   "js/tally.js":                            "6d9c240fc0",
   "js/epilogue.js":                         "b5a27bacbe",
   "js/lang.js":                             "1e7b3f3b4a",
-  "js/rulebook.js":                         "11dd15125f",
+  "js/rulebook.js":                         "0d60a62f93",
   "assets/icons.svg":                       "de08aa097b",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
   "assets/icons/icon-192.png":              "83b7d80dc2",
