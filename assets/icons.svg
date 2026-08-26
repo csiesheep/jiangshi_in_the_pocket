@@ -8,6 +8,23 @@
     <style>
       symbol { fill: none; stroke: currentColor; stroke-width: 1.5;
                stroke-linecap: round; stroke-linejoin: round; }
+      /* The rule above is the LINE-ART default and most of this sheet still
+         lives on it -- the scenes alone inherit it on some 1800 elements, plus
+         the tiles, edges, creatures, verdicts and UI. Do not touch it.
+
+         The items are no longer line art. #88 and #89 made them painted objects
+         with their own fills and gradients, and they kept inheriting a 1.5-unit
+         stroke in currentColor -- which .cellicon and .handicon set to
+         var(--gold), so every one of them shipped with a thick gold rim traced
+         round every path. On a 24-unit viewBox 1.5 is 6.25% of the icon's
+         width. The user asked for it thinner, not gone, so it is thinner.
+
+         Scoped to the items and the tablet by id, deliberately: this is the one
+         change in the whole set that the guard in tests/stage.test.js CANNOT
+         see, because it rasterises symbol.innerHTML into a fresh svg and leaves
+         this stylesheet behind. Nothing here will go red if it is wrong. Look
+         at it. */
+      symbol[id^="item-"], symbol[id="ui-relic"] { stroke-width: .5; }
     </style>
     <!-- The one sky in the game that is not night. Only the won verdict uses it. -->
     <linearGradient id="vg-dawnsky" x1="0" y1="0" x2="0" y2="1">

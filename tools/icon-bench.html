@@ -77,7 +77,8 @@
 <h1>icon bench</h1>
 <p class="sub">
   floors: silhouette &ge; 12&thinsp;%, colour &ge; 25, ink 4–70&thinsp;% &middot;
-  sizes are the ones that ship &middot; the suite is the gate, this is the ruler
+  sizes are the ones that ship &middot; the suite is the gate, this is the ruler<br>
+  numbers mirror the guard (no sheet stroke) &middot; the contact sheet shows what SHIPS, stroke and all
 </p>
 <div id="out"></div>
 
@@ -87,6 +88,9 @@ const NO_STORE = { cache: "no-store" };
 const SRC = new URLSearchParams(location.search).get("src") || "../assets/icons.svg";
 const ICON_SVG = await fetch(SRC, NO_STORE).then((r) => r.text());
 const PANEL = "#1b1e24";
+// Read the item stroke width out of the sheet rather than repeating it here,
+// so the contact sheet follows the art if it is ever changed again.
+const STROKE = (ICON_SVG.match(/symbol\[id\^="item-"\][^{]*\{[^}]*stroke-width:\s*([\d.]+)/) || [, "1.5"])[1];
 
 // Scale every painted colour toward black. The panel is NOT dimmed, so this
 // answers exactly one question: how much darker can the ART go before the
@@ -140,7 +144,29 @@ async function rasterise(symbolId, px, k = 1, s = 1) {
     const on = bare[i * 4 + 3] > 96 ? 1 : 0;
     alpha.push(on); ink += on;
   }
-  return { onPanel, alpha, inkPct: (100 * ink) / (px * px), url: markup };
+  // The contact sheet gets a SECOND markup, painted the way the game paints it.
+  //
+  // This split exists because its absence let a bug reach the user. The sheet's
+  // stroke rule lives in a <style> beside the symbols, not inside them, so
+  // symbol.innerHTML leaves it behind -- which means the guard, this bench, and
+  // every contact sheet in #88 and #89 were all looking at art WITHOUT the
+  // 1.5-unit currentColor stroke that every item actually shipped with. I read
+  // those sheets a dozen times and could not see a rim that was plainly there
+  // in the game, because it was never in the picture I was reading.
+  //
+  // The NUMBERS above keep guard parity and must: if they diverge, the suite is
+  // right and this file is stale. The PICTURE below does not, and must not --
+  // a contact sheet whose job is "look at what ships" has to show what ships.
+  // On a WRAPPER, not on the children. The sheet's rule sits on `symbol` and is
+  // INHERITED, so an element carrying its own fill="..." keeps it; targeting the
+  // children directly instead makes a CSS declaration beat their presentation
+  // attributes and strips every fill in the drawing. First attempt did exactly
+  // that and rendered the whole set as bare gold outlines.
+  const shipped = markup.replace("<svg ", '<svg style="color:#c9a24b" ')
+    .replace(/(<svg[^>]*>)/, '$1<g style="fill:none;stroke:currentColor;stroke-width:' + STROKE +
+      ';stroke-linecap:round;stroke-linejoin:round">')
+    .replace("</svg>", "</g></svg>");
+  return { onPanel, alpha, inkPct: (100 * ink) / (px * px), url: markup, shipped };
 }
 
 function pair(a, b) {
@@ -319,7 +345,7 @@ for (const id of GROUP) {
     const r = cache[id + "@" + px];
     if (!r) continue;
     html += '<img width="' + px + '" height="' + px + '" alt="" src="data:image/svg+xml;charset=utf-8,' +
-      encodeURIComponent(r.url) + '">';
+      encodeURIComponent(r.shipped) + '">';
   }
   html += "</div><figcaption>" + short(id) + "</figcaption></figure>";
 }
