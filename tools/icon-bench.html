@@ -25,6 +25,24 @@
     - Darkness must be PAINTED, not omitted. A transparent dark region reads as
       absent to sil and inkPct and can drop an icon through the ink floor.
 
+  Two columns for colour, deliberately. `col` is what the guard measures: a mean
+  over the WHOLE BOX, empty panel pixels included. `col/inked` is the same
+  distance over the union of the two icons' inked pixels. The guard is not
+  changing -- this column exists because a whole-box mean counts every empty
+  pixel as agreement, so a sparse icon scores low against everything however
+  well it is drawn. The same pair reads 19.3 whole-box and 61.1 inked. Ordering
+  is preserved between the two, so the metric is sound as a COMPARATOR; what it
+  is not is comparable across icons of different density, which means an
+  absolute floor of 25 is a far harsher bar for a small icon than a large one.
+  That is why the precept knife needed a bigger aura rather than a better colour.
+
+  `?src=` loads a different sheet, which is how you get a control: extract an
+  older revision with `git show SHA:assets/icons.svg > tools/old.svg` and pass
+  `?src=old.svg`. Do that before calling any change a regression -- and compare
+  the SAME set of ids both times. A five-icon family measured against a
+  six-icon one is not a comparison, and reporting one as a regression is a
+  mistake this file exists to prevent.
+
   And one trap that costs an hour: a `--` inside an XML comment is illegal, and
   it silently blanks the WHOLE SYMBOL -- 0.0% ink at every size -- while every
   other icon keeps rendering. Same family as #65's --king-face. The suite's
@@ -63,7 +81,8 @@
 <script type="module">
 // ---- copied from tests/stage.test.js, deliberately ------------------------------
 const NO_STORE = { cache: "no-store" };
-const ICON_SVG = await fetch("../assets/icons.svg", NO_STORE).then((r) => r.text());
+const SRC = new URLSearchParams(location.search).get("src") || "../assets/icons.svg";
+const ICON_SVG = await fetch(SRC, NO_STORE).then((r) => r.text());
 const PANEL = "#1b1e24";
 
 // Scale every painted colour toward black. The panel is NOT dimmed, so this
@@ -132,7 +151,17 @@ function pair(a, b) {
     const db = a.onPanel[k + 2] - b.onPanel[k + 2];
     sum += Math.sqrt(dr * dr + dg * dg + db * db);
   }
-  return { sil, col: sum / (a.onPanel.length / 4) };
+  let sumU = 0, nU = 0;
+  for (let k = 0; k < a.onPanel.length; k += 4) {
+    const i = k / 4;
+    if (!a.alpha[i] && !b.alpha[i]) continue;
+    const dr = a.onPanel[k] - b.onPanel[k];
+    const dg = a.onPanel[k + 1] - b.onPanel[k + 1];
+    const db = a.onPanel[k + 2] - b.onPanel[k + 2];
+    sumU += Math.sqrt(dr * dr + dg * dg + db * db);
+    nU++;
+  }
+  return { sil, col: sum / (a.onPanel.length / 4), colUnion: nU ? sumU / nU : 0, inked: nU };
 }
 // ---- end copy -------------------------------------------------------------------
 
@@ -209,7 +238,7 @@ html += "</table>";
 // Pairwise, per size.
 for (const px of SIZES) {
   html += "<h2>pairs at " + px + "px</h2><table><tr>" +
-    "<th>pair</th><th>sil &ge;12</th><th>col &ge;25</th><th>uniq-lit A</th><th>uniq-lit B</th></tr>";
+    "<th>pair</th><th>sil &ge;12</th><th>col &ge;25</th><th>col/inked</th><th>uniq-lit A</th><th>uniq-lit B</th></tr>";
   for (let i = 0; i < GROUP.length; i++) {
     for (let j = i + 1; j < GROUP.length; j++) {
       const a = cache[GROUP[i] + "@" + px], b = cache[GROUP[j] + "@" + px];
@@ -217,6 +246,7 @@ for (const px of SIZES) {
       const p = pair(a, b), u = uniqueLit(a, b);
       html += "<tr><td>" + short(GROUP[i]) + " / " + short(GROUP[j]) + "</td>" +
         cell(p.sil, 12) + cell(p.col, 25) +
+        "<td>" + p.colUnion.toFixed(1) + "</td>" +
         "<td>" + u.ua.toFixed(1) + "</td><td>" + u.ub.toFixed(1) + "</td></tr>";
     }
   }
