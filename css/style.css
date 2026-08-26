@@ -639,6 +639,7 @@ body.app .board-pane > .board { min-height: 0; }
   gap: 6px;
 }
 .hand {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -659,17 +660,28 @@ body.app .board-pane > .board { min-height: 0; }
   text-transform: uppercase;
   color: var(--muted);
 }
-/* Reserved whether or not there is anything in it, so the three slots' words
-   line up. Without it "empty" sat at three different heights. */
-.handart { display: flex; align-items: center; justify-content: center; height: 26px; }
-.handicon { width: 26px; height: 26px; color: var(--gold); }
-.handname {
-  font-size: .78rem;
-  color: var(--text);
-  text-align: center;
-  overflow-wrap: anywhere;
+/* ONE PLACE THAT SAYS HOW BIG A SLOT PICTURE IS. The reserved row, the icon and
+   the burnt-blade guard in tests/stage.test.js all read from here — that guard
+   says in as many words that it measures at the size .handicon renders, so a
+   number typed in twice would make its comment a lie the next person trusts. */
+.hands { --handicon: 54px; }
+/* Reserved whether or not there is anything in it. It was originally for the
+   NAMES — without it "empty" sat at three different heights — and the names are
+   gone, so the reserve now keeps the three pictures on one line and the labels
+   above and the numeral below aligned across the row. */
+.handart {
+  display: flex; align-items: center; justify-content: center;
+  height: var(--handicon);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
 }
-.hand--bare .handname { color: var(--muted); font-style: italic; }
+.handart:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; border-radius: 6px; }
+span.handart { cursor: default; }
+.handicon { width: var(--handicon); height: var(--handicon); color: var(--gold); }
 
 /* ---- Three slots, three kinds of thing (#85) ------------------------------------
    The panel used to say "three interchangeable slots" when the truth is "your
@@ -713,7 +725,9 @@ body.app .board-pane > .board { min-height: 0; }
       color-mix(in srgb, var(--gold) 10%, var(--bg-2)),
       color-mix(in srgb, var(--accent-2) 6%, var(--bg-2)));
 }
-.hand--relic:not(.hand--bare) .handname { color: var(--gold); }
+/* The name moved into the tooltip when the slots went picture-only, so the
+   colour that distinguished it moved too rather than being lost. */
+.hand--relic:not(.hand--bare) .tipname { color: var(--gold); }
 
 /* The number IS the weapon here — a sword is your attack outright rather than a
    bonus on top of one — so it is sized like a stat, not like a caption. */
@@ -938,11 +952,18 @@ body.app .board-pane > .board { min-height: 0; }
 }
 .cell:hover .celltip,
 .cell:focus-within .celltip,
+.hand:hover .celltip,
+.hand:focus-within .celltip,
 .cell--open .celltip {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
+/* Same edge problem the pack cells have, and the same answer: the outer slots
+   anchor to their own edge instead of centring, or the tooltip leaves the panel
+   at 375px. The middle slot centres. */
+.hand--weapon .celltip { left: 0; right: auto; transform: none; }
+.hand--relic .celltip { left: auto; right: 0; transform: none; }
 .tipname { margin: 0; font-size: .84rem; color: var(--text); }
 .tipeffect { margin: 3px 0 0; font-size: .74rem; color: var(--accent); }
 .tipblurb { margin: 4px 0 0; font-size: .72rem; color: var(--muted); line-height: 1.45; }

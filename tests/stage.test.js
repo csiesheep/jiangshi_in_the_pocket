@@ -719,6 +719,35 @@ test("icons: all thirteen exist and draw something at the smallest shipped size"
 // below ask about the same four ids, and deriving that twice is how they drift.
 const W = ITEM_IDS.slice(0, 4);
 
+// THE SIZES ARE READ OUT OF THE STYLESHEET, NOT TYPED HERE.
+//
+// They were literals, with a comment explaining which element each one came
+// from. Then #90 grew the equipment slot picture and the comment saying
+// ".handicon is 26px" became false while every assertion still passed — art
+// judged at a size it does not ship at is not judged, and a stale comment about
+// it is worse than none, because the next person believes it.
+//
+// So: pull the numbers from the rules that set them. If someone changes a
+// render size again, the measurement follows on its own.
+function cssPx(needle) {
+  const at = css.indexOf(needle);
+  assert(at >= 0, "style.css no longer contains " + needle + " — the guard cannot find its size");
+  const tail = css.slice(at + needle.length);
+  const n = parseFloat(tail);
+  assert(n > 0, "could not read a size from " + needle);
+  return Math.round(n);
+}
+// The found-item row and the equipment slot set their size directly. The pack
+// cell does not: .cellicon is a PERCENTAGE of a face whose width comes from the
+// grid, so its pixel size is derived and the derivation is written down in
+// css/style.css beside .cellicon. It is asserted against the slot below rather
+// than recomputed here, because the user's ruling was that the slot picture is
+// at least as big as the pack's.
+const PX_FOUND = cssPx(".itemicon { width: ");
+const PX_SLOT = cssPx(".hands { --handicon: ");
+const PX_PACK = 54;
+
+
 test("icons: the four weapons stay apart at the size the choice is made", async () => {
   // All three sizes these actually render at, DERIVED from the grid rather than
   // assumed: 54px in the pack strip, which is where they mostly live, 26px in
@@ -728,11 +757,10 @@ test("icons: the four weapons stay apart at the size the choice is made", async 
   // optimise for one of them.
   //
   // The top of the range was 37 until #88 raised .cellicon from 62% to 90% of a
-  // 59.5px face. That is the same number as before, recomputed -- not a floor
-  // that was moved to make anything pass. If the fill or the cell count changes
-  // again, this list is what has to follow it, because art judged at a size it
-  // does not ship at is not judged.
-  for (const px of [18, 26, 54]) {
+  // 59.5px face, and the middle was 26 until #90 grew the equipment slot. Both
+  // are read from the stylesheet now rather than retyped, so the list follows
+  // the CSS instead of drifting from it.
+  for (const px of [...new Set([PX_FOUND, PX_PACK, PX_SLOT])].sort((a, b) => a - b)) {
     const r = {};
     for (const id of W) r[id] = await rasterise(id, px);
     for (let i = 0; i < W.length; i++) {
@@ -767,10 +795,14 @@ test("icons: a burnt blade reads as burning, and still reads as ITS OWN blade (#
   // so the only cue that your steel was on fire was a gold digit, and only if
   // you already knew gold meant something.
   //
-  // 26px ONLY, and that is not laziness. .handicon is 26px and the equipment
-  // slot is the only place a burnt blade is drawn: weapons left the pack in #31,
-  // and the 18px found-item row has never shown one, because a blade is burnt
-  // after it is picked up rather than before.
+  // THE EQUIPMENT SLOT'S SIZE ONLY, and that is not laziness: the slot is the
+  // only place a burnt blade is ever drawn. Weapons left the pack in #31, and
+  // the found-item row has never shown one, because a blade is burnt after it
+  // is picked up rather than before.
+  //
+  // Read from .hands { --handicon } rather than written here. It was 26 and #90
+  // made it larger; a literal would have left this comment claiming a size the
+  // element no longer has, with every assertion still green.
   //
   // Deliberately NOT checked, so nobody rebuilds this as a sixteen-cell matrix:
   //   burnt-A vs burnt-B    -- cannot co-occur. One weapon, one burn.
@@ -790,8 +822,8 @@ test("icons: a burnt blade reads as burning, and still reads as ITS OWN blade (#
   // is the real risk, it is what the flame blobs failed, and unlike an absolute
   // silhouette floor it does not punish a blade for being wide.
   for (const id of W) {
-    const base = await rasterise(id, 26);
-    const burnt = await rasterise(id + "-burnt", 26);
+    const base = await rasterise(id, PX_SLOT);
+    const burnt = await rasterise(id + "-burnt", PX_SLOT);
     assert(burnt, "no symbol " + id + "-burnt — a buffed " + id + " has no picture to draw");
 
     let sum = 0;
@@ -805,7 +837,7 @@ test("icons: a burnt blade reads as burning, and still reads as ITS OWN blade (#
     assert(col >= 25, id + " burnt: colours only " + col.toFixed(1) + " apart — the fire does not read");
 
     const silTo = async (otherId) => {
-      const o = otherId === id ? base : await rasterise(otherId, 26);
+      const o = otherId === id ? base : await rasterise(otherId, PX_SLOT);
       let differing = 0;
       for (let k = 0; k < burnt.alpha.length; k++) if (burnt.alpha[k] !== o.alpha[k]) differing++;
       return (100 * differing) / burnt.alpha.length;
@@ -1356,7 +1388,10 @@ test("equipment: the three slots differ when filled and match when empty (#85)",
   // And the one that is not equipment at all is the one that is distinguished.
   assert(decl(".hand--relic:not(.hand--bare)").length,
     "the 神主牌 slot is dressed the same as a charm again");
-  const relicName = decl(".hand--relic:not(.hand--bare) .handname")[0];
+  // The name moved into the tooltip in #90 when the slots went picture-only, so
+  // the rule that distinguishes it moved with it. The claim is unchanged: the
+  // tablet's NAME takes a colour of its own, wherever the name is drawn.
+  const relicName = decl(".hand--relic:not(.hand--bare) .tipname")[0];
   assert(relicName && /gold/.test(relicName.style.color),
     "the tablet's name has stopped taking a colour of its own");
 });

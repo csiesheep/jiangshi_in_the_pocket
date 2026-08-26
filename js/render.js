@@ -484,16 +484,19 @@ function handSlot(game, slot, id) {
   box.appendChild(label);
 
   // The picture row is ALWAYS present, even when there is nothing to put in it.
-  // Looking at the panel is what caught this: with the row omitted on empty
-  // slots, the word "empty" sat at three different heights across three slots
-  // that are meant to read as one row of three. A reserved box costs nothing
-  // and makes the labels and the names line up.
+  // The reserve was originally for the NAMES — with the row omitted on empty
+  // slots, "empty" sat at three different heights across three slots meant to
+  // read as one row. The names are gone now, so the reserve is re-derived
+  // rather than inherited: it keeps the three pictures on one line, and keeps
+  // the labels above and the attack numeral below aligned across the row. Its
+  // height comes from --handicon in the stylesheet, so there is one place that
+  // says how big a slot picture is.
   //
-  // No stand-in figure. It was tried at 18x26 and read as a smudge rather than
-  // a body — the label 身上 already says what the slot is, and a picture that
-  // has to be explained is worse than no picture.
-  const slotArt = document.createElement("span");
+  // No stand-in figure on the empty ones. It was tried at 18x26 and read as a
+  // smudge rather than a body — the label 身上 already says what the slot is.
+  const slotArt = document.createElement(id ? "button" : "span");
   slotArt.className = "handart";
+  if (id) slotArt.type = "button";
   // #89: a blade carrying 真火符 draws its BURNING self. Until now the picture was
   // byte-identical burnt or not, so the only cue that your steel was on fire was
   // a gold numeral — which says nothing unless you already know gold means
@@ -513,18 +516,61 @@ function handSlot(game, slot, id) {
   if (art) slotArt.appendChild(art);
   box.appendChild(slotArt);
 
-  const name = document.createElement("span");
-  name.className = "handname";
-  // An empty hand and an empty BLADE hand are different facts, and the merge
-  // into one panel made that matter. Every other slot's empty state is just
-  // "nothing there"; this one carries a number, and "empty" above a bare 0 gave
-  // the numeral nothing to belong to — it read as a dim ring rather than a
-  // value. "Bare-handed" is the game's own word for the state and it makes the
-  // 0 the attack that goes with it.
-  name.textContent = id
+  // THE NAME IS NO LONGER PRINTED UNDER THE PICTURE. The slots now work the way
+  // the pack already did: picture only, with the name and what it does arriving
+  // when you point at one — and on a tap, which is the same gesture the pack
+  // cells take.
+  //
+  // Which makes the PICTURE load-bearing here for the first time. Until now
+  // every slot carried its name in both languages underneath, so recognition
+  // never rested on the drawing in this panel. It does now, which is most of
+  // why the picture got bigger at the same time.
+  //
+  // The machinery is the pack's, not a second copy of it: same .celltip, same
+  // reveal rules, and the same cell--open class the document-level
+  // closeAllCells() already looks for. A slot tooltip on its own class would
+  // not close when a pack cell opened and you would get two on screen at once.
+  const slotName = id
     ? (isRelic ? ui(game, "relic-name") : itemName(game, id))
     : ui(game, slot === "weapon" ? "hand-bare" : "hand-empty");
-  box.appendChild(name);
+  // The accessible name stays on the control whether or not the tooltip shows,
+  // exactly as the pack cells do it. Losing the visible name must not take the
+  // spoken one with it.
+  const slotEffect = id && !isRelic ? itemEffect(game, id) : "";
+  slotArt.setAttribute("aria-label", slotEffect ? slotName + " — " + slotEffect : slotName);
+
+  if (id) {
+    const tip = document.createElement("div");
+    tip.className = "celltip";
+    tip.setAttribute("role", "tooltip");
+    const tipName = document.createElement("p");
+    tipName.className = "tipname";
+    tipName.textContent = slotName;
+    tip.appendChild(tipName);
+    if (slotEffect) {
+      const e = document.createElement("p");
+      e.className = "tipeffect";
+      e.textContent = slotEffect;
+      tip.appendChild(e);
+    }
+    const blurb = (game.data.theme.itemBlurbs || {})[isRelic ? "relic" : id] || "";
+    if (blurb) {
+      const b = document.createElement("p");
+      b.className = "tipblurb";
+      b.textContent = blurb;
+      tip.appendChild(b);
+    }
+    box.appendChild(tip);
+
+    // The touch path, identical to the pack's: a tap REVEALS rather than acts,
+    // and closes anything else that is open first.
+    slotArt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = box.classList.contains("cell--open");
+      closeAllCells();
+      if (!open) box.classList.add("cell--open");
+    });
+  }
 
   if (slot === "weapon") {
     const n = id ? swordAttack(s, id) : RULES.START_ATTACK;
