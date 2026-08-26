@@ -1,0 +1,200 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>icon bench — separability at shipped sizes</title>
+<!--
+  A bench for #88, not a gate.
+
+  tests/stage.test.js is the authority on whether an icon set passes. This page
+  exists because that suite answers yes/no once, and drawing needs the NUMBER,
+  repeatedly, while the art is still moving. The rasterise() below is copied
+  from the guard deliberately — same viewBox extraction, same two draws, same
+  alpha > 96 threshold, same panel — so a figure here means what it means there.
+  If they ever disagree, the suite is right and this file is stale.
+
+  It also prints the contact sheet, because a number is not a look. Both floors
+  can pass on a pair nobody can tell apart in practice.
+-->
+<style>
+  :root { --panel: #1b1e24; --bg: #101216; --text: #e6e3dc; --muted: #9aa0aa;
+          --ok: #7fb539; --bad: #ef6449; --border: #2b3039; }
+  body { background: var(--bg); color: var(--text); margin: 0; padding: 24px 28px;
+         font: 14px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; }
+  h1 { font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+       font-weight: 600; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 22px; font-size: 12.5px; }
+  table { border-collapse: collapse; margin: 0 0 26px; }
+  th, td { padding: 4px 12px 4px 0; text-align: right; font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 600; text-align: right; border-bottom: 1px solid var(--border); }
+  th:first-child, td:first-child { text-align: left; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  h2 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+       margin: 26px 0 10px; font-weight: 600; }
+  .sheet { display: flex; flex-wrap: wrap; gap: 18px; }
+  .spec { text-align: center; }
+  .spec .box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+               padding: 10px; display: flex; align-items: flex-end; gap: 12px; }
+  .spec figcaption { color: var(--muted); font-size: 11px; margin-top: 6px; }
+  #out:empty::after { content: "measuring…"; color: var(--muted); }
+</style>
+<h1>icon bench</h1>
+<p class="sub">
+  floors: silhouette &ge; 12&thinsp;%, colour &ge; 25, ink 4–70&thinsp;% &middot;
+  sizes are the ones that ship &middot; the suite is the gate, this is the ruler
+</p>
+<div id="out"></div>
+
+<script type="module">
+// ---- copied from tests/stage.test.js, deliberately ------------------------------
+const NO_STORE = { cache: "no-store" };
+const ICON_SVG = await fetch("../assets/icons.svg", NO_STORE).then((r) => r.text());
+const PANEL = "#1b1e24";
+
+async function rasterise(symbolId, px) {
+  const doc = new DOMParser().parseFromString(ICON_SVG, "image/svg+xml");
+  const sym = doc.getElementById(symbolId);
+  if (!sym) return null;
+  const markup =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + sym.getAttribute("viewBox") +
+    '" width="' + px + '" height="' + px + '">' + sym.innerHTML + "</svg>";
+  const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+  const draw = (bg) => {
+    const c = document.createElement("canvas");
+    c.width = px; c.height = px;
+    const x = c.getContext("2d");
+    if (bg) { x.fillStyle = bg; x.fillRect(0, 0, px, px); }
+    x.drawImage(img, 0, 0, px, px);
+    return x.getImageData(0, 0, px, px).data;
+  };
+  const onPanel = draw(PANEL);
+  const bare = draw(null);
+  URL.revokeObjectURL(url);
+  const alpha = [];
+  let ink = 0;
+  for (let i = 0; i < px * px; i++) {
+    const on = bare[i * 4 + 3] > 96 ? 1 : 0;
+    alpha.push(on); ink += on;
+  }
+  return { onPanel, alpha, inkPct: (100 * ink) / (px * px), url: markup };
+}
+
+function pair(a, b) {
+  let differing = 0;
+  for (let k = 0; k < a.alpha.length; k++) if (a.alpha[k] !== b.alpha[k]) differing++;
+  const sil = (100 * differing) / a.alpha.length;
+  let sum = 0;
+  for (let k = 0; k < a.onPanel.length; k += 4) {
+    const dr = a.onPanel[k] - b.onPanel[k];
+    const dg = a.onPanel[k + 1] - b.onPanel[k + 1];
+    const db = a.onPanel[k + 2] - b.onPanel[k + 2];
+    sum += Math.sqrt(dr * dr + dg * dg + db * db);
+  }
+  return { sil, col: sum / (a.onPanel.length / 4) };
+}
+// ---- end copy -------------------------------------------------------------------
+
+// Where the light actually sits, which is the thing #88 turns on. Not part of the
+// guard — reported because "6% of the box uniquely lit" is a design rule that
+// needs a reading, and a pair can pass the floors while both being lit in the
+// same place, which is luck rather than construction.
+function litFraction(r, thresh = 110) {
+  let lit = 0;
+  for (let k = 0; k < r.onPanel.length; k += 4) {
+    const l = 0.2126 * r.onPanel[k] + 0.7152 * r.onPanel[k + 1] + 0.0722 * r.onPanel[k + 2];
+    if (l > thresh) lit++;
+  }
+  return (100 * lit) / (r.onPanel.length / 4);
+}
+function uniqueLit(a, b, thresh = 110) {
+  const L = (d, k) => 0.2126 * d[k] + 0.7152 * d[k + 1] + 0.0722 * d[k + 2] > thresh;
+  let ua = 0, ub = 0;
+  for (let k = 0; k < a.onPanel.length; k += 4) {
+    const la = L(a.onPanel, k), lb = L(b.onPanel, k);
+    if (la && !lb) ua++;
+    if (lb && !la) ub++;
+  }
+  const n = a.onPanel.length / 4;
+  return { ua: (100 * ua) / n, ub: (100 * ub) / n };
+}
+
+const SIZES = [18, 26, 54];
+const GROUP = (new URLSearchParams(location.search).get("ids") || [
+  "item-precept-knife", "item-peachwood-sword", "item-coin-sword", "item-sevenstar-sword",
+].join(",")).split(",");
+
+const out = document.getElementById("out");
+const short = (id) => id.replace(/^item-/, "");
+const cell = (v, floor) =>
+  '<td class="' + (v >= floor ? "ok" : "bad") + '">' + v.toFixed(1) + "</td>";
+
+let html = "";
+const cache = {};
+for (const px of SIZES) {
+  for (const id of GROUP) cache[id + "@" + px] = await rasterise(id, px);
+}
+
+// Ink, per icon per size.
+html += "<h2>ink — 4 to 70%</h2><table><tr><th>icon</th>";
+for (const px of SIZES) html += "<th>" + px + "px</th>";
+html += "</tr>";
+for (const id of GROUP) {
+  html += "<tr><td>" + short(id) + "</td>";
+  for (const px of SIZES) {
+    const r = cache[id + "@" + px];
+    if (!r) { html += '<td class="bad">missing</td>'; continue; }
+    const bad = r.inkPct <= 4 || r.inkPct >= 70;
+    html += '<td class="' + (bad ? "bad" : "ok") + '">' + r.inkPct.toFixed(1) + "</td>";
+  }
+  html += "</tr>";
+}
+html += "</table>";
+
+// Lit fraction, per icon per size.
+html += "<h2>lit area — luminance &gt; 110, % of box</h2><table><tr><th>icon</th>";
+for (const px of SIZES) html += "<th>" + px + "px</th>";
+html += "</tr>";
+for (const id of GROUP) {
+  html += "<tr><td>" + short(id) + "</td>";
+  for (const px of SIZES) {
+    const r = cache[id + "@" + px];
+    html += "<td>" + (r ? litFraction(r).toFixed(1) : "—") + "</td>";
+  }
+  html += "</tr>";
+}
+html += "</table>";
+
+// Pairwise, per size.
+for (const px of SIZES) {
+  html += "<h2>pairs at " + px + "px</h2><table><tr>" +
+    "<th>pair</th><th>sil &ge;12</th><th>col &ge;25</th><th>uniq-lit A</th><th>uniq-lit B</th></tr>";
+  for (let i = 0; i < GROUP.length; i++) {
+    for (let j = i + 1; j < GROUP.length; j++) {
+      const a = cache[GROUP[i] + "@" + px], b = cache[GROUP[j] + "@" + px];
+      if (!a || !b) continue;
+      const p = pair(a, b), u = uniqueLit(a, b);
+      html += "<tr><td>" + short(GROUP[i]) + " / " + short(GROUP[j]) + "</td>" +
+        cell(p.sil, 12) + cell(p.col, 25) +
+        "<td>" + u.ua.toFixed(1) + "</td><td>" + u.ub.toFixed(1) + "</td></tr>";
+    }
+  }
+  html += "</table>";
+}
+
+// The look, at the sizes it ships at, on the panel it sits on.
+html += '<h2>contact sheet</h2><div class="sheet">';
+for (const id of GROUP) {
+  html += '<figure class="spec" style="margin:0"><div class="box">';
+  for (const px of SIZES) {
+    const r = cache[id + "@" + px];
+    if (!r) continue;
+    html += '<img width="' + px + '" height="' + px + '" alt="" src="data:image/svg+xml;charset=utf-8,' +
+      encodeURIComponent(r.url) + '">';
+  }
+  html += "</div><figcaption>" + short(id) + "</figcaption></figure>";
+}
+html += "</div>";
+
+out.innerHTML = html;
+window.__benchDone = true;
+</script>

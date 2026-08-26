@@ -883,7 +883,18 @@ body.app .board-pane > .board { min-height: 0; }
   outline: 2px solid var(--way-new);
   outline-offset: 2px;
 }
-.cellicon { width: 62%; height: 62%; color: var(--gold); }
+/* 90%, not the 62% this shipped with since #48. The icon size is DERIVED, and
+   the derivation is worth writing down because it was got wrong once: the grid
+   content is 270px (300px column, less 1px panel border and 14px padding each
+   side, border-box), so a cell is (270 - 8*(n-1))/n and the face is 2px inside
+   that. At four cells the face is 59.5px, and the fill percentage -- not the
+   cell count -- is what sets the picture. 62% gave 36.9px; 90% gives 53.6px.
+
+   #88 needed a bigger picture for art that models with light and shadow, and
+   the option first put up was dropping to three cells, which yields 51.3px --
+   LESS than spending this padding, while also costing a pack slot. Four cells
+   at 90% was the cheaper buy and is what was ruled. */
+.cellicon { width: 90%; height: 90%; color: var(--gold); }
 
 /* The count. A stack is one cell however deep it is, so the number sits on the
    picture rather than beside it — and it has to be here at all because the name

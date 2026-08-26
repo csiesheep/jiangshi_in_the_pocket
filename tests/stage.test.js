@@ -717,13 +717,19 @@ test("icons: all thirteen exist and draw something at the smallest shipped size"
 
 test("icons: the four weapons stay apart at the size the choice is made", async () => {
   const W = ITEM_IDS.slice(0, 4);
-  // All three sizes these actually render at, MEASURED on the running game
-  // rather than assumed: 37px in the pack strip, which is where they mostly
-  // live, 26px in the hands, and 18px in the found-item row. #54 checked only
-  // the smallest and #60 was nearly redrawn for 75px, a size they stopped
-  // rendering at when the pack became a strip. Both ends belong in the guard so
-  // the next person cannot optimise for one of them.
-  for (const px of [18, 26, 37]) {
+  // All three sizes these actually render at, DERIVED from the grid rather than
+  // assumed: 54px in the pack strip, which is where they mostly live, 26px in
+  // the hands, and 18px in the found-item row. #54 checked only the smallest and
+  // #60 was nearly redrawn for 75px, a size they stopped rendering at when the
+  // pack became a strip. Both ends belong in the guard so the next person cannot
+  // optimise for one of them.
+  //
+  // The top of the range was 37 until #88 raised .cellicon from 62% to 90% of a
+  // 59.5px face. That is the same number as before, recomputed -- not a floor
+  // that was moved to make anything pass. If the fill or the cell count changes
+  // again, this list is what has to follow it, because art judged at a size it
+  // does not ship at is not judged.
+  for (const px of [18, 26, 54]) {
     const r = {};
     for (const id of W) r[id] = await rasterise(id, px);
     for (let i = 0; i < W.length; i++) {

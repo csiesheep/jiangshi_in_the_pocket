@@ -647,20 +647,20 @@
   <symbol id="item-precept-knife" viewBox="0 0 24 24">
   <defs>
     <linearGradient id="pkB" x1=".1" y1="0" x2=".9" y2=".4">
-      <stop offset="0" stop-color="#dfe6ec"/><stop offset=".38" stop-color="#8b939c"/>
-      <stop offset="1" stop-color="#3b4148"/>
+      <stop offset="0" stop-color="#f4f8fc"/><stop offset=".3" stop-color="#a8b2bc"/>
+      <stop offset=".68" stop-color="#59626c"/><stop offset="1" stop-color="#2f353c"/>
     </linearGradient>
     <linearGradient id="pkH" x1="0" y1="0" x2="1" y2=".3">
-      <stop offset="0" stop-color="#7a6144"/><stop offset="1" stop-color="#3a2e20"/>
+      <stop offset="0" stop-color="#6a543a"/><stop offset="1" stop-color="#2c2318"/>
     </linearGradient>
     <linearGradient id="pkR" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#b9c2ca"/><stop offset="1" stop-color="#4c535a"/>
+      <stop offset="0" stop-color="#9aa4ae"/><stop offset="1" stop-color="#3c434a"/>
     </linearGradient>
   </defs>
   <path d="M15.6 3.6c1.9 2.4 2.4 5 1.4 7.8l-1.2 3.2-4.6-1.7 1.3-3.4c1-2.6 2-4.6 3.1-5.9z" fill="url(#pkB)"/>
-  <path d="M15.6 3.6c1.4 1.8 2.1 3.7 2 5.7l-3.4-1.2c.4-1.7.9-3.2 1.4-4.5z" fill="#eef3f7" opacity=".55"/>
-  <path d="M10.6 12.6l5.4 2-.7 1.9-5.4-2z" fill="#2a2e34"/>
-  <path d="M10.6 12.6l5.4 2-.2.6-5.4-2z" fill="#767d85"/>
+  <path d="M15.6 3.6c1.4 1.8 2.1 3.7 2 5.7l-3.4-1.2c.4-1.7.9-3.2 1.4-4.5z" fill="#fbfdff" opacity=".6"/>
+  <path d="M10.6 12.6l5.4 2-.7 1.9-5.4-2z" fill="#22262c"/>
+  <path d="M10.6 12.6l5.4 2-.2.6-5.4-2z" fill="#8b939c"/>
   <path d="M9.4 15.4l3.6 1.3-1.5 4.1-3.6-1.3z" fill="url(#pkH)"/>
   <path d="M7 19.5a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zm0 1.2a.7.7 0 1 1 0 1.4.7.7 0 0 1 0-1.4z" fill="url(#pkR)"/>
 </symbol>
@@ -668,39 +668,40 @@
   <!-- 桃木劍 Peachwood Sword: straight, with a peach for a pommel -->
   <symbol id="item-peachwood-sword" viewBox="0 0 24 24">
   <defs>
-    <linearGradient id="pwB" x1="0" y1="0" x2="1" y2=".15">
-      <stop offset="0" stop-color="#c09363"/><stop offset=".42" stop-color="#7a5a37"/>
-      <stop offset="1" stop-color="#33230f"/>
+    <linearGradient id="pw8a" x1="0" y1="0" x2="1" y2=".12">
+      <stop offset="0" stop-color="#e0aa6a"/><stop offset=".26" stop-color="#a97c46"/>
+      <stop offset=".64" stop-color="#5c432a"/><stop offset="1" stop-color="#33261a"/>
     </linearGradient>
-    <linearGradient id="pwG" x1="0" y1="0" x2="1" y2=".2">
-      <stop offset="0" stop-color="#8a6d4f"/><stop offset="1" stop-color="#2c2317"/>
+    <linearGradient id="pw8b" x1="0" y1="0" x2="1" y2=".3">
+      <stop offset="0" stop-color="#8a6640"/><stop offset=".5" stop-color="#4e3a24"/>
+      <stop offset="1" stop-color="#2c2116"/>
     </linearGradient>
   </defs>
-  <path d="M7.9 1.4h8.2v13.2H7.9z" fill="url(#pwB)"/>
-  <path d="M9.5 1.4h.8v13.2h-.8zM12.5 1.4h.55v13.2h-.55zM14.4 1.4h.45v13.2h-.45z" fill="#3d3021" opacity=".35"/>
-  <path d="M7.9 1.4h8.2v1.1H7.9z" fill="#241c13" opacity=".8"/>
-  <path d="M3.6 14.6h16.8v2.6H3.6z" fill="url(#pwG)"/>
-  <path d="M3.6 14.6h16.8v.6H3.6z" fill="#b8905f" opacity=".55"/>
-  <path d="M10.5 17.2h3v4.6h-3z" fill="url(#pwB)"/>
-  <path d="M9.4 21.8h5.2v1.5H9.4z" fill="#2c2317"/>
+  <path d="M7.9 1.4h8.2v13.2H7.9z" fill="url(#pw8a)"/>
+  <path d="M9.5 1.4h.8v13.2h-.8zM12.5 1.4h.55v13.2h-.55zM14.4 1.4h.45v13.2h-.45z" fill="#2b2015" opacity=".33"/>
+  <path d="M7.9 1.4h8.2v1.1H7.9z" fill="#241a10" opacity=".7"/>
+  <path d="M3.6 14.6h16.8v2.6H3.6z" fill="url(#pw8b)"/>
+  <path d="M3.6 14.6h16.8v.5H3.6z" fill="#c2915a" opacity=".4"/>
+  <path d="M10.5 17.2h3v4.6h-3z" fill="url(#pw8b)"/>
+  <path d="M9.4 21.8h5.2v1.5H9.4z" fill="#3a2b1c"/>
 </symbol>
 
   <!-- 銅錢劍 Coin Sword: coins on a cord. The one made of circles. -->
   <symbol id="item-coin-sword" viewBox="0 0 24 24">
   <defs>
-    <radialGradient id="csC" cx="34%" cy="28%" r="72%">
-      <stop offset="0" stop-color="#a9d6c0"/><stop offset=".46" stop-color="#4f8474"/>
-      <stop offset="1" stop-color="#16332c"/>
+    <radialGradient id="csC" cx="32%" cy="26%" r="74%">
+      <stop offset="0" stop-color="#e2d29c"/><stop offset=".28" stop-color="#7f9b80"/>
+      <stop offset=".66" stop-color="#4a6b58"/><stop offset="1" stop-color="#31503f"/>
     </radialGradient>
   </defs>
   <g fill="url(#csC)">
     <circle cx="12" cy="4" r="3.2"/><circle cx="12" cy="9.3" r="3.2"/>
     <circle cx="12" cy="14.6" r="3.2"/><circle cx="12" cy="19.9" r="3.2"/>
   </g>
-  <g fill="#0d201c" opacity=".92">
+  <g fill="#1a1c16" opacity=".94">
     <path d="M10.9 2.9h2.2v2.2h-2.2zM10.9 8.2h2.2v2.2h-2.2zM10.9 13.5h2.2v2.2h-2.2zM10.9 18.8h2.2v2.2h-2.2z"/>
   </g>
-  <g fill="#d6f0e2" opacity=".5">
+  <g fill="#f0e0b0" opacity=".72">
     <path d="M10 1.6a3.2 3.2 0 0 0-1.1 1.3l1 .5a2 2 0 0 1 .7-.9z"/>
     <path d="M10 6.9a3.2 3.2 0 0 0-1.1 1.3l1 .5a2 2 0 0 1 .7-.9z"/>
     <path d="M10 12.2a3.2 3.2 0 0 0-1.1 1.3l1 .5a2 2 0 0 1 .7-.9z"/>
@@ -712,26 +713,26 @@
        seven — the dots are filled so they survive being 0.5px across. -->
   <symbol id="item-sevenstar-sword" viewBox="0 0 24 24">
   <defs>
-    <linearGradient id="ssB" x1=".05" y1="0" x2=".95" y2=".2">
-      <stop offset="0" stop-color="#f0f5fa"/><stop offset=".34" stop-color="#93a0ab"/>
-      <stop offset=".72" stop-color="#4d565f"/><stop offset="1" stop-color="#7f8b95"/>
+    <linearGradient id="ss8a" x1=".05" y1="0" x2=".95" y2=".2">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".26" stop-color="#e2edf7"/>
+      <stop offset=".62" stop-color="#9aa8b6"/><stop offset="1" stop-color="#59636e"/>
     </linearGradient>
-    <linearGradient id="ssG" x1="0" y1="0" x2="1" y2=".4">
-      <stop offset="0" stop-color="#d5dde5"/><stop offset="1" stop-color="#5a636c"/>
+    <linearGradient id="ss8b" x1="0" y1="0" x2="1" y2=".4">
+      <stop offset="0" stop-color="#6b7784"/><stop offset="1" stop-color="#48525e"/>
     </linearGradient>
   </defs>
-  <path d="M12 .8l1.7 2.4-.5 12.4h-2.4l-.5-12.4z" fill="url(#ssB)"/>
-  <path d="M12 .8l.6.8-.3 14h-.6l-.3-14z" fill="#0f1418" opacity=".35"/>
-  <g fill="#f8fcff" opacity=".9">
+  <path d="M12 .8l1.7 2.4-.5 12.4h-2.4l-.5-12.4z" fill="url(#ss8a)"/>
+  <path d="M12 .8l.6.8-.3 14h-.6l-.3-14z" fill="#38424d" opacity=".4"/>
+  <g fill="#6c7a89" opacity=".8">
     <circle cx="12" cy="4.2" r=".5"/><circle cx="12" cy="5.8" r=".5"/>
     <circle cx="12" cy="7.4" r=".5"/><circle cx="12" cy="9" r=".5"/>
     <circle cx="12" cy="10.6" r=".5"/><circle cx="12" cy="12.2" r=".5"/>
     <circle cx="12" cy="13.8" r=".5"/>
   </g>
-  <path d="M3.4 15.6h17.2v2.1H3.4z" fill="url(#ssG)"/>
-  <path d="M3.4 15.6h17.2v.6H3.4z" fill="#eef4f9" opacity=".55"/>
-  <path d="M11.1 17.7h1.8v4.2h-1.8z" fill="#332e28"/>
-  <circle cx="12" cy="22.4" r="1.3" fill="url(#ssG)"/>
+  <path d="M3.4 15.6h17.2v2.1H3.4z" fill="url(#ss8b)"/>
+  <path d="M3.4 15.6h17.2v.45H3.4z" fill="#8f9dab" opacity=".45"/>
+  <path d="M11.1 17.7h1.8v4.2h-1.8z" fill="#3b444f"/>
+  <circle cx="12" cy="22.4" r="1.3" fill="url(#ss8b)"/>
 </symbol>
 
   <!-- 真火符 True Fire Talisman: the strip, with a flame drawn open -->
