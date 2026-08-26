@@ -126,12 +126,49 @@ const SHELL = [
 // never hear, and install must not fail because one optional file 404s.
 const RUNTIME = /\/(data|assets\/audio)\//;
 
+// #84, AND THE ONLY THING IN THIS FILE THAT IS LOAD-BEARING FOR CORRECTNESS.
+//
+// A Response fetched through a redirect carries `redirected: true`. A service
+// worker MAY NOT answer a navigation with one — the browser rejects it and
+// shows its own error page instead. Production 307s every .html path to its
+// clean URL (game.html -> game), so every document in SHELL came back
+// redirected, was cached that way, and the cache-first handler then served it
+// to a navigation. Players got "This site can't be reached" moving between
+// pages; nothing errored anywhere, because caching a redirected response is
+// perfectly legal and only USING it for a navigation is not.
+//
+// Rebuilding the response drops the flag. Done at the moment of storage rather
+// than at the moment of use, so the cache cannot hold a poisoned entry at all
+// — the bug becomes impossible rather than handled.
+async function storable(res) {
+  if (!res || !res.redirected) return res;
+  return new Response(await res.blob(), {
+    status: res.status,
+    statusText: res.statusText,
+    headers: res.headers,
+  });
+}
+
+// Every write to the cache goes through here. If a second call site is ever
+// added that does not, #84 comes back.
+function keep(cache, key, res) {
+  return storable(res).then((safe) => cache.put(key, safe));
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
-      // addAll is atomic — one 404 fails the whole install — so each file is
-      // added on its own and a missing optional one costs only itself.
-      Promise.all(SHELL.map((url) => cache.add(url).catch(() => {})))
+      // One at a time, not addAll: addAll is atomic, so one 404 would fail the
+      // whole install and a missing optional file would cost everything.
+      //
+      // fetch + keep rather than cache.add, because cache.add stores whatever
+      // the fetch returned — including the redirect that caused #84 — and
+      // gives no opportunity to rebuild it.
+      Promise.all(SHELL.map((url) =>
+        fetch(url, { cache: "reload" })
+          .then((res) => (res && res.ok ? keep(cache, url, res) : null))
+          .catch(() => {})
+      ))
     ).then(() => self.skipWaiting())
   );
 });
@@ -163,7 +200,7 @@ self.addEventListener("fetch", (event) => {
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
+            caches.open(CACHE).then((c) => keep(c, req, copy));
           }
           return res;
         })
@@ -172,15 +209,46 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // The shell: cache first, and refill in the background so the next launch is
-  // current without this one waiting on the network.
+  // NAVIGATIONS GO TO THE NETWORK FIRST (#84). Two reasons, and the second is
+  // the one that matters.
+  //
+  // Documents are small and there are five of them, so the cost of asking is
+  // low and a stale page is worse than a slow one — a rules fix reaches players
+  // on the next tap rather than the launch after next.
+  //
+  // And a navigation request carries redirect mode "manual", so a 307 comes
+  // back as an opaqueredirect that respondWith may hand to the browser to
+  // follow. That is the correct way to serve a path production redirects, and
+  // it is why this arm cannot reproduce #84 even if the cache were poisoned.
+  // The offline fallback still leans on `keep` above to have stored something
+  // usable, so this is defence in depth rather than the fix.
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => keep(c, req, copy));
+          }
+          return res;
+        })
+        // Offline. Whatever is stored for this document, and the start page if
+        // this one was never visited — better the game's own shell than the
+        // browser's error.
+        .catch(() => caches.match(req).then((hit) => hit || caches.match("./")))
+    );
+    return;
+  }
+
+  // Everything else in the shell: cache first, and refill in the background so
+  // the next launch is current without this one waiting on the network.
   event.respondWith(
     caches.match(req).then((hit) => {
       const network = fetch(req)
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
+            caches.open(CACHE).then((c) => keep(c, req, copy));
           }
           return res;
         })
