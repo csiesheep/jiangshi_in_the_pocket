@@ -32,7 +32,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "fbc84085");
+suite(import.meta.url, "749089fb");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -203,6 +203,39 @@ test("§13: the reachability probe can tell code from a comment about code", () 
 // So this does not forbid tools/bots.js anything. It pins the rule that the
 // difference must be visible: if the bots use a capability no button reaches,
 // that fact has to be stated where the numbers are read.
+// The other half of the same rule, and the half that needs a guard rather than
+// a habit. A LAB policy is legitimate — #57's squatter earned its result by
+// standing where no player would, and `tempted` prices a discipline the shipped
+// bots have — but its output must never appear in the tables people read as a
+// description of the shipped game.
+//
+// Asserted rather than remembered, because "never in the shipped funnel" is
+// exactly the kind of rule that survives until the week somebody is in a hurry.
+test("§13: no lab policy appears in the shipped report tables", async () => {
+  const bots = await fetch("../tools/bots.js", NO_STORE).then((r) => r.text());
+  const report = await fetch("../tools/bots-report.md", NO_STORE).then((r) => r.text());
+
+  const declared = bots.indexOf("export const LAB_POLICIES");
+  assert(declared !== -1, "tools/bots.js must declare which policies are lab-only");
+  const names = bots
+    .slice(declared, bots.indexOf(";", declared))
+    .split('"')
+    .filter((part, i) => i % 2 === 1);
+  assert(names.length >= 1, "LAB_POLICIES is empty — if that is deliberate, delete this test");
+
+  // Only the live tables. Everything below the snapshot line is a dated record
+  // and is not a description of the shipped game, so it is not this rule's
+  // business — the same boundary the report itself draws.
+  const cut = report.indexOf("Everything below is a snapshot");
+  const live = cut === -1 ? report : report.slice(0, cut);
+
+  for (const name of names) {
+    assert(!live.split(NL).some((line) => line.trim().startsWith("| " + name)),
+      `lab policy "${name}" has a row in the shipped tables — it models something ` +
+      "no player is, and the numbers there are read as what the game does");
+  }
+});
+
 test("§13: capability beyond the player is labelled where the numbers are read", async () => {
   const bots = await fetch("../tools/bots.js", NO_STORE).then((r) => r.text());
   const report = await fetch("../tools/bots-report.md", NO_STORE).then((r) => r.text());

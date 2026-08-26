@@ -108,7 +108,26 @@ function fight(ctx, n, plan = {}) {
   // Talismans are consumed. A policy saving one for midnight must not reach
   // for it here — winning a corridor fight with the strike is how you arrive
   // at the door holding nothing.
-  const reachable = keepStrike ? spendableTalismans(state) : talismans;
+  let reachable = keepStrike ? spendableTalismans(state) : talismans;
+
+  // LAB ONLY (#70 follow-up). `temptedAt` models the one discipline a bot has
+  // and a person does not: keeping the last 真火符 for the blade instead of
+  // throwing it at whatever is in the room. When set, the paper becomes
+  // spendable once the fight is predicted to cost `temptedAt` or more — so a
+  // low number is a player who reaches for it readily and Infinity is the
+  // adept, who never does.
+  //
+  // A THRESHOLD RATHER THAN A COIN, deliberately: a shared seed has to replay
+  // the same night, and a random lapse would also model forgetfulness rather
+  // than a decision. This models the decision — how bad does it have to get.
+  //
+  // Inert unless a policy asks for it, and no shipped policy does.
+  if (plan.temptedAt !== undefined && bare >= plan.temptedAt &&
+      E.held(state, "truefire-talisman") && !reachable.includes("truefire-talisman")) {
+    reachable = [...reachable, "truefire-talisman"]
+      .sort((a, b) => state.itemsById[b].attack - state.itemsById[a].attack);
+  }
+
   if (bare >= 2 && reachable.length) {
     const pick = reachable[0];
     if (!(state.itemsById[pick].costHp && state.health <= 2)) use.talisman = pick;
@@ -291,7 +310,38 @@ const POLICIES = {
     if (heal) return { seek: (x) => x.def.onTurnEnd === "HEAL_1" };
     return { explore: "any" };
   },
+
+  // ---- LAB ONLY. NOT A SHIPPED POLICY. -------------------------------------
+  //
+  // `tempted` is the adept with one discipline removed, and it exists to price
+  // a question the shipped instrument cannot ask: the bots keep the last 真火符
+  // for the blade because spendableTalismans() protects it, and a person has
+  // to decide that every time a fight looks bad.
+  //
+  // It matters because the buff is not an optimisation. Without it NO kit a
+  // player can carry reaches the bar (ceiling 11, bar 12 even with the 神主牌),
+  // so throwing the paper does not lower the seal rate — it ends it. Every seal
+  // figure in tools/bots-report.md is therefore an upper bound on a person
+  // playing the same way, and this measures the shape of the gap.
+  //
+  // Read `opts.temptedAt`: the predicted fight damage at which this player
+  // reaches for the paper. Low is a player who spends it readily; Infinity is
+  // the adept. Findings live in tools/tempted-pricing.md.
+  //
+  // NEVER DEFAULT AND NEVER IN THE SHIPPED TABLES — the rule the whole of #70
+  // came down to: an instrument may exceed or fall short of the player, but the
+  // difference has to be visible where the numbers are read.
+  tempted(ctx) {
+    const base = POLICIES.adept(ctx) || {};
+    const at = ctx.opts && ctx.opts.temptedAt;
+    return { ...base, temptedAt: at === undefined ? 2 : at };
+  },
 };
+
+// Policies that model something no player is, or that drop a discipline every
+// player has. Named here so a guard can assert they stay out of the shipped
+// report rather than relying on whoever writes it next to remember.
+export const LAB_POLICIES = ["tempted"];
 
 // ---- The adept's judgement -------------------------------------------------------
 // Helpers for the one policy that is trying to play well rather than to
@@ -406,7 +456,9 @@ export function playNight(data, policyName, seed, opts = {}) {
                   // approximation is stated rather than hidden: it counts the
                   // case that actually kills runs, not every possible regret.
                   forcedChoices: 0, paidWithFood: 0, starvedAfter: false };
-  const ctx = { state, board, data, die, stats };
+  // `opts` reaches the policy so a LAB policy can be parameterised per run
+  // without a second copy of the file. No shipped policy reads it.
+  const ctx = { state, board, data, die, stats, opts };
   const policy = POLICIES[policyName];
 
   let guard = 0;

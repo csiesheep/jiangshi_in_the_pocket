@@ -17,26 +17,31 @@
 > always a true description of the bots and are now also a true description of
 > what a person can do.
 >
-> ### The gap that is left, and it is not a rounding error
+> ### The gap I expected here, measured and withdrawn
 >
-> A bot buys the buff in `upkeep()`: automatically, with no turn spent, and only
-> when it can spare the paper. A player must do three things — find 真火符, KEEP
-> it rather than throw it in a fight, and choose to burn it into the blade.
+> This section previously claimed the seal line was "binary and total" — that
+> the rate below was what you score for keeping 真火符 for the blade, and zero
+> for throwing it in a fight. **That was wrong. It has been measured and it is
+> not true.** See tools/tempted-pricing.md.
 >
-> The middle one is the whole difference, and the buff is not an optimisation:
-> **without it no kit a player can carry reaches the bar at all** (ceiling 11,
-> bar 12 even carrying his name). Measured with the buff neutered, the adept's
-> seals over 800 seeds went 91 to 0. So the seal rate below is not an average a
-> player converges on — it is what you score if you make that one decision
-> correctly, and **zero is what you score if you throw the talisman in a fight.**
-> The line is binary and total.
+> Two things are true at once. The buff IS essential: without it no kit a player
+> can carry reaches the bar at all (ceiling 11, bar 12 even carrying his name),
+> and with buffSword neutered the adept's seals go 91 to 0. But NO PARTICULAR
+> SHEET of paper is essential — a lab policy that spends 真火符 as freely as the
+> model allows scores 114 and 121 against the adept's 113 and 128, inside the
+> spread between the two batches.
 >
-> These policies therefore report an UPPER BOUND on a person playing the same
-> way. How often a person actually keeps the paper is unmeasured, and the bots
-> cannot answer it because they never face the temptation — `upkeep()` runs
-> before the fight decides anything. It is a real open question rather than a
-> caveat. The author of this report threw his own 真火符 in a fight one turn
-> before finding 七星劍 (tools/one-night-4242.md).
+> The adept was never disciplined about it either: it already throws 真火符 321
+> times across 1000 nights, because spendableTalismans() frees the paper the
+> moment the blade is buffed. The lab policy roughly doubles that, to 700, and
+> the rate does not notice. The night is long and 符咒 tables produce more.
+>
+> So the caveat I attached to these figures is WITHDRAWN on this axis. They are
+> not an upper bound because of a discipline a person lacks; the decision does
+> not separate a careful player from a careless one. The bots are still not a
+> model of a person — they read the map's roles perfectly, never mis-click and
+> never get bored — but the gap that looked most likely to matter is not where
+> the difference lives. Look somewhere other than 真火符.
 
 Produced by `tools/bots.html` (`?seeds=N`, `?from=S` for a disjoint batch).
 Deterministic: the same seed replays the same night. Regenerate after any change
