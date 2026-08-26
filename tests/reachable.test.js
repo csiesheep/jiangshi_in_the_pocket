@@ -32,7 +32,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "b514eb88");
+suite(import.meta.url, "fbc84085");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -54,11 +54,37 @@ const shipped = Object.fromEntries(
   )
 );
 
+// NL is built rather than written. A backslash-n in this repository has twice
+// arrived as a literal newline in transit — it did so while this very function
+// was being written — and a split on a mangled separator fails silently in the
+// direction that matters: it stops finding call sites, the buff reads as
+// unreachable, and the suite goes red for a reason nobody can see. Built from a
+// char code, there is no escape left to mangle.
+const NL = String.fromCharCode(10);
+
+// COMMENTS STRIPPED FIRST, and that is not tidiness. js/render.js carries a
+// paragraph explaining that buffSword is unreachable, and the moment somebody
+// writes "E.buffSword(state, id)" inside such a paragraph — describing the
+// call that does not exist — a raw scan would declare the capability reachable
+// and this whole suite would go green against an unwinnable game. That is the
+// exact failure mode stage.test.js has hit three times: the comment explaining
+// a rule contains the word the rule forbids.
+//
+// Line comments only. A capability reached from inside a block comment is not
+// reached, and if that ever becomes a real question the answer is a parser,
+// not a cleverer regex.
+function codeOf(src) {
+  return src
+    .split(NL)
+    .filter((line) => line.trim().slice(0, 2) !== "//")
+    .join(NL);
+}
+
 // Is there a route from a button to this engine capability? Named per
 // capability rather than as a general scan, because "some file mentions the
 // word" is not reachability and a vague guard here would be worse than none.
 function reachable(fnName) {
-  return Object.values(shipped).some((src) => src.includes(fnName + "("));
+  return Object.values(shipped).some((src) => codeOf(src).includes(fnName + "("));
 }
 
 const BUFF_REACHABLE = reachable("buffSword");
@@ -144,6 +170,29 @@ test("§13: what a player can reach is what the shipped code can call", () => {
 
   eq(playerCeiling, BUFF_REACHABLE ? withBuff : without,
     "the ceiling this suite judges by must follow the shipped code, not a constant here");
+});
+
+// THE GUARD, FAILED ON PURPOSE IN BOTH DIRECTIONS. reachable() decides whether
+// this whole suite judges by 11 or by 13, so a broken one is worse than none —
+// it would go green against an unwinnable game and nobody would look again.
+//
+// Both directions matter and only one is obvious. Missing a real call site
+// leaves a false alarm, which someone investigates. Counting a COMMENTED call
+// site as real is silent: the suite passes, the game stays unwinnable, and the
+// evidence that it is broken is the very paragraph explaining why.
+test("§13: the reachability probe can tell code from a comment about code", () => {
+  const asCode = { "x.js": 'if (ok) E.buffSword(state, id);' };
+  const asComment = { "x.js": '// nothing calls E.buffSword(state, id) from any button' };
+  const probe = (files) =>
+    Object.values(files).some((src) => codeOf(src).includes("buffSword("));
+
+  assert(probe(asCode), "a real call site must register — the guard fails open otherwise");
+  assert(!probe(asComment),
+    "a commented call registered as reachable: this suite would pass an unwinnable game");
+
+  // And the live one, stated so the failing direction is visible in the output
+  // rather than inferred from which assertions ran.
+  eq(BUFF_REACHABLE, reachable("buffSword"), "the constant must come from the probe");
 });
 
 // The bots are an instrument and instruments may exceed the player — #57's
