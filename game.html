@@ -91,27 +91,38 @@
       </div>
     </section>
 
+    <!-- ONE PANEL, not three. The clock, what you are wearing and what you are
+         carrying were three bordered cards stacked down the side, which on a
+         phone is three sets of chrome around three short lists. They are one
+         surface now, in the same order, and the two headings are gone with the
+         borders: "Equipment" over a pair of hands and "Backpack" over a grid of
+         items were labelling what the drawings already say.
+
+         The clock is the digital reading alone. The analog face went with the
+         same change — it and the numerals were two clocks saying one time, and
+         the one that reads at a glance on a phone is the one with digits. -->
     <aside class="sidebar">
-      <div class="panel panel--status">
-        <div class="clockbox" id="hud-hour"></div>
-        <div class="statgrid">
-          <div class="stat"><span class="statlabel" id="stat-health">Health</span><span class="statval" id="hud-health"></span></div>
+      <div class="panel">
+        <!-- panel--status stays, on the CLOCK AND HEALTH BLOCK rather than on
+             the whole panel. It carries --panel-type, which .statlabel,
+             .statnum and .clocknum read, and it is what the 600px rule targets
+             — left on the merged panel that rule would flex the equipment and
+             the pack into a row beside the clock on every phone. -->
+        <div class="panel--status">
+          <div class="clockbox" id="hud-hour"></div>
+          <div class="statgrid">
+            <div class="stat"><span class="statlabel" id="stat-health">Health</span><span class="statval" id="hud-health"></span></div>
+          </div>
         </div>
         <!-- 中毒 is a state, not a quantity, so it is a band across the panel
              rather than a fourth number in the grid. Absent entirely when clean:
              an empty slot reading "not poisoned" every turn is noise. -->
         <div class="poisonmark" id="hud-poison" hidden></div>
-      </div>
-      <!-- What you are wearing and holding, above what you are carrying: the
-           pack is luggage and this is the game. All three drawn rather than
-           implied, because bare-handed is zero — and the 神主牌 is DRAWN here
-           while still living outside the pack, so it costs no slot. -->
-      <div class="panel">
-        <h3 id="hands-title">Equipment</h3>
+        <!-- What you are wearing and holding, above what you are carrying: the
+             pack is luggage and this is the game. All three drawn rather than
+             implied, because bare-handed is zero — and the 神主牌 is DRAWN here
+             while still living outside the pack, so it costs no slot. -->
         <div class="hands" id="hud-hands"></div>
-      </div>
-      <div class="panel">
-        <h3 id="backpack">Backpack</h3>
         <div class="backpack" id="hud-items"></div>
       </div>
     </aside>

@@ -1597,8 +1597,11 @@ async function useLanguage(lang) {
 function paintChrome() {
   const text = {
     "nav-rulebook": "nav-rulebook", "nav-menu": "nav-menu",
-    "page-title": "page-title", backpack: "backpack",
-    "hands-title": "hands-title",
+    "page-title": "page-title",
+    // "backpack" and "hands-title" went with the panel merge: the sidebar is
+    // one surface now and the two headings were labelling what the drawings
+    // already say. Their theme keys went with them in both languages — a key
+    // that paints an element which does not exist is the quiet kind of rot.
     brand: "brand",
   };
   for (const [id, key] of Object.entries(text)) {

@@ -562,12 +562,13 @@ body.app .board-pane > .board { min-height: 0; }
    It used to sit in the stat grid at 19px, the same rank as the attack sword,
    which is no rank at all for the thing the whole run is racing. Now it heads
    the panel and the other stats read beneath it. */
+/* The dial is gone, so this is no longer a row with a face in it — it is the
+   first of the panel's two lines. Centring stays: the reading is the heading
+   of the whole sidebar and reads as one when it is centred over the hearts. */
 .clockbox {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .clockread { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
@@ -598,28 +599,8 @@ body.app .board-pane > .board { min-height: 0; }
   100% { transform: translate(0, 0); }
 }
 
-/* The dial, +10% on the panel's size. */
-.clock { width: 86px; height: 86px; flex: none; color: var(--muted); }
-.clock-face { fill: none; stroke: currentColor; stroke-width: 1.6; opacity: .75; }
-.clock-tick { stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; opacity: .4; }
-/* The hours this game is actually played in get the longer, brighter marks. */
-.clock-tick--played { stroke-width: 2.2; opacity: .85; }
-/* Eleven to midnight, marked like a gauge's red zone. */
-/* Eleven to midnight. One colour now (#76) — the red zone is carried by
-   WEIGHT rather than hue, which is the same trick the played hours use. */
-.clock-danger { fill: none; stroke: currentColor; stroke-width: 3.4; stroke-linecap: round; opacity: .9; }
-.clock-numeral {
-  font-family: var(--font-display);
-  font-size: 13px;
-  fill: var(--text);
-  stroke: none;
-  opacity: .8;
-}
-.clock-numeral--midnight { opacity: 1; }
-.clock-hand { stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
-.clock-hand--hour { stroke-width: 3.4; }
-.clock-hand--minute { opacity: .75; }
-.clock-pin { fill: currentColor; stroke: none; }
+/* The dial and its face, ticks, numerals, hands and pin were all deleted with
+   the panel merge. The clock is .clocknum now and nothing else. */
 
 /* ---- Backpack ---- */
 /* ---- The hands ---------------------------------------------------------------
@@ -2235,7 +2216,6 @@ body.app .board-pane > .board { min-height: 0; }
   position: relative;
   z-index: 2;
 }
-.panel h3 { margin: 0 0 8px; font-size: 0.95rem; }
 
 
 /* The actions pop-out: floats over the lower board on desktop, and drops into
@@ -3091,10 +3071,14 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
    So the stats read beside the clock rather than beneath it, which buys back
    more height than shrinking the face would and keeps the numerals legible. */
 @media (max-width: 600px) {
-  .panel--status { display: flex; align-items: center; gap: 14px; }
-  .panel--status .clockbox { margin-bottom: 0; flex: none; }
+  /* This used to make the status block a ROW — stats beside the dial, to buy
+     back the height a round face cost. With the face gone there is no height to
+     buy back and the brief is explicit: the reading is the first line and the
+     hearts are the second. So it stays stacked at every width, and only the
+     grid is held to one column. */
+  .panel--status .clockbox { margin-bottom: 8px; }
   /* Two classes, so this beats the 1fr 1fr set in the earlier 600px block. */
-  .panel--status .statgrid { grid-template-columns: 1fr; flex: 1; min-width: 0; gap: 7px 12px; }
+  .panel--status .statgrid { grid-template-columns: 1fr; min-width: 0; gap: 7px 12px; }
 }
 
 /* ---- The tile gallery -------------------------------------------------------

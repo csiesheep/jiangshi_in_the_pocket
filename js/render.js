@@ -321,22 +321,16 @@ function renderPoison(s) {
   el.appendChild(srOnly(`中毒: losing ${RULES.POISON_PER_TURN} health at the start of every turn until it is drawn out`));
 }
 
-// The hand sweeps round when the hour actually turns, which is the only time
-// the clock changes — every other render redraws it in place.
+// THE CLOCK IS THE DIGITS. The analog face went with the panel merge: a dial
+// and a numeral beside it were two clocks saying one time, and on a phone the
+// one that reads at a glance is the one with digits. The hand sweep and the
+// face-shake went with it — everything below still works from the reading.
 let lastHour = null;
-let lastReading = null;
-let lastAngles = null;
 
 function renderHour(s) {
   const el = statBox("hud-hour");
   if (!el) return;
   const c = clockTime(s);
-  // The hour hand creeps between the marks rather than snapping, because the
-  // hour really is draining the whole time — one card at a time.
-  const hourAngle = ((c.hour24 % 12) + c.minutes / 60) * 30;
-  const minuteAngle = c.minutes * 6;
-  const face = clockFace(hourAngle, minuteAngle);
-  el.appendChild(face);
 
   const reading = formatClock(c);
   const side = document.createElement("div");
@@ -394,44 +388,15 @@ function renderHour(s) {
     // drum that will strike at 三更.
     watchDrum(s.hour - RULES.START_HOUR + 1);
   }
-  if (turned && s.hour === RULES.FINAL_HOUR) strikeEleven(face);
-
-  // The clock's heartbeat is now the draw, not the hour: every card that leaves
-  // the deck sweeps the hands. Diffing on the reading means a refresh that
-  // changed nothing else does not re-animate.
-  const moved = lastReading != null && lastReading !== c.label;
-  const from = lastAngles;
-  lastReading = c.label;
-  lastAngles = { hour: hourAngle, minute: minuteAngle };
-  if (!moved || !from || reducedMotion()) return;
-
-  sweep(face.querySelector(".clock-hand--minute"), from.minute, minuteAngle);
-  sweep(face.querySelector(".clock-hand--hour"), from.hour, hourAngle);
+  // The shake moved from the dial to the digits, because the dial is gone and
+  // the moment still has to land somewhere the eye is already looking.
+  if (turned && s.hour === RULES.FINAL_HOUR) strikeEleven(text);
 }
 
-// Hands only ever go forwards. Crossing the top takes the minute hand from 306°
-// to 0°, which as a plain interpolation would rewind the whole face.
-function sweep(hand, from, to) {
-  if (!hand || typeof hand.animate !== "function") return;
-  const target = to < from ? to + 360 : to;
-  hand.animate(
-    [{ transform: `rotate(${from}deg)` }, { transform: `rotate(${target}deg)` }],
-    { duration: 400, easing: "cubic-bezier(.3,.8,.4,1)" }
-  );
-}
-
-// The pip row went with #76. It counted the turns left in the band, and the
-// user ruled it off the dial — but nothing is actually lost to a sighted
-// player, and that is worth writing down rather than assuming: ten turns of six
-// minutes is exactly sixty, so the MINUTE HAND makes one full revolution per
-// hour band and each turn moves it 36 degrees. The hand is the same countdown,
-// continuously rather than in seven steps.
-//
-// cardsLeftPhrase stays because it feeds the clock's accessible name, and that
-// is not the asymmetry it looks like: a hand position is not something a screen
-// reader can read, so each channel carries the same fact in the form that
-// channel can carry it.
-
+// Restored: this feeds the CLOCK'S ACCESSIBLE NAME, not the dial, and it was
+// deleted by accident along with the dial's own helpers. The visible reading
+// and the spoken one carry the same fact in the form each channel can carry —
+// removing the face changed nothing about that.
 function cardsLeftPhrase(c) {
   if (c.left === 0) return ui(drawing, "turns-left-none");
   // Two keys, not a suffix: English pluralises and Chinese does not, and a
@@ -443,7 +408,11 @@ function cardsLeftPhrase(c) {
 
 // The last hour, called out. The ambient palette shift is handled by the hour
 // class; this is the punctuation on top of it.
-function strikeEleven(face) {
+//
+// Takes the digits now that the dial is gone. The log line, the caption and the
+// bell never needed an element — only the shake does, and it has to happen on
+// something the player is already reading.
+function strikeEleven(target) {
   const table = (drawing && drawing.data && drawing.data.theme && drawing.data.theme.lines) || {};
   const line = table["strike-eleven"] || "strike-eleven";
   log(line, "bad");
@@ -451,8 +420,8 @@ function strikeEleven(face) {
   // moment the game tells you how it ends.
   caption(line, "toll");
   tollBell();
-  if (reducedMotion() || typeof face.animate !== "function") return;
-  face.animate(
+  if (reducedMotion() || !target || typeof target.animate !== "function") return;
+  target.animate(
     [
       { transform: "rotate(0deg) scale(1)" },
       { transform: "rotate(-9deg) scale(1.18)", offset: 0.25 },
@@ -464,92 +433,6 @@ function strikeEleven(face) {
   );
 }
 
-// Drawn on a 100-unit face rather than 24: at a readable size the old viewBox
-// put stroke widths and numerals on a grid too coarse to place them well.
-//
-// Only the 9-to-12 quadrant is ever played, so it is marked like a gauge:
-// numerals on the hours that exist, and the last hour's arc in --danger.
-const CLOCK_R = 40;
-const NUMERAL_R = 23;
-const PLAYED_HOURS = [9, 10, 11, 12];
-
-function polar(deg, r) {
-  const rad = (deg * Math.PI) / 180;
-  return [50 + r * Math.sin(rad), 50 - r * Math.cos(rad)];
-}
-
-function clockFace(hourAngle, minuteAngle = 0) {
-  const NS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("class", "clock");
-  svg.setAttribute("viewBox", "0 0 100 100");
-  svg.setAttribute("aria-hidden", "true");
-
-  const face = document.createElementNS(NS, "circle");
-  face.setAttribute("cx", "50");
-  face.setAttribute("cy", "50");
-  face.setAttribute("r", String(CLOCK_R));
-  face.setAttribute("class", "clock-face");
-  svg.appendChild(face);
-
-  // The red zone: eleven to midnight, the hour the game ends in.
-  const [ax, ay] = polar(330, CLOCK_R);
-  const [bx, by] = polar(360, CLOCK_R);
-  const arc = document.createElementNS(NS, "path");
-  arc.setAttribute("d", `M${ax.toFixed(2)} ${ay.toFixed(2)} A${CLOCK_R} ${CLOCK_R} 0 0 1 ${bx.toFixed(2)} ${by.toFixed(2)}`);
-  arc.setAttribute("class", "clock-danger");
-  svg.appendChild(arc);
-
-  for (let h = 0; h < 12; h++) {
-    const deg = h * 30;
-    const played = PLAYED_HOURS.includes(h === 0 ? 12 : h);
-    const [x1, y1] = polar(deg, CLOCK_R);
-    const [x2, y2] = polar(deg, played ? CLOCK_R - 5 : CLOCK_R - 3);
-    const tick = document.createElementNS(NS, "line");
-    tick.setAttribute("x1", x1.toFixed(2));
-    tick.setAttribute("y1", y1.toFixed(2));
-    tick.setAttribute("x2", x2.toFixed(2));
-    tick.setAttribute("y2", y2.toFixed(2));
-    tick.setAttribute("class", `clock-tick${played ? " clock-tick--played" : ""}`);
-    svg.appendChild(tick);
-  }
-
-  for (const h of PLAYED_HOURS) {
-    const [x, y] = polar((h % 12) * 30, NUMERAL_R);
-    const t = document.createElementNS(NS, "text");
-    t.setAttribute("x", x.toFixed(2));
-    t.setAttribute("y", y.toFixed(2));
-    t.setAttribute("text-anchor", "middle");
-    t.setAttribute("dominant-baseline", "central");
-    t.setAttribute("class", `clock-numeral${h === 12 ? " clock-numeral--midnight" : ""}`);
-    t.textContent = String(h);
-    svg.appendChild(t);
-  }
-
-  svg.appendChild(hand(NS, "minute", 27, minuteAngle));
-  svg.appendChild(hand(NS, "hour", 18, hourAngle));
-
-  const pin = document.createElementNS(NS, "circle");
-  pin.setAttribute("cx", "50");
-  pin.setAttribute("cy", "50");
-  pin.setAttribute("r", "2");
-  pin.setAttribute("class", "clock-pin");
-  svg.appendChild(pin);
-
-  return svg;
-}
-
-function hand(NS, kind, length, angle) {
-  const line = document.createElementNS(NS, "line");
-  line.setAttribute("x1", "50");
-  line.setAttribute("y1", "50");
-  line.setAttribute("x2", "50");
-  line.setAttribute("y2", String(50 - length));
-  line.setAttribute("class", `clock-hand clock-hand--${kind}`);
-  line.style.transformOrigin = "50px 50px";
-  line.style.transform = `rotate(${angle}deg)`;
-  return line;
-}
 
 // ---- 裝備 / Equipment ----------------------------------------------------------
 // What you are WEARING AND HOLDING, which the second amendment made a different

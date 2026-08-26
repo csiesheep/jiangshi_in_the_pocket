@@ -3,7 +3,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "0e1c839a");
+suite(import.meta.url, "5c24ad0d");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,
@@ -221,13 +221,17 @@ test("chrome: game.html's static words match the theme's English", async () => {
   // with no key never gets translated, and a key with no node is dead weight.
   const PAIRS = [
     ["brand", "brand"], ["nav-rulebook", "nav-rulebook"], ["nav-menu", "nav-menu"],
-    ["page-title", "page-title"], ["backpack", "backpack"],
+    ["page-title", "page-title"],
     // copy-replay went with the HUD button (#55), and the seed line, the sound
     // button and the note button went with the whole utility panel (#73). The
     // seed can still be copied from the verdict card, which is where a seed is
     // worth sharing — that one is built in script and carries its own label, so
     // there is no static node here for the theme to write.
-    ["hands-title", "hands-title"],
+    // "backpack" and "hands-title" are NOT here any more, and their theme keys
+    // are gone from both languages. The sidebar merged into one panel and the
+    // two headings went with it — this list is the both-directions check, so a
+    // key left behind with no node would have failed it, which is what it is
+    // for.
   ];
   for (const [id, key] of PAIRS) {
     const el = doc.getElementById(id);
@@ -334,7 +338,7 @@ test("rulebook: §9 holds in the Chinese page too", () => {
 
 test("equipment: both languages carry every string the panel and the prompt use", () => {
   const keys = [
-    "hands-title", "hand-weapon", "hand-charm", "hand-relic",
+    "hand-weapon", "hand-charm", "hand-relic",
     "hand-empty", "hand-buffed",
     "hand-weapon-said", "hand-weapon-bare", "hand-charm-said", "hand-charm-bare",
     "hand-relic-said", "hand-relic-bare",
@@ -375,10 +379,23 @@ test("equipment: both sides of the replace prompt admit the loss is permanent", 
   assert(/永遠/.test(themeZh.ui["replace-keep-sub"]), "zh keep-sub hides the permanence");
 });
 
-test("equipment: the hands panel is in the page", async () => {
+test("equipment: the hands are in the page, in the one panel", async () => {
   const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
-  assert(/id="hud-hands"/.test(html), "game.html has no hands panel");
-  assert(/id="hands-title"/.test(html), "the hands panel has no themed heading");
+  assert(html.indexOf('id="hud-hands"') !== -1, "game.html has no hands");
+  assert(html.indexOf('id="hud-items"') !== -1, "game.html has no pack");
+
+  // The heading is deliberately gone, and so is the pack's. Pinned as a
+  // negative so nobody restores a <h3> without also restoring the theme keys
+  // in both languages — the pairing above would then fail, which is the trap
+  // this saves them from.
+  assert(html.indexOf('id="hands-title"') === -1,
+    "the Equipment heading is back but its theme key is not");
+  assert(html.indexOf('id="backpack"') === -1,
+    "the Backpack heading is back but its theme key is not");
+
+  // One panel, not three. Counted, because "merged" is otherwise a claim.
+  const panels = html.split('class="panel').length - 1;
+  eq(panels, 2, "expected one .panel wrapping one .panel--status; found " + panels);
 });
 
 test("rulebook: it no longer teaches a pack that holds swords", () => {
