@@ -341,6 +341,7 @@
     "hand-relic": "右手",
     "hand-relic-said": "右手：{item}。",
     "hand-relic-bare": "右手空著。",
+    "hand-bare": "空手",
     "hand-empty": "空著",
     "hand-buffed": "燒了真火符",
     "hand-weapon-said": "左手：{item}，攻擊力 {n}。",

@@ -157,6 +157,7 @@
     "hand-relic": "Right hand",
     "hand-relic-said": "Right hand: {item}.",
     "hand-relic-bare": "Right hand empty.",
+    "hand-bare": "bare-handed",
     "hand-empty": "empty",
     "hand-buffed": "真火符 burned into it",
     "hand-weapon-said": "Left hand: {item}, attack {n}.",

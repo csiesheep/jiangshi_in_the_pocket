@@ -339,7 +339,7 @@ test("rulebook: §9 holds in the Chinese page too", () => {
 test("equipment: both languages carry every string the panel and the prompt use", () => {
   const keys = [
     "hand-weapon", "hand-charm", "hand-relic",
-    "hand-empty", "hand-buffed",
+    "hand-empty", "hand-bare", "hand-buffed",
     "hand-weapon-said", "hand-weapon-bare", "hand-charm-said", "hand-charm-bare",
     "hand-relic-said", "hand-relic-bare",
     "replace-prompt", "replace-take", "replace-take-sub", "replace-keep", "replace-keep-sub",
@@ -816,4 +816,24 @@ test("tiles: Chinese spells its own numbers rather than borrowing English ones",
   }
   assert(themeEn.tilesPage.words[20] !== themeZh.tilesPage.words[20],
     "both languages spell twenty the same way — one of them is untranslated");
+});
+
+test("equipment: the blade slot names its own empty state, not the generic one", async () => {
+  // The three slots share a panel now, and an empty hand is not the same fact
+  // in all three. The blade slot carries a NUMBER, and "empty" above a lone 0
+  // gave the numeral nothing to belong to — at 20px in the display face, muted,
+  // with no name above it, it read as a dim ring rather than a value.
+  const src = await fetch("../js/render.js", NO_STORE).then((r) => r.text());
+  assert(src.includes('slot === "weapon" ? "hand-bare" : "hand-empty"'),
+    "the blade slot falls back to the generic empty label again");
+  for (const [lang, t] of [["en", themeEn], ["zh", themeZh]]) {
+    assert(t.ui["hand-bare"], lang + " has no word for being bare-handed");
+    assert(t.ui["hand-bare"] !== t.ui["hand-empty"],
+      lang + " uses the same word for an empty hand and a bare one");
+  }
+  // And the number stays a value in that state. #79 ruled the attack red; the
+  // bare case was the half of it that stayed grey.
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  assert(!css.includes(".hand--bare .handattack { color: var(--muted); }"),
+    "the attack value is dimmed again in the one state where it reads 0");
 });

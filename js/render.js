@@ -501,9 +501,15 @@ function handSlot(game, slot, id) {
 
   const name = document.createElement("span");
   name.className = "handname";
+  // An empty hand and an empty BLADE hand are different facts, and the merge
+  // into one panel made that matter. Every other slot's empty state is just
+  // "nothing there"; this one carries a number, and "empty" above a bare 0 gave
+  // the numeral nothing to belong to — it read as a dim ring rather than a
+  // value. "Bare-handed" is the game's own word for the state and it makes the
+  // 0 the attack that goes with it.
   name.textContent = id
     ? (isRelic ? ui(game, "relic-name") : itemName(game, id))
-    : ui(game, "hand-empty");
+    : ui(game, slot === "weapon" ? "hand-bare" : "hand-empty");
   box.appendChild(name);
 
   if (slot === "weapon") {

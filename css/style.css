@@ -666,7 +666,10 @@ body.app .board-pane > .board { min-height: 0; }
   font-variant-numeric: tabular-nums;
   color: var(--danger);
 }
-.hand--bare .handattack { color: var(--muted); }
+/* NOT dimmed when bare. #79 ruled the attack value red, and greying it in the
+   one state where it reads 0 was the half of that ruling I did not apply — it
+   left a muted numeral with no name above it, which reads as a ring rather than
+   a number. Zero is a value, and the most dangerous one on the panel. */
 /* 真火符 burned into the steel. The point is permanent and belongs to the
    blade, so it is marked on the number the blade is worth — and it leaves with
    the sword if you put the sword down. */
