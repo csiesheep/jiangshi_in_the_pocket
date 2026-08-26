@@ -4,7 +4,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "3bd5264e");
+suite(import.meta.url, "d28fffca");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,
@@ -871,15 +871,23 @@ test("golden-elixir: it is consumed either way, and respects the cap", () => {
 // one of them turns on the banner doubling the sword half and NOT the talisman.
 // If someone "simplifies" attack() to double the total, four of these five move.
 test("attack: the spec §6 worked examples, all five", () => {
+  // Same assembly discipline as sealKit, and for the same reason: four of these
+  // five ask for a banner AND a talisman, which is one slot more than a pack
+  // still holding three 糯米 has. The last pickUpItem returned ok:false, the
+  // state did not hold the talisman, and attackWith honoured it anyway — so
+  // four of the spec's five worked examples were arithmetic over a loadout
+  // nobody can carry. Found by instrumenting pickUpItem across the whole suite
+  // and reading off which fixtures were refused.
   const kit = (swordId, opts = {}) => {
     const s = game({ seed: 1 });
-    E.pickUpItem(s, swordId);
+    clearPack(s);
+    take(s, swordId);
     if (opts.buff) {
-      E.pickUpItem(s, "truefire-talisman");
+      take(s, "truefire-talisman");
       eq(E.buffSword(s, swordId).ok, true);
     }
-    if (opts.banner) E.pickUpItem(s, "soul-banner");
-    if (opts.talisman) E.pickUpItem(s, opts.talisman);
+    if (opts.banner) take(s, "soul-banner");
+    if (opts.talisman) take(s, opts.talisman);
     return s;
   };
 
