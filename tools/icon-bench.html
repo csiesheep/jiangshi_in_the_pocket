@@ -12,7 +12,24 @@
   If they ever disagree, the suite is right and this file is stale.
 
   It also prints the contact sheet, because a number is not a look. Both floors
-  can pass on a pair nobody can tell apart in practice.
+  can pass on a pair nobody can tell apart in practice. The first #88 redraw
+  cleared every floor and read as a flat orange plank; sil/col/ink measure
+  separability and can say nothing about whether a thing looks like it is in a
+  dark room.
+
+  Two rules here came out of measuring rather than reasoning:
+
+    - The dark of a dark icon must stay a READABLE dark, roughly 40+ from the
+      panel. col is carried by the mid-tone body, not by the highlights. Three
+      failures in #88 were one tone sitting 2-15 from the panel.
+    - Darkness must be PAINTED, not omitted. A transparent dark region reads as
+      absent to sil and inkPct and can drop an icon through the ink floor.
+
+  And one trap that costs an hour: a `--` inside an XML comment is illegal, and
+  it silently blanks the WHOLE SYMBOL -- 0.0% ink at every size -- while every
+  other icon keeps rendering. Same family as #65's --king-face. The suite's
+  "sprite sheet is well-formed XML" guard catches it; this bench shows it as a
+  row of zeroes.
 -->
 <style>
   :root { --panel: #1b1e24; --bg: #101216; --text: #e6e3dc; --muted: #9aa0aa;
@@ -49,13 +66,24 @@ const NO_STORE = { cache: "no-store" };
 const ICON_SVG = await fetch("../assets/icons.svg", NO_STORE).then((r) => r.text());
 const PANEL = "#1b1e24";
 
-async function rasterise(symbolId, px) {
+// Scale every painted colour toward black. The panel is NOT dimmed, so this
+// answers exactly one question: how much darker can the ART go before the
+// separability floors break? See the headroom table below.
+function dim(markup, k) {
+  if (k >= 1) return markup;
+  return markup.replace(/#([0-9a-fA-F]{6})/g, (_, h) => {
+    const v = [0, 2, 4].map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) * k));
+    return "#" + v.map((n) => Math.min(255, n).toString(16).padStart(2, "0")).join("");
+  });
+}
+
+async function rasterise(symbolId, px, k = 1) {
   const doc = new DOMParser().parseFromString(ICON_SVG, "image/svg+xml");
   const sym = doc.getElementById(symbolId);
   if (!sym) return null;
-  const markup =
+  const markup = dim(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + sym.getAttribute("viewBox") +
-    '" width="' + px + '" height="' + px + '">' + sym.innerHTML + "</svg>";
+    '" width="' + px + '" height="' + px + '">' + sym.innerHTML + "</svg>", k);
   const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
   const img = new Image();
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
@@ -180,6 +208,33 @@ for (const px of SIZES) {
   }
   html += "</table>";
 }
+
+// How much darker can this set go? The register wants the objects further into
+// shadow; the colour floor pushes back toward light. This is where they meet.
+html += "<h2>darkening headroom — family minimum across all pairs and sizes</h2>" +
+  "<table><tr><th>art brightness</th><th>min sil &ge;12</th><th>min col &ge;25</th><th>mean lit %</th><th></th></tr>";
+for (const k of [1, 0.98, 0.96, 0.95, 0.94, 0.92, 0.9, 0.8, 0.7]) {
+  let minSil = Infinity, minCol = Infinity, litSum = 0, litN = 0;
+  for (const px of SIZES) {
+    const r = {};
+    for (const id of GROUP) r[id] = await rasterise(id, px, k);
+    for (const id of GROUP) { if (r[id]) { litSum += litFraction(r[id]); litN++; } }
+    for (let i = 0; i < GROUP.length; i++) {
+      for (let j = i + 1; j < GROUP.length; j++) {
+        const a = r[GROUP[i]], b = r[GROUP[j]];
+        if (!a || !b) continue;
+        const q = pair(a, b);
+        minSil = Math.min(minSil, q.sil); minCol = Math.min(minCol, q.col);
+      }
+    }
+  }
+  const ok = minSil >= 12 && minCol >= 25;
+  html += "<tr><td>" + Math.round(k * 100) + "%</td>" +
+    cell(minSil, 12) + cell(minCol, 25) +
+    "<td>" + (litSum / litN).toFixed(1) + "</td>" +
+    '<td class="' + (ok ? "ok" : "bad") + '">' + (ok ? "passes" : "BREAKS") + "</td></tr>";
+}
+html += "</table>";
 
 // The look, at the sizes it ships at, on the panel it sits on.
 html += '<h2>contact sheet</h2><div class="sheet">';
