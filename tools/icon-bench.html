@@ -77,13 +77,19 @@ function dim(markup, k) {
   });
 }
 
-async function rasterise(symbolId, px, k = 1) {
+// `s` simulates device pixel ratio: a high-DPR browser rasterises the SVG at
+// s times the CSS size and downsamples, which changes the antialiased edge
+// pixels -- and those are what both the alpha>96 threshold and the composited
+// colour are made of. s=1 is the harsh end. The guard itself runs at whatever
+// DPR the machine has, so this is the spread the suite is actually exposed to.
+async function rasterise(symbolId, px, k = 1, s = 1) {
   const doc = new DOMParser().parseFromString(ICON_SVG, "image/svg+xml");
   const sym = doc.getElementById(symbolId);
   if (!sym) return null;
+  const big = Math.round(px * s);
   const markup = dim(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + sym.getAttribute("viewBox") +
-    '" width="' + px + '" height="' + px + '">' + sym.innerHTML + "</svg>", k);
+    '" width="' + big + '" height="' + big + '">' + sym.innerHTML + "</svg>", k);
   const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
   const img = new Image();
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
@@ -92,7 +98,15 @@ async function rasterise(symbolId, px, k = 1) {
     c.width = px; c.height = px;
     const x = c.getContext("2d");
     if (bg) { x.fillStyle = bg; x.fillRect(0, 0, px, px); }
-    x.drawImage(img, 0, 0, px, px);
+    if (s === 1) {
+      x.drawImage(img, 0, 0, px, px);
+    } else {
+      const hi = document.createElement("canvas");
+      hi.width = big; hi.height = big;
+      hi.getContext("2d").drawImage(img, 0, 0, big, big);
+      x.imageSmoothingQuality = "high";
+      x.drawImage(hi, 0, 0, px, px);
+    }
     return x.getImageData(0, 0, px, px).data;
   };
   const onPanel = draw(PANEL);
@@ -232,6 +246,34 @@ for (const k of [1, 0.98, 0.96, 0.95, 0.94, 0.92, 0.9, 0.8, 0.7]) {
   html += "<tr><td>" + Math.round(k * 100) + "%</td>" +
     cell(minSil, 12) + cell(minCol, 25) +
     "<td>" + (litSum / litN).toFixed(1) + "</td>" +
+    '<td class="' + (ok ? "ok" : "bad") + '">' + (ok ? "passes" : "BREAKS") + "</td></tr>";
+}
+html += "</table>";
+
+// Does the margin hold on a machine that is not this one? The guard rasterises
+// through the browser, so its numbers move with DPR -- and the WORST PAIR moves
+// too, which means tuning one pair to clear the floor does not make the family
+// safe. This is the spread.
+html += "<h2>device pixel ratio — worst pair across all sizes</h2>" +
+  "<table><tr><th>simulated DPR</th><th>min sil &ge;12</th><th>min col &ge;25</th><th>worst pair</th><th></th></tr>";
+for (const s of [1, 1.25, 1.5, 2, 3]) {
+  let minSil = Infinity, minCol = Infinity, worst = "";
+  for (const px of SIZES) {
+    const r = {};
+    for (const id of GROUP) r[id] = await rasterise(id, px, 1, s);
+    for (let i = 0; i < GROUP.length; i++) {
+      for (let j = i + 1; j < GROUP.length; j++) {
+        const a = r[GROUP[i]], b = r[GROUP[j]];
+        if (!a || !b) continue;
+        const q = pair(a, b);
+        minSil = Math.min(minSil, q.sil);
+        if (q.col < minCol) { minCol = q.col; worst = short(GROUP[i]) + " / " + short(GROUP[j]) + " @" + px; }
+      }
+    }
+  }
+  const ok = minSil >= 12 && minCol >= 25;
+  html += "<tr><td>" + s + "x</td>" + cell(minSil, 12) + cell(minCol, 25) +
+    "<td>" + worst + "</td>" +
     '<td class="' + (ok ? "ok" : "bad") + '">' + (ok ? "passes" : "BREAKS") + "</td></tr>";
 }
 html += "</table>";
