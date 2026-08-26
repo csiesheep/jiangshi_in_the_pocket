@@ -570,16 +570,21 @@ test("rulebook: the icons are decoration, never the only carrier of a name", () 
   }
 });
 
-test("rulebook: neither page still teaches the sword buff no button can reach", () => {
-  // #68: E.buffSword has no caller in js/. The item card stopped promising it;
-  // the rulebook was still teaching it as the talisman's main use.
-  const en = visibleText(rulebookHtml).toLowerCase();
-  assert(!en.includes("stays raised"), "the English rulebook still promises a permanent buff");
-  assert(!en.includes("into a sword"),
-    "the English rulebook still teaches burning a talisman into a sword");
+test("rulebook: both pages teach the sword buff, now that it has a button", () => {
+  // The mirror of the guard this replaces. #68 removed this teaching because
+  // E.buffSword had no caller; #70 built the caller, so the rulebook owes the
+  // player the recipe again — and 鎮屍 is unreachable without it, which makes
+  // this the one piece of teaching the page cannot omit.
+  const en = visibleText(rulebookHtml);
+  assert(en.includes("Into the blade"),
+    "the English rulebook does not name the control the player has to press");
+  assert(en.toLowerCase().includes("a blade takes one only"),
+    "the English rulebook does not state the one-per-blade ceiling");
   const zh = visibleText(rulebookZh);
-  assert(!zh.includes("永久 +1"), "the zh rulebook still promises a permanent buff");
-  assert(!zh.includes("燒進一把劍"), "the zh rulebook still teaches burning one into a sword");
+  assert(zh.includes("燒進劍裡"),
+    "the zh rulebook does not name the control the player has to press");
+  assert(zh.includes("一把劍只吃得下一張"),
+    "the zh rulebook does not state the one-per-blade ceiling");
 });
 
 test("rulebook: both pages state the pack size the engine actually enforces", () => {

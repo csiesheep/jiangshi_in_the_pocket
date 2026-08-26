@@ -688,7 +688,15 @@ test("pack: the grid takes its cell count from the engine, not from a number her
   const src = noComments(await fetch("../js/render.js", NO_STORE).then((r) => r.text()));
   const loop = src.slice(src.indexOf("function renderBackpack"), src.indexOf("function packCell"));
   assert(loop.includes("RULES.MAX_ITEMS"), "the grid does not ask the engine for the limit");
-  assert(!/i < 4/.test(loop), "the grid hard-codes four cells");
+  // NOT a regex. The line here was `assert(!/i < 4\b/...)` and the
+  // escape did not survive being written into this file: it arrived as a literal
+  // backspace, so the pattern was "i < 4" followed by 0x08, which matches no
+  // source that has ever existed. Inside assert(!...) that passes forever, so
+  // this guard had never once checked what it claims to check. Plain string
+  // arithmetic cannot be mangled in transit.
+  for (const n of ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]) {
+    assert(!loop.includes("i < " + n), "the grid hard-codes " + n + " cells");
+  }
 });
 
 test("pack: both languages can say a stack out loud", () => {
@@ -877,4 +885,128 @@ test("modes: it says what the mode is doing, not just that it is on", () => {
     assert(/僵屍|殭屍/.test(calm),
       lang + " calm mark does not say the 僵屍 are what is missing: " + calm);
   }
+});
+
+// ---- 真火符 into the blade (#70) -------------------------------------------------
+// The engine could always do this and no button reached it, so the one loadout
+// that seals the King could not be assembled by a person. BE measured the hole
+// rather than arguing it: with the buff neutered across 800 identical seeds,
+// seals went 91 to 0. Not fewer — none.
+//
+// These test that the affordance is REACHABLE, which is a different claim from
+// "the code is present". Every one of them drives the actual rendered control:
+// finds the button a player would find, reads what it says, and presses it.
+//
+// No backslash escapes in this block. They have twice failed to survive the
+// trip into a test file here, once turning a negative assertion into one that
+// could never fail.
+
+// A fresh module graph per call, so registering the pack handler cannot leak
+// into the copy of render.js the rest of this suite is holding.
+async function packFixture(build) {
+  const q = "?buff=" + Date.now() + Math.random();
+  const E = await import("../js/engine.js" + q);
+  const R = await import("../js/render.js" + q);
+  const [theme, items] = await Promise.all([
+    fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
+    fetch("../data/items.json", NO_STORE).then((r) => r.json()),
+  ]);
+  let host = document.getElementById("hud-items");
+  let borrowed = false;
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "hud-items";
+    document.body.appendChild(host);
+    borrowed = true;
+  }
+  const pressed = [];
+  // BEFORE the first render, on purpose: the control disables itself when no
+  // handler is registered, so registering late makes an enabled button look
+  // disabled. That caught me once while writing this.
+  R.onPackUse((id) => pressed.push(id));
+  const state = E.newGame({ seed: 7, items });
+  build(E, state);
+  const game = { state, data: { theme } };
+  const button = () => {
+    R.renderHud(game);
+    return [...host.querySelectorAll("button.cellact")]
+      .find((b) => (b.getAttribute("aria-label") || "").includes("True Fire"));
+  };
+  const done = () => { if (borrowed) host.remove(); };
+  return { E, R, game, state, button, pressed, done };
+}
+
+test("真火符: bare-handed, the control says why rather than going quiet", serial(async () => {
+  const f = await packFixture((E, s) => E.pickUpItem(s, "truefire-talisman"));
+  try {
+    const b = f.button();
+    assert(b, "the 真火符 cell has no control at all");
+    assert(b.disabled, "the burn was offered with nothing to burn it into");
+    eq(f.R.buffState(f.game).why, "no-sword", "wrong reason");
+    // A dead control with no reason is the thing #53 was filed over.
+    assert(b.title.length > 8, "the disabled control gives no reason: " + b.title);
+  } finally { f.done(); }
+}));
+
+test("真火符: with a blade in hand the control is offered, and pressing it burns", serial(async () => {
+  const f = await packFixture((E, s) => {
+    E.pickUpItem(s, "sevenstar-sword");
+    E.pickUpItem(s, "truefire-talisman");
+  });
+  try {
+    const b = f.button();
+    assert(b && !b.disabled, "the burn is not offered with a sword in hand and paper in the pack");
+    // Its own verb. A fight card says "Burn the 真火符" and means throw it at
+    // them; this one keeps it. Sharing a word is what #68 was filed over.
+    assert(b.textContent !== "Use", "the control does not say what it does");
+    const said = b.getAttribute("aria-label");
+    assert(said.includes("Seven-Star Sword"), "it does not name the blade: " + said);
+
+    eq(f.E.effectiveAttack(f.state), 3, "七星劍 should start at 3");
+    b.click();
+    eq(f.pressed, ["truefire-talisman"], "pressing it did not reach the pack handler");
+    // The handler is app.js's; this suite has the engine call it makes.
+    const out = f.E.buffSword(f.state, f.E.bestSword(f.state));
+    assert(out.ok, "the engine refused a burn the control had offered");
+    eq(f.E.effectiveAttack(f.state), 4, "the blade did not keep the fire");
+    assert(!f.E.held(f.state, "truefire-talisman"), "the paper was not spent");
+  } finally { f.done(); }
+}));
+
+test("真火符: a blade takes one only, and the second says so", serial(async () => {
+  // Reachable only while holding a SECOND paper — burning consumes the first,
+  // so this state needs two, which 硃砂 also produces.
+  const f = await packFixture((E, s) => {
+    E.pickUpItem(s, "sevenstar-sword");
+    E.pickUpItem(s, "truefire-talisman");
+    E.pickUpItem(s, "truefire-talisman");
+  });
+  try {
+    f.button();
+    f.E.buffSword(f.state, f.E.bestSword(f.state));
+    eq(f.E.heldCount(f.state, "truefire-talisman"), 1, "the second paper should survive the first burn");
+    const b = f.button();
+    assert(b && b.disabled, "a second 真火符 was offered to a blade that already carries one");
+    eq(f.R.buffState(f.game).why, "already", "wrong reason");
+    assert(b.title.length > 8, "the ceiling is enforced without saying so");
+  } finally { f.done(); }
+}));
+
+test("真火符: the control the pack offers is the one app.js wires to the engine", async () => {
+  // The three tests above stop at the pack handler, because the handler belongs
+  // to app.js. This is the join: the id the button sends is the id app.js routes
+  // to buffSword.
+  //
+  // COMMENTS STRIPPED FIRST, and that is load-bearing rather than tidy. BE hit
+  // exactly this shape from the other side: the paragraph most likely to
+  // contain the text "buffSword(" is the comment EXPLAINING the call, and a
+  // scan that counts a comment as a call would pronounce the capability
+  // reachable while the game was still unwinnable. A grep for a call has to
+  // look at code only.
+  const app = noComments(await fetch("../js/app.js", NO_STORE).then((r) => r.text()));
+  const cut = app.indexOf("usePackItem(id)");
+  assert(cut > 0, "app.js has no usePackItem");
+  assert(app.slice(cut, cut + 700).includes("truefire-talisman"),
+    "usePackItem does not route the 真火符 anywhere");
+  assert(app.includes("E.buffSword("), "nothing in app.js calls the engine's buffSword");
 });

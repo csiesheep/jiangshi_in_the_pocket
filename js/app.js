@@ -1089,6 +1089,8 @@ class Game {
   usePackItem(id) {
     // 硃砂 is the one pack item that needs a target, so it asks before it acts.
     if (id === "cinnabar") return this.useCinnabar();
+    // 真火符 is the one pack item that acts on your HANDS rather than on you.
+    if (id === "truefire-talisman") return this.useTruefire();
     const out = E.useMedicine(this.state, id);
     if (!out.ok) return;
     const name = iName(this, id);
@@ -1097,6 +1099,33 @@ class Game {
     else log(this.line("use-plain", { item: name }));
     if (out.cured) log(this.line("cured"), "good");
     this.refresh();
+  }
+
+  // 真火符 into the blade you are holding (#70). Permanent, one per blade, and
+  // it leaves with that blade if you ever trade it away.
+  //
+  // This is the button the game was missing rather than a new rule: the engine
+  // has always had buffSword and the tests for it, the item card advertised it,
+  // and nothing in the UI called it — so the ONE loadout that reaches 鎮屍 could
+  // not be assembled by a person. BE measured the hole: with the buff neutered,
+  // seals across 800 identical seeds went 91 to 0. Not fewer. None.
+  //
+  // Free, like every other pack action. Spending your turn on it would make the
+  // best blade in the game cost a draw at eleven o'clock, which is when you are
+  // least able to pay and most likely to want it.
+  useTruefire() {
+    const sword = E.bestSword(this.state);
+    const out = E.buffSword(this.state, sword);
+    // The control is only offered when buffState says yes, so a refusal here
+    // means the two disagreed. Fail quietly rather than half-acting.
+    if (!out.ok) return;
+    paperFlutter();
+    this.refresh();
+    this.tell(this.line("buff-burned", {
+      item: this.itemName("truefire-talisman"),
+      sword: this.itemName(sword),
+      n: out.attack,
+    }), "good");
   }
 
   // 硃砂 over a talisman you already hold: it copies, so a stack goes deeper

@@ -776,19 +776,33 @@ function packCell(game, id, index) {
   // no control at all — "there is no button here" and "the button is not for
   // this" look identical, and only one of them is true.
   const isCinnabar = id === "cinnabar";
-  const spendable = isCinnabar || def.cat === "medicine";
-  const canUse = isCinnabar ? cinnabarTargets(game).length > 0 : def.cat === "medicine";
+  const isTruefire = id === "truefire-talisman";
+  const buff = isTruefire ? buffState(game) : null;
+  const spendable = isCinnabar || isTruefire || def.cat === "medicine";
+  const canUse = isCinnabar ? cinnabarTargets(game).length > 0
+    : isTruefire ? buff.ok
+    : def.cat === "medicine";
   const use = document.createElement("button");
   use.type = "button";
   use.className = "cellact";
-  use.textContent = ui(game, "use");
+  // 真火符 gets its own word, and that is not decoration. A fight card already
+  // says "Burn the 真火符" and means THROW IT AT THEM; this burns it into the
+  // steel and the blade keeps it. Two different actions cannot share a verb on
+  // the same item — that ambiguity is what #68 was filed for.
+  use.textContent = ui(game, isTruefire ? "use-buff" : "use");
   use.disabled = !canUse || typeof packUse !== "function";
+  const swordName =
+    buff && buff.sword ? itemName(game, buff.sword) : "";
   use.setAttribute("aria-label", canUse
-    ? ui(game, "use-item", { item: name })
-    : ui(game, spendable ? "use-blocked" : "use-elsewhere", { item: name }));
+    ? ui(game, isTruefire ? "use-buff-said" : "use-item", { item: name, sword: swordName })
+    : isTruefire
+      ? ui(game, "buff-" + buff.why, { item: name, sword: swordName })
+      : ui(game, spendable ? "use-blocked" : "use-elsewhere", { item: name }));
   use.title = canUse
     ? ""
-    : ui(game, spendable ? "use-blocked-title" : "use-elsewhere-title");
+    : isTruefire
+      ? ui(game, "buff-" + buff.why + "-title", { item: name, sword: swordName })
+      : ui(game, spendable ? "use-blocked-title" : "use-elsewhere-title");
   use.addEventListener("click", (e) => {
     e.stopPropagation();
     if (typeof packUse === "function") packUse(id);
@@ -909,6 +923,27 @@ function packSlot(game, id, opts = {}) {
 // What 硃砂 can be ground over: a talisman you actually hold, and not itself.
 // The same two rules useCinnabar enforces, asked before the button is offered
 // so an offered use never refuses.
+// Can the 真火符 in the pack go into the blade in your hand? (#70)
+//
+// The engine has always been able to do this — E.buffSword, and the tests for
+// it — and until now no button in the game reached it, so the item card was
+// advertising an action nobody could take. #68 removed the promise; this is the
+// other half, which is the half the user asked for: 鎮屍 needs a blade carrying
+// one, and without this control the ending was unreachable by a human.
+//
+// Each failure carries its own sentence rather than a dead control. "There is
+// no button here" and "the button is not for this right now" look identical to
+// a player and only one of them is true — the rule #53 was filed over.
+export function buffState(game) {
+  const s = game.state;
+  const sword = equippedWeapon(s);
+  if (!sword) return { ok: false, why: "no-sword", sword: null };
+  // One per blade, which is what keeps the ceiling where the design put it:
+  // 七星劍 3 + 1, and 硃砂 cannot pump a sword past it by copying the paper.
+  if (s.buffed && s.buffed[sword]) return { ok: false, why: "already", sword };
+  return { ok: true, why: null, sword };
+}
+
 export function cinnabarTargets(game) {
   const s = game.state;
   return heldIds(s).filter((id) => {
@@ -990,13 +1025,11 @@ function itemEffect(game, id) {
   const eff = (k, v) => fill(((game.data.theme.effects || {})[k]) || k, v);
   if (it.cat === "weapon" && it.attack != null) bits.push(eff("weapon-attack", { n: it.attack }));
   else if (it.attack != null) bits.push(eff("talisman-attack", { n: it.attack }));
-  // NOT advertised: `buffSword` is a real engine capability (E.buffSword burns
-  // 真火符 into the blade for good, and tools/bots.js uses it), but no button in
-  // this game can reach it — the pack only lets you use medicine and 硃砂, and a
-  // fight only ever throws. So the card used to end "or +1 to a sword, for
-  // good", naming an action the player cannot take, which is the same kind of
-  // promise #58 stripped out of 溪澗. The line is gone until the action exists;
-  // the engine keeps the capability, so bringing it back is UI work only.
+  // Advertised again (#70). This line was removed by #68 because it named an
+  // action no button reached — the pack only spent medicine and 硃砂, and a
+  // fight only ever threw. The button exists now, in the pack, on this very
+  // item, so the card is telling the truth when it says this.
+  if (it.buffSword) bits.push(eff("buff-sword", { n: it.buffSword }));
   if (it.costHp) bits.push(eff("cost-hp", { n: it.costHp }));
   if (it.effect === "DUPLICATE_TALISMAN") bits.push(eff("duplicate", { n: it.n || 2 }));
   if (it.effect === "DOUBLE_SWORD") bits.push(eff("double-sword"));
