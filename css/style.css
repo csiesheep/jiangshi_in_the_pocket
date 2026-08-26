@@ -683,6 +683,57 @@ body.app .board-pane > .board { min-height: 0; }
 span.handart { cursor: default; }
 .handicon { width: var(--handicon); height: var(--handicon); color: var(--gold); }
 
+/* The ghost in an empty slot (#91): the SHAPE of what belongs there, drawn as a
+   faint outline. Same box as a real picture so the row keeps its alignment, and
+   deliberately unlike one in every other respect.
+
+   Outline rather than a dimmed copy of the painting, which is what was asked
+   for and is also the stronger separation: a dimmed painting is the same object
+   at lower opacity, and "faded" reads as DISABLED — a thing you have that you
+   cannot use — where a line drawing reads as a diagram of a thing you do not
+   have. Those are different messages and only one of them is true here.
+
+   Every path is stroked, interiors included, so it is a line DRAWING rather
+   than a bare contour. Deliberate: the contour alone reads as a cut-out
+   silhouette, and the interior lines are what make the tablet look like a
+   tablet rather than a slab.
+
+   GOLD MEANS YOURS in this panel, so the ghost is never gold. --muted at .55 is
+   still clearly visible against --bg-2 rather than the near-invisible grey the
+   rejected border options had; faint is the instruction, invisible was the
+   complaint.
+
+   Non-interactive by construction: the empty slot draws a span rather than a
+   button, so there is nothing to focus and nothing to reveal. */
+.handghost {
+  width: var(--handicon);
+  height: var(--handicon);
+  opacity: .55;
+  pointer-events: none;
+}
+/* THE BLADE SLOT'S GHOST IS STOOD UPRIGHT. 身上 takes only a 護身符 and 右手 only
+   the 神主牌, so those two ghost their own drawings and that is simply true.
+   左手 takes any of four blades, so ghosting one of them would name a favourite
+   — which is why it borrows stat-sword, the generic blade the attack stat
+   already uses. That glyph is drawn on a diagonal, and left diagonal it reads
+   as a tilted knife beside two upright ghosts and four upright real blades.
+   Rotated, it is generic AND it stands the way every weapon in this panel
+   stands. Three candidates were rendered in the mixed panel before choosing:
+   the diagonal glyph, an outline of 七星劍, and this. */
+.hand--weapon .handghost { transform: rotate(-45deg); }
+
+/* Reaches the drawing because ghostIcon() INLINES the symbol's children rather
+   than referencing them with <use>. Through <use> they sit in a shadow tree and
+   this rule matches nothing — tested, not assumed. */
+.handghost * {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: .6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 1;
+}
+
 /* ---- Three slots, three kinds of thing (#85) ------------------------------------
    The panel used to say "three interchangeable slots" when the truth is "your
    attack, a passive ward, and the reason you are in this building". All three

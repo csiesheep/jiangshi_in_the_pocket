@@ -76,6 +76,35 @@ export function icon(kind, id, cls) {
   return svg;
 }
 
+// A GHOST OF A SYMBOL: the same drawing, rendered as an outline.
+//
+// It cannot go through icon(), and that was tested rather than assumed. icon()
+// builds <svg><use href="#sym"/></svg>, and <use> clones into a SHADOW TREE
+// that document selectors cannot reach — a rule like `.handghost * { fill:
+// none }` matches nothing there, and the painted drawing comes out painted.
+// Rendered both ways side by side: through <use> the tablet and the charm
+// stayed fully painted; INLINED, the same rule turned them into line drawings.
+//
+// Only INHERITED properties cross into a shadow tree, and fill does not
+// inherit into an element carrying its own fill="...". So the symbol's children
+// are cloned in directly, where ordinary CSS reaches them.
+//
+// <defs> is skipped on the way in: it would duplicate gradient ids into the
+// document, and a drawing with its fills overridden has no use for them.
+function ghostIcon(kind, id, cls) {
+  const sym = document.getElementById(`${kind}-${ICON_ALIAS[id] || id}`);
+  if (!sym) return null;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", cls);
+  svg.setAttribute("viewBox", sym.getAttribute("viewBox") || "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  for (const child of sym.children) {
+    if (child.tagName.toLowerCase() === "defs") continue;
+    svg.appendChild(child.cloneNode(true));
+  }
+  return svg;
+}
+
 // Interface icons for anything outside the board — the sprite builder itself
 // stays private.
 export function uiIcon(name, cls) {
@@ -497,6 +526,32 @@ function handSlot(game, slot, id) {
   const slotArt = document.createElement(id ? "button" : "span");
   slotArt.className = "handart";
   if (id) slotArt.type = "button";
+
+  // A FAINT OUTLINE OF WHAT GOES HERE, on an empty slot (#91), and it is
+  // teaching rather than decoration. Taking the names out of these slots removed the only thing that
+  // told a new player what each one is FOR: nobody arriving at a fresh nine
+  // o'clock had any way to know the right hand is where 神主牌 goes, and that
+  // tablet is the whole errand. The ghost is the only teaching signal left here,
+  // so it is built to be read.
+  //
+  // WHICH SYMBOL, AND WHY NOT THE OBVIOUS ONE FOR THE BLADE. 身上 takes only a
+  // 護身符 and 右手 takes only the 神主牌, so ghosting their own drawings is
+  // simply true. 左手 takes any of four blades, so ghosting one of them would
+  // name a favourite and tell a lie about which. It gets stat-sword instead --
+  // the generic diagonal blade the attack stat already uses, which means the
+  // game has a "a weapon" glyph and this is it, drawn muted there for the same
+  // reason it is drawn muted here.
+  if (!id) {
+    const ghost = isRelic
+      ? ghostIcon("ui", "relic", "handghost")
+      : ghostIcon(slot === "weapon" ? "stat" : "item",
+                  slot === "weapon" ? "sword" : "protective-charm", "handghost");
+    // icon() already marks it aria-hidden. Saying so here because it matters:
+    // the sr-only line right below already says the slot is empty, and a ghost
+    // that announced itself would have a screen reader call the slot empty and
+    // then name a sword.
+    if (ghost) slotArt.appendChild(ghost);
+  }
   // #89: a blade carrying 真火符 draws its BURNING self. Until now the picture was
   // byte-identical burnt or not, so the only cue that your steel was on fire was
   // a gold numeral — which says nothing unless you already know gold means
