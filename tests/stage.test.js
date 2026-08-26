@@ -715,8 +715,11 @@ test("icons: all thirteen exist and draw something at the smallest shipped size"
   }
 });
 
+// The weapons, named once. Both the four-weapon guard and the burnt-blade guard
+// below ask about the same four ids, and deriving that twice is how they drift.
+const W = ITEM_IDS.slice(0, 4);
+
 test("icons: the four weapons stay apart at the size the choice is made", async () => {
-  const W = ITEM_IDS.slice(0, 4);
   // All three sizes these actually render at, DERIVED from the grid rather than
   // assumed: 54px in the pack strip, which is where they mostly live, 26px in
   // the hands, and 18px in the found-item row. #54 checked only the smallest and
@@ -754,6 +757,67 @@ test("icons: the four weapons stay apart at the size the choice is made", async 
         assert(sil >= 12, name + ": silhouettes only " + sil.toFixed(1) + "% apart");
         assert(col >= 25, name + ": colours only " + col.toFixed(1) + " apart");
       }
+    }
+  }
+});
+
+test("icons: a burnt blade reads as burning, and still reads as ITS OWN blade (#89)", async () => {
+  // Before this, buffing a sword changed the NUMERAL and nothing else: the
+  // equipment slot drew the same symbol whether the blade carried 真火符 or not,
+  // so the only cue that your steel was on fire was a gold digit, and only if
+  // you already knew gold meant something.
+  //
+  // 26px ONLY, and that is not laziness. .handicon is 26px and the equipment
+  // slot is the only place a burnt blade is drawn: weapons left the pack in #31,
+  // and the 18px found-item row has never shown one, because a blade is burnt
+  // after it is picked up rather than before.
+  //
+  // Deliberately NOT checked, so nobody rebuilds this as a sixteen-cell matrix:
+  //   burnt-A vs burnt-B    -- cannot co-occur. One weapon, one burn.
+  //   burnt-A vs unburnt-B  -- the replace prompt is text and numerals, no icons.
+  //
+  // TWO AXES, and the second one replaced a mistake worth recording. The first
+  // draft of this guard demanded sil >= 12 between a blade and its burnt self,
+  // reusing the four-weapon floor on the reasoning that a reused bar beats an
+  // invented one. That was wrong, and the art proved it: the only way to move
+  // 12% of a 26px box is to draw fire big enough to swallow the blade, and the
+  // drawings that passed were flame blobs you could not identify. A floor that
+  // destroys what it exists to protect is the wrong floor.
+  //
+  // So: colour carries "is it burning", which is what fire actually signals and
+  // what survives at 26px. And recognition is protected RELATIVELY instead --
+  // a burning blade must look more like itself than like any other weapon. That
+  // is the real risk, it is what the flame blobs failed, and unlike an absolute
+  // silhouette floor it does not punish a blade for being wide.
+  for (const id of W) {
+    const base = await rasterise(id, 26);
+    const burnt = await rasterise(id + "-burnt", 26);
+    assert(burnt, "no symbol " + id + "-burnt — a buffed " + id + " has no picture to draw");
+
+    let sum = 0;
+    for (let k = 0; k < base.onPanel.length; k += 4) {
+      const dr = base.onPanel[k] - burnt.onPanel[k];
+      const dg = base.onPanel[k + 1] - burnt.onPanel[k + 1];
+      const db = base.onPanel[k + 2] - burnt.onPanel[k + 2];
+      sum += Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+    const col = sum / (base.onPanel.length / 4);
+    assert(col >= 25, id + " burnt: colours only " + col.toFixed(1) + " apart — the fire does not read");
+
+    const silTo = async (otherId) => {
+      const o = otherId === id ? base : await rasterise(otherId, 26);
+      let differing = 0;
+      for (let k = 0; k < burnt.alpha.length; k++) if (burnt.alpha[k] !== o.alpha[k]) differing++;
+      return (100 * differing) / burnt.alpha.length;
+    };
+    const own = await silTo(id);
+    for (const other of W) {
+      if (other === id) continue;
+      const away = await silTo(other);
+      assert(own < away,
+        id + " burnt is closer in outline to " + other + " (" + away.toFixed(1) +
+        ") than to the blade it came from (" + own.toFixed(1) +
+        ") — the fire has eaten the weapon");
     }
   }
 });

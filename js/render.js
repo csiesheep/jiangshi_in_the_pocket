@@ -494,8 +494,22 @@ function handSlot(game, slot, id) {
   // has to be explained is worse than no picture.
   const slotArt = document.createElement("span");
   slotArt.className = "handart";
-  const art = isRelic ? (id ? uiIcon("relic", "handicon") : null)
-                      : (id ? icon("item", id, "handicon") : null);
+  // #89: a blade carrying 真火符 draws its BURNING self. Until now the picture was
+  // byte-identical burnt or not, so the only cue that your steel was on fire was
+  // a gold numeral — which says nothing unless you already know gold means
+  // something. The picture is the fact now.
+  //
+  // Falls back to the unburnt symbol if a burnt one is missing, so a gap
+  // degrades to the old behaviour rather than to an empty slot. The guard in
+  // stage.test.js is what keeps that fallback from quietly becoming the live
+  // path: it fails if any of the four burnt drawings is absent or is too close
+  // to the blade it came from.
+  const onFire = !isRelic && !!id && !!(s.buffed && s.buffed[id]);
+  const art = isRelic
+    ? (id ? uiIcon("relic", "handicon") : null)
+    : (id ? (onFire ? icon("item", id + "-burnt", "handicon") : null)
+            || icon("item", id, "handicon")
+          : null);
   if (art) slotArt.appendChild(art);
   box.appendChild(slotArt);
 
