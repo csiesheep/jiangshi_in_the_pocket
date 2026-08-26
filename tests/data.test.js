@@ -334,8 +334,10 @@ test("rulebook: §9 holds in the Chinese page too", () => {
 
 test("equipment: both languages carry every string the panel and the prompt use", () => {
   const keys = [
-    "hands-title", "hand-weapon", "hand-charm", "hand-empty", "hand-buffed",
+    "hands-title", "hand-weapon", "hand-charm", "hand-relic",
+    "hand-empty", "hand-buffed",
     "hand-weapon-said", "hand-weapon-bare", "hand-charm-said", "hand-charm-bare",
+    "hand-relic-said", "hand-relic-bare",
     "replace-prompt", "replace-take", "replace-take-sub", "replace-keep", "replace-keep-sub",
   ];
   for (const k of keys) {
@@ -627,5 +629,91 @@ test("rulebook: both pages state the pack size the engine actually enforces", ()
     const seen = visibleText(page);
     assert(!seen.includes("half your"), pair[0] + " still calls three rice half the pack");
     assert(!seen.includes("半個包"), pair[0] + " still calls three rice half the pack");
+  }
+});
+
+// ---- 裝備 / Equipment, three slots (#75, #76) -----------------------------------
+
+test("equipment: three slots, and the tablet is drawn in one without entering the pack", async () => {
+  // PRESENTATION ONLY. state.tablet is a slotless boolean and must stay one:
+  // showing it in a slot renders it, it does not make it an item. If it ever
+  // gains a row in items.json or starts counting against MAX_ITEMS, the panel
+  // has quietly changed a rule instead of a layout.
+  const items = await fetch("../data/items.json", NO_STORE).then((r) => r.json());
+  assert(!items.some((i) => i.id === "relic" || i.id === "tablet"),
+    "the 神主牌 has become an item — it is meant to cost no slot");
+  const src = await fetch("../js/render.js", NO_STORE).then((r) => r.text());
+  assert(src.includes('handSlot(game, "relic"'), "the panel has no slot for the 神主牌");
+  assert(src.includes('handSlot(game, "weapon"'), "the panel has no weapon slot");
+  assert(src.includes('handSlot(game, "charm"'), "the panel has no charm slot");
+});
+
+test("equipment: the tablet is reported once, not twice", async () => {
+  // #76 took the RELIC field off the clock panel because the slot now shows it.
+  // Two readings of one fact is how they drift apart.
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  assert(!html.includes('id="hud-tablet"'), "the status panel still reports the tablet");
+  assert(!html.includes('id="stat-relic"'), "the status panel still labels a relic field");
+  for (const t of [themeEn, themeZh]) {
+    for (const dead of ["stat-relic", "relic-held", "relic-not-yet"]) {
+      assert(!(t.ui || {})[dead], "ui." + dead + " outlived the field it labelled");
+    }
+  }
+});
+
+test("equipment: the Chinese label is 健康 and the blood is still blood", () => {
+  // #76 renamed the HUD's health label only. The zh theme carries 血 in twenty
+  // other strings and every one of them is the SUBSTANCE — 血符, 黑狗血, 損血,
+  // 回血, the hp lines, 其中{blood}是你自己的血. A find-and-replace would have
+  // renamed the items and broken the id contract, so this pins both halves:
+  // the label moved, the blood did not.
+  eq(themeZh.ui["stat-health"], "健康", "the zh health label did not move");
+  eq(themeZh.actions.health, "健康", "the zh glossary row disagrees with the label");
+  eq(themeZh.items["blood-talisman"], "血符", "血符 was renamed");
+  eq(themeZh.items["black-dog-blood"], "黑狗血", "黑狗血 was renamed");
+  assert(themeZh.eventNames.HP_LOSS.includes("血"), "損血 lost its blood");
+  assert(themeZh.eventNames.HP_GAIN.includes("血"), "回血 lost its blood");
+  assert(themeZh.ui["attack-blood"].includes("血"), "the blood cost stopped being blood");
+});
+
+test("clock: the dial is one colour, and the countdown survives as the minute hand", async () => {
+  // #76 dropped the pip row. Nothing is lost to a sighted player and the
+  // arithmetic is the reason: TURNS_PER_BAND × MINUTES_PER_TURN is exactly 60,
+  // so the minute hand makes one revolution per band and each turn moves it 36
+  // degrees. If that ever stops being true the pips were carrying something the
+  // dial cannot, and this fails.
+  const E = await import("../js/engine.js");
+  eq(E.RULES.TURNS_PER_BAND * E.RULES.MINUTES_PER_TURN, 60,
+    "a band is no longer one sweep of the minute hand — the dial has stopped being the countdown");
+  const src = await fetch("../js/render.js", NO_STORE).then((r) => r.text());
+  assert(!src.includes("drawPips"), "the pip row is still drawn");
+  // The screen reader keeps the explicit count: a hand position is not
+  // something it can read, so each channel carries the fact its own way.
+  assert(src.includes("cardsLeftPhrase"), "the spoken countdown went with the pips");
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const dial = css.slice(css.indexOf(".clock-face"), css.indexOf(".clocknum") + 1 ||
+                         css.indexOf(".clock-pin") + 200);
+  const block = css.slice(css.indexOf(".clock-face"), css.indexOf(".clock-pin") + 60);
+  for (const hue of ["var(--accent)", "var(--danger)"]) {
+    assert(!block.includes(hue), "the dial still uses " + hue + " — it is meant to be one colour");
+  }
+});
+
+test("chrome: the language button names the language you would get", async () => {
+  // #77. Both switches now follow one convention — the landing page's and the
+  // game banner's — because a control named for its CURRENT state reads as a
+  // label rather than a thing to press, and two switches that disagreed would
+  // mean one of them was lying about what pressing it does.
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  assert(html.includes('id="btn-lang"'), "the banner has no language control");
+  assert(!html.includes('id="lang-icon"'), "the glyph outlived the word");
+  // The visible text IS the accessible name now, so a second spoken label would
+  // say it twice.
+  assert(!html.includes('id="lang-label"'), "the sr-only label is still doubling the word");
+  const app = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
+  assert(app.includes("btn.textContent = next.name"),
+    "the button is not written with the language you would get");
+  for (const t of [themeEn, themeZh]) {
+    assert(!(t.ui || {})["title-lang"], "ui.title-lang outlived the title it wrote");
   }
 });

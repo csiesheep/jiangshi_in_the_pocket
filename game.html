@@ -71,9 +71,12 @@
     <!-- The language control (#73), moved up from the utility panel when that
          panel went. Last in the bar: it is the quietest thing here and it is
          the only one that does not touch the run. -->
-    <button class="topbtn" type="button" id="btn-lang" title="語言 / Language">
-      <span class="utilicon" id="lang-icon">文</span><span class="sr-only" id="lang-label">Language</span>
-    </button>
+    <!-- Named, not glyphed (#77). It says the language you would GET, which is
+         the convention the landing page's switch already follows — if the two
+         disagreed, one of them would be lying about what pressing it does. The
+         sr-only "Language" wrapper went with the glyph: the visible text now
+         names the destination, so a second spoken label was saying it twice. -->
+    <button class="topbtn" type="button" id="btn-lang">繁體中文</button>
   </header>
 
 
@@ -96,18 +99,18 @@
         <div class="clockbox" id="hud-hour"></div>
         <div class="statgrid">
           <div class="stat"><span class="statlabel" id="stat-health">Health</span><span class="statval" id="hud-health"></span></div>
-          <div class="stat"><span class="statlabel" id="stat-relic">Relic</span><span class="statval" id="hud-tablet"></span></div>
         </div>
         <!-- 中毒 is a state, not a quantity, so it is a band across the panel
              rather than a fourth number in the grid. Absent entirely when clean:
              an empty slot reading "not poisoned" every turn is noise. -->
         <div class="poisonmark" id="hud-poison" hidden></div>
       </div>
-      <!-- What you are holding, above what you are carrying: the pack is
-           luggage and the hands are the game. Both empty at nine o'clock,
-           drawn rather than implied, because bare-handed is zero. -->
+      <!-- What you are wearing and holding, above what you are carrying: the
+           pack is luggage and this is the game. All three drawn rather than
+           implied, because bare-handed is zero — and the 神主牌 is DRAWN here
+           while still living outside the pack, so it costs no slot. -->
       <div class="panel">
-        <h3 id="hands-title">In hand</h3>
+        <h3 id="hands-title">Equipment</h3>
         <div class="hands" id="hud-hands"></div>
       </div>
       <div class="panel">

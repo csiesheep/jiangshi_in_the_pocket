@@ -132,7 +132,7 @@ export function renderHud(game) {
     health > 0 && health <= LOW_HEALTH && game.state.status === "playing"
   );
 
-  for (const id of ["stat-health", "stat-relic"]) {
+  for (const id of ["stat-health"]) {
     const el = document.getElementById(id);
     if (el) el.textContent = ui(game, id);
   }
@@ -140,7 +140,6 @@ export function renderHud(game) {
   renderAttack(game);
   renderPoison(game.state);
   renderHour(game.state);
-  renderRelic(game.state);
 
   // Which slots are new has to be worked out before the panel is rebuilt.
   // The pack is {id: count} now, so ask the engine for the ids rather than
@@ -348,7 +347,6 @@ function renderHour(s) {
   text.className = "statnum clocknum";
   text.textContent = reading;
   side.appendChild(text);
-  side.appendChild(drawPips(c));
   el.appendChild(side);
 
   // Built from the same reading as the visible text, so the two cannot drift,
@@ -422,23 +420,17 @@ function sweep(hand, from, to) {
   );
 }
 
-// The deck as a fuel gauge: seven pips, one going out per card spent. The issue
-// asked for these around the current hour's arc; measured at the face size it
-// specifies, seven pips across 30 degrees is 17px of arc end to end, which is
-// not a gauge anyone can read. A row beside the reading shows the same fact at
-// a size that survives.
-function drawPips(c) {
-  const row = document.createElement("span");
-  row.className = "pips";
-  for (let i = 0; i < c.perHour; i++) {
-    const pip = document.createElement("span");
-    // Pips stand for turns still standing in this band, so they go out left
-    // to right as the band is spent.
-    pip.className = `pip${i < c.left ? "" : " pip--spent"}`;
-    row.appendChild(pip);
-  }
-  return row;
-}
+// The pip row went with #76. It counted the turns left in the band, and the
+// user ruled it off the dial — but nothing is actually lost to a sighted
+// player, and that is worth writing down rather than assuming: ten turns of six
+// minutes is exactly sixty, so the MINUTE HAND makes one full revolution per
+// hour band and each turn moves it 36 degrees. The hand is the same countdown,
+// continuously rather than in seven steps.
+//
+// cardsLeftPhrase stays because it feeds the clock's accessible name, and that
+// is not the asymmetry it looks like: a hand position is not something a screen
+// reader can read, so each channel carries the same fact in the form that
+// channel can carry it.
 
 function cardsLeftPhrase(c) {
   if (c.left === 0) return ui(drawing, "turns-left-none");
@@ -559,75 +551,76 @@ function hand(NS, kind, length, angle) {
   return line;
 }
 
-// The 神主牌, which lives outside the six slots and never costs one. Shown in
-// the status panel rather than the pack for exactly that reason: putting it in
-// a slot would say it competes with a sword, and it does not.
-function renderRelic(s) {
-  const el = statBox("hud-tablet");
-  if (!el) return;
-  if (s.tablet) {
-    const art = uiIcon("relic", "staticon relic relic--held");
-    if (art) el.appendChild(art);
-  }
-  const text = document.createElement("span");
-  text.className = "statnum" + (s.tablet ? " statnum--buffed" : "");
-  text.textContent = ui(drawing, s.tablet ? "relic-held" : "relic-not-yet");
-  text.setAttribute("aria-hidden", "true");
-  el.appendChild(text);
-  el.appendChild(srOnly(ui(drawing, s.tablet ? "tablet-held" : "tablet-missing")));
-}
-
-// ---- The hands ---------------------------------------------------------------
-// What you are HOLDING, which the second amendment made a different question
-// from what you are carrying. Two slots that are not pack slots, drawn either
-// side of the figure so the answer is a picture rather than another list — the
-// pack went back to being luggage and this panel is the reason that reads.
+// ---- 裝備 / Equipment ----------------------------------------------------------
+// What you are WEARING AND HOLDING, which the second amendment made a different
+// question from what you are carrying. Three slots that are not pack slots, so
+// the pack goes back to being luggage and this panel is the reason that reads.
 //
-// Both hands are drawn even when empty, and that is the point of starting the
+// 左手 the blade, 身上 the 護身符, 右手 the 神主牌 (#75). The user named the middle
+// and the right; the left is the only slot left for a weapon, and the blade is
+// drawn in the same place it always was — what changed is its LABEL, since it
+// used to be called the right hand.
+//
+// All three are drawn even when empty, and that is the point of starting the
 // night here: bare-handed is ZERO attack, not "one plus whatever you find", and
-// an empty right hand said out loud on turn one is the clearest way to teach a
-// rule that the source game did not have.
+// an empty hand said out loud on turn one is the clearest way to teach a rule
+// the source game did not have.
 //
-// The slots are LABELLED as well as placed. The figure faces you, so its right
-// hand is on your left, and a player who has to work that out from a silhouette
-// is a player the panel failed.
+// THE TABLET IS RENDERED HERE, NOT STORED HERE. state.tablet stays the slotless
+// boolean it has always been: it never counts against MAX_ITEMS, cannot be
+// dropped and cannot be swapped. This reverses the note that used to sit on
+// renderRelic — that a slot would say it competes with a sword — and the reason
+// it is safe to reverse is that these are not pack slots. Nothing here competes
+// with anything; the panel says what you have, and the pack says what it costs.
 function renderHands(game) {
   const el = document.getElementById("hud-hands");
   if (!el) return;
   const s = game.state;
   el.textContent = "";
-
   el.appendChild(handSlot(game, "weapon", equippedWeapon(s)));
-
-  const fig = document.createElement("div");
-  fig.className = "handfig";
-  const art = icon("scene", "standing", "handfig-art");
-  if (art) fig.appendChild(art);
-  el.appendChild(fig);
-
   el.appendChild(handSlot(game, "charm", equippedCharm(s)));
+  el.appendChild(handSlot(game, "relic", s.tablet ? "relic" : null));
 }
 
-// One hand. The weapon hand also carries the number, because the number IS the
+// One slot. The weapon slot also carries the number, because the number IS the
 // weapon here — a sword is your attack outright rather than a bonus on top of
 // one, and 真火符 burned into the steel is worth a point that has to show
 // somewhere the player will look before a replace prompt asks about it.
+//
+// The 神主牌 passes `id` as the literal "relic" rather than an item id, because
+// it is not an item: there is no row for it in items.json and never was.
 function handSlot(game, slot, id) {
   const s = game.state;
+  const isRelic = slot === "relic";
   const box = document.createElement("div");
   box.className = `hand hand--${slot}` + (id ? "" : " hand--bare");
 
   const label = document.createElement("span");
   label.className = "handlabel";
-  label.textContent = ui(game, slot === "weapon" ? "hand-weapon" : "hand-charm");
+  label.textContent = ui(game, "hand-" + slot);
   box.appendChild(label);
 
-  const art = id ? icon("item", id, "handicon") : null;
-  if (art) box.appendChild(art);
+  // The picture row is ALWAYS present, even when there is nothing to put in it.
+  // Looking at the panel is what caught this: with the row omitted on empty
+  // slots, the word "empty" sat at three different heights across three slots
+  // that are meant to read as one row of three. A reserved box costs nothing
+  // and makes the labels and the names line up.
+  //
+  // No stand-in figure. It was tried at 18x26 and read as a smudge rather than
+  // a body — the label 身上 already says what the slot is, and a picture that
+  // has to be explained is worse than no picture.
+  const slotArt = document.createElement("span");
+  slotArt.className = "handart";
+  const art = isRelic ? (id ? uiIcon("relic", "handicon") : null)
+                      : (id ? icon("item", id, "handicon") : null);
+  if (art) slotArt.appendChild(art);
+  box.appendChild(slotArt);
 
   const name = document.createElement("span");
   name.className = "handname";
-  name.textContent = id ? itemName(game, id) : ui(game, "hand-empty");
+  name.textContent = id
+    ? (isRelic ? ui(game, "relic-name") : itemName(game, id))
+    : ui(game, "hand-empty");
   box.appendChild(name);
 
   if (slot === "weapon") {
@@ -647,6 +640,10 @@ function handSlot(game, slot, id) {
     // three elements apart, which reads as three unrelated facts aloud.
     box.appendChild(srOnly(ui(game, id ? "hand-weapon-said" : "hand-weapon-bare", {
       item: id ? itemName(game, id) : "", n,
+    })));
+  } else if (isRelic) {
+    box.appendChild(srOnly(ui(game, id ? "hand-relic-said" : "hand-relic-bare", {
+      item: ui(game, "relic-name"),
     })));
   } else {
     box.appendChild(srOnly(ui(game, id ? "hand-charm-said" : "hand-charm-bare", {

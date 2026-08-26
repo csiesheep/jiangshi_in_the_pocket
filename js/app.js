@@ -1623,11 +1623,8 @@ function paintChrome() {
     const el = document.getElementById(id);
     if (el) el.setAttribute("aria-label", uiWord(key));
   }
-  const titles = [["btn-lang", "title-lang"]];
-  for (const [id, key] of titles) {
-    const el = document.getElementById(id);
-    if (el) el.title = uiWord(key);
-  }
+  // Nothing left with a title to write: the language button carries its
+  // destination as visible text since #77, which is its own accessible name.
 }
 
 function paintLangToggle() {
@@ -1636,10 +1633,11 @@ function paintLangToggle() {
   const order = Object.keys(L.LANGS);
   const next = L.LANGS[order[(order.indexOf(data.lang) + 1) % order.length]];
   // The button says what you would get, not what you have — a control named for
-  // its current state reads as a label rather than a thing to press.
-  btn.title = `${next.name}`;
-  const label = document.getElementById("lang-label");
-  if (label) label.textContent = next.name;
+  // its current state reads as a label rather than a thing to press. Visible
+  // text since #77, so it needs no separate spoken label and no title: the
+  // accessible name IS the word on it.
+  btn.textContent = next.name;
+  btn.setAttribute("lang", next.tag);
 }
 
 async function main() {

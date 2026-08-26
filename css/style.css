@@ -520,7 +520,9 @@ body.app .board-pane > .board { min-height: 0; }
 /* The hours this game is actually played in get the longer, brighter marks. */
 .clock-tick--played { stroke-width: 2.2; opacity: .85; }
 /* Eleven to midnight, marked like a gauge's red zone. */
-.clock-danger { fill: none; stroke: var(--danger); stroke-width: 3.4; stroke-linecap: round; opacity: .85; }
+/* Eleven to midnight. One colour now (#76) — the red zone is carried by
+   WEIGHT rather than hue, which is the same trick the played hours use. */
+.clock-danger { fill: none; stroke: currentColor; stroke-width: 3.4; stroke-linecap: round; opacity: .9; }
 .clock-numeral {
   font-family: var(--font-display);
   font-size: 13px;
@@ -528,20 +530,11 @@ body.app .board-pane > .board { min-height: 0; }
   stroke: none;
   opacity: .8;
 }
-.clock-numeral--midnight { fill: var(--danger); opacity: 1; }
+.clock-numeral--midnight { opacity: 1; }
 .clock-hand { stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
-.clock-hand--hour { stroke: var(--accent); stroke-width: 3.4; }
+.clock-hand--hour { stroke-width: 3.4; }
 .clock-hand--minute { opacity: .75; }
-.clock-pin { fill: var(--accent); stroke: none; }
-
-/* The deck, as a fuel gauge. One pip goes out per card spent. */
-.pips { display: flex; gap: 4px; }
-.pip {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--accent) 50%, transparent);
-}
-.pip--spent { background: #3a404b; box-shadow: none; }
+.clock-pin { fill: currentColor; stroke: none; }
 
 /* ---- Backpack ---- */
 /* ---- The hands ---------------------------------------------------------------
@@ -552,11 +545,14 @@ body.app .board-pane > .board { min-height: 0; }
    Empty is a state worth drawing rather than a gap. Bare-handed is zero attack,
    which is the rule the source game did not have, and a dashed outline with the
    word in it teaches that on turn one for free. */
+/* Three equal columns (#75): 左手, 身上, 右手. Equal rather than
+   weighted, because the three are the same KIND of thing — what you have on
+   you — and the panel's job is to answer that at a glance. */
 .hands {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: repeat(3, 1fr);
   align-items: stretch;
-  gap: 8px;
+  gap: 6px;
 }
 .hand {
   display: flex;
@@ -574,11 +570,14 @@ body.app .board-pane > .board { min-height: 0; }
   background: transparent;
 }
 .handlabel {
-  font-size: .64rem;
+  font-size: .6rem;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--muted);
 }
+/* Reserved whether or not there is anything in it, so the three slots' words
+   line up. Without it "empty" sat at three different heights. */
+.handart { display: flex; align-items: center; justify-content: center; height: 26px; }
 .handicon { width: 26px; height: 26px; color: var(--gold); }
 .handname {
   font-size: .78rem;
@@ -592,7 +591,7 @@ body.app .board-pane > .board { min-height: 0; }
    bonus on top of one — so it is sized like a stat, not like a caption. */
 .handattack {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
@@ -606,13 +605,8 @@ body.app .board-pane > .board { min-height: 0; }
   text-shadow: 0 0 12px color-mix(in srgb, var(--gold) 40%, transparent);
 }
 
-.handfig { display: flex; align-items: center; justify-content: center; padding: 0 2px; }
-.handfig-art {
-  width: 34px;
-  height: 54px;
-  color: var(--muted);
-  opacity: .5;
-}
+/* .handfig went with the two-slot layout: the figure now lives inside the 身上
+   slot as its empty state, which is what that slot means. */
 
 /* New game, in the top bar (#55). Styled as a sibling of the two links rather
    than as a panel button, and last in the bar: it abandons a run in progress and
