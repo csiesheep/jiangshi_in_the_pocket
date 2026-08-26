@@ -664,10 +664,21 @@ function packCell(game, id, index) {
   const isCinnabar = id === "cinnabar";
   const isTruefire = id === "truefire-talisman";
   const buff = isTruefire ? buffState(game) : null;
-  const spendable = isCinnabar || isTruefire || def.cat === "medicine";
+  // WHAT THE PACK CAN ACTUALLY SPEND, which is not the same as cat: "medicine"
+  // (#86). 黑狗血 is filed as medicine and its effect is ESCAPE_FIGHT, so
+  // outside a fight useMedicine finds no heal, no cure and no gamble, drops it
+  // and returns ok — the item is destroyed for nothing. Pressing Use on it took
+  // one of thirteen items off a player and moved nothing at all.
+  //
+  // So the question is what the item DOES here, not what shelf it sits on: a
+  // medicine the pack can spend is one that heals, cures or gambles. Anything
+  // else is spent by the fight that needs it, which is exactly what
+  // use-elsewhere already says and what #53 established for talismans.
+  const spendsHere = spendsFromPack(def);
+  const spendable = isCinnabar || isTruefire || spendsHere;
   const canUse = isCinnabar ? cinnabarTargets(game).length > 0
     : isTruefire ? buff.ok
-    : def.cat === "medicine";
+    : spendsHere;
   const use = document.createElement("button");
   use.type = "button";
   use.className = "cellact";
@@ -675,7 +686,10 @@ function packCell(game, id, index) {
   // says "Burn the 真火符" and means THROW IT AT THEM; this burns it into the
   // steel and the blade keeps it. Two different actions cannot share a verb on
   // the same item — that ambiguity is what #68 was filed for.
-  use.textContent = ui(game, isTruefire ? "use-buff" : "use");
+  // 硃砂 is the one button that does not spend when pressed — it opens a picker
+  // and asks which talisman to copy — so it says so rather than promising the
+  // same thing the others promise.
+  use.textContent = ui(game, isTruefire ? "use-buff" : isCinnabar ? "use-grind" : "use");
   use.disabled = !canUse || typeof packUse !== "function";
   const swordName =
     buff && buff.sword ? itemName(game, buff.sword) : "";
@@ -740,6 +754,23 @@ export function onPackUse(fn) {
 }
 
 
+// WHAT THE PACK CAN ACTUALLY SPEND, in one place (#86).
+//
+// Not the same question as cat: "medicine". 黑狗血 is filed as medicine and its
+// effect is ESCAPE_FIGHT, so outside a fight useMedicine finds no heal, no cure
+// and no gamble, drops it and returns ok — pressing Use destroyed one of
+// thirteen items and moved nothing. What the item DOES here is the question,
+// not what shelf it sits on.
+//
+// Written once because it was written twice: the cell asked one way and
+// packSlot asked another, and two copies of one decision is how they come
+// apart. Anything this refuses is spent by the fight that needs it, which is
+// what use-elsewhere already says.
+function spendsFromPack(def) {
+  if (!def || def.cat !== "medicine") return false;
+  return def.heal != null || !!def.cures || !!def.gamble;
+}
+
 // One filled slot. Talismans carry a ×N because the stack is the slot; anything
 // else is one unit per row and a count there would be a lie.
 function packSlot(game, id, opts = {}) {
@@ -786,8 +817,8 @@ function packSlot(game, id, opts = {}) {
   // It is greyed with a reason when there is nothing to paint: grinding it over
   // an empty pack would be a wasted item and a surprise.
   const isCinnabar = id === "cinnabar";
-  const canUse = isCinnabar ? cinnabarTargets(game).length > 0 : def.cat === "medicine";
-  if (!opts.plain && (isCinnabar || def.cat === "medicine") && typeof opts.onUse === "function") {
+  const canUse = isCinnabar ? cinnabarTargets(game).length > 0 : spendsFromPack(def);
+  if (!opts.plain && (isCinnabar || spendsFromPack(def)) && typeof opts.onUse === "function") {
     const use = document.createElement("button");
     use.type = "button";
     use.className = "slotuse";

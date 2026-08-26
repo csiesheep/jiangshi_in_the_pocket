@@ -1089,12 +1089,33 @@ class Game {
     if (id === "cinnabar") return this.useCinnabar();
     // 真火符 is the one pack item that acts on your HANDS rather than on you.
     if (id === "truefire-talisman") return this.useTruefire();
+    // Watched rather than assumed (#86). tell() sends to both registers and
+    // log() to one, and the rule for choosing was "numbers go to log alone,
+    // because the HUD already shows those". That is true right up until the HUD
+    // does not move — and it does not move when healing is CLAMPED. Eat a 糯米
+    // at full health and useMedicine reports healed: 3, changeHealth caps it,
+    // the hearts stay where they were, and the only thing that said anything
+    // was a 1x1 clipped live region. The rulebook warns that rice at 9 health
+    // is worth holding; the game took it and said nothing.
+    //
+    // So the test is what actually changed on screen, not what the call
+    // returned.
+    const before = this.state.health;
+    const wasPoisoned = this.state.poisoned;
     const out = E.useMedicine(this.state, id);
     if (!out.ok) return;
     const name = iName(this, id);
-    if (out.healed > 0) log(this.line("use-heal", { item: name, n: out.healed }), "good");
-    else if (out.healed < 0) log(this.line("use-bad-half", { item: name, n: out.healed }), "bad");
-    else log(this.line("use-plain", { item: name }));
+    const moved = this.state.health !== before || this.state.poisoned !== wasPoisoned;
+    if (!moved) {
+      // Nothing on the panel to see it by, so it gets both registers.
+      this.tell(this.line("use-wasted", { item: name }));
+    } else if (out.healed > 0) {
+      log(this.line("use-heal", { item: name, n: out.healed }), "good");
+    } else if (out.healed < 0) {
+      log(this.line("use-bad-half", { item: name, n: out.healed }), "bad");
+    } else {
+      log(this.line("use-plain", { item: name }));
+    }
     if (out.cured) log(this.line("cured"), "good");
     this.refresh();
   }

@@ -837,3 +837,54 @@ test("equipment: the blade slot names its own empty state, not the generic one",
   assert(!css.includes(".hand--bare .handattack { color: var(--muted); }"),
     "the attack value is dimmed again in the one state where it reads 0");
 });
+
+// ---- The pack tells you what it did (#86) ----------------------------------------
+
+test("pack: it only offers what it can actually spend", async () => {
+  // 黑狗血 is filed as cat "medicine" and its effect is ESCAPE_FIGHT. Outside a
+  // fight useMedicine finds no heal, no cure and no gamble, drops it and
+  // returns ok — so pressing Use destroyed one of thirteen items and moved
+  // nothing. The shelf it sits on is not the question; what it does here is.
+  const items = await fetch("../data/items.json", NO_STORE).then((r) => r.json());
+  const blood = items.find((i) => i.id === "black-dog-blood");
+  assert(blood && blood.cat === "medicine" && blood.heal == null && !blood.cures && !blood.gamble,
+    "the item this guards has changed shape — re-read the rule below");
+  const src = await fetch("../js/render.js", NO_STORE).then((r) => r.text());
+  assert(src.includes("function spendsFromPack"),
+    "the pack is back to offering Use for anything shelved as medicine");
+  // ONE place, and the guard is against the second copy rather than the first:
+  // the cell asked one way and packSlot asked another, which is how two copies
+  // of one decision come apart.
+  // The other def.cat reads are about "magic" and stacking, which is a
+  // different question; "medicine" must be asked in exactly one place.
+  // Counted by splitting rather than by regex — an escape written into this
+  // file has arrived mangled three times, and a broken pattern here would pass
+  // silently forever.
+  const sites = (src.split('def.cat === "medicine"').length - 1) +
+                (src.split('def.cat !== "medicine"').length - 1);
+  eq(sites, 1, "the medicine category is consulted in " + sites +
+     " places; the rule lives in spendsFromPack and nowhere else");
+});
+
+test("pack: an outcome the HUD cannot show is said out loud", async () => {
+  // The inversion this fixes: the game DID say it, into a 1x1 clipped live
+  // region. Screen-reader users were told and sighted players were not — the
+  // fourth instance of that shape in this project.
+  //
+  // And the case is not only 黑狗血. Healing is CLAMPED, so eating rice at full
+  // health returns healed: 3, moves no hearts, and destroys the rice. The
+  // rulebook warns that rice at 9 health is worth holding; the game took it and
+  // said nothing.
+  const app = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
+  const cut = app.indexOf("usePackItem(id)");
+  const body = app.slice(cut, cut + 2000);
+  // Decided by what CHANGED, not by what the call returned.
+  assert(body.includes("this.state.health !== before"),
+    "usePackItem no longer checks whether anything actually moved");
+  assert(body.includes("this.tell("),
+    "usePackItem is back to log() alone, which only half the players can read");
+  for (const [lang, t] of [["en", themeEn], ["zh", themeZh]]) {
+    assert((t.lines || {})["use-wasted"], lang + " has no line for spending something for nothing");
+    assert((t.ui || {})["use-grind"], lang + " has no label for the button that opens a picker");
+  }
+});
