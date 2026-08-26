@@ -1069,26 +1069,48 @@ test("atmosphere: the wash and the vignette are not bound to the board pane", as
   }
 });
 
-test("atmosphere: the HUD column is not carved out of it", async () => {
-  // Excluding the sidebar would hand the vignette a fresh rectangle to stop at —
-  // the sidebar's edge instead of the pane's — which is the bug, moved. I built
-  // it that way first and put the seam back two inches to the right, so this is
-  // a guard against my own instinct rather than a hypothetical.
+test("atmosphere: only things with their own surface stand above the night", () => {
+  // ONE RULE, stated once, because this pair used to be two rules pulling
+  // opposite ways: #81 said the interface must not be lifted, #82 says the
+  // banner must be. Both are true and neither is the principle.
   //
-  // The CARDS are a different matter and are lifted deliberately; see the test
-  // below. A column is a transparent rectangle whose boundary becomes a seam. A
-  // card already has a background, a border and an edge of its own.
-  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  // The principle is what the seam actually was. Lifting .sidebar lifted a big
+  // TRANSPARENT column, so the night stopped along an invisible boundary and
+  // that boundary became the new rectangle — the same bug as the board pane's,
+  // moved two inches right. A panel and the banner are different: each has a
+  // background and a border of its own, so the night stopping at them reads as
+  // a lit card or a bar standing over a dark room, which is a thing, not a seam.
+  //
+  // So: anything that paints above the vignette must declare a background. That
+  // is the whole rule, and it is checked rather than described.
   const sheet = new CSSStyleSheet();
   sheet.replaceSync(css);
-  for (const r of sheet.cssRules) {
-    if (r.type !== CSSRule.STYLE_RULE || !r.selectorText) continue;
-    const sels = r.selectorText.split(",").map((s) => s.trim());
-    if (!sels.includes(".sidebar") && !sels.includes(".topnav")) continue;
-    const z = r.style.zIndex;
-    assert(!z || z === "auto" || Number(z) < 1,
-      r.selectorText + " lifts the interface above the night (z-index " + z +
-      "), which carves a rectangle out of it");
+  const rules = [...sheet.cssRules].filter((r) => r.type === CSSRule.STYLE_RULE);
+  const vignetteZ = Number((rules.find((r) => r.selectorText === ".board-pane::after")
+    || { style: {} }).style.zIndex || 0);
+  const lifted = [];
+  for (const r of rules) {
+    const z = Number(r.style.zIndex);
+    if (!Number.isFinite(z) || z <= vignetteZ) continue;
+    if (r.style.position === "" || r.style.position === "static") continue;
+    lifted.push(r);
+  }
+  for (const r of lifted) {
+    // Only judging the plain chrome selectors; overlays, dialogs and the scare
+    // are meant to cover the page and are not "standing on" anything.
+    const sels = r.selectorText.split(",").map((x) => x.trim());
+    if (!sels.some((x) => [".sidebar", ".topnav", ".panel"].includes(x))) continue;
+    const hasSurface = !!(r.style.background || r.style.backgroundColor);
+    assert(hasSurface,
+      r.selectorText + " stands above the night with no surface of its own — " +
+      "the night will stop along an invisible edge, which is the seam again");
+  }
+  // And the column specifically stays down: it is transparent by design.
+  const side = rules.find((r) => r.selectorText === ".sidebar");
+  if (side) {
+    const z = Number(side.style.zIndex);
+    assert(!Number.isFinite(z) || z <= vignetteZ,
+      ".sidebar is lifted — it is a transparent column, so its edge becomes the seam");
   }
 });
 
@@ -1115,4 +1137,49 @@ test("atmosphere: the HUD cards read through the night at any hour", async () =>
   const vignette = rules.find((r) => r.selectorText === ".board-pane::after");
   assert(Number(vignette.style.zIndex) < z,
     "the vignette now paints over the cards again");
+});
+
+test("banner: two rows at phone width, and no label allowed to stack", () => {
+  // WHY A WIDTH ASSERTION COULD NOT CATCH THIS, which is the whole lesson of
+  // #83: at 375 the bar was flex-wrap: nowrap, so nothing overflowed sideways
+  // and no scrollbar appeared — it grew DOWNWARD to 150px instead, and every
+  // item wrapped its own text into a narrow column. The title came out 59x122
+  // and 繁體中文 became a 38x96 vertical strip of four stacked characters. Every
+  // 375px check anyone ran passed, mine included, because they all asked about
+  // width.
+  //
+  // Measured by hand after the fix, at 375x812, both languages and the article
+  // pages: the bar is 85px, exactly two visual rows (title centred at y22, all
+  // four controls at y59), nothing multiline, rightmost edge 346 of 375.
+  //
+  // Guarded as the mechanism rather than by rendering, because the suite has to
+  // run in a pane where innerWidth is 0 and a rendered measurement there would
+  // be worse than none.
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const phone = [...sheet.cssRules].filter(
+    (r) => r.type === CSSRule.MEDIA_RULE && /max-width/.test(r.conditionText) &&
+           Number((r.conditionText.match(/(\d+)px/) || [])[1]) >= 375);
+  assert(phone.length, "no phone-width block at all — the banner has nothing to reflow it");
+  const ruleFor = (sel) => {
+    for (const m of phone) {
+      for (const r of m.cssRules) {
+        if (r.type !== CSSRule.STYLE_RULE) continue;
+        if (r.selectorText.split(",").map((x) => x.trim()).includes(sel)) return r;
+      }
+    }
+    return null;
+  };
+  const bar = ruleFor(".topnav");
+  assert(bar && bar.style.flexWrap === "wrap",
+    "the banner still refuses to wrap at phone width, so it grows downward instead");
+  const brand = ruleFor(".topnav .brand");
+  assert(brand && /100%/.test(brand.style.flexBasis || brand.style.flex || ""),
+    "the title does not take a row of its own, so the controls share it");
+  // The one that stops 繁體中文 becoming a vertical strip.
+  for (const sel of [".topnav a", ".topnav button"]) {
+    const r = ruleFor(sel);
+    assert(r && r.style.whiteSpace === "nowrap",
+      sel + " may still stack its label into a column at phone width");
+  }
 });

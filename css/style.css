@@ -191,17 +191,63 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
   padding: 24px 20px 64px;
 }
 
+/* THE BANNER IS INTERFACE (#82), so it reads at every hour. Same ruling as the
+   HUD cards and the same arithmetic behind it: the night spans the window now,
+   and an overlay that covers text and background alike pulls both toward the
+   same ink — at the alpha this bar sits under at eleven o'clock the ceiling is
+   about 1.5, so no recolouring reaches 4.5. It has to be above the wash.
+   
+   AND IT NEEDED A SURFACE FIRST. Lifting it as it was would have lifted a
+   TRANSPARENT strip, which is the sidebar mistake in a different orientation:
+   the night would stop along the bar without anything drawn there to explain
+   why. With its own background it is a bar standing over the night the way the
+   panels are cards standing on it, and the boundary it makes is the border it
+   already had. */
 .topnav {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 14px 20px;
+  background: var(--panel);
   border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 2;
 }
 .topnav a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
 .topnav a:hover { color: var(--text); }
 .topnav .brand { font-family: var(--font-display); color: var(--text); font-weight: 700; }
 .topnav .spacer { flex: 1; }
+
+/* ---- The banner at phone width (#83) -------------------------------------------
+   Two rows: the title on the first, the controls on the second.
+   
+   WHAT WAS WRONG, and it is the reason every 375px check I ran passed. The bar
+   is flex-wrap: nowrap, so at 375 nothing overflowed sideways — it grew DOWNWARD
+   to 150px instead, and each item wrapped its own text inside a narrow column:
+   the title 59x122, "New game" 56x52, and 繁體中文 a 38x96 vertical strip of four
+   stacked characters. No scrollbar, no overflow, nothing for a width assertion
+   to catch. The guard below measures the bar's HEIGHT and asserts each label
+   stays on one line, because those are the things that actually moved.
+   
+   The spacer exists to push the controls right in the one-row layout. In two
+   rows it has nothing to push, and at this width it was collapsing to 0x0
+   anyway, so it is taken out of the flow rather than left as a confusing
+   zero-size flex child. */
+@media (max-width: 560px) {
+  .topnav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 14px;
+    padding: 10px 14px;
+  }
+  /* Row one, on its own and centred. */
+  .topnav .brand { flex: 1 0 100%; text-align: center; }
+  .topnav .spacer { display: none; }
+  /* Row two. Every label on ONE line — this is what stops 繁體中文 becoming a
+     vertical strip and "New game" becoming two rows of its own. */
+  .topnav a,
+  .topnav button { white-space: nowrap; }
+}
 
 /* ---- Menu (index) ---- */
 .menu {
