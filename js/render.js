@@ -7,7 +7,7 @@ import { cellKey, currentTile, listMoves } from "./board.js";
 import { combatSting, doorCreak, tollBell, breakThrough, itemPickup, footsteps, setDread,
          watchDrum, hopThud,
          cardTurn, doorwayTick, duckForScare, wallThump, phantomScratch, shovel, heartbeat,
-         setScoreHour, buzz, isCalm,
+         setScoreHour, buzz,
          setSpace, wickHiss, setScoreRelief, splintering, startPounding, stopPounding,
          floodMurmur } from "./audio.js";
 
@@ -1444,59 +1444,21 @@ const SCARE_ENTRY = {
   W: [-38, 0],
 };
 
-export function jumpScare(count = 0, silent = false, opts = {}) {
-  // Calm keeps the sting and the pack row; the face does not arrive.
-  if (isCalm()) silent = true;
+// `silent` went with calm mode (#72): it was the only thing that ever set it,
+// and the one caller has always passed false.
+export function jumpScare(count = 0, opts = {}) {
   const from = SCARE_ENTRY[opts.from] ? opts.from : null;
   // The room goes quiet first. duckForScare returns how long to wait — and
   // returns 0 when there is nothing audible to take away, so a muted player
   // waits for nothing at all. A silence nobody can hear is just a delay.
   const quiet = duckForScare();
-  const fire = () => (silent ? stingOnly(count, from) : scareNow(count, from));
+  const fire = () => scareNow(count, from);
   if (quiet > 0) {
     return new Promise((resolve) => {
       setTimeout(() => fire().then(resolve), quiet);
     });
   }
   return fire();
-}
-
-// The scare that does not arrive: the sting lands, the room stays quiet, and
-// the window simply opens on a pack that is already there. Same shape and
-// roughly the same length as the real one, because the gating that keeps a
-// mashed key from finding anything depends on this taking time too.
-function stingOnly(count, from = null) {
-  return new Promise((resolve) => {
-    const tier = scareTier(count);
-    // A silent directional scare is just the panned sting — which is the whole
-    // of it in calm mode too, where the sound carries the direction because
-    // audio is not motion.
-    //
-    // The hopping lands under it either way, and now it lands in the tier's own
-    // rhythm. Calm mode takes away the faces, not the fact that something is
-    // coming and not how bad it is: two slow thuds and a rapid volley are
-    // different pieces of information, and information is the half calm keeps.
-    hopThud(count, from, tier.beats);
-    combatSting(count, from);
-    buzz([18, 40, 18]);
-
-    // The room still reacts. No faces at any tier — that is the promise calm
-    // makes — but the lantern still drops and the frost still arrives, so a
-    // calm player can tell 白殭 from 飛殭 by looking as well as by listening.
-    if (reducedMotion()) return void setTimeout(resolve, 0);
-    enterScene();
-    const el = document.createElement("div");
-    el.className = `scare scare--calm scare--${tier.cls}`;
-    el.setAttribute("aria-hidden", "true");
-    dressScare(el, tier);
-    grain(el, 0.24);
-    document.body.appendChild(el);
-    setTimeout(() => {
-      el.remove();
-      leaveScene();
-      resolve();
-    }, 420);
-  });
 }
 
 function scareNow(count, from = null) {
@@ -2162,7 +2124,6 @@ export function pushIn(on) {
 // region that cries wolf is not atmosphere, it is a lie in the only channel
 // they have.
 export function phantom(dir) {
-  if (isCalm()) return; // opted out of being lied to, sound included
   phantomScratch(dir);
   if (reducedMotion()) return;
 
@@ -2187,7 +2148,6 @@ export function phantom(dir) {
 // stops being there, and the difference is the whole effect.
 
 export function standing() {
-  if (isCalm()) return false;
   if (reducedMotion()) return false; // it does not move, but the shock does
 
   // Only the dark. A slot with a half-room in it is a room you can see into and
@@ -2245,7 +2205,6 @@ function decisionPending() {
 }
 
 export function candleGutter() {
-  if (isCalm()) return; // the opt-out covers the light as well as the noise
   // The sound goes either way. It is not motion, it costs no readability, and
   // a player who cannot see the flame fail should still hear it.
   wickHiss();
@@ -2360,14 +2319,6 @@ export function breakInTelegraph(dir) {
 // does nothing at all: the stages collapse back to the single burst at the end,
 // which is what calm mode promised.
 export function breakInCracks(dir) {
-  if (isCalm()) {
-    // Calm mode gets the cracked wall and nothing that comes through it: the
-    // information that a wall is failing, without being reached for.
-    breakIn.dir = dir || breakIn.dir;
-    breakIn.wall = "wall-cracked";
-    mountBreachWall(breakIn.dir, breakIn.wall);
-    return;
-  }
   breakIn.dir = dir || breakIn.dir;
   breakIn.wall = "wall-cracked";
   // The sound of it cracking, panned to the wall. Plays under calm mode too —
@@ -2390,7 +2341,7 @@ export function breakInCracks(dir) {
 // arms but not the grasping — they are through the wall either way, and that is
 // the fact; the reaching is the decoration.
 export function breakInPressure() {
-  if (isCalm() || !breakIn.dir) return;
+  if (!breakIn.dir) return;
   breakIn.wall = "wall-breached";
   breakIn.grasping = true;
   // Coming through costs the wall more of itself, and then it is worked on for
@@ -2408,7 +2359,7 @@ export function breakInPressure() {
 // the collapse happens there.
 export function breakInReanchor(dir) {
   breakIn.dir = dir;
-  if (isCalm() || reducedMotion()) return Promise.resolve();
+  if (reducedMotion()) return Promise.resolve();
   breakInCracks(dir);
   telegraphWall(dir, 1.2);
   // Short — this is a catch-up, not a second telegraph. The player has already
@@ -2427,7 +2378,7 @@ export function breakInCollapse(dir) {
   // loudest it is ever allowed to be — the one moment the mix reserves that
   // headroom for.
   floodMurmur();
-  if (reducedMotion() || isCalm()) {
+  if (reducedMotion()) {
     breakIn.dir = dir;
     breakInClear();
     return animateBreakIn(dir, { quiet: true }); // the single burst, as before
@@ -2695,7 +2646,7 @@ const OPPOSITE = { N: "S", E: "W", S: "N", W: "E" };
 // "do not frighten me". Either is enough to hold an effect back, and neither
 // implies the other.
 function intense() {
-  return !reducedMotion() && !isCalm();
+  return !reducedMotion();
 }
 
 // Exported for the event stage, which needs the same gate and must not grow a
@@ -2870,7 +2821,7 @@ function aftermath(box, dir) {
   }
   box.appendChild(gouges);
 
-  if (isCalm() || reducedMotion()) return;
+  if (reducedMotion()) return;
 
   // The dark beyond it. A hole is not a door: nothing was ever going to close
   // it, and the outside is on the other side of it for the rest of the night.

@@ -43,7 +43,6 @@
 // see the note on skipping.
 
 import { enterScene, leaveScene, icon, reducedMotion, grain } from "./render.js";
-import { isCalm } from "./audio.js";
 
 // The beat the stage is replacing. Kept here as its own name rather than
 // imported from app.js so the arithmetic in the header can be checked against
@@ -55,7 +54,6 @@ export const BEAT_MS = 780;
 // that hangs or animates longer than it promised is cut off rather than
 // allowed to hold the turn.
 const STAGE_MS = 1100;
-const CALM_MS = 900; // less to look at, so less time wanted looking at it
 const REDUCED_MS = 700; // a held frame; nobody needs a held frame for long
 
 // How many times a run explains itself. The hint is for the player who does not
@@ -65,37 +63,14 @@ const REDUCED_MS = 700; // a held frame; nobody needs a held frame for long
 const HINT_TIMES = 2;
 let hintsLeft = HINT_TIMES;
 
-const FAST_KEY = "jitp:fast";
-
-// ---- Fast mode ---------------------------------------------------------------
-// Deliberately its own preference rather than a mode of calm. Someone can want
-// the full assault and none of the waiting, or every animation and no scares:
-// intensity and pace are different complaints and get different switches. That
-// is the same argument calm mode makes against being folded into
-// prefers-reduced-motion, and it is the same answer.
-function readFast() {
-  try {
-    return localStorage.getItem(FAST_KEY) === "1";
-  } catch {
-    return false; // storage blocked: the game is what it is
-  }
-}
-
-let fast = readFast();
-
-export function isFast() {
-  return fast;
-}
-
-export function setFast(next) {
-  fast = !!next;
-  try {
-    localStorage.setItem(FAST_KEY, fast ? "1" : "0");
-  } catch {
-    /* the setting simply will not survive a reload */
-  }
-  return fast;
-}
+// ---- Fast mode, retired (#72) -------------------------------------------------
+// A pace opt-out: the same beat, no stage. Retired with calm by the same user
+// ruling — default off, nothing switches it, and that is expected.
+//
+// The READ went with it deliberately. A stale jitp:fast = "1" would otherwise
+// keep skipping every scene for a player with nothing left to turn it off, and
+// the point of the ruling is that the default is authoritative rather than a
+// value a leftover key can override.
 
 // Reset per run, so a second night explains itself again to whoever picked the
 // game up in between. Cheap, and the alternative is a setting nobody asked for.
@@ -118,21 +93,17 @@ export function eventStage(kind, opts = {}) {
   const scene = SCENES[kind];
   if (!scene) return wait(BEAT_MS);
 
-  // Fast mode is defined as the game before this file: the same beat, no stage.
-  if (fast) return wait(BEAT_MS);
-
   // No DOM to stage into (the headless suite, mostly). Take the beat and go.
   if (typeof document === "undefined" || !document.body) return wait(BEAT_MS);
 
   const reduced = reducedMotion();
-  const calm = isCalm();
-  const budget = reduced ? REDUCED_MS : calm ? CALM_MS : STAGE_MS;
+  const budget = reduced ? REDUCED_MS : STAGE_MS;
 
   return runStage({
     cls: `evstage--${kind}`,
     build: (inner, ctx) => scene(inner, ctx),
-    ctx: { ...opts, calm, reduced },
-    budget, calm, reduced,
+    ctx: { ...opts, reduced },
+    budget, reduced,
     skipHint: opts.skipHint,
     // A scene that throws still owes the caller the beat it was pacing on.
     onBuildError: () => wait(BEAT_MS),
@@ -156,7 +127,6 @@ export function eventStage(kind, opts = {}) {
 // The safest way to keep a secret in a scene is to give the scene nothing to
 // say, and that is what this does.
 const KING_MS = 2500;
-const KING_CALM_MS = 2100;
 const KING_REDUCED_MS = 1400;
 
 // Takes no options, and that is the §9 decision made structural. It was passed a
@@ -172,18 +142,16 @@ export function kingScene() {
   // Fast mode keeps what the game did before this scene existed: the sting, and
   // then straight to the question. Nothing is skipped that carries information,
   // because this scene never carried any.
-  if (fast) return Promise.resolve();
   if (typeof document === "undefined" || !document.body) return Promise.resolve();
 
   const reduced = reducedMotion();
-  const calm = isCalm();
-  const budget = reduced ? KING_REDUCED_MS : calm ? KING_CALM_MS : KING_MS;
+  const budget = reduced ? KING_REDUCED_MS : KING_MS;
 
   return runStage({
     cls: "kingscene",
     build: buildKing,
-    ctx: { calm, reduced },
-    budget, calm, reduced,
+    ctx: { reduced },
+    budget, reduced,
     onBuildError: () => undefined,
   });
 }
@@ -215,7 +183,7 @@ function buildKing(inner, ctx) {
 // by the King. Extracted rather than copied: a second copy of the skip handling
 // is a second place for a listener to leak, and the whole reason skipping is
 // safe is a property of this function rather than of any scene.
-function runStage({ cls, build, ctx, budget, calm, reduced, skipHint, onBuildError }) {
+function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError }) {
   return new Promise((resolve) => {
     // Never stack. A fight can follow a rite in the same turn and each would
     // otherwise leave its own full-screen layer behind — the same rule the
@@ -229,7 +197,6 @@ function runStage({ cls, build, ctx, budget, calm, reduced, skipHint, onBuildErr
     // called. This layer is the same sentence drawn in paint, so announcing it
     // again would be the screen reader hearing the news twice.
     el.setAttribute("aria-hidden", "true");
-    if (calm) el.classList.add("evstage--calm");
     if (reduced) el.classList.add("evstage--still");
 
     const inner = document.createElement("div");
@@ -309,7 +276,7 @@ function runStage({ cls, build, ctx, budget, calm, reduced, skipHint, onBuildErr
 // anything and does not clean up, which is what keeps them replaceable one at a
 // time.
 //
-// ctx: { n, hp, calm, reduced, ... }
+// ctx: { n, hp, reduced, ... }
 //
 // Three rules, all load-bearing above:
 //   1. Illustrate the line, never carry it. eventBeat writes the news to the
@@ -476,16 +443,16 @@ export function stageKinds() {
 }
 
 // The budget a stage is held to, given the gates in force.
-export function stageBudgetMs({ calm = false, reduced = false } = {}) {
-  return reduced ? REDUCED_MS : calm ? CALM_MS : STAGE_MS;
+export function stageBudgetMs({ reduced = false } = {}) {
+  return reduced ? REDUCED_MS : STAGE_MS;
 }
 
 // The King's, which is a different number for a different reason: once a night
 // rather than thirty times, so it is exempt from the tax the event scenes are
 // capped by. Still a deadline rather than a duration — cut off, never extended,
 // because the kit question must not wait on an animation.
-export function kingBudgetMs({ calm = false, reduced = false } = {}) {
-  return reduced ? KING_REDUCED_MS : calm ? KING_CALM_MS : KING_MS;
+export function kingBudgetMs({ reduced = false } = {}) {
+  return reduced ? KING_REDUCED_MS : KING_MS;
 }
 
 // What the whole feature costs a night, which is the number the header does the

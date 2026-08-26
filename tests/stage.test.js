@@ -9,7 +9,7 @@
 import { test, assert, eq, suite } from "./harness.js";
 import {
   eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
-  isFast, setFast, resetStageHints,
+  resetStageHints,
 } from "../js/eventstage.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
@@ -88,7 +88,7 @@ test("stage: a whole night does not grow by more than ten seconds", () => {
 });
 
 test("stage: every budget is a deadline in a sane band", () => {
-  for (const gates of [{}, { calm: true }, { reduced: true }]) {
+  for (const gates of [{}, { reduced: true }]) {
     const ms = stageBudgetMs(gates);
     assert(ms >= 400 && ms <= 1600,
       `budget ${ms}ms for ${JSON.stringify(gates)} is outside 400–1600`);
@@ -97,58 +97,14 @@ test("stage: every budget is a deadline in a sane band", () => {
 
 test("stage: the quieter the gate, the shorter the hold", () => {
   // Not arbitrary ordering: reduced motion is a held frame and nobody needs a
-  // held frame for as long as a moving one, and calm has less on screen to look
-  // at. If these ever invert it means a gate is making the game slower for the
-  // player who asked for less, which is backwards.
-  assert(stageBudgetMs({ reduced: true }) <= stageBudgetMs({ calm: true }),
-    "reduced motion holds longer than calm");
-  assert(stageBudgetMs({ calm: true }) <= stageBudgetMs(),
-    "calm holds longer than the full stage");
+  // held frame for as long as a moving one. If this ever inverts it means the
+  // gate is making the game slower for the player who asked for less, which is
+  // backwards. Calm was the other gate here and went with #72.
+  assert(stageBudgetMs({ reduced: true }) <= stageBudgetMs(),
+    "reduced motion holds longer than the full stage");
 });
-
-// ---- Fast mode is its own preference ------------------------------------------
-
-test("stage: fast mode round-trips and keeps its own key", () => {
-  const was = isFast();
-  // Pace and intensity are separate complaints with separate switches, so
-  // writing one must not move the other.
-  const calmBefore = localStorage.getItem("jitp:calm");
-  try {
-    setFast(true);
-    assert(isFast() === true, "setFast(true) did not take");
-    eq(localStorage.getItem("jitp:fast"), "1", "fast is not under its own key");
-    setFast(false);
-    assert(isFast() === false, "setFast(false) did not take");
-    eq(localStorage.getItem("jitp:fast"), "0", "fast did not persist off");
-    eq(localStorage.getItem("jitp:calm"), calmBefore, "fast mode moved calm's key");
-  } finally {
-    setFast(was);
-  }
-});
-
-test("stage: fast mode is exactly the game before the stage existed", serial(async () => {
-  const was = isFast();
-  try {
-    setFast(true);
-    const t0 = performance.now();
-    await eventStage("nothing", {});
-    const took = performance.now() - t0;
-    // The same beat, no layer. Not "a shorter stage" — no stage.
-    assert(!document.querySelector(".evstage"), "fast mode still built a stage");
-    assert(took >= BEAT_MS - 60,
-      `fast mode returned in ${Math.round(took)}ms; the beat is ${BEAT_MS}ms and ` +
-      `the log needs that long to be read`);
-  } finally {
-    setFast(was);
-  }
-}));
-
-// ---- The frame always lets go --------------------------------------------------
-
 test("stage: every kind resolves, mounts nothing permanent, and balances the scene", serial(async () => {
-  const was = isFast();
-  setFast(false);
-  try {
+  {
     for (const kind of stageKinds()) {
       const staged = document.body.classList.contains("staged");
       await eventStage(kind, { n: 3, hp: -1 });
@@ -157,8 +113,6 @@ test("stage: every kind resolves, mounts nothing permanent, and balances the sce
       eq(document.body.classList.contains("staged"), staged,
         `${kind}: enterScene/leaveScene did not balance — the letterbox bars are stuck`);
     }
-  } finally {
-    setFast(was);
   }
 }));
 
@@ -173,9 +127,7 @@ test("stage: an unknown kind still takes the beat rather than vanishing", serial
 }));
 
 test("stage: it is held to its deadline", serial(async () => {
-  const was = isFast();
-  setFast(false);
-  try {
+  {
     const budget = stageBudgetMs();
     // Raced against a reference timer rather than measured against the wall
     // clock, because wall-clock milliseconds here describe the tab more than
@@ -190,17 +142,13 @@ test("stage: it is held to its deadline", serial(async () => {
     ]);
     eq(winner, "stage",
       `a stage budgeted at ${budget}ms was still up after ${budget * 2}ms`);
-  } finally {
-    setFast(was);
   }
 }));
 
 // ---- Skipping ------------------------------------------------------------------
 
 test("stage: a key ends it early and cleans up after itself", serial(async () => {
-  const was = isFast();
-  setFast(false);
-  try {
+  {
     const t0 = performance.now();
     const p = eventStage("nothing", {});
     // Let it mount, then dismiss it the way a player would.
@@ -212,15 +160,11 @@ test("stage: a key ends it early and cleans up after itself", serial(async () =>
     assert(took < stageBudgetMs(),
       `skipping took ${Math.round(took)}ms, which is not shorter than the budget`);
     assert(!document.querySelector(".evstage"), "the skipped layer was left behind");
-  } finally {
-    setFast(was);
   }
 }));
 
 test("stage: modified keys are not a skip", serial(async () => {
-  const was = isFast();
-  setFast(false);
-  try {
+  {
     const p = eventStage("nothing", {});
     await new Promise((r) => setTimeout(r, 30));
     // Ctrl/Cmd combinations belong to the browser — someone reaching for
@@ -232,15 +176,11 @@ test("stage: modified keys are not a skip", serial(async () => {
       "a modified key or Tab dismissed the stage");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
     await p;
-  } finally {
-    setFast(was);
   }
 }));
 
 test("stage: the layer is silent to a screen reader", serial(async () => {
-  const was = isFast();
-  setFast(false);
-  try {
+  {
     const p = eventStage("poison", {});
     await new Promise((r) => setTimeout(r, 30));
     const el = document.querySelector(".evstage");
@@ -253,15 +193,11 @@ test("stage: the layer is silent to a screen reader", serial(async () => {
     eq(el.getAttribute("aria-hidden"), "true", "the stage announces itself");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
     await p;
-  } finally {
-    setFast(was);
   }
 }));
 
 test("stage: never stacks", serial(async () => {
-  const was = isFast();
-  setFast(false);
-  try {
+  {
     const a = eventStage("nothing", {});
     await new Promise((r) => setTimeout(r, 20));
     const b = eventStage("poison", {});
@@ -270,18 +206,14 @@ test("stage: never stacks", serial(async () => {
       "two stages were up at once — the second must displace the first");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
     await Promise.all([a, b]);
-  } finally {
-    setFast(was);
   }
 }));
 
 // ---- The hint ------------------------------------------------------------------
 
 test("stage: the skip hint stops after the first couple of events", serial(async () => {
-  const was = isFast();
-  setFast(false);
   resetStageHints();
-  try {
+  {
     const seen = [];
     for (let i = 0; i < 4; i++) {
       const p = eventStage("nothing", { skipHint: "press anything" });
@@ -292,10 +224,8 @@ test("stage: the skip hint stops after the first couple of events", serial(async
     }
     eq(seen, [true, true, false, false],
       "the hint should teach twice and then stop being furniture");
-  } finally {
-    setFast(was);
-    resetStageHints();
   }
+  resetStageHints();
 }));
 
 // ---- Strings -------------------------------------------------------------------
@@ -306,7 +236,7 @@ const [themeEn, themeZh] = await Promise.all([
 ]);
 
 test("stage: both languages carry the stage's own strings", () => {
-  for (const key of ["stage-skip", "fast-on", "fast-off", "title-fast"]) {
+  for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);
     assert((themeZh.ui || {})[key], `繁體中文 is missing ui.${key}`);
     assert(themeEn.ui[key] !== themeZh.ui[key],
@@ -323,23 +253,50 @@ test("stage: the skip hint says what to press, not what is lost", () => {
 
 // ---- The control ---------------------------------------------------------------
 
-test("stage: the fast control exists and is a real toggle", serial(async () => {
-  // It lives on the MENU now, not the game HUD (#55). The feature did not move
-  // — the preference is localStorage-backed and survives — only the door to it,
-  // so this follows the door rather than being deleted with the old button.
-  const html = await fetch("../index.html", NO_STORE).then((r) => r.text());
-  assert(/id="menu-fast"/.test(html), "the menu has no fast-mode control");
-  assert(/id="menu-fast-label"/.test(html), "the fast control has no screen-reader label");
-  const btn = html.slice(html.indexOf('id="menu-fast"'), html.indexOf('id="menu-fast-label"'));
-  assert(/aria-pressed/.test(html.slice(html.indexOf('id="menu-fast"') - 120, html.indexOf('id="menu-fast-label"'))),
-    "the fast control is not announced as a toggle");
-  assert(btn !== null, "");
-  // And the HUD really has stopped carrying it.
+test("modes: calm and fast are gone from both pages, not merely hidden", async () => {
+  // #72 retired both by user ruling: default off, nothing switches them, and
+  // that is expected. The switches, the preference reads and the branches all
+  // went together — the opposite of #70, which was a capability the rules
+  // depended on and nobody could reach. This is one nothing depends on.
+  const menu = await fetch("../index.html", NO_STORE).then((r) => r.text());
+  for (const gone of ["menu-calm", "menu-fast", "menu-settings-wrap", "footnote"]) {
+    assert(!menu.includes('id="' + gone + '"'), "the landing page still carries " + gone);
+  }
   const game = await fetch("../game.html", NO_STORE).then((r) => r.text());
-  for (const gone of ["btn-fast", "btn-calm", "btn-copy-seed", "hud-attack"]) {
+  for (const gone of ["btn-fast", "btn-calm", "btn-copy-seed", "hud-attack", "hud-modes"]) {
     assert(!game.includes('id="' + gone + '"'), "the game HUD still carries " + gone);
   }
-}));
+});
+
+test("modes: a stale preference cannot strand anyone in the retired game", async () => {
+  // THE LOAD-BEARING HALF. Removing the switches alone would lock anyone whose
+  // browser still holds jitp:calm = "1" into the de-fanged game forever with
+  // nothing left to turn it off — and the person who owns this game WAS that
+  // player, three days running. So the default is authoritative rather than a
+  // starting value a stale key can override: the keys are never read again.
+  for (const f of ["../js/audio.js", "../js/eventstage.js", "../js/render.js",
+                   "../js/app.js", "../js/menu.js"]) {
+    const src = noComments(await fetch(f, NO_STORE).then((r) => r.text()));
+    for (const key of ["jitp:calm", "jitp:fast"]) {
+      assert(!src.includes(key), f + " still reads " + key);
+    }
+    for (const gate of ["isCalm(", "isFast(", "setCalm(", "setFast("]) {
+      assert(!src.includes(gate), f + " still calls " + gate);
+    }
+  }
+});
+
+test("modes: prefers-reduced-motion survived the retirement", async () => {
+  // The separate axis, and the one that remains. Calm was about intensity —
+  // full animation, no faces arriving. This is about vestibular safety, it is
+  // an OS setting rather than a preference this game stores, and retiring calm
+  // must not have taken it along.
+  const src = noComments(await fetch("../js/render.js", NO_STORE).then((r) => r.text()));
+  assert(src.includes("prefers-reduced-motion"),
+    "render.js no longer asks the OS about reduced motion");
+  assert(stageBudgetMs({ reduced: true }) < stageBudgetMs(),
+    "reduced motion no longer shortens the stage");
+});
 
 // ---- The four 僵屍 (#34) -------------------------------------------------------
 // The tiers ride jumpScare rather than the event stage, because a refused
@@ -531,9 +488,7 @@ test("king: §9 — the scene has nothing to say, in any language", serial(async
   // If this ever gains text it has to be audited against §9 by hand, and this
   // test is the tripwire that forces that.
   const S = await import(`../js/eventstage.js?king=${Date.now()}`);
-  const was = isFast();
-  setFast(false);
-  try {
+  {
     // Called WITH a hint on purpose: the scene has to be wordless even when it
     // is offered text, because the first version of this test passed while the
     // live scene carried 19 characters of skip chrome. kingScene takes no
@@ -546,8 +501,6 @@ test("king: §9 — the scene has nothing to say, in any language", serial(async
     eq(el.getAttribute("aria-hidden"), "true", "the King's scene announces itself");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
     await p;
-  } finally {
-    setFast(was);
   }
 }));
 
@@ -576,31 +529,11 @@ test("king: the budget is his own, and does not reopen the event scenes' tax", (
   // Once a night, so exempt from the thirty-times cap — but still a hard
   // deadline, because the kit question must never wait on an animation.
   assert(kingBudgetMs() <= 2500, `the King runs ${kingBudgetMs()}ms; the cap is 2500`);
-  assert(kingBudgetMs({ reduced: true }) <= kingBudgetMs({ calm: true }),
-    "reduced motion holds him longer than calm");
-  assert(kingBudgetMs({ calm: true }) <= kingBudgetMs(), "calm holds him longer than the full scene");
+  assert(kingBudgetMs({ reduced: true }) <= kingBudgetMs(),
+    "reduced motion holds him longer than the full scene");
   // His budget must not have been achieved by raising everyone else's.
   eq(nightCostMs(30), 9600, "the event scenes' night tax moved");
 });
-
-test("king: fast mode plays no scene at all", serial(async () => {
-  const S = await import(`../js/eventstage.js?kfast=${Date.now()}`);
-  const was = isFast();
-  try {
-    setFast(true);
-    await S.kingScene({});
-    assert(!document.querySelector(".kingscene"), "fast mode still staged the King");
-  } finally {
-    setFast(was);
-  }
-}));
-
-test("king: calm never lets him turn his face to the screen", () => {
-  assert(/\.evstage--calm \.king-art \{ --king-face: 0/.test(kingCss),
-    "calm mode does not hide the King's face");
-  assert(/var\(--king-face, 1\)/.test(stageSrc) || true, "");
-});
-
 test("king: nothing in his scene repeats a luminance change", () => {
   // Kept as its own named claim — the King is the one scene that plays at the
   // moment the whole night walks toward — but reading the parsed rules rather
@@ -860,33 +793,6 @@ test("icons: each 僵屍 tier has its own artwork", () => {
     }
   }
 });
-
-// ---- The comfort-mode mark (#62) ------------------------------------------------
-
-test("modes: the game screen can say a comfort mode is hiding something", async () => {
-  // The person who owns this game concluded three times that the animations
-  // were broken, and it was calm mode each time. Calm removes the 僵屍
-  // entirely, #55 moved its switch to the menu, and nothing in the game said
-  // so — a setting that removes the headline feature has to be visible from
-  // inside the feature.
-  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
-  assert(/id="hud-modes"/.test(html), "the game screen has nowhere to say a mode is on");
-});
-
-test("modes: it says what the mode is doing, not just that it is on", () => {
-  // "Calm mode is on" does not tell anyone why the room went quiet, which is
-  // the thing they are actually confused about.
-  for (const [lang, t] of [["en", themeEn], ["zh", themeZh]]) {
-    for (const key of ["mode-calm", "mode-fast", "mode-calm-said", "mode-fast-said"]) {
-      assert((t.ui || {})[key], lang + " is missing ui." + key);
-    }
-    const calm = t.ui["mode-calm-said"];
-    assert(calm.length > 24, lang + " calm mark says too little: " + calm);
-    assert(/僵屍|殭屍/.test(calm),
-      lang + " calm mark does not say the 僵屍 are what is missing: " + calm);
-  }
-});
-
 // ---- 真火符 into the blade (#70) -------------------------------------------------
 // The engine could always do this and no button reached it, so the one loadout
 // that seals the King could not be assembled by a person. BE measured the hole

@@ -72,13 +72,20 @@ function fill(text, values) {
 export function houseLine(t) {
   if (!t) return "";
   const { taken, left } = tally();
-  if (!taken && !left) return "";
-  if (!taken) {
-    return left === 1
-      ? (t["left-once"] || "")
-      : fill(t["left-many"] || "", { n: times(t, left) });
-  }
-  const kept = fill(t["taken"] || "", { n: times(t, taken) });
-  if (!left) return kept;
-  return `${kept} ${fill(t["walked-out"] || "", { n: times(t, left) })}`;
+  // The front page no longer counts your deaths back to you (#72). It used to
+  // open with "The house has taken you four times", which is a scoreboard
+  // pointed the wrong way — the first thing a returning player read was the
+  // tally of their losses.
+  //
+  // So nothing is said about being taken, and that means the surviving line has
+  // to be re-checked for truth rather than just kept: "It has never kept you"
+  // is only true while it never has. A player who has been taken and has also
+  // walked out gets the plain count of walking out, with no claim attached; a
+  // player who has only ever been taken gets no line at all, which is the same
+  // silence a first visit gets.
+  if (!left) return "";
+  if (taken) return fill(t["walked-out"] || "", { n: times(t, left) });
+  return left === 1
+    ? (t["left-once"] || "")
+    : fill(t["left-many"] || "", { n: times(t, left) });
 }

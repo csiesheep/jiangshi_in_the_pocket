@@ -268,26 +268,6 @@
       </a>
     </nav>
 
-    <!-- The two comfort settings, moved off the game HUD (#55) and put where
-         settings belong. Both are localStorage-backed and survive the move, so
-         anyone who had already set one keeps it. They are deliberately separate
-         axes: calm is about intensity — remove the assault, keep the
-         information — and fast is about pace, and neither is the OS-level
-         prefers-reduced-motion, which is about vestibular safety and is honoured
-         on its own. -->
-    <div class="settings" id="menu-settings-wrap">
-      <h2 class="settings-title" id="menu-settings">Settings</h2>
-      <button class="setting" type="button" id="menu-calm" aria-pressed="false">
-        <span id="menu-calm-label">Calm mode off</span>
-      </button>
-      <button class="setting" type="button" id="menu-fast" aria-pressed="false">
-        <span id="menu-fast-label">Fast mode off</span>
-      </button>
-    </div>
-
-    <p class="footnote" id="footnote">A free solo board game in the browser. The rules come
-      from a print-and-play original; the village, the night and everything in
-      it are ours.</p>
   </main>
   <script type="module" src="js/menu.js"></script>
 </body>

@@ -310,8 +310,6 @@
     "copy-link": "複製重玩連結",
     "menu": "回主選單",
     "link-copied": "連結複製好了",
-    "calm-on": "平靜模式：開",
-    "calm-off": "平靜模式：關",
     "sound-on": "聲音：開",
     "sound-off": "聲音：關",
     "fullscreen": "全螢幕",
@@ -338,7 +336,6 @@
     "aria-log": "旁白",
     "title-sound": "聲音",
     "title-note": "門廳裡的那張字條",
-    "title-calm": "平靜模式——沒有驚嚇的版本",
     "title-fullscreen": "全螢幕",
     "title-lang": "語言 / Language",
     "clock-said": "{time}，{phrase}",
@@ -352,9 +349,6 @@
     "relic-not-yet": "還沒",
     "relic-held": "在身上",
     "brand": "三更：殭屍",
-    "fast-on": "快速模式：開",
-    "fast-off": "快速模式：關",
-    "title-fast": "快速模式——只留節奏，不放動畫",
     "stage-skip": "按任意鍵繼續",
     "hands-title": "手上",
     "hand-weapon": "右手",
@@ -378,16 +372,10 @@
     "buff-no-sword": "{item}——手上沒有可以燒進去的東西",
     "buff-no-sword-title": "你是空手的。先找一把劍",
     "buff-already": "{item}——{sword}已經燒了一張",
-    "buff-already-title": "一把劍只吃得下一張，不管你有幾張",
-    "menu-settings": "設定",
-    "mode-calm": "平靜",
-    "mode-fast": "快速",
-    "mode-calm-said": "平靜模式開著——殭屍不會出現，場面也放輕了。按一下關掉。",
-    "mode-fast-said": "快速模式開著——事件動畫整個跳過。按一下關掉。"
+    "buff-already-title": "一把劍只吃得下一張，不管你有幾張"
   },
   "landing": {
-    "tagline": "夜裡九點。三更時分，他來找你。讓他入土，或是等他來的時候還站著。",
-    "footnote": "瀏覽器上的免費單人桌遊。規則出自一套可自行列印的原作；村子、這個夜晚，還有裡面的一切，是我們的。"
+    "tagline": "夜裡九點。三更時分，他來找你。讓他入土，或是等他來的時候還站著。"
   },
   "verdict": {
     "lasted": "撐到{hour}",
@@ -456,7 +444,6 @@
   "tallyLine": {
     "left-once": "你從這棟屋子裡走出去過一次。它從來沒留住你。",
     "left-many": "你從這棟屋子裡走出去過{n}。它從來沒留住你。",
-    "taken": "這棟屋子留住過你{n}。",
     "walked-out": "你走出去過{n}。",
     "times": "{n}次",
     "once": "一次",

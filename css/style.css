@@ -402,7 +402,6 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 .talisman--primary .talisman-body { opacity: .13; }
 .talisman--primary .talisman-frame { border-color: rgba(168, 48, 42, .55); }
 
-.footnote { margin-top: 36px; color: var(--muted); font-size: 0.8rem; max-width: 44ch; }
 
 /* The house remembering you. Quieter than the tagline and set apart from it,
    because it is not part of the pitch — it is the room adding something after
@@ -631,41 +630,6 @@ body.app .board-pane > .board { min-height: 0; }
 .topbtn:hover { color: var(--text); border-color: var(--way-known); }
 .topbtn:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
 
-/* The menu's settings (#55). Quiet, under the charms, in the landing page's own
-   register rather than the game HUD's — these are read once and set once, not
-   glanced at during a run. */
-.settings {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin: 26px 0 0;
-}
-.settings-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: .96rem;
-  font-weight: 400;
-  color: var(--muted);
-  letter-spacing: .04em;
-}
-.setting {
-  padding: 4px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: .82rem;
-  cursor: pointer;
-}
-.setting:hover { color: var(--text); border-color: var(--way-known); }
-.setting:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
-.setting[aria-pressed="true"] {
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--gold) 55%, var(--border));
-}
-
 /* ---- The found-item row ---------------------------------------------------------
    What packSlot() still draws, and the pack no longer does. These were the
    backpack's vocabulary until the 田 grid replaced it; the drop dialog and the
@@ -705,33 +669,6 @@ body.app .board-pane > .board { min-height: 0; }
   font-size: .68rem;
   font-variant-numeric: tabular-nums;
 }
-
-/* The comfort-mode mark. Empty and invisible unless a mode is actually hiding
-   something, so the ordinary HUD is unchanged — an always-present control is
-   what #55 removed, and this is not that.
-
-   Bare, in the house language: no fill, no icon, a word and a hairline. It is
-   quiet because it is not urgent; it is present because a player who cannot see
-   the 僵屍 deserves to know why. */
-.modemarks:empty { display: none; }
-.modemarks {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-.modemark {
-  padding: 1px 8px;
-  border: 1px dashed color-mix(in srgb, var(--gold) 42%, var(--border));
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: .7rem;
-  letter-spacing: .06em;
-  cursor: pointer;
-}
-.modemark:hover { color: var(--text); border-style: solid; }
-.modemark:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
 
 /* ---- The pack as 田 -------------------------------------------------------------
    Four cells of pictures. The words arrive when you point at one, and the panel
@@ -2381,9 +2318,6 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 /* Calm mode: the stage still happens, the assault in it does not. Less contrast,
    no glow, nothing lunging — the established policy, which is to remove the
    assault and keep the information. */
-.evstage--calm { background: rgba(8, 4, 5, .78); }
-.evstage--calm .evstage-art { filter: none; opacity: .78; }
-.evstage--calm .evstage-inner--wash { background: none; }
 
 /* prefers-reduced-motion: composed and held, never moved. Separate from calm
    because they are separate requests — this one is about vestibular safety and
@@ -2603,7 +2537,6 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
    arrives. The dressing is the information and it stays; the smear, the judder
    and the eyeshine belong to the thing itself and never render, because calm
    builds no faces at all. */
-.scare--calm { background: rgba(4, 3, 4, .8); }
 
 /* prefers-reduced-motion: composed and held. Distance is still the tier. The
    gutter and the judder are dropped outright — a light going out and a frame
@@ -2794,17 +2727,6 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 /* Calm: the information stays, the assault goes. What is assaultive here is the
    SUDDEN COMPLETION, so calm keeps every light, texture and colour and simply
    arrives at them — the scene composes instead of pouncing. */
-.evstage--calm .evs-warmth,
-.evstage--calm .evs-wound,
-.evstage--calm .evs-creep,
-.evstage--calm .evs-candle,
-.evstage--calm .evs-watch {
-  animation-timing-function: ease-out;
-  animation-duration: .8s;
-}
-.evstage--calm .evs-wound {
-  background: linear-gradient(96deg, rgba(3, 4, 6, .8) 0%, transparent 58%);
-}
 
 /* Reduced motion: the composition, arrived at rather than travelled to. Every
    layer at its final value, the fog parked, the grain unchanged. */
@@ -2930,8 +2852,6 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 
 /* Calm keeps its promise: he never turns his face to the screen. Robes, hat and
    shadow are the whole of him — which is, if anything, worse. */
-.evstage--calm .king-art { --king-face: 0; opacity: .78; }
-.evstage--calm .king-bow, .evstage--calm .king-frost { opacity: .7; }
 
 /* Reduced motion: one held composition — the doorway, him mid-frame, the light
    already bowed away. Arrived at rather than travelled to. */
@@ -3929,7 +3849,6 @@ body.coldopen .menu .tagline { animation: fadeup 1.2s ease-out .9s both; }
    read as an afterthought rather than a second line of copy. */
 body.coldopen .menu .whisper { animation: fadeup 1.6s ease-out 1.45s both; }
 body.coldopen .menu nav { animation: fadeup 1.4s ease-out 1.9s both; }
-body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.5s both; }
 @keyframes fadeup {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
@@ -3946,23 +3865,8 @@ body.coldopen .menu .footnote { animation: fadeup 1.4s ease-out 2.5s both; }
   body.coldopen .menu h1,
   body.coldopen .menu .tagline,
   body.coldopen .menu .whisper,
-  body.coldopen .menu nav,
-  body.coldopen .menu .footnote { animation: none; opacity: 1; transform: none; }
+  body.coldopen .menu nav { animation: none; opacity: 1; transform: none; }
 }
-
-/* ---- Calm mode ---------------------------------------------------------------
-   The dark stays — this is still a game about a house at night — but it stops
-   moving at you, and the loudest flourishes step back.
-
-   Deliberately separate from prefers-reduced-motion: someone can want the
-   animation and not the assault, or the reverse. */
-body.calm .board-pane::after { animation: none; }
-body.calm .tilebadge--relic .tilebadge-art { animation: none; opacity: 1; }
-body.calm #overlay.overlay--lost .overlay-card h2 { animation: none; }
-/* The push-in is pressure by design; calm keeps the frame still. */
-body.calm.pushing .board { transform: none; transition: none; }
-/* Grain is texture and stays; the motes are movement and go. */
-body.calm .motes { display: none; }
 
 /* ---- The note in the hall ----------------------------------------------------
    One card-sized panel, paper-coloured against the dark, over everything but
@@ -4183,8 +4087,11 @@ body.asleep .fog {
 
 /* ---- The language switch on the cold open ------------------------------------
    Quiet. It names the language you would get rather than the one you have, and
-   it sits above the footnote where somebody looking for it will look — not up
-   with the charms, which are the page's one loud thing and should stay that. */
+   it sits below the charms where somebody looking for it will look — not up
+   with them, since they are the page's one loud thing and should stay that.
+   #72 removed the footnote it used to sit above, so it carries its own top
+   margin now instead of inheriting that paragraph's spacing. */
+.menu .langswitch { margin-top: 30px; }
 .langswitch {
   display: inline-block;
   margin: 0 auto 10px;

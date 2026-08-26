@@ -15,7 +15,6 @@
 // shares one origin and localStorage is origin-scoped, so a key named for
 // the sibling is the SAME key — these read and wrote Grave Errand's.
 const KEY = "jitp:muted";
-const CALM_KEY = "jitp:calm";
 
 let ctx = null;
 let master = null;
@@ -32,7 +31,6 @@ const MUFFLED_HZ = 520;
 let noiseBuffer = null;
 let bedNoise = null;
 let muted = readMuted();
-let calm = readCalm();
 
 function readMuted() {
   try {
@@ -43,47 +41,22 @@ function readMuted() {
   }
 }
 
-// ---- Calm mode ---------------------------------------------------------------
-// The scares, the blood, the phantoms and the buzzing are the point of all this
-// work, and they are also a wall for players who want the game without the
-// assault. This is the way past it.
+// ---- Calm mode, retired (#72) -------------------------------------------------
+// It was an intensity opt-out: full animation, no faces arriving. The user ruled
+// it gone — default off, nothing switches it, and that is expected — after being
+// stuck in it three days running with no way back, which is the whole reason
+// #62's mark existed.
 //
-// Deliberately NOT the same thing as prefers-reduced-motion. That is an OS
-// setting about vestibular safety; this is a choice about intensity. Someone
-// can want full animation and no jump scares, or the reverse, so they are two
-// independent gates and every effect checks both.
+// The READ goes with the switch, and that is the load-bearing half. Anyone whose
+// browser still holds jitp:calm = "1" would otherwise be locked in the de-fanged
+// game forever with nothing left to turn it off. The default is authoritative
+// now rather than a starting value a stale key can override, so the key is
+// simply never consulted again.
 //
-// Lives here beside the mute flag because this is the module that already owns
-// persisted preferences, and because the audio side needs it too — render
-// imports it, and audio cannot import render.
-function readCalm() {
-  try {
-    return localStorage.getItem(CALM_KEY) === "1";
-  } catch {
-    return false; // storage blocked: the game is what it is
-  }
-}
+// prefers-reduced-motion is untouched and still honoured on its own. That was
+// always the separate axis — vestibular safety rather than intensity — and it
+// is the one that remains.
 
-export function isCalm() {
-  return calm;
-}
-
-export function setCalm(next) {
-  calm = !!next;
-  try {
-    localStorage.setItem(CALM_KEY, calm ? "1" : "0");
-  } catch {
-    /* the setting simply will not survive a reload */
-  }
-  if (typeof document !== "undefined") {
-    document.body.classList.toggle("calm", calm);
-  }
-  // The beds are already running; they move to the new level rather than
-  // restarting, so switching mid-run is not itself an event.
-  applyBedLevel();
-  applyScore();
-  return calm;
-}
 
 export function isMuted() {
   return muted;
@@ -457,10 +430,9 @@ export function tollBell() {
 // off the assault — the faces, the blood, the buzzing — and keeps the
 // information, because a player who cannot see the pack still has to hear that
 // there is one. The same policy the scare sting has always followed.
-const CALM_BITE = 0.6;
 
 function bite() {
-  return calm ? CALM_BITE : 1;
+  return 1;
 }
 
 // Long enough that two strikes are two events rather than a flam, short enough
@@ -1044,7 +1016,7 @@ export function setHaptics(on) {
 }
 
 export function buzz(pattern) {
-  if (!hapticsOn || calm) return;
+  if (!hapticsOn) return;
   if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
   try {
     navigator.vibrate(pattern);
@@ -1339,7 +1311,7 @@ function bedLevel() {
   // stops being a bed and starts being a noise. Calm keeps the weather —
   // silence would be its own kind of wrong — but takes it further down.
   const base = 0.012 + dread * 0.03;
-  return calm ? base * 0.55 : base;
+  return base;
 }
 
 // Move a running bed to whatever the level should be now, without restarting
@@ -1601,7 +1573,6 @@ const DUCK_MS = 150;
 const HOLD_MS = 560;
 // Calm still gets the shape of the beat — the room going quiet is not the
 // frightening part — but it does not get held there.
-const CALM_HOLD_MS = 180;
 let ducked = false;
 
 export function duckForScare() {
@@ -1620,7 +1591,7 @@ export function duckForScare() {
     g.setValueAtTime(Math.max(g.value, 0.0001), t);
     g.exponentialRampToValueAtTime(0.0001, t + fall);
   }
-  return DUCK_MS + (calm ? CALM_HOLD_MS : HOLD_MS);
+  return DUCK_MS + HOLD_MS;
 }
 
 // Put the room back. Called when the fight is over rather than when the window
@@ -1735,7 +1706,7 @@ function applyScore() {
   // easing rather than the music stopping.
   const top = scoreWanted - 1;
   score.voices.forEach((v, i) => {
-    let target = i < scoreWanted ? v.level * (calm ? 0.5 : 1) : 0.0001;
+    let target = i < scoreWanted ? v.level : 0.0001;
     if (i === top && scoreRelief > 0) target = Math.max(0.0001, target * (1 - scoreRelief));
     v.gain.gain.cancelScheduledValues(t);
     v.gain.gain.setValueAtTime(Math.max(v.gain.gain.value, 0.0001), t);

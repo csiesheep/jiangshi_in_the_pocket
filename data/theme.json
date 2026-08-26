@@ -98,8 +98,6 @@
     "copy-link": "Copy replay link",
     "menu": "Menu",
     "link-copied": "Link copied",
-    "calm-on": "Calm mode on",
-    "calm-off": "Calm mode off",
     "sound-on": "Sound on",
     "sound-off": "Sound off",
     "replay-link-fallback": "Replay link: {url}",
@@ -154,7 +152,6 @@
     "aria-log": "Game narration",
     "title-sound": "Sound",
     "title-note": "The note from the hall",
-    "title-calm": "Calm mode — the game without the scares",
     "title-fullscreen": "Fullscreen",
     "title-lang": "語言 / Language",
     "clock-said": "{time}, {phrase}",
@@ -168,9 +165,6 @@
     "relic-not-yet": "Not yet",
     "relic-held": "Held",
     "brand": "The Third Watch: The Jiangshi",
-    "fast-on": "Fast mode on",
-    "fast-off": "Fast mode off",
-    "title-fast": "Fast mode — the beats without the animations",
     "stage-skip": "press anything to go on",
     "hands-title": "In hand",
     "hand-weapon": "Right hand",
@@ -194,12 +188,7 @@
     "buff-no-sword": "{item} — nothing in your hands to burn it into",
     "buff-no-sword-title": "You are bare-handed. Find a blade first",
     "buff-already": "{item} — the {sword} already carries one",
-    "buff-already-title": "A blade takes one only, however many you have",
-    "menu-settings": "Settings",
-    "mode-calm": "Calm",
-    "mode-fast": "Fast",
-    "mode-calm-said": "Calm mode is on — the 僵屍 never arrive and the scenes stay gentle. Press to turn it off.",
-    "mode-fast-said": "Fast mode is on — the event scenes are skipped entirely. Press to turn it off."
+    "buff-already-title": "A blade takes one only, however many you have"
   },
   "tiles": {
     "gatehouse": "門廳 Gatehouse",
@@ -524,7 +513,6 @@
     "_note": "The line on the menu that says you have been here before. Numbers are spelled out up to twelve — 'four times' is something somebody says, 'Taken: 4' is a statistic, and this is meant to be the former.",
     "left-once": "You have walked out of this house once. It has never kept you.",
     "left-many": "You have walked out of this house {n}. It has never kept you.",
-    "taken": "The house has taken you {n}.",
     "times": "{n} times",
     "words": [
       "no",
@@ -547,7 +535,6 @@
   },
   "landing": {
     "_note": "The landing page's two pieces of prose. The four charms carry both languages at once by design and the title lockup is a bilingual wordmark, so neither needs a translation — only these do.",
-    "tagline": "It is nine at night. At the third watch he comes for you. Lay him to rest, or be standing when he arrives.",
-    "footnote": "A free solo board game in the browser. The rules come from a print-and-play original; the village, the night and everything in it are ours."
+    "tagline": "It is nine at night. At the third watch he comes for you. Lay him to rest, or be standing when he arrives."
   }
 }
