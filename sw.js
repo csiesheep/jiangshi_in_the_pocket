@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-57fde76f";
+const CACHE = "jiangshi-1161b5e5";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -48,26 +48,26 @@ const CACHE = "jiangshi-57fde76f";
 // shell that goes stale, and a new tiles.json against an old engine.js is
 // exactly the mismatch #28 shipped.
 const SHELL_DIGEST = {
-  "./":                                     "0e80592383",
-  "index.html":                             "0e80592383",
-  "game.html":                              "9445dfbf79",
+  "./":                                     "827e33435d",
+  "index.html":                             "827e33435d",
+  "game.html":                              "dda8741ca1",
   "rulebook.html":                          "45b8aea122",
   "tiles.html":                             "4223b8bd14",
   "credits.html":                           "44405f11d9",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "6c904341b6",
-  "css/style.css":                          "12f90e2037",
-  "js/app.js":                              "ea8d4bdbab",
-  "js/eventstage.js":                       "9b2b92a8d9",
+  "css/style.css":                          "db3b845ed3",
+  "js/app.js":                              "f2cb42030a",
+  "js/eventstage.js":                       "2e0986a9cd",
   "js/engine.js":                           "558f44878d",
   "js/board.js":                            "766fddc50b",
-  "js/render.js":                           "4a98249477",
+  "js/render.js":                           "a537187c08",
   "js/icons.js":                            "36c76d4f67",
-  "js/audio.js":                            "048485f39d",
-  "js/menu.js":                             "8430882653",
+  "js/audio.js":                            "3717c47b48",
+  "js/menu.js":                             "78eedd5c17",
   "js/tiles.js":                            "50b050f809",
   "js/shell.js":                            "6ef98e1c6c",
-  "js/tally.js":                            "6d9c240fc0",
+  "js/tally.js":                            "b48bede2e4",
   "js/epilogue.js":                         "b5a27bacbe",
   "js/lang.js":                             "1e7b3f3b4a",
   "js/rulebook.js":                         "0d60a62f93",
