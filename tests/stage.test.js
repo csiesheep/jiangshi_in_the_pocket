@@ -645,9 +645,15 @@ test("pack: both languages can say a stack out loud", () => {
 
 
 // ---- The thirteen at the size they ship (#54) ----------------------------------
-// These render at 18px in the found-item row, 26px in the hands and about 76px in
-// a pack cell. EIGHTEEN is the number that decides whether an icon works, and an
-// icon judged at poster size is not judged at all.
+// The sizes come from the stylesheet -- .itemicon for the found-item row,
+// .hands{--handicon} for the equipment slot, and .cellicon as a share of the
+// pack cell -- and are read there rather than written here. This header used to
+// list them, and two of the three had rotted: 76 was wrong from #88, 26 from
+// #90, while every assertion underneath stayed green. A number restated in
+// prose has no guard on it, so the prose stops restating them.
+//
+// THE SMALLEST SHIPPED SIZE is the one that decides whether an icon works, and
+// an icon judged at poster size is not judged at all.
 //
 // The weapons matter most: the replace prompt is a decision made on recognition,
 // and #36 made that decision permanent — take the wrong blade and the other one
@@ -749,17 +755,21 @@ const PX_PACK = 54;
 
 
 test("icons: the four weapons stay apart at the size the choice is made", async () => {
-  // All three sizes these actually render at, DERIVED from the grid rather than
-  // assumed: 54px in the pack strip, which is where they mostly live, 26px in
-  // the hands, and 18px in the found-item row. #54 checked only the smallest and
-  // #60 was nearly redrawn for 75px, a size they stopped rendering at when the
-  // pack became a strip. Both ends belong in the guard so the next person cannot
+  // Every distinct size these actually render at, read from the stylesheet
+  // rather than assumed: the found-item row, the pack strip where they mostly
+  // live, and the equipment slot. #54 checked only the smallest and #60 was
+  // nearly redrawn for 75px, a size they stopped rendering at when the pack
+  // became a strip. Both ends belong in the guard so the next person cannot
   // optimise for one of them.
   //
-  // The top of the range was 37 until #88 raised .cellicon from 62% to 90% of a
-  // 59.5px face, and the middle was 26 until #90 grew the equipment slot. Both
-  // are read from the stylesheet now rather than retyped, so the list follows
-  // the CSS instead of drifting from it.
+  // The list is deduplicated because two of those places currently render at
+  // the same size, and it is sorted so the smallest is tried first -- it is the
+  // one that fails.
+  //
+  // These were literals until #90, with a comment naming the element each came
+  // from. The comment went stale the moment an element moved and the assertions
+  // stayed green, which is why both the numbers and this description now point
+  // at the CSS instead of copying it.
   for (const px of [...new Set([PX_FOUND, PX_PACK, PX_SLOT])].sort((a, b) => a - b)) {
     const r = {};
     for (const id of W) r[id] = await rasterise(id, px);
@@ -812,12 +822,14 @@ test("icons: a burnt blade reads as burning, and still reads as ITS OWN blade (#
   // draft of this guard demanded sil >= 12 between a blade and its burnt self,
   // reusing the four-weapon floor on the reasoning that a reused bar beats an
   // invented one. That was wrong, and the art proved it: the only way to move
-  // 12% of a 26px box is to draw fire big enough to swallow the blade, and the
-  // drawings that passed were flame blobs you could not identify. A floor that
-  // destroys what it exists to protect is the wrong floor.
+  // 12% of the box -- 26px at the time, before #90 -- was to draw fire big
+  // enough to swallow the blade, and the drawings that passed were flame blobs
+  // you could not identify. A floor that destroys what it exists to protect is
+  // the wrong floor.
   //
   // So: colour carries "is it burning", which is what fire actually signals and
-  // what survives at 26px. And recognition is protected RELATIVELY instead --
+  // what survives at the size a slot draws. And recognition is protected
+  // RELATIVELY instead --
   // a burning blade must look more like itself than like any other weapon. That
   // is the real risk, it is what the flame blobs failed, and unlike an absolute
   // silhouette floor it does not punish a blade for being wide.
