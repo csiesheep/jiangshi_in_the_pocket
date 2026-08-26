@@ -1,30 +1,42 @@
 # Bot report — 1000 seeds per policy
 
-> ## ⚠ EVERY 鎮屍 FIGURE BELOW IS VOID (#70, 2026-08-25)
+> ## 鎮屍 IS REACHABLE, AND THESE FIGURES NOW DESCRIBE THE SHIPPED GAME (#70, resolved 2026-08-25)
 >
-> The bots reach the seal through `E.buffSword`, and **no button in the game
-> has ever called it** — `git log --all -S"buffSword" -- js/app.js` is empty.
-> Verified by exhaustive enumeration of every reachable loadout: a player's
-> ceiling is **11** (七星劍 3, doubled by 攝魂幡, plus 血符 5). The bar is 13,
-> or 12 carrying the 神主牌. **鎮屍 has been unwinnable by a human since the bar
-> went above 11.**
+> The void banner that stood here is lifted. FE built the affordance (20f15e0):
+> a free pack action, "Into the blade", that burns 真火符 into the blade in your
+> hand for a permanent +1. Verified by pressing it in a real game, not by
+> reading the source — attack 3 to 4, paper consumed, `buffed` set, the control
+> correctly withdrawn afterwards. A legitimately assembled kit then produced
+> **WIN_SEAL at 13 against a bar of 13, bare of the 神主牌**.
 >
-> Measured, 800 identical seeds with the buff removed: the adept's seal goes
-> **91 → 0**, the duelist's **3 → 0**. Not reduced. Zero.
+> **THE NUMBERS BELOW DID NOT MOVE. NOT ONE OF THEM.** Both batches were re-run
+> against the shipped bots and reproduce every figure exactly — hunter 322 and
+> 342, adept 113 and 128, all of it. That is the point rather than an anticlimax:
+> the bots always called `buffSword`, so their arithmetic was never wrong. What
+> was wrong was the game, and it has been fixed to match. These figures were
+> always a true description of the bots and are now also a true description of
+> what a person can do.
 >
-> What that does and does not invalidate:
+> ### The gap that is left, and it is not a rounding error
 >
-> | figures | status |
-> |---|---|
-> | every seal rate, and the whole seal funnel below | **void** — measured through a door players cannot open |
-> | burial rates | **approximately sound** — hunter 265 → 261 over 800 seeds, about 1.5 % relative |
-> | reaching midnight, for kit-building policies | **materially off** — adept 175 → 143, about 18 % |
-> | average attack at midnight | **off** — adept 11.11 → 9.55 |
+> A bot buys the buff in `upkeep()`: automatically, with no turn spent, and only
+> when it can spare the paper. A player must do three things — find 真火符, KEEP
+> it rather than throw it in a fight, and choose to burn it into the blade.
 >
-> Nothing here is rewritten. The numbers stand as the honest record of what was
-> measured; this banner marks what they describe, which is a game with one more
-> door in it than the one that ships. Awaiting the user's ruling between
-> building the affordance, lowering the bar, or something else.
+> The middle one is the whole difference, and the buff is not an optimisation:
+> **without it no kit a player can carry reaches the bar at all** (ceiling 11,
+> bar 12 even carrying his name). Measured with the buff neutered, the adept's
+> seals over 800 seeds went 91 to 0. So the seal rate below is not an average a
+> player converges on — it is what you score if you make that one decision
+> correctly, and **zero is what you score if you throw the talisman in a fight.**
+> The line is binary and total.
+>
+> These policies therefore report an UPPER BOUND on a person playing the same
+> way. How often a person actually keeps the paper is unmeasured, and the bots
+> cannot answer it because they never face the temptation — `upkeep()` runs
+> before the fight decides anything. It is a real open question rather than a
+> caveat. The author of this report threw his own 真火符 in a fight one turn
+> before finding 七星劍 (tools/one-night-4242.md).
 
 Produced by `tools/bots.html` (`?seeds=N`, `?from=S` for a disjoint batch).
 Deterministic: the same seed replays the same night. Regenerate after any change
@@ -43,26 +55,28 @@ answerable.
 
 ## Where the game sits — batch A, seeds 1..1000
 
-Four endings now, not five: 見到天亮 is unreachable since #56 removed 溪澗's
-running-water rule, and the column is kept only to show it reading zero.
+Four endings, not five. 見到天亮 became unreachable when #56 removed 溪澗's
+running-water rule and was RETIRED outright by #59 — it is gone from the
+outcomes, the epilogue, both themes and the bot tally, so there is no longer a
+column for it to read zero in.
 
-| policy | burial | seal | survived | died | King | reached midnight | atk @ midnight |
-|---|---|---|---|---|---|---|---|
-| hunter  | **322** | 0  | 0 | 632 | 46  | 4.6 %  | 3.83  |
-| duelist | 0   | 4  | 0 | 971 | 25  | 3.0 %  | 8.13  |
-| **adept**   | 0 | **113** | 0 | 783 | 104 | 21.7 % | 11.11 |
-| turtle  | 0   | 0  | **0** | 969 | 31  | 3.1 %  | 5.00  |
-| camper  | 0   | 0  | 0 | 732 | 268 | 26.8 % | 1.59  |
+| policy | burial | seal | died | King | reached midnight | atk @ midnight |
+|---|---|---|---|---|---|---|
+| hunter  | **322** | 0  | 632 | 46  | 4.6 %  | 3.83  |
+| duelist | 0   | 4  | 971 | 25  | 3.0 %  | 8.13  |
+| **adept**   | 0 | **113** | 783 | 104 | 21.7 % | 11.11 |
+| turtle  | 0   | 0  | 969 | 31  | 3.1 %  | 5.00  |
+| camper  | 0   | 0  | 732 | 268 | 26.8 % | 1.59  |
 
 ## Batch B, seeds 5001..6000
 
-| policy | burial | seal | survived | died | King | reached midnight | atk @ midnight |
-|---|---|---|---|---|---|---|---|
-| hunter  | **342** | 0  | 0 | 593 | 65  | 6.5 %  | 3.12  |
-| duelist | 0   | 1  | 0 | 959 | 40  | 4.3 %  | 7.51  |
-| **adept**   | 0 | **128** | 0 | 770 | 102 | 23.0 % | 11.28 |
-| turtle  | 0   | 0  | **0** | 968 | 32  | 3.2 %  | 4.31  |
-| camper  | 0   | 0  | 0 | 719 | 281 | 28.1 % | 1.78  |
+| policy | burial | seal | died | King | reached midnight | atk @ midnight |
+|---|---|---|---|---|---|---|
+| hunter  | **342** | 0  | 593 | 65  | 6.5 %  | 3.12  |
+| duelist | 0   | 1  | 959 | 40  | 4.3 %  | 7.51  |
+| **adept**   | 0 | **128** | 770 | 102 | 23.0 % | 11.28 |
+| turtle  | 0   | 0  | 968 | 32  | 3.2 %  | 4.31  |
+| camper  | 0   | 0  | 719 | 281 | 28.1 % | 1.78  |
 
 ## What #56 did
 
