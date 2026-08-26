@@ -11,23 +11,37 @@ guard's rasteriser exactly.
 
 ---
 
-## The identity that explains most of it
+## The relationship that explains most of it
 
-`col` is a mean over **the whole icon box**, empty panel included.
+`col` is a mean over **the whole icon box**, empty panel included. Where both
+icons are fully transparent, both composite onto the same `#1b1e24` panel and
+the per-pixel distance is zero. So, approximately:
 
-Where neither icon has ink, both composite onto the same `#1b1e24` panel, so
-the per-pixel distance there is **exactly zero** — not small, zero. Both sums
-run over the same pixels and differ only in their divisor. So:
+    colBOX  ≈  colINK  ×  (union of inked pixels / box area)  ×  fringe
 
-    colBOX  =  colINK  ×  (union of inked pixels / box area)
+**This was first written here as an exact identity and that was wrong.**
+ochstractor falsified it in one run: across all 74 pairs at both sizes, the
+implied ratio `colBOX / colINK` is *always* above the measured ink union —
+systematically, by 0.008 to 0.044, up to 18% relative on the coverage factor.
+Zero pairs matched.
 
-That is an identity, checkable by reading `pair()` in the bench, not a model.
-Everything below follows from it.
+The cause is in the rasteriser, and reading `pair()` confirms it. The ink mask
+is a **threshold**, `alpha > 96`, but `onPanel` composites the *real* alpha. An
+anti-aliased edge pixel at alpha 50 is outside the mask and still composites to
+something other than bare panel, so it carries distance while being counted as
+uninked. **"Inked" and "contributes distance" are different sets**, and the
+algebra only holds for alpha exactly 0. Taking the union over *any* non-zero
+coverage overshoots the other way (implied 0.294 against 0.386), so the true
+factor sits between the two definitions — which is what partial coverage
+contributing partially predicts. The fringe term grows with perimeter per unit
+area.
 
-**A pair's whole-box colour score is its true colour distance scaled down by how
-much of the box the two drawings cover between them.** Two icons can be
-enormously far apart where they actually ink and still score mid-table, purely
-because they leave most of the box bare.
+None of that disturbs what the relationship is for. **A pair's whole-box colour
+score is its true colour distance scaled down by how much of the box the two
+drawings cover between them.** Two icons can be enormously far apart where they
+actually ink and still score mid-table, purely because they leave most of the
+box bare. That holds whether the factor is exact or approximate, and everything
+below rests on it rather than on the arithmetic being tight.
 
 ---
 
@@ -46,8 +60,11 @@ As a fraction of the weapons control, the goods sit at **0.73 under colBOX and
 0.91 under colINK**. The gap is real on both, and roughly a third the size the
 guard's own column reports.
 
-Implied union coverage, straight from the identity: weapons 0.35 of the box,
-goods 0.28, papers 0.26.
+IMPLIED coverage ratios — `colBOX / colINK`, not measured coverage: weapons
+0.35, goods 0.28, papers 0.26. They run a few percent above the real ink unions
+for the fringe reason above, so do not read them as "this fraction of the box is
+inked" and do not be surprised when measuring coverage directly gives a smaller
+number. They are useful as a ratio between families, not as an absolute.
 
 ### A minimum is a fragile statistic — look at the distribution
 
@@ -109,8 +126,8 @@ do not. The effect is genuine where it was first found: the precept knife at
 4.06. Sizing 護身符 back up was still the right repair — but for the reason
 below, not this one. A wrong mechanism sends the next repair to the wrong place.
 
-**2. What actually costs the goods is OVERLAP, not size.** By the identity, a
-low `colBOX` with a healthy `colINK` means a small union — and a small union
+**2. What actually costs the goods is OVERLAP, not size.** By the relationship
+above, a low `colBOX` with a healthy `colINK` means a small union — and a small union
 between two inky icons means they cover *the same* pixels. The goods are compact
 shapes centred in the box; the weapons are elongated at different widths. So
 `colBOX` is not a colour measurement in isolation: **it conflates colour with
