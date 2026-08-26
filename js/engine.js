@@ -956,11 +956,29 @@ export function resolveCombat(state, n, use = {}) {
   // any more. attackWith resolves it either way; naming it here keeps the
   // return shape ("which blade did this") honest.
   const swordId = equippedWeapon(state);
-  const attack = attackWith(state, { ...use, sword: swordId });
+
+  // PRICE WHAT YOU ACTUALLY HOLD.
+  //
+  // attackWith is a preview and honours whatever it is handed, on purpose — the
+  // UI asks it once per talisman on every render while the player decides, so
+  // it neither checks nor consumes. That is fine for a preview and was wrong
+  // here, because this is the commit: it trusted `use` for the NUMBER while
+  // distrusting it for the INVENTORY two lines further down. A banner you did
+  // not hold doubled your sword for free and was then correctly not spent, and
+  // an unheld 血符 charged you its point of blood and granted its +5.
+  //
+  // Unreachable from the game — fightOptions, kitOptions and attackCeiling all
+  // build `use` out of heldIds — so this changes no played number. It cost BE
+  // three false WIN_SEALs while measuring, which is the same defect finding a
+  // caller that was not the UI, and the next such caller should not have to
+  // know that the safety lives in three copies of a filter in two other files.
+  const useBanner = !!use.banner && held(state, "soul-banner");
+  const talId = use.talisman && held(state, use.talisman) ? use.talisman : null;
+  const attack = attackWith(state, { banner: useBanner, talisman: talId, sword: swordId });
 
   // 血符 is written in your own blood and costs what it says it costs. Paid on
   // use, before the blow lands — it can kill you, and that is the item.
-  const tal = use.talisman ? state.itemsById[use.talisman] : null;
+  const tal = talId ? state.itemsById[talId] : null;
   if (tal && tal.costHp) {
     changeHealth(state, -tal.costHp);
     if (state.status !== "playing") {
@@ -968,9 +986,11 @@ export function resolveCombat(state, n, use = {}) {
     }
   }
 
+  // Both already decided above, so what is priced and what is spent are one
+  // decision rather than two that could disagree.
   const spent = [];
-  if (use.banner && held(state, "soul-banner")) { dropItem(state, "soul-banner"); spent.push("soul-banner"); }
-  if (tal && tal.consumed && held(state, use.talisman)) { dropItem(state, use.talisman); spent.push(use.talisman); }
+  if (useBanner) { dropItem(state, "soul-banner"); spent.push("soul-banner"); }
+  if (tal && tal.consumed) { dropItem(state, talId); spent.push(talId); }
 
   const damage = combatDamage(n, attack, hasCharm(state));
   state.foughtThisHour += n;
@@ -1221,11 +1241,19 @@ export function midnight(state, { use = {} } = {}) {
   if (state.status !== "playing") return { outcome: state.outcome };
 
   const threshold = kingThreshold(state);
-  const attack = attackWith(state, use);
+
+  // Priced against what you actually hold — see resolveCombat for why. This is
+  // the copy that matters most: here the number IS the ending, so a banner you
+  // did not bring used to double your sword and could hand out a WIN_SEAL for a
+  // kit that was never assembled. Three of BE's attempts to prove the seal were
+  // wrong this way, and each one reported a confident 13.
+  const useBanner = !!use.banner && held(state, "soul-banner");
+  const talId = use.talisman && held(state, use.talisman) ? use.talisman : null;
+  const attack = attackWith(state, { banner: useBanner, talisman: talId });
 
   // Spent whether or not it was enough. Bringing the banner and falling short
   // is still bringing the banner.
-  const tal = use.talisman ? state.itemsById[use.talisman] : null;
+  const tal = talId ? state.itemsById[talId] : null;
   // 血符 is paid first, and it can kill you on the doorstep. If it does, you
   // never made the strike — the same rule resolveCombat applies, and the same
   // reason: you cannot spend blood you no longer have.
@@ -1237,8 +1265,8 @@ export function midnight(state, { use = {} } = {}) {
   }
 
   const spent = [];
-  if (use.banner && held(state, "soul-banner")) { dropItem(state, "soul-banner"); spent.push("soul-banner"); }
-  if (tal && tal.consumed && held(state, use.talisman)) { dropItem(state, use.talisman); spent.push(use.talisman); }
+  if (useBanner) { dropItem(state, "soul-banner"); spent.push("soul-banner"); }
+  if (tal && tal.consumed) { dropItem(state, talId); spent.push(talId); }
 
   const outcome = attack >= threshold ? OUTCOMES.WIN_SEAL : OUTCOMES.LOSS_KING;
   finish(state, outcome);

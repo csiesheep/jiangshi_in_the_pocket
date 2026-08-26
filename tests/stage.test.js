@@ -1010,3 +1010,59 @@ test("真火符: the control the pack offers is the one app.js wires to the engi
     "usePackItem does not route the 真火符 anywhere");
   assert(app.includes("E.buffSword("), "nothing in app.js calls the engine's buffSword");
 });
+
+// ---- The commit path prices what you hold ---------------------------------------
+// Found by BE while measuring #70, and it is not the same defect as attackWith
+// being permissive. attackWith is a PREVIEW and honours whatever it is handed on
+// purpose — the UI asks it once per talisman on every render. The bug was that
+// resolveCombat and midnight trusted `use` for the NUMBER while checking held()
+// for the INVENTORY, two lines apart in the same function. So an unheld banner
+// doubled your sword for free and was then correctly not spent.
+//
+// Unreachable from the UI — fightOptions, kitOptions and attackCeiling all build
+// `use` out of heldIds — which is exactly why it needs a test: nothing a player
+// does will ever notice it, and the next non-UI caller inherits it. It already
+// cost BE three false WIN_SEALs, each reporting a confident 13.
+async function combatFixture() {
+  const q = "?atk=" + Date.now() + Math.random();
+  const E = await import("../js/engine.js" + q);
+  const items = await fetch("../data/items.json", NO_STORE).then((r) => r.json());
+  return E;
+}
+
+test("combat: a banner you do not hold does not double your sword", async () => {
+  const E = await combatFixture();
+  const items = await fetch("../data/items.json", NO_STORE).then((r) => r.json());
+  const s = E.newGame({ seed: 3, items });
+  E.pickUpItem(s, "coin-sword");                       // attack 2
+  assert(!E.held(s, "soul-banner"), "the fixture should not hold a banner");
+  const r = E.resolveCombat(s, 4, { banner: true });
+  eq(r.attack, 2, "an unheld banner was honoured and doubled the sword");
+  eq(r.spent, [], "something was spent that was never held");
+});
+
+test("combat: a talisman you do not hold adds nothing and costs nothing", async () => {
+  const E = await combatFixture();
+  const items = await fetch("../data/items.json", NO_STORE).then((r) => r.json());
+  const s = E.newGame({ seed: 3, items });
+  E.pickUpItem(s, "coin-sword");
+  const hp = s.health;
+  // 血符 is the sharp case: it charges a point of blood BEFORE the blow, so an
+  // unheld one used to take real health for an attack bonus you had not earned.
+  const r = E.resolveCombat(s, 4, { talisman: "blood-talisman" });
+  eq(r.attack, 2, "an unheld 血符 was added to the swing");
+  eq(s.health, hp - E.combatDamage(4, 2, false), "an unheld 血符 charged its blood");
+});
+
+test("king: an unheld kit cannot buy a seal", async () => {
+  const E = await combatFixture();
+  const items = await fetch("../data/items.json", NO_STORE).then((r) => r.json());
+  const s = E.newGame({ seed: 3, items });
+  E.pickUpItem(s, "sevenstar-sword");                   // 3, the best blade
+  // Ask for the whole winning kit while holding none of it. This returned
+  // WIN_SEAL at 13 before, which is the number that closes the game.
+  const r = E.midnight(s, { use: { banner: true, talisman: "blood-talisman" } });
+  eq(r.attack, 3, "the King was met with a kit that was never assembled");
+  assert(r.outcome !== "WIN_SEAL", "an unheld kit sealed the King");
+  eq(r.spent, [], "something was spent that was never held");
+});
