@@ -526,5 +526,32 @@
   "landing": {
     "_note": "The landing page's two pieces of prose. The four charms carry both languages at once by design and the title lockup is a bilingual wordmark, so neither needs a translation — only these do.",
     "tagline": "It is nine at night. At the third watch he comes for you. Lay him to rest, or be standing when he arrives."
+  },
+  "tilesPage": {
+      "_note": "The tiles page's own prose (#80). It read the shared language preference and themed its tile NAMES from it while every sentence around them stayed English, so a Chinese reader got Chinese names under an English introduction. The counts are still derived from the real set at load — {n} rather than a written number — because the page exists to stop exactly that drift.",
+      "title": "The Tiles",
+      "intro": "{total} tiles: {inside} in the village, {outside} out on the hillside. You meet them one turn at a time, which is the whole idea — but here they all are, for when you want to know what you are hoping to turn over.",
+      "plans": "The plan beside each room shows which walls have a way through. Where a tile ends up pointing is the game's business: it turns each one as it lays it down.",
+      "indoor-title": "The village, and the 義莊 at the end of it",
+      "indoor-note": "Beams overhead, a plastered wall, a stone floor running away from you, and one oil lamp off to the left.",
+      "outdoor-title": "The hillside",
+      "outdoor-note": "Sky, the same moon in the same corner, hills on the horizon, cold ground and a band of mist.",
+      "counting": "Counting the tile set…",
+      "loading": "Loading the tile set…",
+      "failed": "Could not load the tile set.",
+      "words": ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"],
+      "n-tiles": "{n} tiles",
+      "chip-weapon": "武器 weapons",
+      "chip-magic": "符咒 talismans",
+      "chip-medicine": "丹藥 medicine",
+      "chip-relic": "法器 ritual",
+      "chip-heal": "+1 health",
+      "chip-no-events": "no events",
+      "chip-once": "once per night",
+      "chip-goal": "goal",
+      "chip-start": "start",
+      "chip-moon-gate": "moon gate",
+      "chip-seam": "seam",
+      "chip-transit": "transit"
+    }
   }
-}

@@ -763,3 +763,40 @@ test("tiles: the World cast button is gone, and its handler with it", async () =
   const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
   assert(!css.includes(".tiletoggle {"), "the cast styling outlived its button");
 });
+
+test("tiles: the page's own prose is themed, not typed into the script (#80)", async () => {
+  // #78 gave this page a language switch, which made an older fault visible: it
+  // themed the tile NAMES from the shared preference while every sentence
+  // around them stayed English, so a Chinese reader got Chinese names under an
+  // English introduction.
+  const src = await fetch("../js/tiles.js", NO_STORE).then((r) => r.text());
+  for (const t of [themeEn, themeZh]) {
+    assert(t.tilesPage, "a language has no tilesPage section");
+  }
+  // Every string the section declares is actually read, and every string the
+  // page shows comes from there. A key nothing reads is how a translation
+  // drifts out of use without anyone noticing.
+  for (const key of Object.keys(themeEn.tilesPage)) {
+    if (key === "_note" || key === "words") continue;
+    assert(src.includes('"' + key + '"') || src.includes('"chip-" + def.search'),
+      "tilesPage." + key + " is declared and never read");
+  }
+  // The sentences that used to be typed here.
+  for (const gone of ["out on the hillside", "The village, and the",
+                      "The plan beside each room", "once per night"]) {
+    assert(!src.includes(gone), "tiles.js still types its own prose: " + gone);
+  }
+});
+
+test("tiles: Chinese spells its own numbers rather than borrowing English ones", () => {
+  // count() used to fall back to the English word list for any theme without
+  // one, which would have printed "twenty" in the middle of a Chinese sentence.
+  for (const [lang, t] of [["en", themeEn], ["zh", themeZh]]) {
+    const words = t.tilesPage.words;
+    assert(Array.isArray(words) && words.length >= 21,
+      lang + " has no number words for the tile count");
+    assert(words[20], lang + " cannot spell twenty, which is the size of the set");
+  }
+  assert(themeEn.tilesPage.words[20] !== themeZh.tilesPage.words[20],
+    "both languages spell twenty the same way — one of them is untranslated");
+});

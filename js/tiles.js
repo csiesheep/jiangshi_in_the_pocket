@@ -134,20 +134,30 @@ function doorCompass(def) {
 // also says in a sentence — the chip is there to be scanned, the sentence to be
 // read, and the geography of the map (magic indoors only, weapons mostly out)
 // is only visible when twenty of these can be taken in at once.
-const CHIP_SEARCH = { weapon: "武器 weapons", magic: "符咒 talismans",
-                      medicine: "丹藥 medicine", relic: "法器 ritual" };
 
-function chipsFor(def) {
+// This page's own prose (#80). It read the shared preference and themed the
+// tile NAMES from it while every sentence around them stayed English, so a
+// Chinese reader got Chinese names under an English introduction — which the
+// language switch #78 gave them made immediately visible.
+function page(theme, key, values) {
+  const table = (theme && theme.tilesPage) || {};
+  return fill(table[key] || key, values);
+}
+
+function chipsFor(def, theme) {
   const chips = [];
-  if (def.search) chips.push([CHIP_SEARCH[def.search] || def.search, `tilechip--${def.search}`, true]);
-  if (def.onTurnEnd === "HEAL_1") chips.push(["+1 health", "", false]);
-  if ((def.flags || []).includes("WARDED")) chips.push(["no events", "", false]);
-  if (def.action) chips.push(["once per night", "", false]);
-  if (def.goal) chips.push(["goal", "tilechip--goal", false]);
-  if (def.start) chips.push(["start", "", false]);
-  if (def.exteriorDoor) chips.push(["moon gate", "", false]);
-  if (def.seam) chips.push(["seam", "", false]);
-  if (!chips.length) chips.push(["transit", "", false]);
+  const w = (k) => page(theme, k);
+  if (def.search) {
+    chips.push([w("chip-" + def.search), `tilechip--${def.search}`, true]);
+  }
+  if (def.onTurnEnd === "HEAL_1") chips.push([w("chip-heal"), "", false]);
+  if ((def.flags || []).includes("WARDED")) chips.push([w("chip-no-events"), "", false]);
+  if (def.action) chips.push([w("chip-once"), "", false]);
+  if (def.goal) chips.push([w("chip-goal"), "tilechip--goal", false]);
+  if (def.start) chips.push([w("chip-start"), "", false]);
+  if (def.exteriorDoor) chips.push([w("chip-moon-gate"), "", false]);
+  if (def.seam) chips.push([w("chip-seam"), "", false]);
+  if (!chips.length) chips.push([w("chip-transit"), "", false]);
   return chips;
 }
 
@@ -211,7 +221,7 @@ function card(def, theme, count, world, n) {
   doors.appendChild(text);
   body.appendChild(doors);
 
-  const chips = chipsFor(def);
+  const chips = chipsFor(def, theme);
   if (chips.length) {
     const row = document.createElement("div");
     row.className = "tilechips";
@@ -282,7 +292,7 @@ function group(host, defs, theme, world, heading, note) {
 
   const count = document.createElement("p");
   count.className = "tilesection-count";
-  count.textContent = `${defs.length} tiles`;
+  count.textContent = page(theme, "n-tiles", { n: defs.length });
   headText.appendChild(count);
 
   host.appendChild(section);
@@ -293,8 +303,19 @@ function group(host, defs, theme, world, heading, note) {
 const NUMBER = ["zero", "one", "two", "three", "four", "five", "six", "seven",
   "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
   "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
-function count(n) {
-  return NUMBER[n] || String(n);
+// English spells small numbers because "four times" is something somebody says
+// and "4" is a statistic — the same argument tallyLine makes. Chinese does not
+// need the detour: the zh strings put the numeral where it belongs, so a theme
+// without a word list simply gets the number.
+function count(n, theme) {
+  // English spells small numbers because "twenty tiles" is something somebody
+  // says and "20 tiles" is a statistic — the same argument tallyLine makes.
+  // Chinese does not need the detour, and its strings put the numeral where it
+  // belongs, so a theme with no word list gets the number rather than the
+  // English word. Falling back to NUMBER here would have printed "twenty" in
+  // the middle of a Chinese sentence.
+  const words = (theme && theme.tilesPage && theme.tilesPage.words) || null;
+  return words ? (words[n] || String(n)) : String(n);
 }
 // It opens the sentence, so it opens in capitals.
 function up(word) {
@@ -328,26 +349,33 @@ async function main() {
     // The standfirst counts the real set. It said "sixteen rooms" for a while
     // after the set became twenty, which is exactly the drift this page exists
     // to avoid.
+    const inside = tiles.indoor.length;
+    const outside = tiles.outdoor.length;
+    // Still counted from the real set rather than written down — that is what
+    // this page is for, and it read "sixteen rooms" for a while after the set
+    // became twenty. What changed is that the SENTENCE around the numbers comes
+    // from the theme, so the page is in one language rather than two.
     const intro = document.getElementById("tile-intro");
     if (intro) {
-      const inside = tiles.indoor.length;
-      const outside = tiles.outdoor.length;
-      intro.textContent =
-        `${up(count(inside + outside))} tiles: ${count(inside)} in the village, ` +
-        `${count(outside)} out on the hillside. You meet them one turn at a time, ` +
-        `which is the whole idea — but here they all are, for when you want to ` +
-        `know what you are hoping to turn over.`;
+      intro.textContent = page(theme, "intro", {
+        total: up(count(inside + outside, theme)),
+        inside: count(inside, theme),
+        outside: count(outside, theme),
+      });
     }
+    const h1 = document.querySelector("main h1");
+    if (h1) h1.textContent = page(theme, "title");
+    const plans = document.getElementById("tile-plans");
+    if (plans) plans.textContent = page(theme, "plans");
 
     group(host, tiles.indoor, theme, "indoor",
-      "The village, and the 義莊 at the end of it",
-      "Beams overhead, a plastered wall, a stone floor running away from you, and one oil lamp off to the left.");
+      page(theme, "indoor-title"), page(theme, "indoor-note"));
     group(host, tiles.outdoor, theme, "outdoor",
-      "The hillside",
-      "Sky, the same moon in the same corner, hills on the horizon, cold ground and a band of mist.");
+      page(theme, "outdoor-title"), page(theme, "outdoor-note"));
   } catch (err) {
     console.error(err);
-    host.textContent = "Could not load the tile set."; // pre-theme: the theme is what failed to load
+    // Pre-theme on purpose: the theme is what failed to load.
+    host.textContent = "Could not load the tile set.";
   }
 }
 
