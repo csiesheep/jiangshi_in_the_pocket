@@ -657,6 +657,50 @@ body.app .board-pane > .board { min-height: 0; }
 }
 .hand--bare .handname { color: var(--muted); font-style: italic; }
 
+/* ---- Three slots, three kinds of thing (#85) ------------------------------------
+   The panel used to say "three interchangeable slots" when the truth is "your
+   attack, a passive ward, and the reason you are in this building". All three
+   rendered identically: same dashed 0.8px border, same fill, same off-white
+   name, and the hand--weapon / hand--charm / hand--relic classes carried no
+   colour at all.
+   
+   ONLY WHEN OCCUPIED. Empty, the three stay exactly as they were and exactly as
+   each other, because nothing is there and an empty slot has nothing to say —
+   three different flavours of absence would be decoration. The distinction
+   appears when the thing does.
+   
+   Material and weight rather than ornament, the way the tiles are lit rather
+   than labelled: cold, neutral, warm. Nothing boxed, nothing added, no second
+   badge competing with the board. And RED stays where it already lives — on the
+   attack value, which is the one thing here that already spoke. */
+
+/* 左手. Steel: the only slot carrying a number, and the number IS your attack.
+   The slot stays cold and says nothing itself — the numeral is already red, and
+   tinting the box red as well would say it twice. */
+.hand--weapon:not(.hand--bare) {
+  border-color: color-mix(in srgb, var(--muted) 30%, var(--border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--muted) 6%, var(--bg-2)), var(--bg-2));
+}
+
+/* 身上. The baseline, deliberately. A 護身符 is a standing ward you never choose
+   to spend — it asks nothing of you all night — so it is the quiet middle the
+   other two are read against, and it keeps the plain filled slot it had. */
+
+/* 右手. NOT equipment. The 神主牌 is the object of the night: the thing the
+   burial needs and the thing that lowers the King's bar, and a dashed box
+   identical to a charm's undersold the most important object a player can hold.
+   Lacquered wood with cinnabar in the script — warm, and the only slot whose
+   NAME takes a colour, because carrying it is a change in what the night is. */
+.hand--relic:not(.hand--bare) {
+  border-color: color-mix(in srgb, var(--gold) 40%, var(--border));
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--gold) 10%, var(--bg-2)),
+      color-mix(in srgb, var(--accent-2) 6%, var(--bg-2)));
+}
+.hand--relic:not(.hand--bare) .handname { color: var(--gold); }
+
 /* The number IS the weapon here — a sword is your attack outright rather than a
    bonus on top of one — so it is sized like a stat, not like a caption. */
 .handattack {

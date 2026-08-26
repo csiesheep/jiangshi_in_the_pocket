@@ -1183,3 +1183,35 @@ test("banner: two rows at phone width, and no label allowed to stack", () => {
       sel + " may still stack its label into a column at phone width");
   }
 });
+
+test("equipment: the three slots differ when filled and match when empty (#85)", () => {
+  // The panel used to say "three interchangeable slots" when the truth is "your
+  // attack, a passive ward, and the reason you are in this building". All three
+  // rendered identically and the hand--weapon / hand--charm / hand--relic
+  // classes carried no colour at all.
+  //
+  // The rule this encodes is the one worth keeping, because it is what stops
+  // the fix becoming decoration: EMPTY slots stay identical, because nothing is
+  // there and three flavours of absence would be ornament. Only the occupied
+  // ones differ, and only because the things differ.
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const rules = [...sheet.cssRules].filter((r) => r.type === CSSRule.STYLE_RULE);
+  const decl = (sel) => rules.filter((r) => r.selectorText === sel);
+
+  // Nothing may dress a slot without excluding the empty state.
+  for (const r of rules) {
+    const sel = r.selectorText || "";
+    if (!/\.hand--(weapon|charm|relic)\b/.test(sel)) continue;
+    if (!(r.style.background || r.style.backgroundImage || r.style.borderColor)) continue;
+    assert(sel.includes(":not(.hand--bare)"),
+      sel + " colours a slot without excluding the empty state — an empty slot " +
+      "has nothing to say and three kinds of nothing is decoration");
+  }
+  // And the one that is not equipment at all is the one that is distinguished.
+  assert(decl(".hand--relic:not(.hand--bare)").length,
+    "the 神主牌 slot is dressed the same as a charm again");
+  const relicName = decl(".hand--relic:not(.hand--bare) .handname")[0];
+  assert(relicName && /gold/.test(relicName.style.color),
+    "the tablet's name has stopped taking a colour of its own");
+});
