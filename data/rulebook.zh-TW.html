@@ -32,6 +32,7 @@
     <li><a href="#rites">兩場儀式</a></li>
     <li><a href="#midnight">三更</a></li>
     <li><a href="#winning">怎麼贏，怎麼輸</a></li>
+    <li><a href="#terms">名詞對照</a></li>
   </ol>
 </nav>
 
@@ -158,8 +159,8 @@
   <thead><tr><th>時段</th><th>救他，拿到</th><th>不救，要打</th></tr></thead>
   <tbody>
     <tr><td>九點</td><td>護身符——整晚每一下傷都少 1</td><td>殭屍 4</td></tr>
-    <tr><td>十點</td><td>真火符</td><td>殭屍 5</td></tr>
-    <tr><td>十一點</td><td>五雷符</td><td>殭屍 6</td></tr>
+    <tr><td>十點</td><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-truefire-talisman"></use></svg><td>真火符</td><td>殭屍 5</td></tr>
+    <tr><td>十一點</td><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-fivethunder-talisman"></use></svg><td>五雷符</td><td>殭屍 6</td></tr>
   </tbody>
 </table>
 <p>你留給自己的糯米，就是別人需要的時候你沒有的那一份——而且夜越深，
@@ -177,7 +178,7 @@
   這個回合就結束了。因為你已經不站在剛剛那間房裡，那裡就算是死路，
   牆也不會朝你破。花掉<strong>黑狗血</strong>做的是同一件事，而且不用付那 1 點血，
   黑狗血就是幹這個用的。</p>
-<p><strong>護身符</strong>只讓<strong>殭屍造成的傷</strong>少 1，其他都不管——
+<p><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-protective-charm"></use></svg><strong>護身符</strong>只讓<strong>殭屍造成的傷</strong>少 1，其他都不管——
   損血事件不算，中毒不算，逃跑要付的那 1 點也不算。</p>
 
 <h2 id="breach">破牆</h2>
@@ -224,8 +225,10 @@
 </table>
 
 <h2 id="items">物品</h2>
-<p>你能帶 <strong>6 樣</strong>。<strong>只有符咒會疊</strong>——同一種符不管
-  堆多少張都共用一格；其他每樣各佔一格，所以你開局那三份糯米已經是半個包了。</p>
+<p>你能帶 <strong>4 樣</strong>。<strong>只有符咒會疊</strong>——同一種符不管
+  堆多少張都共用一格；其他每樣各佔一格，所以你開局那三份糯米就
+  <strong>佔掉四格裡的三格</strong>。一開始你的包就快滿了，而遊戲問你的第一個
+  真正的問題，是吃掉什麼或丟掉什麼才騰得出位子。</p>
 <p>你的<strong>武器</strong>和<strong>護身符</strong>根本不在包裡。它們在你手上——左右手各一樣——都不佔格子。<strong>其他的——符咒、丹藥、幡——都是用一次就沒了。</strong></p>
 
 <h3>武器——一隻手，一把刀</h3>
@@ -235,17 +238,16 @@
 <table>
   <thead><tr><th>武器</th><th>攻擊力</th></tr></thead>
   <tbody>
-    <tr><td>戒刀</td><td>1</td></tr>
-    <tr><td>桃木劍</td><td>1</td></tr>
-    <tr><td>銅錢劍</td><td>2</td></tr>
-    <tr><td>七星劍</td><td>3</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-precept-knife"></use></svg><td>戒刀</td><td>1</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-peachwood-sword"></use></svg><td>桃木劍</td><td>1</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-coin-sword"></use></svg><td>銅錢劍</td><td>2</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-sevenstar-sword"></use></svg><td>七星劍</td><td>3</td></tr>
   </tbody>
 </table>
 <p>手上已經有一把，又翻到更好的，遊戲會停下來問你。
   <strong>你沒選的那一把就留在那個房間的地上</strong>——全村每種只有一把，
-  而你也沒有理由再走回去——所以不管選哪邊都是永久的，而燒在刀上的真火符
-  會跟著那把刀一起留下。兩邊的攻擊力都會先擺在你面前，因為燒過的符
-  可以讓比較差的鐵變成比較好的武器。</p>
+  而你也沒有理由再走回去——所以不管選哪邊都是永久的。兩邊的攻擊力都會先
+  擺在你面前，因為這個決定就只看那兩個數字。</p>
 <p>全村<strong>每種武器只有一把</strong>。翻到你手上已經拿著的那一把，就等於
   什麼都沒翻到。七星劍稀少是故意的：大概每七次搜索出一次。很多個晚上你會拿著
   比較差的東西打完全場，那是遊戲在運作，不是遊戲在坑你。</p>
@@ -255,24 +257,24 @@
 <table>
   <thead><tr><th>符</th><th>作用</th></tr></thead>
   <tbody>
-    <tr><td>真火符</td><td>打 1——或者把一把劍的攻擊力永久 +1</td></tr>
+    <tr><td>真火符</td><td>打 1</td></tr>
     <tr><td>五雷符</td><td>打 4</td></tr>
-    <tr><td>血符</td><td>打 5。寫它要付你 1 點血</td></tr>
-    <tr><td>硃砂</td><td>複製一張你已經有的符——多 2 張，全部共用一格</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-blood-talisman"></use></svg><td>血符</td><td>打 5。寫它要付你 1 點血</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-cinnabar"></use></svg><td>硃砂</td><td>複製一張你已經有的符——多 2 張，全部共用一格</td></tr>
   </tbody>
 </table>
-<p>真火符是唯一一個值得在打鬥之外用掉的：把它燒進一把劍，那把劍接下來整晚
-  都更好。<strong>一把劍只吃得下一張</strong>——所以光靠鐵，好到某個程度就
-  停住了。符咒沒有這個限制：同一種可以一找再找，而且搜符咒十次大概只有
-  一次空手。</p>
+<p><strong>符只在打鬥裡燒掉，別的地方都用不了。</strong>打鬥之外拿著它就
+  只是拿著。符咒是村子裡唯一不會用完的東西——同一種可以一找再找，而且搜
+  符咒十次大概只有一次空手——所以它是這個遊戲裡最便宜的攻擊力，也是唯一
+  囤得起來的那種。</p>
 
 <h3>丹藥——吃一次</h3>
 <table>
   <thead><tr><th>丹藥</th><th>作用</th></tr></thead>
   <tbody>
-    <tr><td>糯米</td><td>回 3 點血——或者把中毒吸出來</td></tr>
-    <tr><td>黑狗血</td><td>脫離這場打鬥，毫髮無傷</td></tr>
-    <tr><td>金丹</td><td>賭一把：一半機率 +6 血，一半機率 −2</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-sticky-rice"></use></svg><td>糯米</td><td>回 3 點血——或者把中毒吸出來</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-black-dog-blood"></use></svg><td>黑狗血</td><td>脫離這場打鬥，毫髮無傷</td></tr>
+    <tr><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-golden-elixir"></use></svg><td>金丹</td><td>賭一把：一半機率 +6 血，一半機率 −2</td></tr>
   </tbody>
 </table>
 <p>血最多 <strong>10</strong> 點。超過的部分是浪費——所以血剩 9 的時候，
@@ -284,7 +286,7 @@
   這是遊戲裡最早出現的機會，也是回報來得最晚的那一個。</p>
 
 <h3>法器——用一次</h3>
-<p><strong>攝魂幡</strong>——讓你的<strong>劍</strong>在一場打鬥裡加倍。
+<p><svg class="ruleicon" viewBox="0 0 24 24" aria-hidden="true"><use href="#item-soul-banner"></use></svg><strong>攝魂幡</strong>——讓你的<strong>劍</strong>在一場打鬥裡加倍。
   對符咒沒有作用。</p>
 <p>它只會在<strong>一個地方</strong>出現：<strong>土地廟</strong>，
   而且是你在那裡搜索的時候，還不一定有。對付小一群的時候，把劍加倍是浪費——
@@ -327,6 +329,39 @@
   以及你站著的時候找得到的東西。<strong>遊戲不會告訴你，你手上的夠不夠。</strong>
   那正是重點。</p>
 <p><strong>不會因為時間到而輸。</strong></p>
+
+<h2 id="terms">名詞對照</h2>
+<p>這頁唯一一個兩種語言並列的地方，而且是故意的：這個遊戲兩種語言都能玩，
+  而英文介面上的名字本來就是兩個一起寫的——你按的那顆鈕上面寫的是
+  <strong>真火符 True Fire Talisman</strong>。所以這張表兩邊都走得通。</p>
+<div class="table-scroll">
+<table>
+  <thead><tr><th>漢字</th><th>English</th></tr></thead>
+  <tbody>
+    <tr><td>殭屍</td><td>Jiangshi</td></tr>
+    <tr><td>殭屍王</td><td>Jiangshi King</td></tr>
+    <tr><td>神主牌</td><td>Ancestral tablet</td></tr>
+    <tr><td>義莊</td><td>Corpse hostel</td></tr>
+    <tr><td>三更</td><td>The third watch</td></tr>
+    <tr><td>中毒</td><td>Poisoned</td></tr>
+    <tr><td>屍毒</td><td>Corpse-poison</td></tr>
+    <tr><td>破牆</td><td>The breach</td></tr>
+    <tr><td>戒刀</td><td>Precept Knife</td></tr>
+    <tr><td>桃木劍</td><td>Peachwood Sword</td></tr>
+    <tr><td>銅錢劍</td><td>Coin Sword</td></tr>
+    <tr><td>七星劍</td><td>Seven-Star Sword</td></tr>
+    <tr><td>真火符</td><td>True Fire Talisman</td></tr>
+    <tr><td>五雷符</td><td>Five Thunder Talisman</td></tr>
+    <tr><td>血符</td><td>Blood Talisman</td></tr>
+    <tr><td>硃砂</td><td>Cinnabar</td></tr>
+    <tr><td>糯米</td><td>Sticky Rice</td></tr>
+    <tr><td>黑狗血</td><td>Black Dog Blood</td></tr>
+    <tr><td>金丹</td><td>Golden Elixir</td></tr>
+    <tr><td>護身符</td><td>Protective Charm</td></tr>
+    <tr><td>攝魂幡</td><td>Soul-Snatching Banner</td></tr>
+  </tbody>
+</table>
+</div>
 
 <p class="muted">改編自 Jeremiah Lee 的免費列印單人遊戲。上面的規則是我們自己
   重寫的——不一樣的時鐘、不一樣的經濟、不一樣的結局——底下是他的設計。

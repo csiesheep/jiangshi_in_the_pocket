@@ -464,3 +464,134 @@ test("真火符: a fight card that spends something says what it does to it", ()
   assert(!app.includes('spent.join(" and ")'),
     "the loadout label still joins with a hardcoded English word");
 });
+
+// ---- The rulebook, one language each and thirteen pictures (#69) ---------------
+// Three user rulings: put the item icons on the page, let each language version
+// carry only its own language, and make it readable. The first and third are
+// judged by eye; these guard the second, which is the one that rots silently —
+// a single 漢字 added to an English sentence looks fine to whoever adds it.
+//
+// Written with NO backslash escapes anywhere. Escapes have not survived the trip
+// into this file twice now: one arrived as a backspace and made a negative
+// assertion pass forever, and one arrived as a newline and silently dropped
+// thirty tests. Character arithmetic cannot be mangled in transit.
+
+// Visible text only. HTML comments are not visible, and the section comment at
+// the top of each rulebook has to stay free to name what it is protecting.
+function visibleText(html) {
+  let s = String(html);
+  for (const pair of [["<script", "</script>"], ["<style", "</style>"], ["<!--", "-->"]]) {
+    for (;;) {
+      const i = s.indexOf(pair[0]);
+      if (i === -1) break;
+      const j = s.indexOf(pair[1], i);
+      if (j === -1) { s = s.slice(0, i); break; }
+      s = s.slice(0, i) + " " + s.slice(j + pair[1].length);
+    }
+  }
+  return s.split("<").map((part) => {
+    const k = part.indexOf(">");
+    return k === -1 ? part : part.slice(k + 1);
+  }).join(" ");
+}
+
+// Runs of Han, found by codepoint rather than by a character class.
+function hanRuns(text) {
+  const out = [];
+  let cur = "";
+  for (const ch of String(text)) {
+    const c = ch.codePointAt(0);
+    if (c >= 0x3400 && c <= 0x9fff) cur += ch;
+    else if (cur) { out.push(cur); cur = ""; }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function latinWords(text) {
+  const out = [];
+  let cur = "";
+  for (const ch of String(text)) {
+    const c = ch.toLowerCase();
+    if (c >= "a" && c <= "z") cur += ch;
+    else if (cur) { out.push(cur); cur = ""; }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+test("rulebook: the English page is English everywhere except the Terms table", () => {
+  const body = rulebookHtml.slice(rulebookHtml.indexOf("<main"), rulebookHtml.indexOf("</main>"));
+  const cut = body.indexOf('id="terms"');
+  assert(cut > 0, "the English page has no Terms table to make the exception for");
+  // Terms is the deliberate exception and the only one: the game's own English
+  // labels are bilingual pairs, so a bridge between the scripts lives in exactly
+  // one place rather than scattered through the prose.
+  const han = hanRuns(visibleText(body.slice(0, cut)));
+  eq(han, [], "Han characters in English prose: " + han.join(" "));
+});
+
+test("rulebook: the Chinese page carries no English prose", () => {
+  const seen = visibleText(rulebookZh);
+  const cut = seen.indexOf("名詞對照");
+  assert(cut > 0, "the Chinese page has no Terms section");
+  // The credit names a person. A name is not a language.
+  const words = latinWords(seen.slice(0, cut))
+    .filter((w) => w !== "Jeremiah" && w !== "Lee");
+  eq(words, [], "English words in Chinese prose: " + words.join(" "));
+});
+
+test("rulebook: both pages show all thirteen item icons", () => {
+  for (const pair of [["en", rulebookHtml], ["zh", rulebookZh]]) {
+    const parts = pair[1].split('<use href="#item-');
+    const ids = parts.slice(1).map((p) => p.slice(0, p.indexOf('"')));
+    eq(ids.length, 13, pair[0] + " draws " + ids.length + " item icons, not thirteen");
+    eq(new Set(ids).size, 13, pair[0] + " repeats an icon instead of drawing all thirteen");
+  }
+});
+
+test("rulebook: the icons are decoration, never the only carrier of a name", () => {
+  // The English page's contract is that it works with no JavaScript at all, and
+  // the sprite is injected by JavaScript. So an icon has to sit BESIDE the text
+  // it illustrates: strip every icon out and the page must lose nothing but
+  // ornament.
+  for (const pair of [["en", rulebookHtml], ["zh", rulebookZh]]) {
+    const chunks = pair[1].split('<svg class="ruleicon"');
+    for (const chunk of chunks.slice(1)) {
+      const end = chunk.indexOf("</svg>");
+      assert(end !== -1, pair[0] + " has an unclosed icon");
+      assert(chunk.slice(0, end).includes('aria-hidden="true"'),
+        pair[0] + " icon is not hidden from a reader");
+      const after = chunk.slice(end + 6);
+      const upto = after.indexOf("<");
+      const bare = (upto === -1 ? after : after.slice(0, upto)).trim();
+      assert(bare === "", pair[0] + " icon is followed by bare text: " + bare);
+    }
+  }
+});
+
+test("rulebook: neither page still teaches the sword buff no button can reach", () => {
+  // #68: E.buffSword has no caller in js/. The item card stopped promising it;
+  // the rulebook was still teaching it as the talisman's main use.
+  const en = visibleText(rulebookHtml).toLowerCase();
+  assert(!en.includes("stays raised"), "the English rulebook still promises a permanent buff");
+  assert(!en.includes("into a sword"),
+    "the English rulebook still teaches burning a talisman into a sword");
+  const zh = visibleText(rulebookZh);
+  assert(!zh.includes("永久 +1"), "the zh rulebook still promises a permanent buff");
+  assert(!zh.includes("燒進一把劍"), "the zh rulebook still teaches burning one into a sword");
+});
+
+test("rulebook: both pages state the pack size the engine actually enforces", () => {
+  // The English page said 4 under the turn and 6 under Items, and so did the
+  // Chinese one. Only magic stacks, so three Sticky Rice is three of four —
+  // which also made "half your pack" wrong wherever the 6 had been right.
+  for (const pair of [["en", rulebookHtml], ["zh", rulebookZh]]) {
+    const page = pair[1];
+    assert(!page.includes("carry <strong>6</strong>"), pair[0] + " still says the pack holds 6");
+    assert(!page.includes("能帶 <strong>6 樣</strong>"), pair[0] + " still says the pack holds 6");
+    const seen = visibleText(page);
+    assert(!seen.includes("half your"), pair[0] + " still calls three rice half the pack");
+    assert(!seen.includes("半個包"), pair[0] + " still calls three rice half the pack");
+  }
+});

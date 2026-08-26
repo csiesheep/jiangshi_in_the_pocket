@@ -2968,6 +2968,32 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 
 /* ---- Article pages (rulebook, credits) ---- */
 .article { max-width: 760px; }
+
+/* Line measure. 760px of 16px text runs to roughly 95 characters, which is well
+   past the point a reader starts losing their place on the return sweep. The
+   PROSE is capped nearer 68 characters; tables, the contents box and anything
+   that wants the width keep all 760. Capping .article itself would have
+   squeezed the tables too, which is why this is on the text elements rather
+   than the container. */
+.article > p,
+.article > ol,
+.article > ul,
+.article > blockquote { max-width: 68ch; }
+
+/* The thirteen item pictures (#69). Sized to the text they sit in rather than
+   fixed, so they hold their proportion when a reader scales the page up, and
+   pushed a little below the baseline because a 24px square centred on a
+   lowercase x-height rides visibly high. */
+.ruleicon {
+  width: 1.35em;
+  height: 1.35em;
+  vertical-align: -0.32em;
+  margin-right: 0.4em;
+  flex: none;
+}
+/* A table cell is the one place the icon must not push the name onto a second
+   line on a narrow screen. */
+.article td .ruleicon { margin-right: 0.3em; }
 .article h1 { font-size: 2rem; margin-bottom: 4px; }
 .article h2 { margin-top: 32px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
 .article table { border-collapse: collapse; width: 100%; margin: 12px 0; }

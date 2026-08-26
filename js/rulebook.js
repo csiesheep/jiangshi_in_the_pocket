@@ -9,6 +9,7 @@
 // fetch, English, complete. There is no state where the page is empty.
 
 import * as L from "./lang.js";
+import { loadIcons } from "./icons.js";
 import { wireSleep } from "./shell.js";
 
 const main = document.querySelector("main");
@@ -80,6 +81,16 @@ function paintSwitch(lang) {
   const h1 = main && main.querySelector("h1");
   if (h1) h1.before(btn);
 }
+
+// The item pictures. Appended to <body> rather than into <main>, which is the
+// load-bearing detail: apply() replaces main.innerHTML wholesale on a language
+// switch, so a sprite living inside main would be destroyed by the first swap
+// and every <use> would resolve to nothing.
+//
+// Not awaited, and nothing waits on it. The icons are decoration on a page
+// whose contract is that it works with no JavaScript at all — if this never
+// finishes, thirteen pictures are missing and every rule is still there.
+loadIcons();
 
 apply(L.preferred());
 wireSleep();
