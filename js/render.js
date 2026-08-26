@@ -91,7 +91,10 @@ export function icon(kind, id, cls) {
 //
 // <defs> is skipped on the way in: it would duplicate gradient ids into the
 // document, and a drawing with its fills overridden has no use for them.
-function ghostIcon(kind, id, cls) {
+// Exported so the guard in stage.test.js can call the REAL function rather than
+// scan its source for the shape of one. What it protects is a mechanism, and a
+// source scan of a mechanism is a spelling check.
+export function ghostIcon(kind, id, cls) {
   const sym = document.getElementById(`${kind}-${ICON_ALIAS[id] || id}`);
   if (!sym) return null;
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");

@@ -11,6 +11,7 @@ import {
   eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   resetStageHints,
 } from "../js/eventstage.js";
+import { ghostIcon } from "../js/render.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
@@ -939,6 +940,59 @@ test("icons: the item stroke rule stays thin, and stays scoped to the items", ()
   assert(extra.length === 0,
     "the item stroke rule has spread beyond the items to: " + extra.join(", ") +
     " — that thins the line art the rest of the game is drawn in");
+});
+
+test("icons: an empty slot's ghost is INLINED, not referenced (#91)", () => {
+  // WHAT BREAKS IF THIS STOPS HOLDING, because it is not obvious from the code.
+  //
+  // An empty equipment slot draws a faint OUTLINE of what belongs in it, and
+  // that outline is made by CSS suppressing the drawing's fills. The suppression
+  // only reaches the drawing if the symbol's children were CLONED IN. Build the
+  // same ghost with <use> instead and the rule cannot cross the shadow boundary:
+  // the drawing renders FULLY PAINTED, in an empty slot, looking exactly like an
+  // item you are carrying and are not. Nothing throws. Nothing else fails.
+  //
+  // This mechanism has caught three people, twice on this panel alone -- once
+  // scoping by ancestry, once by targeting children instead of inheriting, and
+  // once by mistaking a dimmed painting for an outline at 54px. A thing that
+  // fools everyone who touches it should not ship on a comment.
+  //
+  // The ghost's LOOK is deliberately not asserted, for the same reason the icon
+  // suite is blind to the sheet's stroke rule: what matters is the mechanism
+  // holding, not a grey landing on a value. A pixel floor here would fail on
+  // rasterisation drift and teach the next person to loosen it.
+  const host = document.createElement("div");
+  host.style.display = "none";
+  host.innerHTML = ICON_SVG;
+  document.body.appendChild(host);
+  try {
+    // A PAINTED symbol on purpose. The line-art ones look like outlines however
+    // they are built, so they cannot tell the two paths apart -- which is the
+    // exact confusion that let a dimmed painting pass for a drawing.
+    const ghost = ghostIcon("ui", "relic", "handghost");
+    assert(ghost, "ghostIcon built nothing for ui-relic — an empty slot has no hint art");
+    assert(ghost.children.length > 0,
+      "the ghost is empty — nothing was cloned in, so there is no drawing to outline");
+    assert(!ghost.querySelector("use"),
+      "the ghost references its symbol with <use> instead of inlining it — the fill " +
+      "suppression cannot reach a shadow tree, so this renders as a fully painted " +
+      "item sitting in an empty slot");
+  } finally {
+    host.remove();
+  }
+
+  // The other half of the mechanism, asserted on the stylesheet text the way the
+  // stroke-rule guard is: cloning the children achieves nothing if the rule that
+  // strips their fills has gone. Together these two are the whole of it.
+  const rules = [];
+  for (const chunk of css.split("}")) {
+    const cut = chunk.indexOf("{");
+    if (cut >= 0) rules.push({ sel: chunk.slice(0, cut).trim(), body: chunk.slice(cut + 1) });
+  }
+  const strip = rules.find((r) => r.sel.indexOf("handghost") >= 0 && r.body.indexOf("fill:") >= 0);
+  assert(strip, "no rule suppresses the ghost's fills — it will render as a painted icon");
+  assert(strip.body.indexOf("fill: none") >= 0 || strip.body.indexOf("fill:none") >= 0,
+    "the ghost's fill rule no longer sets none: " + strip.body.trim());
 });
 
 // ---- The sprite sheet itself (#65) ---------------------------------------------
