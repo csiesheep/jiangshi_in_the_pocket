@@ -972,3 +972,74 @@ test("king: an unheld kit cannot buy a seal", async () => {
   assert(r.outcome !== "WIN_SEAL", "an unheld kit sealed the King");
   eq(r.spent, [], "something was spent that was never held");
 });
+
+// ---- The clock's shake (#79) -----------------------------------------------------
+// A repeating animation on a permanently visible element, which is exactly the
+// shape the photosensitivity rule exists to police. It is allowed because it is
+// POSITION ONLY: a frame that moves is not a frame that flashes, the same rule
+// 跳殭's judder follows.
+//
+// Read from the PARSED KEYFRAMES rather than from the source text, and rather
+// than from the comment above them saying so. That distinction has already cost
+// this project four vacuous guards, one of them this one.
+
+test("clock: the shake is transform-only, every frame of it", async () => {
+  // Parsed from the file, not from document.styleSheets: this page does not
+  // link the game's stylesheet, and reading the document would have made the
+  // guard quietly untestable rather than loudly wrong.
+  const text = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(text);
+  const kf = [...sheet.cssRules].find(
+    (r) => r.type === CSSRule.KEYFRAMES_RULE && r.name === "clockshake");
+  assert(kf, "there is no clockshake keyframes rule");
+  const frames = [...kf.cssRules];
+  eq(frames.length, 5, "the shake should be five keyframes");
+  for (const f of frames) {
+    const props = [...f.style];
+    eq(props, ["transform"], f.keyText + " sets " + props.join(", ") + ", not transform alone");
+    assert(f.style.transform.startsWith("translate"),
+      f.keyText + " is not a translation: " + f.style.transform);
+    // A scale or a rotate would be fine too; opacity, filter, colour and
+    // background are the ones that make a frame a flash.
+    for (const banned of ["opacity", "filter", "background", "color"]) {
+      assert(!f.style.getPropertyValue(banned), f.keyText + " sets " + banned);
+    }
+  }
+});
+
+test("clock: reduced motion stops the shake outright", async () => {
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  // Asked of the PARSED media block rather than a slice of text, so the answer
+  // does not depend on how far the window happened to reach.
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const reduced = [...sheet.cssRules].filter(
+    (r) => r.type === CSSRule.MEDIA_RULE && r.conditionText.includes("prefers-reduced-motion"));
+  assert(reduced.length, "there is no reduced-motion block at all");
+  const stopped = reduced.some((m) => [...m.cssRules].some(
+    (r) => r.selectorText && r.selectorText.split(",").some((sel) => sel.trim() === ".clocknum")
+           // animationName, not the `animation` shorthand: the browser expands
+           // `animation: none` to the full longhand ("auto ease 0s 1 normal
+           // none running none"), so comparing the shorthand tests the
+           // serialisation rather than the fact.
+           && r.style.animationName === "none"));
+  assert(stopped, "the shake survives prefers-reduced-motion");
+});
+
+test("clock: the night's colour is derived from the clock, not tabulated", async () => {
+  // --dusk is written by renderHour from clockTime as elapsed/span: 0 at nine,
+  // 1 at midnight. A hand-written table of three hours would say the same thing
+  // today and lie the day the band structure moves — the same argument that let
+  // the minute hand replace the pip row.
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const rule = css.slice(css.indexOf(".clocknum {"), css.indexOf("@keyframes clockshake"));
+  assert(rule.includes("var(--dusk)"), "the clock's colour does not follow the night");
+  assert(rule.includes("color-mix"), "the ramp is not a mix between two ends");
+  const render = await fetch("../js/render.js", NO_STORE).then((r) => r.text());
+  assert(render.includes('setProperty("--dusk"'), "nothing writes --dusk any more");
+  // And no hour is named in the rule — that would be the table this avoids.
+  for (const hour of ["21", "22", "23", "9:00", "10:00", "11:00"]) {
+    assert(!rule.includes(hour), "the ramp names the hour " + hour + " instead of deriving it");
+  }
+});
