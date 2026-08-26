@@ -24,7 +24,7 @@
          see, because it rasterises symbol.innerHTML into a fresh svg and leaves
          this stylesheet behind. Nothing here will go red if it is wrong. Look
          at it. */
-      symbol[id^="item-"], symbol[id="ui-relic"] { stroke-width: .5; }
+      symbol[id^="item-"], symbol[id="ui-relic"] { stroke-width: .3; }
     </style>
     <!-- The one sky in the game that is not night. Only the won verdict uses it. -->
     <linearGradient id="vg-dawnsky" x1="0" y1="0" x2="0" y2="1">
