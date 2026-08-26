@@ -49,6 +49,36 @@ guard's own column reports.
 Implied union coverage, straight from the identity: weapons 0.35 of the box,
 goods 0.28, papers 0.26.
 
+### A minimum is a fragile statistic — look at the distribution
+
+Reporting the family MINIMUM made a compressed family look like an improvement.
+The minimum moved because exactly one bad old pair got fixed. The same five ids,
+both sheets, all ten pairs, 18px:
+
+| five goods, 18px | before #88 | after |
+|---|---|---|
+| whole-box range | 25.4 – 50.9 | 19.3 – 31.7 |
+| inked range | 68.7 – **162.4** | 61.1 – **87.5** |
+| pairs under 26 whole-box | 2 of 10 | 6 of 10 |
+| pairs over 100 inked | 3 | 0 |
+| median whole-box | 27.4 / 31.2 | 23.2 / 25.6 |
+
+**The whole distribution moved down and compressed**, on both rulers. The old
+family had one terrible pair and nine comfortable ones; the new family has no
+terrible pair and six mediocre ones. The old set's best pair was 162 inked; the
+new set's best is 87.5.
+
+So the honest statement is neither "a regression" nor "no trade". It is: **the
+register cost the goods a lot of colour separation, and did not leave any pair
+worse than the worst pair it replaced.** Both halves are true and only the pair
+of them is the fact.
+
+Counts near a boundary are the one thing not to over-read here: ochstractor's
+independent mirror put "under 26" at 0 and 5 where this bench puts it at 2 and 6,
+which is rasterisation drift of a few tenths moving pairs across the line. The
+ranges and the direction are identical on both instruments; the counts are not
+to a single pair.
+
 ### The register's price, against the pre-#88 sheet
 
 Measured with the bench's `?src=` control at 18px:
@@ -61,8 +91,10 @@ Measured with the bench's `?src=` control at 18px:
 | goods (all six) after | 19.3 | 49.9 |
 
 The weapons paid about 2 points whole-box and 5 inked going into the dark
-register. The goods came out **ahead on both**, because the redraw fixed the
-pair that was worst in the old sheet.
+register. The goods' MINIMUM came out ahead on both, because the redraw fixed
+the pair that was worst in the old sheet — but read that line together with the
+distribution above, not instead of it. The minimum improved while every other
+pair in the family got worse.
 
 ---
 
@@ -116,11 +148,15 @@ Whether that warrants a change to the test is the user's call, not this note's.
 
 ## Method notes, because two of these were learned the hard way
 
-**Compare the same ids both times.** A five-icon family measured against a
-six-icon one is not a comparison. A "regression from 25.4 to 19.2" reported
+**Compare the same ids both times, and the same statistic — preferably one that
+counts pairs rather than reporting an extreme.** A five-icon family measured
+against a six-icon one is not a comparison. A "regression from 25.4 to 19.2" reported
 during #88 was exactly this: the old family included 神主牌, whose worst pair sat
 at 18.4 — tighter than anything in the set being called a regression. Withdrawn
-in `e909b33`.
+in `e909b33`. The withdrawal then OVERSHOT in the same way, generalising from a
+single improved minimum to "no trade exists"; the distribution above is what
+corrects it. Twice in one investigation, one pair was allowed to stand for a
+family.
 
 **Get a control before calling anything a regression.** `git show
 SHA:assets/icons.svg > tools/old.svg`, then `?src=old.svg` on the bench. It takes

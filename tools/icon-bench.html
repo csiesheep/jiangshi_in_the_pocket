@@ -39,9 +39,12 @@
   `?src=` loads a different sheet, which is how you get a control: extract an
   older revision with `git show SHA:assets/icons.svg > tools/old.svg` and pass
   `?src=old.svg`. Do that before calling any change a regression -- and compare
-  the SAME set of ids both times. A five-icon family measured against a
-  six-icon one is not a comparison, and reporting one as a regression is a
-  mistake this file exists to prevent.
+  the SAME set of ids both times, and the SAME statistic. A five-icon family
+  measured against a six-icon one is not a comparison. Neither is a minimum
+  against a minimum: a minimum moves when one pair moves, so a family whose
+  whole distribution has shifted down can be reported as an improvement because
+  its worst pair got fixed. Count the pairs. Both mistakes were made in #88 and
+  both are written up in tools/icon-ruler.md.
 
   And one trap that costs an hour: a `--` inside an XML comment is illegal, and
   it silently blanks the WHOLE SYMBOL -- 0.0% ink at every size -- while every
