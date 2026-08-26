@@ -1265,20 +1265,21 @@ function mountDoorways(boardEl) {
       k.setAttribute("aria-hidden", "true");
       hot.appendChild(k);
     }
-    // Two soles, drawn the way the chevrons are drawn. "···" was correctly
-    // placed, correctly sized and completely invisible: three thin dots at rest
-    // have neither the arrows' stroke mass nor their bob, so on dark painted
-    // floor there was nothing to find. The drop-shadow this already had was
-    // sharpening an edge that was barely there.
+    // THE WORD (#74), and this is the third pass at this control. It has been a
+    // disc, then a bare mark so it would not be the only boxed thing on a board
+    // of bare arrows, then footprints because the user could not SEE it — and
+    // now a word, because they can see it and cannot read it. Twice running the
+    // subordinate-and-unboxed constraint has lost to legibility, so a word it
+    // is: louder than a mark, which is the point.
     //
-    // The text dots stay as the fallback for the same reason the text arrows
-    // do — no sprite is not the same as no control.
+    // Still not boxed, and still quieter than the arrows by COLOUR alone, which
+    // is where the design has always put the subordination. No sprite to fall
+    // back from any more — text IS the control now, so there is nothing left to
+    // fail to load.
     const face = document.createElement("span");
-    face.className = "doorway-face";
+    face.className = "doorway-face doorway-face--word";
     face.setAttribute("aria-hidden", "true");
-    const soles = icon("ui", "footprints", "doorway-soles");
-    if (soles) face.appendChild(soles);
-    else face.textContent = "···"; // waiting, not going anywhere
+    face.textContent = ui(drawing, "stay-mark");
     hot.appendChild(face);
     hot.addEventListener("click", stay.onClick);
     hot.addEventListener("focus", doorwayTick);

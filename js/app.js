@@ -65,7 +65,7 @@ import {
   showCinnabarDialog,
 } from "./render.js";
 
-import { registerWorker, wireFullscreen, keepAwake, wireSleep, repaintFullscreen,
+import { registerWorker, keepAwake, wireSleep,
          markRunInProgress } from "./shell.js";
 import { recordVerdict } from "./tally.js";
 import { epilogue } from "./epilogue.js";
@@ -1457,8 +1457,6 @@ function startNewGame(seed) {
   // panel without knowing about the turn loop — so the handler is registered
   // against the run rather than passed down through every render.
   onPackUse((id) => game.usePackItem(id));
-  const el = document.getElementById("seed-value");
-  if (el) el.textContent = game.seed;
   game.start();
 }
 
@@ -1538,31 +1536,12 @@ function openNote() {
 
 
 
-function paintSoundToggle() {
-  const btn = document.getElementById("btn-sound");
-  if (!btn) return;
-  const on = !isMuted();
-  btn.setAttribute("aria-pressed", on ? "true" : "false");
-  const label = document.getElementById("sound-label");
-  if (label) label.textContent = uiWord(on ? "sound-on" : "sound-off");
-  const slot = document.getElementById("sound-icon");
-  if (slot) {
-    slot.textContent = "";
-    const art = uiIcon(on ? "sound-on" : "sound-off", "soundicon-svg");
-    if (art) slot.appendChild(art);
-  }
-}
-
-
 function wireControls() {
-  document.getElementById("btn-sound").addEventListener("click", () => {
-    setMuted(!isMuted());
-    paintSoundToggle();
-  });
-
-  const noteBtn = document.getElementById("btn-note");
-  if (noteBtn) noteBtn.addEventListener("click", openNote);
-
+  // The sound button and the note button went with the utility panel (#73).
+  // M SURVIVES, and it is the reason the mute is a courtesy rather than a wall:
+  // the browser's own tab-mute is the other. It has no visible state any more,
+  // which is the honest cost of removing the only thing that showed it.
+  //
   // M is off the 1-9 action path on purpose, and ignored while typing.
   document.addEventListener("keydown", (e) => {
     if (e.key !== "m" && e.key !== "M") return;
@@ -1570,7 +1549,6 @@ function wireControls() {
     const tag = document.activeElement && document.activeElement.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     setMuted(!isMuted());
-    paintSoundToggle();
   });
   document.getElementById("btn-new-game").addEventListener("click", () => {
     // Drop ?seed= so a shared link doesn't silently reapply to the fresh run.
@@ -1607,8 +1585,6 @@ async function useLanguage(lang) {
   // The furniture and the two toggles are static nodes: nothing redraws them,
   // so a switch has to write them itself.
   paintChrome();
-  paintSoundToggle();
-  repaintFullscreen();
   if (!game) return;
   game.data.theme = data.theme;
   game.refresh();
@@ -1626,8 +1602,7 @@ async function useLanguage(lang) {
 function paintChrome() {
   const text = {
     "nav-rulebook": "nav-rulebook", "nav-menu": "nav-menu",
-    "page-title": "page-title", backpack: "backpack", "seed-label": "seed-label",
-    "note-again": "note-again",
+    "page-title": "page-title", backpack: "backpack",
     "hands-title": "hands-title",
     brand: "brand",
   };
@@ -1648,11 +1623,7 @@ function paintChrome() {
     const el = document.getElementById(id);
     if (el) el.setAttribute("aria-label", uiWord(key));
   }
-  const titles = [
-    ["btn-sound", "title-sound"], ["btn-note", "title-note"],
-    ["btn-fullscreen", "title-fullscreen"],
-    ["btn-lang", "title-lang"],
-  ];
+  const titles = [["btn-lang", "title-lang"]];
   for (const [id, key] of titles) {
     const el = document.getElementById(id);
     if (el) el.title = uiWord(key);
@@ -1676,11 +1647,9 @@ async function main() {
     // Icons are decorative, so a failed sprite must not block the game.
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
-  wireFullscreen(null, (key) => uiWord(key));
   wireSleep();
   registerWorker();
-    paintSoundToggle();
-          paintLangToggle();
+    paintLangToggle();
     paintChrome();
     // Size the board off its pane before the first render, and keep it sized as
     // the pane changes — the sidebar growing counts, not just the window.

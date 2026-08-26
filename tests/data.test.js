@@ -221,12 +221,12 @@ test("chrome: game.html's static words match the theme's English", async () => {
   // with no key never gets translated, and a key with no node is dead weight.
   const PAIRS = [
     ["brand", "brand"], ["nav-rulebook", "nav-rulebook"], ["nav-menu", "nav-menu"],
-    ["page-title", "page-title"], ["backpack", "backpack"], ["seed-label", "seed-label"],
-    ["note-again", "note-again"],
-    // copy-replay went with the HUD button (#55). The seed can still be copied
-    // from the verdict card, which is where a seed is worth sharing — that one
-    // is built in script and carries its own label, so there is no static node
-    // here for the theme to write.
+    ["page-title", "page-title"], ["backpack", "backpack"],
+    // copy-replay went with the HUD button (#55), and the seed line, the sound
+    // button and the note button went with the whole utility panel (#73). The
+    // seed can still be copied from the verdict card, which is where a seed is
+    // worth sharing — that one is built in script and carries its own label, so
+    // there is no static node here for the theme to write.
     ["hands-title", "hands-title"],
   ];
   for (const [id, key] of PAIRS) {

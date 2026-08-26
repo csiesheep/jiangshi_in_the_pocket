@@ -1491,37 +1491,29 @@ body.app .board-pane > .board { min-height: 0; }
   letter-spacing: .1em;
   display: flex;
 }
-/* The soles are drawn with the chevrons' discipline exactly — same clamp, same
-   stroke, same opacity, same shadow — so the two marks on the board are made of
-   the same material. Subordination stays where the design put it: in the colour
-   (--way-known against the explore arrows' --way-new) and nowhere else, so this
-   reads at the same weight as a KNOWN doorway, which is what it is.
-
-   No bob. The arrows earn motion by leading somewhere; this one does not, and
-   the mass in the stroke is what replaces it. */
-.doorway-soles {
-  /* Smaller than the chevrons on purpose, and the number is measured rather
-     than picked. Two closed outlines carry far more ink than one open stroke:
-     at the arrows' own size these came out at 2.9x an arrow's coverage, which
-     would have made the middle of the board the loudest thing on it — the
-     opposite of the bug and a worse fault than the one being fixed.
-
-     At .32 of the edge it measures 1.2x one arrow and 4.4x the "···" it
-     replaces. Heavier than a single arrow is right: this is one static mark
-     with no bob, competing with up to three that have one. */
-  width: clamp(10px, calc(var(--edge) * .32), 17px);
-  height: clamp(10px, calc(var(--edge) * .32), 17px);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: .72;
+/* The word (#74). Small caps' worth of size rather than the glyph's, because a
+   word at glyph size would be the loudest thing on the board — the exact fault
+   the footprints were measured against. It keeps the chevrons' drop-shadow for
+   the same reason they need it: thin marks over painted art vanish into a dark
+   floor. Not boxed, and subordinate by colour alone, as this control has always
+   been. */
+.doorway--stay .doorway-face--word {
+  /* Measured, not picked. At .2 of a 44px edge the word came out 9px tall and
+     28px wide inside a 44px button — SMALLER than the footprints it replaces
+     and unreadable, which would have repeated the exact fault this is fixing.
+     At .27 it is ~12px and ~37px wide, so it still sits inside the tile centre
+     with room either side, and "休息" is narrower again. */
+  font-size: clamp(10px, calc(var(--edge) * .27), 14px);
+  line-height: 1;
+  letter-spacing: .14em;
+  font-weight: 600;
+  opacity: .78;
+  white-space: nowrap;
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9)) drop-shadow(0 1px 1px rgba(0, 0, 0, .7));
   transition: opacity .15s;
 }
-.doorway--stay:hover .doorway-soles,
-.doorway--stay:focus-visible .doorway-soles { opacity: 1; }
+.doorway--stay:hover .doorway-face--word,
+.doorway--stay:focus-visible .doorway-face--word { opacity: 1; }
 .doorway--stay:hover .doorway-face,
 .doorway--stay:focus-visible .doorway-face { color: var(--way-new); }
 .doorway--stay kbd { top: -6px; left: 50%; transform: translateX(-50%); }

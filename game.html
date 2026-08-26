@@ -68,6 +68,12 @@
          in progress, and a control that does that should not sit where a thumb
          reaching for "Menu" lands. -->
     <button class="topbtn" type="button" id="btn-new-game">New game</button>
+    <!-- The language control (#73), moved up from the utility panel when that
+         panel went. Last in the bar: it is the quietest thing here and it is
+         the only one that does not touch the run. -->
+    <button class="topbtn" type="button" id="btn-lang" title="語言 / Language">
+      <span class="utilicon" id="lang-icon">文</span><span class="sr-only" id="lang-label">Language</span>
+    </button>
   </header>
 
 
@@ -107,24 +113,6 @@
       <div class="panel">
         <h3 id="backpack">Backpack</h3>
         <div class="backpack" id="hud-items"></div>
-      </div>
-      <div class="panel utility">
-        <p class="runline"><span id="seed-label">Seed</span> <code id="seed-value">&mdash;</code></p>
-        <div class="utilrow">
-          <button class="utilbtn" type="button" id="btn-sound" aria-pressed="false" title="Sound" id="btn-sound-title">
-            <span class="soundicon" id="sound-icon"></span><span class="sr-only" id="sound-label">Sound off</span>
-          </button>
-          <button class="utilbtn" type="button" id="btn-note" title="The note from the hall">
-            <span class="utilicon" id="note-icon">✉</span><span class="sr-only" id="note-again">Read the note again</span>
-          </button>
-          <button class="utilbtn" type="button" id="btn-fullscreen" aria-pressed="false"
-                  title="Fullscreen" hidden>
-            <span class="utilicon" id="fs-icon">⛶</span><span class="sr-only" id="fs-label">Fullscreen</span>
-          </button>
-          <button class="utilbtn" type="button" id="btn-lang" title="語言 / Language">
-            <span class="utilicon" id="lang-icon">文</span><span class="sr-only" id="lang-label">Language</span>
-          </button>
-        </div>
       </div>
     </aside>
   </main>

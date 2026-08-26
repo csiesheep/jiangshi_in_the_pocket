@@ -84,58 +84,11 @@ export function registerWorker() {
 const installed = () =>
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 
-function fullscreenElement() {
-  return document.fullscreenElement || document.webkitFullscreenElement || null;
-}
-
-async function toggleFullscreen() {
-  const el = document.documentElement;
-  try {
-    if (fullscreenElement()) {
-      await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    } else {
-      await (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
-    }
-  } catch {
-    /* the user said no, or the platform will not: nothing else to do */
-  }
-}
-
-// How the caller names things. Set by wireFullscreen's second argument so this
-// module never has to know what a theme is, and defaults to the English so a
-// page that wires it without one still says words rather than keys.
-let word = (key) => ({ fullscreen: "Fullscreen", "leave-fullscreen": "Leave fullscreen" }[key] || key);
-
-// Held so a language switch can ask for the label again. The state lives in the
-// browser rather than in any of our data, so only this closure knows both the
-// state and the word for it. Declared before wireFullscreen assigns it — a `let`
-// is hoisted but dead until its declaration runs.
-export let repaintFullscreen = () => {};
-
-export function wireFullscreen(_unused, naming) {
-  if (typeof naming === "function") word = naming;
-  const btn = document.getElementById("btn-fullscreen");
-  if (!btn) return;
-  const el = document.documentElement;
-  const supported = !!(el.requestFullscreen || el.webkitRequestFullscreen);
-  if (!supported || installed()) return; // stays hidden
-
-  btn.hidden = false;
-  const paint = () => {
-    const on = !!fullscreenElement();
-    btn.setAttribute("aria-pressed", String(on));
-    const label = document.getElementById("fs-label");
-    const said = word(on ? "leave-fullscreen" : "fullscreen");
-    if (label) label.textContent = said;
-    btn.title = said;
-  };
-  btn.addEventListener("click", () => toggleFullscreen().then(paint));
-  document.addEventListener("fullscreenchange", paint);
-  document.addEventListener("webkitfullscreenchange", paint);
-  repaintFullscreen = paint;
-  paint();
-}
-
+// Fullscreen went with the utility panel (#73). Worth recording accurately:
+// the button was `hidden` in the markup but this code UNHID it wherever the
+// browser supported fullscreen and the app was not installed, so it was a
+// visible control for most desktop players rather than dead markup. Removed by
+// ruling, not because nobody saw it. F11 and the browser's own menu remain.
 
 // ---- Wake lock --------------------------------------------------------------
 // The screen must not sleep in the middle of a run. Held while a game is in
