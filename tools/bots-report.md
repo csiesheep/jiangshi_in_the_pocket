@@ -1,5 +1,31 @@
 # Bot report — 1000 seeds per policy
 
+> ## ⚠ EVERY 鎮屍 FIGURE BELOW IS VOID (#70, 2026-08-25)
+>
+> The bots reach the seal through `E.buffSword`, and **no button in the game
+> has ever called it** — `git log --all -S"buffSword" -- js/app.js` is empty.
+> Verified by exhaustive enumeration of every reachable loadout: a player's
+> ceiling is **11** (七星劍 3, doubled by 攝魂幡, plus 血符 5). The bar is 13,
+> or 12 carrying the 神主牌. **鎮屍 has been unwinnable by a human since the bar
+> went above 11.**
+>
+> Measured, 800 identical seeds with the buff removed: the adept's seal goes
+> **91 → 0**, the duelist's **3 → 0**. Not reduced. Zero.
+>
+> What that does and does not invalidate:
+>
+> | figures | status |
+> |---|---|
+> | every seal rate, and the whole seal funnel below | **void** — measured through a door players cannot open |
+> | burial rates | **approximately sound** — hunter 265 → 261 over 800 seeds, about 1.5 % relative |
+> | reaching midnight, for kit-building policies | **materially off** — adept 175 → 143, about 18 % |
+> | average attack at midnight | **off** — adept 11.11 → 9.55 |
+>
+> Nothing here is rewritten. The numbers stand as the honest record of what was
+> measured; this banner marks what they describe, which is a game with one more
+> door in it than the one that ships. Awaiting the user's ruling between
+> building the affordance, lowering the bar, or something else.
+
 Produced by `tools/bots.html` (`?seeds=N`, `?from=S` for a disjoint batch).
 Deterministic: the same seed replays the same night. Regenerate after any change
 to the tables, the engine, or the map.
