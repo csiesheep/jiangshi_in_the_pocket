@@ -6,6 +6,7 @@ import { tollBell, isMuted } from "./audio.js";
 import { houseLine } from "./tally.js";
 import { wireSleep } from "./shell.js";
 import * as L from "./lang.js";
+import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
 
 // Far enough apart to be a house settling rather than a metronome.
 const BELL_MS = 20000;
@@ -60,40 +61,14 @@ async function applyLanguage(lang) {
   const land = currentTheme.landing || {};
   const tag = document.getElementById("tagline");
   if (tag && land.tagline) tag.textContent = land.tagline;
-  paintSwitch(lang);
+  paintLangSwitch(lang);
 }
 
-// One control, two languages, so it names the language you would GET. Built in
-// script rather than sitting in the HTML because a page with JS off should not
-// offer a switch that cannot work.
-function paintSwitch(lang) {
-  const order = Object.keys(L.LANGS);
-  const next = order[(order.indexOf(lang) + 1) % order.length];
-  let btn = document.getElementById("lang-switch");
-  if (!btn) {
-    // Anchored to the menu itself rather than to the footnote. #72 removed the
-    // footnote, and this used to read `if (!foot) return` — so deleting that
-    // paragraph would have silently taken the language switch with it, on a
-    // page whose whole job is to be the way in to everything. A control that
-    // disappears without an error is worse than one that throws.
-    const host = document.querySelector("main.menu") || document.body;
-    if (!host) return;
-    btn = document.createElement("button");
-    btn.type = "button";
-    btn.id = "lang-switch";
-    btn.className = "langswitch";
-    btn.addEventListener("click", () => applyLanguage(nextOf()));
-    host.appendChild(btn);
-  }
-  btn.textContent = L.LANGS[next].name;
-  btn.setAttribute("lang", L.LANGS[next].tag);
-}
-
-function nextOf() {
-  const order = Object.keys(L.LANGS);
-  const now = document.documentElement.getAttribute("lang") === L.LANGS["zh-TW"].tag ? "zh-TW" : "en";
-  return order[(order.indexOf(now) + 1) % order.length];
-}
+// The switch is js/langswitch.js now (#78) — one control for all five pages.
+// This page is the exception to "in the top banner": it has no banner. It is a
+// deliberately chrome-free cold open, so the control is given the menu as its
+// host and sits at the end of it, with the same words and the same convention
+// as everywhere else.
 
 async function rememberYou() {
   // The only thing this page needs from the theme, so it is fetched here rather
@@ -105,6 +80,12 @@ async function rememberYou() {
     const res = await fetch("data/theme.json", { cache: "no-cache" });
     if (!res.ok) return;
     base = await res.json();
+    mountLangSwitch({
+      host: document.querySelector("main.menu"),
+      current: L.preferred(),
+      className: "langswitch",
+      onPick: (to) => applyLanguage(to),
+    });
     await applyLanguage(L.preferred());
     tallyTable = currentTheme.tallyLine;
   } catch {

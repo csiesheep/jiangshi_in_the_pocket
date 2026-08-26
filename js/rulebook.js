@@ -11,6 +11,7 @@
 import * as L from "./lang.js";
 import { loadIcons } from "./icons.js";
 import { wireSleep } from "./shell.js";
+import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
 
 const main = document.querySelector("main");
 // The English, kept in memory the moment the page loads, so switching back is
@@ -57,7 +58,7 @@ async function apply(lang) {
   L.remember(lang);
   L.stampDocument(lang);
   if (main) main.innerHTML = html;
-  paintSwitch(lang);
+  paintLangSwitch(lang);
   // An #anchor from the table of contents survives the swap because the ids do,
   // but the browser will not re-scroll on its own after a replacement.
   if (location.hash) {
@@ -66,31 +67,14 @@ async function apply(lang) {
   }
 }
 
-// Rebuilt after every swap, because the swap removed the previous one along
-// with everything else inside <main>.
-function paintSwitch(lang) {
-  const order = Object.keys(L.LANGS);
-  const next = order[(order.indexOf(lang) + 1) % order.length];
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "langswitch";
-  btn.id = "lang-switch";
-  btn.textContent = L.LANGS[next].name;
-  btn.setAttribute("lang", L.LANGS[next].tag);
-  btn.addEventListener("click", () => apply(next));
-  const h1 = main && main.querySelector("h1");
-  if (h1) h1.before(btn);
-}
+// The switch is js/langswitch.js now (#78). It used to be built here, and it
+// used to be rebuilt after every swap because apply() replaces main.innerHTML
+// and took the button with it — mounting it in the BANNER, outside main, means
+// the swap cannot reach it and it survives on its own.
 
-// The item pictures. Appended to <body> rather than into <main>, which is the
-// load-bearing detail: apply() replaces main.innerHTML wholesale on a language
-// switch, so a sprite living inside main would be destroyed by the first swap
-// and every <use> would resolve to nothing.
-//
-// Not awaited, and nothing waits on it. The icons are decoration on a page
-// whose contract is that it works with no JavaScript at all — if this never
-// finishes, thirteen pictures are missing and every rule is still there.
 loadIcons();
 
+// Mounted before the first apply(), so the page never renders without it.
+mountLangSwitch({ current: L.preferred(), onPick: (to) => apply(to) });
 apply(L.preferred());
 wireSleep();

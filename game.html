@@ -71,12 +71,9 @@
     <!-- The language control (#73), moved up from the utility panel when that
          panel went. Last in the bar: it is the quietest thing here and it is
          the only one that does not touch the run. -->
-    <!-- Named, not glyphed (#77). It says the language you would GET, which is
-         the convention the landing page's switch already follows — if the two
-         disagreed, one of them would be lying about what pressing it does. The
-         sr-only "Language" wrapper went with the glyph: the visible text now
-         names the destination, so a second spoken label was saying it twice. -->
-    <button class="topbtn" type="button" id="btn-lang">繁體中文</button>
+    <!-- The language switch is appended here by js/langswitch.js (#78), which
+         every page shares. Not in the markup on purpose: a page with JS off
+         should not offer a switch that cannot work. -->
   </header>
 
 

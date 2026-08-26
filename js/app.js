@@ -70,6 +70,7 @@ import { registerWorker, keepAwake, wireSleep,
 import { recordVerdict } from "./tally.js";
 import { epilogue } from "./epilogue.js";
 import * as L from "./lang.js";
+import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
 
 // How long the turn holds when something unexplained was put on the board. The
 // cues themselves live longer than this — the phantom 2.6s, the figure 9s — but
@@ -1556,8 +1557,9 @@ function wireControls() {
     startNewGame();
   });
 
-  const lang = document.getElementById("btn-lang");
-  if (lang) lang.addEventListener("click", () => cycleLanguage());
+  // The language button wires its own click inside langswitch.js (#78). It also
+  // does not exist yet at this point — it is appended after this runs — so a
+  // listener here would silently attach to nothing and look fine.
 }
 
 // ---- Language ----------------------------------------------------------------
@@ -1569,13 +1571,6 @@ function wireControls() {
 // and the choice window when it is safe to redraw. The log is left alone: it is
 // the narration already spoken, it is screen-reader-only, and rewriting history
 // into another language would be a stranger thing to do than leaving it.
-async function cycleLanguage() {
-  if (!data) return;
-  const order = Object.keys(L.LANGS);
-  const next = order[(order.indexOf(data.lang) + 1) % order.length];
-  await useLanguage(next);
-}
-
 async function useLanguage(lang) {
   L.remember(lang);
   L.stampDocument(lang);
@@ -1628,16 +1623,8 @@ function paintChrome() {
 }
 
 function paintLangToggle() {
-  const btn = document.getElementById("btn-lang");
-  if (!btn || !data) return;
-  const order = Object.keys(L.LANGS);
-  const next = L.LANGS[order[(order.indexOf(data.lang) + 1) % order.length]];
-  // The button says what you would get, not what you have — a control named for
-  // its current state reads as a label rather than a thing to press. Visible
-  // text since #77, so it needs no separate spoken label and no title: the
-  // accessible name IS the word on it.
-  btn.textContent = next.name;
-  btn.setAttribute("lang", next.tag);
+  if (!data) return;
+  paintLangSwitch(data.lang);
 }
 
 async function main() {
@@ -1645,6 +1632,7 @@ async function main() {
     // Icons are decorative, so a failed sprite must not block the game.
     [data] = await Promise.all([loadData(), loadIcons()]);
     wireControls();
+    mountLangSwitch({ current: data.lang, onPick: (to) => useLanguage(to) });
   wireSleep();
   registerWorker();
     paintLangToggle();

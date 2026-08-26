@@ -705,15 +705,61 @@ test("chrome: the language button names the language you would get", async () =>
   // label rather than a thing to press, and two switches that disagreed would
   // mean one of them was lying about what pressing it does.
   const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
-  assert(html.includes('id="btn-lang"'), "the banner has no language control");
   assert(!html.includes('id="lang-icon"'), "the glyph outlived the word");
   // The visible text IS the accessible name now, so a second spoken label would
   // say it twice.
   assert(!html.includes('id="lang-label"'), "the sr-only label is still doubling the word");
-  const app = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
-  assert(app.includes("btn.textContent = next.name"),
+  // The button itself moved into js/langswitch.js with #78 — script-built on
+  // every page — so the naming convention is checked where it now lives.
+  const shared = await fetch("../js/langswitch.js", NO_STORE).then((r) => r.text());
+  assert(shared.includes("btn.textContent = L.LANGS[next].name"),
     "the button is not written with the language you would get");
+  assert(shared.includes('btn.setAttribute("lang"'),
+    "the button does not declare the language of its own word");
   for (const t of [themeEn, themeZh]) {
     assert(!(t.ui || {})["title-lang"], "ui.title-lang outlived the title it wrote");
   }
+});
+
+// ---- One language switch, five pages (#78) ---------------------------------------
+
+test("chrome: the language switch is built once and used everywhere", async () => {
+  // It existed three times before — a static button in the game's banner, a
+  // constructor in rulebook.js and another in menu.js. The ruling that credits
+  // gets one too turned "three copies" into "four", which is the shape this
+  // project has spent a week deleting. There is one builder now.
+  const shared = await fetch("../js/langswitch.js", NO_STORE).then((r) => r.text());
+  assert(shared.includes("export function mountLangSwitch"), "there is no shared builder");
+  for (const [name, file] of [["menu", "menu.js"], ["rulebook", "rulebook.js"],
+                              ["tiles", "tiles.js"], ["credits", "credits.js"],
+                              ["game", "app.js"]]) {
+    const src = await fetch("../js/" + file, NO_STORE).then((r) => r.text());
+    assert(src.includes("mountLangSwitch"), name + " does not use the shared switch");
+    // Nobody builds their own any more.
+    assert(!src.includes('btn.id = "lang-switch"'), name + " still builds its own button");
+  }
+});
+
+test("chrome: no page ships the switch in its markup", async () => {
+  // "A page with JS off should not offer a switch that cannot work" — inherited
+  // from rulebook.js's original and worth keeping, so the control is never in
+  // the HTML. The game page shipped one statically for one commit; this is what
+  // stops that coming back.
+  for (const page of ["index.html", "game.html", "rulebook.html", "tiles.html", "credits.html"]) {
+    const html = await fetch("../" + page, NO_STORE).then((r) => r.text());
+    assert(!html.includes('id="btn-lang"'), page + " has a hardcoded language button");
+    assert(!html.includes('id="lang-switch"'), page + " has a hardcoded language button");
+  }
+});
+
+test("tiles: the World cast button is gone, and its handler with it", async () => {
+  // Removing markup and leaving a listener behind is how a page grows code that
+  // can never run.
+  const html = await fetch("../tiles.html", NO_STORE).then((r) => r.text());
+  assert(!html.includes("btn-cast"), "the cast button is still in the page");
+  const src = await fetch("../js/tiles.js", NO_STORE).then((r) => r.text());
+  assert(!src.includes("btn-cast"), "the cast handler outlived its button");
+  assert(!src.includes("nocast"), "the cast class outlived its button");
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  assert(!css.includes(".tiletoggle {"), "the cast styling outlived its button");
 });

@@ -3,6 +3,7 @@
 // hand-copying it would guarantee it drifts the first time a tile changes.
 
 import { loadIcons, icon } from "./render.js";
+import { mountLangSwitch } from "./langswitch.js";
 import * as L from "./lang.js";
 
 const DIRS = ["N", "E", "S", "W"];
@@ -312,6 +313,15 @@ async function main() {
     // page's. The overlay falls through to English per key, exactly as there.
     const lang = L.preferred();
     L.stampDocument(lang);
+    // The page has always themed itself from the shared preference and never
+    // offered a way to change it, so a reader who wanted the other language had
+    // to go somewhere else and come back. The switch reloads rather than
+    // re-rendering: this page builds its gallery once from data and has no
+    // re-render path, and a reload is honest where a half-swap would not be.
+    mountLangSwitch({
+      current: lang,
+      onPick: (to) => { L.remember(to); location.reload(); },
+    });
     const theme = await L.themeFor(base, lang);
     host.textContent = "";
 
@@ -327,19 +337,6 @@ async function main() {
         `${count(outside)} out on the hillside. You meet them one turn at a time, ` +
         `which is the whole idea — but here they all are, for when you want to ` +
         `know what you are hoping to turn over.`;
-    }
-
-    // The cast is the one thing on this page that changes what the art looks
-    // like, so it gets a switch. Off, every scene renders exactly as it was
-    // painted — which is the only way to compare the two halves without the
-    // page colouring the answer.
-    const castBtn = document.getElementById("btn-cast");
-    if (castBtn) {
-      castBtn.addEventListener("click", () => {
-        const on = castBtn.getAttribute("aria-pressed") === "true";
-        castBtn.setAttribute("aria-pressed", String(!on));
-        document.body.classList.toggle("nocast", on);
-      });
     }
 
     group(host, tiles.indoor, theme, "indoor",
