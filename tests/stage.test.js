@@ -1069,11 +1069,15 @@ test("atmosphere: the wash and the vignette are not bound to the board pane", as
   }
 });
 
-test("atmosphere: the HUD is not carved out of it", async () => {
+test("atmosphere: the HUD column is not carved out of it", async () => {
   // Excluding the sidebar would hand the vignette a fresh rectangle to stop at —
   // the sidebar's edge instead of the pane's — which is the bug, moved. I built
   // it that way first and put the seam back two inches to the right, so this is
   // a guard against my own instinct rather than a hypothetical.
+  //
+  // The CARDS are a different matter and are lifted deliberately; see the test
+  // below. A column is a transparent rectangle whose boundary becomes a seam. A
+  // card already has a background, a border and an edge of its own.
   const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
   const sheet = new CSSStyleSheet();
   sheet.replaceSync(css);
@@ -1086,4 +1090,29 @@ test("atmosphere: the HUD is not carved out of it", async () => {
       r.selectorText + " lifts the interface above the night (z-index " + z +
       "), which carves a rectangle out of it");
   }
+});
+
+test("atmosphere: the HUD cards read through the night at any hour", async () => {
+  // The ruling was: do not touch the night, strengthen the panels. Recolouring
+  // them could not have worked, and the arithmetic is why rather than taste.
+  // When an overlay covers text and background alike it pulls both toward the
+  // same ink, so at the alpha the vignette reaches over the HUD at 375px at
+  // eleven o'clock (.83) the CEILING — pure white on pure black — is 1.51.
+  // No pair of colours reads through that. The card has to be above it.
+  //
+  // Guarded as the mechanism rather than as a measurement: a card above the
+  // overlay takes no wash at all, so its contrast is its own at every hour and
+  // every width, which is what the target asked for.
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const rules = [...sheet.cssRules].filter((r) => r.type === CSSRule.STYLE_RULE);
+  const panel = rules.find((r) => r.selectorText === ".panel");
+  assert(panel, "there is no .panel rule");
+  const z = Number(panel.style.zIndex);
+  assert(z >= 2, ".panel is not above the night (z-index " + panel.style.zIndex + ")");
+  assert(panel.style.position === "relative", ".panel has no positioning for its z-index to apply to");
+  const vignette = rules.find((r) => r.selectorText === ".board-pane::after");
+  assert(Number(vignette.style.zIndex) < z,
+    "the vignette now paints over the cards again");
 });

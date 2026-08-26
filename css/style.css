@@ -2167,11 +2167,27 @@ body.app .board-pane > .board { min-height: 0; }
    right. The overlays are properties of the window now, so they lie over this
    column too. */
 .sidebar { display: flex; flex-direction: column; gap: 12px; }
+/* THE CARDS SIT ABOVE THE NIGHT (#81), and the arithmetic forced it rather than
+   taste. The vignette spans the window and reaches alpha .83 over the HUD at
+   375px at eleven o'clock; when an overlay covers text and background alike it
+   pulls both toward the same ink, so the CEILING at that alpha — pure white on
+   pure black — is 1.51. There is no pair of colours that reads through it. The
+   ruling asked for 4.5 at every hour and width, and the only way to get there
+   is for the card not to be under the full-strength wash.
+   
+   This is not the sidebar carve-out that put the seam back. Lifting .sidebar
+   lifted a big TRANSPARENT column, and its boundary became the new rectangle.
+   A panel is a card: it already has a background, a border and an edge, so
+   painting it over the night reads as a card lit against a dark room rather
+   than as a hole cut in the dark. The night still runs uninterrupted between
+   and around them. */
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
+  position: relative;
+  z-index: 2;
 }
 .panel h3 { margin: 0 0 8px; font-size: 0.95rem; }
 
