@@ -135,6 +135,47 @@ call is the second light.
 
 ## 5. The blade guard, with numbers
 
+> **SUPERSEDED 2026-08-26, by measurement.** Everything in this section down to
+> the horizontal rule was reasoning from a model. The model is wrong and is
+> withdrawn; `tools/icon-bench.html` measured the real numbers and
+> `df0e235` landed against those. The section is left standing rather than
+> rewritten, because what it got wrong is the useful part.
+>
+> **What was wrong.** I claimed `col ~= sil% x 221.9`, "validated to within 11%".
+> Checked against all six pairs the ratio runs **0.60 to 1.03** — it predicts
+> nothing. It appeared to validate because the one pair I checked was the
+> minimum already recorded in the test comment, so I confirmed the model against
+> the single number I had in front of me. The premise underneath it was wrong
+> too: I called the old set "bright gold", but those icons already carry
+> gradients and their lit area is only **2–11%** of the box. They were already
+> dark.
+>
+> **So "each blade needs 6% of its box uniquely lit" is retracted.** Measured,
+> pairs pass at 1.9% unique-lit and fail at 4.9%. The quantity does not decide
+> anything.
+>
+> **What replaces it.** `col` is carried by the **mid-tone body against the
+> panel**, not by the highlights. Three separate failures during the redraw were
+> the same mistake — a tone sitting 2, 10 and 15 from the panel, contributing
+> nothing. So: **the dark of a dark icon must stay a readable dark**, roughly 40+
+> from `#1b1e24`. Push the body to panel-black and the icon stops being
+> separable however well it is lit.
+>
+> **What survived intact.** That `sil` and `inkPct` read alpha only and are
+> therefore immune to the register — true, and it halved the risk. And that
+> darkness must be **painted, not omitted**, or a transparent region reads as
+> absent to both.
+>
+> **One more, learned at 18px:** a slender blade is under 2px wide there, so a
+> lit band and a shadow side cannot both live across it. The value structure has
+> to divide the **object**, not the feature.
+>
+> **And the floors are not the register.** The first redraw cleared every floor
+> and still read as a flat plank and a clean game-icon sword — the #60 verdict
+> exactly. sil/col/ink measure separability, never cinematography. Look at the
+> contact sheet before believing a green.
+
+
 This is the guard most likely to go red, and the standing rule is fix the art,
 not the test. Here is what it actually measures (`tests/stage.test.js:713–749`):
 
@@ -338,6 +379,10 @@ a wider foot — a shape nothing else in the set comes near.
 2. **§4 — the tablet.** Lit by the moon instead of your lantern, which is my
    call, or the exception retires and it is one of fourteen dark objects.
 3. Nothing else. Register and darkness are ruled and I am designing to them.
+
+**Both rulings came back and both are landed** (2026-08-26): four cells with
+the fill at 90% for a 54px picture, and the tablet lit by `--film-moon`. The
+four blades are live at `df0e235`; the remaining ten are still to draw.
 
 Phase 2 opens by drawing **two** blades and running the existing guard on them,
 before the other twelve exist — §5 says why those two. Constraints unchanged:
