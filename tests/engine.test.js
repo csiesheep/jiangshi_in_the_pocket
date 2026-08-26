@@ -4,7 +4,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "d06c2ebf");
+suite(import.meta.url, "3bd5264e");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,
@@ -1155,9 +1155,10 @@ test("charm: combat only — not HP events, not poison, not the flee cost", () =
 // ---- Fighting ------------------------------------------------------------------
 test("resolveCombat: spends the banner and the talisman, and only on use", () => {
   const s = game({ seed: 1 });
-  E.pickUpItem(s, "sevenstar-sword");
-  E.pickUpItem(s, "soul-banner");
-  E.pickUpItem(s, "fivethunder-talisman");
+  clearPack(s);
+  take(s, "sevenstar-sword");
+  take(s, "soul-banner");
+  take(s, "fivethunder-talisman");
 
   // Asking what it would come to spends nothing.
   eq(E.attackWith(s, { banner: true, talisman: "fivethunder-talisman" }), 10);
@@ -1397,12 +1398,34 @@ test("breach: a dead-end goal room is legal as three fights in one turn", () => 
 // The only kit that wins, and it needs his name as well. 七星劍 3, a 真火符
 // burned in for 4, doubled to 8 by 攝魂幡, plus 血符 5 — thirteen exactly,
 // against a bar of thirteen that only the 神主牌 brings within reach.
+// ASSEMBLE IT, do not assume it. You start with three 糯米 in a four-slot pack,
+// so a kit picked up on top of them does not fit: the last talisman's pickUpItem
+// returns ok:false and the item is simply not there. These fixtures used to
+// ignore that and still assert the full number, because the engine honoured a
+// talisman you did not hold — so five tests in this file were checking
+// arithmetic for a loadout no player could carry, and passing.
+//
+// Eating the rice is what a real night does; it is the whole shape of the pack
+// converting into the two things midnight needs. Every pickup is checked, so a
+// fixture that stops fitting says so instead of quietly measuring less.
+function clearPack(s) {
+  while (E.held(s, "sticky-rice")) E.dropItem(s, "sticky-rice");
+}
+
+function take(s, id) {
+  const r = E.pickUpItem(s, id);
+  const ok = r && typeof r === "object" ? r.ok : r;
+  assert(ok !== false, "the fixture could not pick up " + id + " — the pack is full");
+  assert(E.held(s, id), "the fixture does not hold " + id + " after picking it up");
+}
+
 function sealKit(s) {
-  E.pickUpItem(s, "sevenstar-sword");
-  E.pickUpItem(s, "truefire-talisman");
-  E.buffSword(s, "sevenstar-sword");
-  E.pickUpItem(s, "soul-banner");
-  E.pickUpItem(s, "blood-talisman");
+  clearPack(s);
+  take(s, "sevenstar-sword");
+  take(s, "truefire-talisman");
+  eq(E.buffSword(s, "sevenstar-sword").ok, true, "the fixture could not burn the 真火符");
+  take(s, "soul-banner");
+  take(s, "blood-talisman");
   s.tablet = true;
   return { banner: true, talisman: "blood-talisman" };
 }
@@ -1460,11 +1483,12 @@ test("outcome: there are four endings, and 見到天亮 is not one of them", () 
   eq(E.midnight(bare, { use: {} }).outcome, "LOSS_KING");
 
   const armed = game({ seed: 1 });
-  E.pickUpItem(armed, "sevenstar-sword");
-  E.pickUpItem(armed, "truefire-talisman");
+  clearPack(armed);
+  take(armed, "sevenstar-sword");
+  take(armed, "truefire-talisman");
   E.buffSword(armed, "sevenstar-sword");
-  E.pickUpItem(armed, "soul-banner");
-  E.pickUpItem(armed, "blood-talisman");
+  take(armed, "soul-banner");
+  take(armed, "blood-talisman");
   eq(E.midnight(armed, { use: { banner: true, talisman: "blood-talisman" } }).outcome, "WIN_SEAL");
 
   // And the tile that used to buy it has no rule left to buy it with.
@@ -1536,11 +1560,12 @@ test("midnight: the tablet is what brings the bar within reach at all", () => {
 // — twelve, which is one short of the bare bar and exactly the tablet's.
 test("midnight: twelve seals him with the tablet and fails without it", () => {
   const kit = (s) => {
-    E.pickUpItem(s, "sevenstar-sword");
-    E.pickUpItem(s, "truefire-talisman");
+    clearPack(s);
+    take(s, "sevenstar-sword");
+    take(s, "truefire-talisman");
     E.buffSword(s, "sevenstar-sword");
-    E.pickUpItem(s, "soul-banner");
-    E.pickUpItem(s, "fivethunder-talisman");
+    take(s, "soul-banner");
+    take(s, "fivethunder-talisman");
     return { banner: true, talisman: "fivethunder-talisman" };
   };
   const bare = game({ seed: 1 });
