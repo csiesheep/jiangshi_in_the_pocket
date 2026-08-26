@@ -565,10 +565,14 @@ body.app .board-pane > .board { min-height: 0; }
 /* The dial is gone, so this is no longer a row with a face in it — it is the
    first of the panel's two lines. Centring stays: the reading is the heading
    of the whole sidebar and reads as one when it is centred over the hearts. */
+/* Left, not centred. The brief names two lines — the reading and the hearts —
+   and two lines that do not share an edge do not read as a pair. Everything
+   below is a left-aligned grid, so the panel now has ONE left edge from the
+   clock to the last pack cell. */
 .clockbox {
   display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
+  justify-content: flex-start;
+  margin-bottom: 8px;
 }
 .clockread { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
@@ -741,7 +745,16 @@ body.app .board-pane > .board { min-height: 0; }
 
    House language: no new boxed chrome competing with the board. The cells are
    the same dashed-when-empty, quiet-when-full vocabulary the hands use. */
+/* WHAT YOU WEAR, THEN A LINE, THEN WHAT YOU CARRY.
+   The headings used to be the only thing saying which row was which, and with
+   them gone the two abut: dashed equipment outlines directly above solid pack
+   tiles, reading as two unrelated grids sharing a box. A hairline and some air
+   put the distinction back without bringing back the words — the panel is one
+   surface with two parts, which is what it always was. */
 .backpack {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
   display: grid;
   /* One row, MAX_ITEMS wide. Was a 2x2 田 and the cells came out 131px, which
      put a 75px picture in each — too big for a thing you glance at beside the
