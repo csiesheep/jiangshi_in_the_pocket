@@ -541,31 +541,60 @@ test("rulebook: the Chinese page carries no English prose", () => {
   eq(words, [], "English words in Chinese prose: " + words.join(" "));
 });
 
-test("rulebook: both pages show all thirteen item icons", () => {
-  for (const pair of [["en", rulebookHtml], ["zh", rulebookZh]]) {
-    const parts = pair[1].split('<use href="#item-');
-    const ids = parts.slice(1).map((p) => p.slice(0, p.indexOf('"')));
-    eq(ids.length, 13, pair[0] + " draws " + ids.length + " item icons, not thirteen");
-    eq(new Set(ids).size, 13, pair[0] + " repeats an icon instead of drawing all thirteen");
+test("rulebook: every item icon sits in the row it names", () => {
+  // CONTAINMENT, not presence, and that distinction is the whole test. The
+  // first version asked whether an icon was followed by bare text — which a
+  // STRIP OF ICONS ABOVE THE TABLE passes, and that is precisely what shipped.
+  // Emitted between <tr> and <td>, all thirteen were foster-parented out of the
+  // table by the HTML parser, so the Weapons section rendered as four unlabelled
+  // marks floating above the header while the Precept Knife row had nothing
+  // beside it. Every icon was present; not one was attached to anything. It
+  // took someone looking at the page to see it.
+  //
+  // So this asks the parsed document where each icon actually IS, and whether
+  // the thing it sits in names the item it draws.
+  for (const entry of [["en", rulebookHtml, themeEn, true],
+                       ["zh", rulebookZh, themeZh, false]]) {
+    const lang = entry[0], theme = entry[2], english = entry[3];
+    const doc = new DOMParser().parseFromString(entry[1], "text/html");
+    const icons = [...doc.querySelectorAll("svg.ruleicon")];
+    eq(icons.length, 13, lang + " draws " + icons.length + " item icons, not thirteen");
+    const seen = new Set();
+    for (const svg of icons) {
+      const id = svg.querySelector("use").getAttribute("href").replace("#item-", "");
+      seen.add(id);
+      const host = svg.closest("td") || svg.closest("p");
+      assert(host, lang + ": icon " + id + " is loose in " +
+        svg.parentElement.tagName + "." + svg.parentElement.className +
+        " — beside the table rather than in it");
+      const label = theme.items[id] || "";
+      const name = english ? label.split(" ").slice(1).join(" ") : label.split(" ")[0];
+      assert(name, lang + ": no themed name for " + id);
+      assert(host.textContent.includes(name),
+        lang + ": icon " + id + " sits with " + host.textContent.trim().slice(0, 30) +
+        " which does not name it");
+      assert(svg.getAttribute("aria-hidden") === "true",
+        lang + ": icon " + id + " is announced to a screen reader");
+    }
+    eq(seen.size, 13, lang + " repeats an icon instead of drawing all thirteen");
   }
 });
 
-test("rulebook: the icons are decoration, never the only carrier of a name", () => {
+test("rulebook: pulling every icon out would lose no information", () => {
   // The English page's contract is that it works with no JavaScript at all, and
-  // the sprite is injected by JavaScript. So an icon has to sit BESIDE the text
-  // it illustrates: strip every icon out and the page must lose nothing but
-  // ornament.
-  for (const pair of [["en", rulebookHtml], ["zh", rulebookZh]]) {
-    const chunks = pair[1].split('<svg class="ruleicon"');
-    for (const chunk of chunks.slice(1)) {
-      const end = chunk.indexOf("</svg>");
-      assert(end !== -1, pair[0] + " has an unclosed icon");
-      assert(chunk.slice(0, end).includes('aria-hidden="true"'),
-        pair[0] + " icon is not hidden from a reader");
-      const after = chunk.slice(end + 6);
-      const upto = after.indexOf("<");
-      const bare = (upto === -1 ? after : after.slice(0, upto)).trim();
-      assert(bare === "", pair[0] + " icon is followed by bare text: " + bare);
+  // the sprite is injected by JavaScript. So the icons have to be pure
+  // decoration: strip them and every item must still be named in words.
+  for (const entry of [["en", rulebookHtml, themeEn, true],
+                       ["zh", rulebookZh, themeZh, false]]) {
+    const lang = entry[0], theme = entry[2], english = entry[3];
+    const doc = new DOMParser().parseFromString(entry[1], "text/html");
+    for (const svg of [...doc.querySelectorAll("svg.ruleicon")]) svg.remove();
+    const text = doc.body.textContent;
+    for (const id of Object.keys(theme.items)) {
+      if (id === "_note") continue;
+      const label = theme.items[id];
+      const name = english ? label.split(" ").slice(1).join(" ") : label.split(" ")[0];
+      assert(text.includes(name), lang + ": " + name + " survives only as a picture");
     }
   }
 });
