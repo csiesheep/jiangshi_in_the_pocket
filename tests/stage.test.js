@@ -822,6 +822,81 @@ test("icons: a burnt blade reads as burning, and still reads as ITS OWN blade (#
   }
 });
 
+test("icons: the item stroke rule stays thin, and stays scoped to the items", () => {
+  // WHY THE PIXEL GUARDS ABOVE CANNOT SEE THIS, AND SHOULD NOT BE TAUGHT TO.
+  //
+  // rasterise() lifts symbol.innerHTML into a fresh svg, and the sheet's stroke
+  // rule lives in a <style> BESIDE the symbols rather than inside them, so it
+  // never travels. That is not an oversight waiting to be fixed. Rim-less is the
+  // honest question: it asks whether these icons are distinguishable BY THEIR
+  // OWN ART. The rim is one uniform treatment applied to every item, so letting
+  // it into the measurement would let a gold outline rescue a weak drawing --
+  // the floors would get EASIER to pass exactly as the art got worse. Measured
+  // both ways: as shipped the weapons' worst pair is 18.2 / 35.6 where the guard
+  // sees 12.7 / 26.6. The guard is conservative on purpose. Leave it blind.
+  //
+  // Which leaves the rim itself unguarded, and it reached the user once already:
+  // every item shipped with a 1.5-unit gold stroke traced round every path,
+  // because the line-art default outlived the line art, and no test could see
+  // it. So it is guarded here instead, on the stylesheet text, from the other
+  // side. Someone setting the width to 3 turns every item into a gold blob; this
+  // is what stops that landing green.
+  //
+  // No regexes below, on purpose. The escape in a guard on this file was once
+  // mangled into a literal backspace and the assertion passed forever.
+  const doc = new DOMParser().parseFromString(ICON_SVG, "image/svg+xml");
+  const styles = [...doc.querySelectorAll("style")].map((n) => n.textContent).join(" ");
+
+  // Split into rules without a regex: "sel { body }" separated by braces.
+  const rules = [];
+  for (const chunk of styles.split("}")) {
+    const cut = chunk.indexOf("{");
+    if (cut < 0) continue;
+    rules.push({ sel: chunk.slice(0, cut).trim(), body: chunk.slice(cut + 1).trim() });
+  }
+  const widthOf = (body) => {
+    const at = body.indexOf("stroke-width:");
+    return at < 0 ? NaN : parseFloat(body.slice(at + "stroke-width:".length));
+  };
+
+  // 1. The line-art default is still there and still 1.5. Most of this sheet is
+  //    genuinely line art and lives on it -- some 1800 elements across the
+  //    scenes alone, plus tiles, edges, creatures, verdicts and the rest of the
+  //    UI. Thinning it THERE is the damage this guard exists to prevent.
+  const base = rules.find((r) => r.sel === "symbol");
+  assert(base, "the sheet has lost its line-art default rule for symbol");
+  assert(widthOf(base.body) === 1.5,
+    "the GLOBAL line-art stroke moved to " + widthOf(base.body) +
+    " — that restyles every scene, tile and creature, not just the items");
+
+  // 2. An item-scoped rule exists, and its width is thinner than the line-art
+  //    default without being invisible. The user ruled thinner, not gone.
+  const scoped = rules.find((r) => r.sel.indexOf("item-") >= 0);
+  assert(scoped, "no item-scoped stroke rule — the items are back on the 1.5 line-art default");
+  const w = widthOf(scoped.body);
+  assert(w >= 0.2 && w <= 0.9,
+    "the item stroke is " + w + ", outside the 0.2-0.9 band: below 0.2 it is gone " +
+    "rather than thin, above 0.9 it is the thick rim the user asked to lose");
+
+  // 3. THE ONE THAT MATTERS. The selector still covers exactly the items and the
+  //    tablet. This fails if a symbol is renamed out of scope and silently keeps
+  //    the thick rim, and it fails if the selector is broadened across the
+  //    scenes -- which is the trap, because the damage there is invisible in any
+  //    contact sheet of the items.
+  const covered = new Set([...doc.querySelectorAll(scoped.sel)].map((n) => n.id));
+  const want = new Set();
+  for (const n of doc.querySelectorAll("symbol")) {
+    if (n.id.indexOf("item-") === 0 || n.id === "ui-relic") want.add(n.id);
+  }
+  const missing = [...want].filter((id) => !covered.has(id));
+  const extra = [...covered].filter((id) => !want.has(id));
+  assert(missing.length === 0,
+    "these still carry the thick line-art rim: " + missing.join(", "));
+  assert(extra.length === 0,
+    "the item stroke rule has spread beyond the items to: " + extra.join(", ") +
+    " — that thins the line art the rest of the game is drawn in");
+});
+
 // ---- The sprite sheet itself (#65) ---------------------------------------------
 
 test("icons: the sprite sheet is well-formed XML", () => {
