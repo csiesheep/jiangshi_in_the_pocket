@@ -571,8 +571,14 @@ body.app .board-pane > .board { min-height: 0; }
    clock to the last pack cell. */
 .clockbox {
   display: flex;
-  justify-content: flex-start;
-  margin-bottom: 8px;
+  /* Centred by ruling (#87). This does reverse the flex-start that gave the
+     panel one left edge, and the reason it is not the same mistake is the size
+     below: a line of the same weight as the rows beneath it must share their
+     edge or it reads as a stray, but a HEADLINE over a left-aligned column is
+     an ordinary thing and reads as deliberate. Centring alone would have been
+     the accident; centring and enlarging is the change. */
+  justify-content: center;
+  margin-bottom: 10px;
 }
 .clockread { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
@@ -585,7 +591,15 @@ body.app .board-pane > .board { min-height: 0; }
    White at nine, 60% of --danger at the third watch. */
 .clocknum {
   margin-left: 0;
-  font-size: calc(var(--panel-type, .86rem) * 1.2);
+  /* ITS OWN SIZE NOW, not a percentage of the panel's. #79 set this at +20% on
+     --panel-type when the row held a round dial and a reading side by side and
+     the point was that they agreed. The dial is gone and the panel has been
+     rebuilt around this number since, so +20% on a label's size just made it a
+     slightly bigger label — 16.5px, hard against the left edge of a 270px row
+     with 200px of empty space beside it. It is the thing the whole run races.
+     --panel-type still governs the labels and the stat values; this one is a
+     headline and is sized as one. */
+  font-size: 1.85rem;
   line-height: 1;
   color: color-mix(in srgb, var(--danger) calc(var(--dusk) * 60%), #fff);
   animation: clockshake 2.2s ease-in-out infinite;
