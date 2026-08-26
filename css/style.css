@@ -903,10 +903,26 @@ body.app .board-pane > .board { min-height: 0; }
 
 /* min-width:0 keeps a wide board from forcing the grid column open. */
 /* Edges falling away into black. Sits above the board and below the actions
-   pop-out (5) and the jump scare (50), and never touches the sidebar. */
+   pop-out (5) and the jump scare (50), and never touches the sidebar.
+   
+   SPANS THE PAGE, NOT THE PANE (#81). Both of these overlays used to stop dead
+   at the pane's box, and that was the seam: inside, a warm-black wash and a
+   vignette reaching rgba(2,1,3,.95); one pixel outside, the untouched body
+   gradient at rgb(20,22,26), which is BLUER. Warm and dark meeting cool and
+   undarkened along a straight vertical line, exactly where the user saw it.
+   
+   Fading them out before the edge was the other option and it cannot work for
+   this one: the vignette's whole job is to be darkest at the edge, so fading
+   it there deletes the effect it exists for. The honest shape is that the night
+   has no reason to end where a layout box ends — so it ends at the window.
+   
+   It DOES touch the sidebar now, which the old comment promised it never
+   would, and that promise is what had to give: excluding the HUD would hand
+   the vignette a fresh rectangle to stop at. The contrast cost is measured in
+   the commit rather than assumed. */
 .board-pane::after {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 1;
@@ -939,10 +955,13 @@ body.app .board-pane > .board { min-height: 0; }
    design — nothing here needs a reduced-motion guard. */
 .board-pane::before {
   content: "";
-  position: absolute;
+  /* Page-wide for the same reason as ::after, and BEHIND everything: this one
+     is the world's own light and was always described as sitting below the
+     tiles, so -1 keeps that true against the whole page rather than the pane. */
+  position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   transition: background 1s ease;
 }
 .board-pane.pane--indoor::before {
@@ -2141,6 +2160,12 @@ body.app .board-pane > .board { min-height: 0; }
 #overlay.overlay--still .tollwrap::before,
 #overlay.overlay--still .tollwrap::after { animation: none; opacity: 0; }
 
+/* NOT lifted above the night, and that is the ruling rather than an oversight
+   (#81). Excluding the HUD would give the vignette a rectangle to stop at all
+   over again — the sidebar's edge instead of the pane's — which is the bug this
+   was fixing. I tried it that way first and put the seam back two inches to the
+   right. The overlays are properties of the window now, so they lie over this
+   column too. */
 .sidebar { display: flex; flex-direction: column; gap: 12px; }
 .panel {
   background: var(--panel);

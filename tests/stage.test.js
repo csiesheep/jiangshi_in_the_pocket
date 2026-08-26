@@ -1043,3 +1043,47 @@ test("clock: the night's colour is derived from the clock, not tabulated", async
     assert(!rule.includes(hour), "the ramp names the hour " + hour + " instead of deriving it");
   }
 });
+
+// ---- The night is the window's, not the pane's (#81) -----------------------------
+
+test("atmosphere: the wash and the vignette are not bound to the board pane", async () => {
+  // The seam the user saw was these two overlays stopping dead at .board-pane's
+  // box: inside, a warm-black wash and a vignette reaching rgba(2,1,3,.95);
+  // one pixel outside, the untouched body gradient at rgb(20,22,26), which is
+  // BLUER. A straight vertical line where warm-and-dark met cool-and-undarkened.
+  //
+  // Fixing it by fading them before the edge cannot work for the vignette,
+  // whose whole job is to be darkest at the edge. So they became properties of
+  // the window: position: fixed, which also escapes .board-pane's overflow:
+  // hidden without needing that clip removed.
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const find = (sel) => [...sheet.cssRules].find(
+    (r) => r.type === CSSRule.STYLE_RULE && r.selectorText === sel);
+  for (const sel of [".board-pane::before", ".board-pane::after"]) {
+    const rule = find(sel);
+    assert(rule, "no rule for " + sel);
+    eq(rule.style.position, "fixed", sel + " is bound to the pane again");
+    eq(rule.style.inset, "0px", sel + " does not cover the window");
+  }
+});
+
+test("atmosphere: the HUD is not carved out of it", async () => {
+  // Excluding the sidebar would hand the vignette a fresh rectangle to stop at —
+  // the sidebar's edge instead of the pane's — which is the bug, moved. I built
+  // it that way first and put the seam back two inches to the right, so this is
+  // a guard against my own instinct rather than a hypothetical.
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  for (const r of sheet.cssRules) {
+    if (r.type !== CSSRule.STYLE_RULE || !r.selectorText) continue;
+    const sels = r.selectorText.split(",").map((s) => s.trim());
+    if (!sels.includes(".sidebar") && !sels.includes(".topnav")) continue;
+    const z = r.style.zIndex;
+    assert(!z || z === "auto" || Number(z) < 1,
+      r.selectorText + " lifts the interface above the night (z-index " + z +
+      "), which carves a rectangle out of it");
+  }
+});
