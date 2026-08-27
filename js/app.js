@@ -51,6 +51,7 @@ import {
   tileName as tName,
   itemName as iName,
   showDropDialog,
+  searchReveal,
   onPackUse,
   caption,
   jumpScare,
@@ -80,7 +81,6 @@ const CUE_BEAT_MS = 1500;
 
 // How long a search result sits before the turn moves on. Shorter than a cue:
 // finding nothing is the common case and must not become a wait.
-const FIND_BEAT_MS = 850;
 
 // The room's own beat, between walking in and the room answering. The event
 // line is read in this gap; without it the sentence and the damage land
@@ -975,8 +975,20 @@ class Game {
     if (out.result === "TOOK") {
       this.noteFound();
       log(this.line("search-took", { item: iName(this, out.id) }), "good");
-      this.refresh();
-      return void setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
+      // #92: the reveal comes BEFORE the pack changes. You find out from the
+      // panel over the room, and then you watch it land — which is what makes
+      // the panel news rather than a second copy of a cell that already
+      // appeared. refresh() is what paints that cell, so it waits.
+      //
+      // The WHOLE refresh waits, rather than the pack's part of it, and that is
+      // safe rather than lazy: E.search touches inventory and nothing else, so
+      // the clock and the hearts have not moved and there is nothing else being
+      // held. If a search ever costs health, this is the line that has to be
+      // split.
+      return void searchReveal(this, { id: out.id }, () => {
+        this.refresh();
+        this.renderEndTurn();
+      });
     }
 
     // A weapon found while already armed. One hand, one blade, and the one you
@@ -990,7 +1002,11 @@ class Game {
     if (out.result === "OFFER_REPLACE") {
       const name = (id) => iName(this, id);
       log(this.line("search-armed", { item: name(out.id), holding: name(out.current) }));
-      return renderActions([
+      // #92: reveal, THEN ask. The prompt's labels are text and numbers; the
+      // panel is where the blade is actually seen. No refresh() here because
+      // there was none before — nothing has been taken yet, so there is nothing
+      // to paint.
+      const armed = [
         {
           kind: "replace",
           primary: out.incomingAttack > out.currentAttack,
@@ -1017,12 +1033,16 @@ class Game {
             this.renderEndTurn();
           },
         },
-      ], this.ui("replace-prompt", { item: name(out.id) }));
+      ];
+      return void searchReveal(this, { id: out.id }, () => {
+        renderActions(armed, this.ui("replace-prompt", { item: name(out.id) }));
+      });
     }
 
     if (out.result === "OFFER_DROP") {
       log(this.line("search-nowhere", { item: iName(this, out.id) }));
-      return showDropDialog(this, out.id, {
+      // #92: reveal, then the dialog opens on top of what you were just shown.
+      return void searchReveal(this, { id: out.id }, () => showDropDialog(this, out.id, {
         onDrop: (dropId, foundId) => this.takeInstead(foundId, dropId),
         onDropStack: (dropId, n, foundId) => {
           // A stack is one slot however deep it is, so dropping one of three
@@ -1036,7 +1056,7 @@ class Game {
           this.refresh();
           this.renderEndTurn();
         },
-      });
+      }));
     }
 
     // Nothing. Said as rummaging rather than as a readout — the odds are in the
@@ -1049,8 +1069,14 @@ class Game {
     // offer a different number of ways to find nothing.
     const empty = (this.data.theme.lines || {})["empty-handed"] || [];
     if (empty.length) log(empty[this.state.turn % empty.length], "muted");
-    this.refresh();
-    setTimeout(() => this.renderEndTurn(), FIND_BEAT_MS);
+    // #92, and this is the outcome the whole panel is for. Nothing was found,
+    // so nothing on the HUD changes and nothing ever did — a search that came
+    // up empty used to be a pause and then the turn ending. Now the room says
+    // so, over the room, and the beat has a shape.
+    searchReveal(this, { id: null }, () => {
+      this.refresh();
+      this.renderEndTurn();
+    });
   }
 
   // What "{n} items found" counts: things you picked up and had in your hands.

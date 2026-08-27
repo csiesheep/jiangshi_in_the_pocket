@@ -1985,6 +1985,68 @@ export function showNote(note, onClose) {
 // One button per SLOT, matching the panel — because a slot is what has to be
 // freed. A talisman stack is one slot however deep, so dropping it drops the
 // whole stack; that is said on the button rather than discovered afterwards.
+// ---- The search reveal (#92) ----------------------------------------------------
+//
+// A moment in the turn that did not exist before. Searching a room used to
+// resolve entirely in the narration: doSearch() writes every outcome to log(),
+// #log is sr-only, and nothing else on the screen moved — so a player who
+// searched a room and found nothing watched a pause and then the turn ended.
+// Screen readers have had the whole story the whole time.
+//
+// This is not that gap patched with a caption. The panel shows the PICTURE,
+// over the room it happened in, which is a thing a line of text cannot do and
+// is what the item drawings are for.
+//
+// IT OWNS THE BEAT. It used to be doSearch's FIND_BEAT_MS, held after the pack
+// had already changed. Now the reveal holds, and the caller's onDone runs after
+// — so the order the player sees is: you find out, THEN the pack takes it. One
+// timer, in one place, rather than a panel life racing a turn timer.
+//
+// Timer rather than animationend, for caption()'s reason: animations do not
+// advance in a hidden tab, and a reveal that never left would sit over the
+// board forever — with the turn never ending behind it, since onDone hangs off
+// the same timer.
+const REVEAL_MS = 1300;
+let revealTimer = null;
+
+export function searchReveal(game, opts, onDone) {
+  const done = typeof onDone === "function" ? onDone : () => {};
+  const pane = document.querySelector(".board-pane");
+  if (!pane) return void done();
+
+  const old = pane.querySelector(".reveal");
+  if (old) old.remove();
+  clearTimeout(revealTimer);
+
+  const id = opts && opts.id;
+  const el = document.createElement("div");
+  el.className = "reveal" + (id ? "" : " reveal--none");
+  // aria-hidden for caption()'s reason: log() has already narrated this
+  // outcome in full, and a panel that announced itself would say it twice.
+  el.setAttribute("aria-hidden", "true");
+
+  const frame = document.createElement("div");
+  frame.className = "revealframe";
+  const art = id ? icon("item", id, "revealicon") : null;
+  if (art) frame.appendChild(art);
+  el.appendChild(frame);
+
+  const name = document.createElement("p");
+  name.className = "revealname";
+  // Nothing chosen here varies. The empty-handed LINE varies by turn and stays
+  // in the narration where it lives; the panel says the same words every time,
+  // so a replayed seed shows the same reveal in the same room without the
+  // search stream being touched for flavour.
+  name.textContent = id ? itemName(game, id) : ui(game, "reveal-nothing");
+  el.appendChild(name);
+
+  pane.appendChild(el);
+  revealTimer = setTimeout(() => {
+    el.remove();
+    done();
+  }, REVEAL_MS);
+}
+
 export function showDropDialog(game, foundId, opts = {}) {
   const s = game.state;
   const wrap = document.createElement("div");

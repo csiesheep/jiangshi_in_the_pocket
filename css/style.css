@@ -4340,3 +4340,77 @@ body.asleep .fog {
 }
 .langswitch:hover,
 .langswitch:focus-visible { color: var(--gold); border-color: var(--gold); }
+
+/* ---- The search reveal (#92) ---------------------------------------------------
+   Over the tile, because WHICH ROOM gave you this is half the news — a caption
+   at the top of the pane could not say that. The pane is the anchor the actions
+   pop-out already uses.
+
+   The empty-handed state borrows the game's existing word for nothing: the same
+   dashed frame the empty pack cell and the empty equipment slot draw. It is not
+   a new idiom, it is the one the panel already had.
+
+   One-shot animation, no iteration and no alternation, so it passes the
+   photosensitivity guard. Its removal is on a TIMER rather than animationend —
+   a hidden tab does not advance animations, and this one has the turn waiting
+   behind it. */
+.reveal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 92%, black);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .6);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  /* TRANSFORM ONLY, and opacity deliberately left out of it. An animation with
+     opacity in its first keyframe plus a fill mode renders the element at
+     opacity 0 until the animation ADVANCES -- and animations do not advance in
+     a hidden tab. The reveal would sit there invisible while its own timer ran
+     out and dismissed it, so the panel would never have been seen at all. Found
+     by measuring: mounted, correctly positioned, computed opacity 0.
+     Animating only the transform means a frozen animation degrades to a
+     perfectly visible panel that simply did not slide. */
+  animation: revealin .34s ease-out;
+}
+.revealframe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+/* Nothing found: the dashed empty frame this game already uses to mean "there
+   is nothing here", with no picture in it. */
+.reveal--none .revealframe {
+  border-style: dashed;
+  background: transparent;
+}
+.revealicon { width: 64px; height: 64px; color: var(--gold); }
+.revealname {
+  margin: 0;
+  max-width: 16ch;
+  font-family: var(--font-head);
+  font-size: .95rem;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--text);
+}
+.reveal--none .revealname { color: var(--muted); }
+@keyframes revealin {
+  0%   { transform: translate(-50%, -50%) scale(.92); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
+}

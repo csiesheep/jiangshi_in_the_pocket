@@ -280,6 +280,7 @@
     "kit-only": "只有{item}",
     "kit-bare": "只有兩隻手",
     "slot-empty": "空的",
+    "reveal-nothing": "什麼都沒有",
     "slot-stack": "{n}張，共用一格",
     "use": "使用",
     "use-item": "使用{item}",

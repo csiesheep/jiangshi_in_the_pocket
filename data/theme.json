@@ -103,6 +103,7 @@
     "replay-link-fallback": "Replay link: {url}",
     "start-failed": "Failed to start the game — see console.",
     "slot-empty": "Empty",
+    "reveal-nothing": "Nothing here",
     "slot-stack": "{n} of them, sharing one slot",
     "use": "Use",
     "use-item": "Use {item}",
