@@ -2577,7 +2577,14 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 .evstage--still .evstage-nil,
 .evstage--still .evstage-hint { animation: none; opacity: 1; }
 
-@keyframes evstage-in { from { opacity: 0; } to { opacity: 1; } }
+/* NO OPACITY IN THIS ONE. Third instance of the same trap: an animation whose
+   first keyframe hides the element renders it invisible until the animation
+   ADVANCES, and animations do not advance in a hidden tab — the stage would sit
+   there unseen for its whole budget and then be cut by its own deadline. The
+   fade was 180ms and worth less than the correctness. See #92's reveal and
+   #93's caption; all three were found by measuring a live element rather than
+   by reading the CSS, which looks perfectly reasonable in every case. */
+@keyframes evstage-in { from { transform: scale(1.012); } to { transform: scale(1); } }
 @keyframes evstage-rise {
   from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
   to   { opacity: 1; transform: translate(-50%, -50%); }
@@ -4425,4 +4432,41 @@ body.asleep .fog {
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; }
+}
+
+/* ---- The event panel, on the tile (#95) ----------------------------------------
+   Off the full screen and onto the room it happened in, at the size of that
+   room, with NO FRAME: the image is the whole panel.
+
+   FRAMED MEANS "HERE IS A THING", FULL-BLEED MEANS "THIS IS HAPPENING". The
+   search reveal is framed because it presents an object you now own; this is
+   unframed because it is the room doing something. Do not tidy one into the
+   other.
+
+   It costs no more time than it did. The budget in eventstage.js is untouched:
+   30 turns x (1100 - 780) = 9.6s over a night, exactly as before. Presentation
+   is not pace — and a tile-sized interruption thirty times a night is a smaller
+   one than a full-screen interruption for the same money. */
+.evstage--tile {
+  position: absolute;
+  /* inset FIRST. It is the shorthand for top/right/bottom/left, so putting it
+     after them silently resets them -- which is exactly what happened: the panel
+     landed against the pane's left edge instead of over the tile, and only
+     measuring its box against the tile's showed it. */
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: var(--tile);
+  height: var(--tile);
+  /* Centred by MARGIN rather than by transform, because evstage-in animates the
+     transform now -- a translate here would be overwritten the moment the
+     animation ran, and the panel would jump to the corner mid-entrance. */
+  margin-left: calc(var(--tile) / -2);
+  margin-top: calc(var(--tile) / -2);
+  z-index: 8;
+  /* No backdrop and no border: the scene is the panel. The full-screen stages
+     keep their dimmed ground, which is what makes them full-screen. */
+  background: none;
+  border: 0;
+  border-radius: 0;
 }

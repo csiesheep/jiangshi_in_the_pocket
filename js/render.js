@@ -2008,15 +2008,43 @@ export function showNote(note, onClose) {
 // the same timer.
 const REVEAL_MS = 1300;
 let revealTimer = null;
+let revealDone = null;
+
+// ENDING A REVEAL IS ONE OPERATION, and it has to be, because the timer carries
+// the turn. Its callback is refresh() and renderEndTurn() for a found item, so
+// removing the element and leaving the timer pending would fire the rest of the
+// turn later — into whatever had replaced it. A player quick enough to click a
+// doorway while the panel is still up would advance the turn twice and be the
+// least likely person to be believed reporting it.
+//
+// So: remove, cancel and complete together, exactly once. Pre-empting a reveal
+// FINISHES it rather than abandoning it — the pack still lands and the turn
+// still ends — because dropping the callback would leave the find unpainted and
+// the end-turn control unrendered.
+function endReveal() {
+  clearTimeout(revealTimer);
+  revealTimer = null;
+  for (const el of document.querySelectorAll(".reveal")) el.remove();
+  const fn = revealDone;
+  revealDone = null;
+  if (fn) fn();
+}
+
+// For anything that is about to take the space over the tile. One layer over
+// the board at a time.
+export function clearSearchReveal() {
+  endReveal();
+}
 
 export function searchReveal(game, opts, onDone) {
   const done = typeof onDone === "function" ? onDone : () => {};
   const pane = document.querySelector(".board-pane");
   if (!pane) return void done();
 
-  const old = pane.querySelector(".reveal");
-  if (old) old.remove();
-  clearTimeout(revealTimer);
+  // Finishes any reveal still standing, callback and all, before starting this
+  // one. Two cannot overlap in a turn as the game stands, but the invariant is
+  // cheaper to hold than to reason about each time.
+  endReveal();
 
   const id = opts && opts.id;
   const el = document.createElement("div");
@@ -2041,10 +2069,8 @@ export function searchReveal(game, opts, onDone) {
   el.appendChild(name);
 
   pane.appendChild(el);
-  revealTimer = setTimeout(() => {
-    el.remove();
-    done();
-  }, REVEAL_MS);
+  revealDone = done;
+  revealTimer = setTimeout(endReveal, REVEAL_MS);
 }
 
 export function showDropDialog(game, foundId, opts = {}) {

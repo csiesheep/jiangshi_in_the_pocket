@@ -42,7 +42,8 @@
 // picture away without taking anything away. That ordering is load-bearing —
 // see the note on skipping.
 
-import { enterScene, leaveScene, icon, reducedMotion, grain } from "./render.js";
+import { enterScene, leaveScene, icon, reducedMotion, grain,
+         clearSearchReveal } from "./render.js";
 
 // The beat the stage is replacing. Kept here as its own name rather than
 // imported from app.js so the arithmetic in the header can be checked against
@@ -101,6 +102,18 @@ export function eventStage(kind, opts = {}) {
 
   return runStage({
     cls: `evstage--${kind}`,
+    // #95: OVER THE TILE, AT TILE SIZE, UNFRAMED. An event is not a thing being
+    // handed to you, it is the room doing something, so it does not get a box.
+    //
+    // THE RULE, so the next layer over the board can be decided rather than
+    // guessed: FRAMED MEANS "HERE IS A THING", FULL-BLEED MEANS "THIS IS
+    // HAPPENING". The search reveal is framed because it presents an object you
+    // now own. This is full-bleed because it is a scene. Neither is a mistake to
+    // be tidied into the other.
+    //
+    // The 殭屍王 does not take this branch. His is the one set-piece that is not
+    // an event beat, it plays once a night, and full screen is the point of it.
+    onTile: true,
     build: (inner, ctx) => scene(inner, ctx),
     ctx: { ...opts, reduced },
     budget, reduced,
@@ -183,16 +196,26 @@ function buildKing(inner, ctx) {
 // by the King. Extracted rather than copied: a second copy of the skip handling
 // is a second place for a listener to leak, and the whole reason skipping is
 // safe is a property of this function rather than of any scene.
-function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError }) {
+function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError, onTile }) {
   return new Promise((resolve) => {
     // Never stack. A fight can follow a rite in the same turn and each would
     // otherwise leave its own full-screen layer behind — the same rule the
     // jump scare follows against itself.
     const stale = document.querySelector(".evstage");
     if (stale) stale.remove();
+    // One layer over the board at a time. A search reveal may still be standing
+    // if the player clicked through it, and finishing it here is what keeps its
+    // timer from firing the rest of that turn underneath this panel — removal
+    // and cancellation are the same call on purpose.
+    if (onTile) clearSearchReveal();
+
+    // Where it mounts. On the tile it is a panel over the board and belongs to
+    // the board's own anchor, beside the reveal and the actions pop-out; the
+    // full-screen stages stay on body.
+    const host = onTile ? document.querySelector(".board-pane") : null;
 
     const el = document.createElement("div");
-    el.className = `evstage ${cls}`;
+    el.className = `evstage ${cls}` + (host ? " evstage--tile" : "");
     // The log already said what happened, in the live region, before this was
     // called. This layer is the same sentence drawn in paint, so announcing it
     // again would be the screen reader hearing the news twice.
@@ -220,8 +243,11 @@ function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError }) 
       el.appendChild(hint);
     }
 
-    enterScene();
-    document.body.appendChild(el);
+    // The letterbox is a FULL-SCREEN device — bars across the top and bottom of
+    // the window — so a panel that only covers the tile does not raise it. The
+    // King still does.
+    if (!host) enterScene();
+    (host || document.body).appendChild(el);
 
     let done = false;
     let timer = 0;
@@ -233,7 +259,7 @@ function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError }) 
       window.removeEventListener("keydown", onKey, true);
       el.removeEventListener("click", onClick);
       el.remove();
-      leaveScene();
+      if (!host) leaveScene();
       resolve();
     };
 
