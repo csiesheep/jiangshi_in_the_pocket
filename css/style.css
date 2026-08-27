@@ -4497,3 +4497,51 @@ body.asleep .fog {
   border: 0;
   border-radius: 0;
 }
+
+/* ---- Choosing what to give up (#94) --------------------------------------------
+   The pack, drawn as the pack. This was a column of text buttons under a
+   picture of the find, which asked the player to read four sentences to answer
+   a question about five objects. It is a comparison, so it is made between
+   pictures.
+
+   Modal, deliberately, and NOT over the tile like the search reveal. A reveal
+   is news and belongs where it happened; this stops the turn until it is
+   answered, and a modal is the honest shape for a question you cannot walk
+   past. The user asked for "upon the tile" for the event panel and did not ask
+   for it here, having just seen the reveal — they said where they wanted
+   position changed. */
+.droppack {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 66px);
+  justify-content: center;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+/* The cells size themselves here rather than off the sidebar grid, and keep the
+   pack's own fill so the picture is the same size the player already knows. */
+.dropcell .cellface { width: 66px; height: 66px; }
+/* THE TOOLTIP OPENS DOWNWARD HERE. In the sidebar a cell's tip goes above it,
+   which is right there because the pack sits low in the panel. In this dialog
+   the cells sit directly under the find, so opening upward covered the very
+   thing the player is weighing them against — seen the moment one was opened,
+   not deducible from the rule. */
+.dropcell .celltip { top: calc(100% + 6px); bottom: auto; }
+.dropcell .cellface:hover { border-color: var(--danger); }
+.dropcell .cellface:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
+
+/* The find, in the same cell language as the things it is weighed against. */
+.dropfound { align-items: center; margin: 6px auto 0; width: max-content; }
+.dropfound .cellface {
+  width: 74px; height: 74px;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.dropfoundname {
+  margin: 6px 0 0;
+  text-align: center;
+  font-size: .84rem;
+  /* INHERITS. This card is paper, not panel — var(--text) is the dark-UI colour
+     and put pale type on cream, which the measurement did not catch and looking
+     at it did. The cells inside stay dark because a cell IS dark wherever it is
+     drawn; the words around them belong to the card. */
+  font-weight: 600;
+}

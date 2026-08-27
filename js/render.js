@@ -2093,12 +2093,35 @@ export function showDropDialog(game, foundId, opts = {}) {
   lede.textContent = ui(game, "drop-lede");
   sheet.appendChild(lede);
 
-  const found = packSlot(game, foundId, { plain: true });
-  found.classList.add("slot--found");
+  // The find, drawn the same way as the things it is being weighed against. It
+  // was a small-icon row while the choices were sentences; against a row of
+  // pack cells a different idiom would have made the comparison harder, not
+  // clearer.
+  const found = document.createElement("div");
+  found.className = "cell dropfound";
+  const foundFace = document.createElement("div");
+  foundFace.className = "cellface";
+  const foundArt = icon("item", foundId, "cellicon");
+  if (foundArt) foundFace.appendChild(foundArt);
+  found.appendChild(foundFace);
+  const foundName = document.createElement("p");
+  foundName.className = "dropfoundname";
+  foundName.textContent = itemName(game, foundId);
+  found.appendChild(foundName);
   sheet.appendChild(found);
 
+  // #94: THE PACK, AS THE PACK. This was a list of text buttons — "Drop 糯米",
+  // "Drop 五雷符 ×3" — under a picture of the find, which made the player read
+  // four sentences to answer a question about five objects. The question is
+  // "which of these do I give up for that one", so it is asked between
+  // PICTURES, in the same cells the pack itself is drawn in, with the name and
+  // what it does arriving on hover and on tap exactly as they do there.
+  //
+  // The count badge is doing work the prose used to: a stack shares one slot,
+  // so dropping one of three frees nothing and the whole stack goes down. "×3"
+  // on the cell says that better than a sentence explaining it.
   const list = document.createElement("div");
-  list.className = "droplist";
+  list.className = "droppack";
   // One entry per slot, deduplicated the way the panel is: a stack appears once.
   const seen = new Set();
   for (const id of slotRows(s)) {
@@ -2106,23 +2129,66 @@ export function showDropDialog(game, foundId, opts = {}) {
     const stacked = def.cat === "magic";
     if (stacked && seen.has(id)) continue;
     seen.add(id);
-    const n = heldCount(s, id);
+    // COUNT ONLY WHERE COUNTING MEANS A SLOT. heldCount is the total held, but
+    // only magic stacks share a slot -- three rice are three cells. Using the
+    // raw total put "x2" on BOTH rice cells, which reads as four rice in a pack
+    // holding two. This is the pack's own rule and packCell states it the same
+    // way; getting it wrong here would have made this dialog disagree with the
+    // panel it is drawn to look like.
+    const n = stacked ? heldCount(s, id) : 1;
     const whole = stacked && n > 1;
+    const nm = itemName(game, id);
+    const effect = itemEffect(game, id);
+
+    const cell = document.createElement("div");
+    cell.className = "cell dropcell";
 
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "btn dropchoice";
-    btn.textContent = whole
-      ? ui(game, "drop-stack", { item: itemName(game, id), n })
-      : ui(game, "drop-one", { item: itemName(game, id) });
-    btn.addEventListener("click", () => {
+    btn.className = "cellface";
+    // The visible name went into the tooltip, so the spoken one has to stay on
+    // the control — and it still says what pressing this DOES, because a cell
+    // that only names an item would not tell you it is the thing being given up.
+    btn.setAttribute("aria-label", whole
+      ? ui(game, "drop-stack", { item: nm, n })
+      : ui(game, "drop-one", { item: nm }));
+    const art = icon("item", id, "cellicon");
+    if (art) btn.appendChild(art);
+    if (n > 1) {
+      const badge = document.createElement("span");
+      badge.className = "cellcount";
+      badge.textContent = `×${n}`;
+      badge.setAttribute("aria-hidden", "true");
+      btn.appendChild(badge);
+    }
+    cell.appendChild(btn);
+
+    // The pack's own tooltip, down to the class, so it reveals on hover, on
+    // focus and on tap — and so closeAllCells() closes it like any other.
+    const tip = document.createElement("div");
+    tip.className = "celltip";
+    tip.setAttribute("role", "tooltip");
+    const tipName = document.createElement("p");
+    tipName.className = "tipname";
+    tipName.textContent = n > 1 ? `${nm} ×${n}` : nm;
+    tip.appendChild(tipName);
+    if (effect) {
+      const e = document.createElement("p");
+      e.className = "tipeffect";
+      e.textContent = effect;
+      tip.appendChild(e);
+    }
+    cell.appendChild(tip);
+
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
       done();
       // A stack shares one slot, so dropping one of three frees nothing. Put
       // the whole stack down, then take the find through the ordinary door.
       if (whole) opts.onDropStack && opts.onDropStack(id, n, foundId);
       else opts.onDrop && opts.onDrop(id, foundId);
     });
-    list.appendChild(btn);
+    list.appendChild(cell);
   }
   sheet.appendChild(list);
 
