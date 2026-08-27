@@ -177,7 +177,8 @@ async function loadData() {
   return { tiles, items, search, events, theme, baseTheme: base, lang };
 }
 
-class Game {
+// Exported so a guard can drive a real turn. Nothing else imports it.
+export class Game {
   constructor(data, opts = {}) {
     this.data = data;
     const seed = opts.seed ?? (Date.now() >>> 0);
@@ -1703,4 +1704,12 @@ async function main() {
   }
 }
 
-main();
+// BOOT ONLY ON THE GAME PAGE. This module used to call main() on import, which
+// meant importing it from anywhere -- a test page, a tool -- started a whole
+// run: fetching data, mounting the board, taking over the DOM. A module that
+// boots itself cannot be tested, and #92's ordering is exactly the kind of
+// thing that has to be driven rather than read.
+//
+// #board is the marker because it is the game page's own root and no other page
+// has it. If this ever stops booting, that element was renamed.
+if (typeof document !== "undefined" && document.getElementById("board")) main();

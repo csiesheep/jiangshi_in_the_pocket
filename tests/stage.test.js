@@ -12,6 +12,7 @@ import {
   resetStageHints,
 } from "../js/eventstage.js";
 import { ghostIcon } from "../js/render.js";
+import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
@@ -993,6 +994,82 @@ test("icons: an empty slot's ghost is INLINED, not referenced (#91)", () => {
   assert(strip, "no rule suppresses the ghost's fills — it will render as a painted icon");
   assert(strip.body.indexOf("fill: none") >= 0 || strip.body.indexOf("fill:none") >= 0,
     "the ghost's fill rule no longer sets none: " + strip.body.trim());
+});
+
+test("search: the pack takes the item AFTER the reveal has spoken (#92)", async () => {
+  // THE ORDER IS THE FEATURE, and it fails silently. Move refresh() back in
+  // front of the reveal and the pack simply gains its cell early: no error, no
+  // red, the panel still appears — and the reveal stops being news and becomes
+  // a second copy of something already on screen. Nothing else in this suite
+  // would notice.
+  //
+  // So this drives a REAL turn rather than reading doSearch for a callback. It
+  // is why app.js stopped calling main() on import: a module that boots itself
+  // cannot be driven, and this is the thing that had to be driven.
+  //
+  // Asserted in BOTH directions on purpose. "The pack has the item afterwards"
+  // passes on the old behaviour too — the only assertion that can tell the two
+  // apart is that the pack does NOT have it while the panel is still up.
+  const names = ["tiles", "items", "search", "events", "theme"];
+  const [tiles, items, search, events, theme] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+
+  // The ids the search path paints into. Anything not here is a no-op renderer,
+  // which is fine — the pack is what is being watched.
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML =
+    '<div class="board-pane" id="board-pane"><div class="board" id="board"></div></div>' +
+    '<div id="actions-pop"><div id="actions"></div></div>' +
+    '<div id="hud-items"></div><div id="hud-hands"></div>' +
+    '<div id="hud-hour"></div><div id="hud-health"></div>' +
+    '<div class="sr-only" id="log"></div>';
+  document.body.appendChild(host);
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  try {
+    const game = new Game({ tiles, items, search, events, theme, baseTheme: theme, lang: "en" },
+                          { seed: 4242 });
+    // A one-entry table, so the pick is forced by the DATA rather than by
+    // stubbing the engine — weightedPick has exactly one thing it can return
+    // and the search RNG is left alone.
+    game.state.searchTables = game.state.searchTables || {};
+    game.state.searchTables.__order = [{ id: "sticky-rice", weight: 1 }];
+
+    const filled = () =>
+      document.querySelectorAll("#hud-items .cell:not(.cell--empty)").length;
+
+    // PAINT THE BASELINE FIRST. Without this the during-reveal assertion is
+    // vacuous: the pack renders nothing until the first refresh, so "no item in
+    // the pack" would be true because the DOM was blank, not because the find
+    // was being held back — and it would pass just as happily with refresh()
+    // moved back in front of the reveal. The first draft of this test had
+    // exactly that hole and it took the real numbers to see it.
+    game.refresh();
+    const before = filled();
+    assert(before > 0, "the pack painted nothing, so this test cannot tell held-back from blank");
+
+    game.doSearch("__order");
+
+    // While the panel is up: the pack must still show what it showed before.
+    await sleep(120);
+    assert(document.querySelector(".reveal"), "no reveal appeared for a found item");
+    assert(filled() === before,
+      "the pack changed while the reveal was still up (" + before + " -> " + filled() +
+      ") — refresh() has moved back in front of the panel, so the player is being " +
+      "told something they can already see");
+
+    // And after it has gone.
+    await sleep(1600);
+    assert(!document.querySelector(".reveal"), "the reveal never left");
+    assert(filled() === before + 1,
+      "the pack never gained the item (" + before + " -> " + filled() +
+      ") — the reveal's callback is not committing the find");
+  } finally {
+    host.remove();
+    for (const el of document.querySelectorAll(".reveal")) el.remove();
+  }
 });
 
 // ---- The sprite sheet itself (#65) ---------------------------------------------
