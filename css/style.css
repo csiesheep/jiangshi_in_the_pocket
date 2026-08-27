@@ -3514,9 +3514,21 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   color: #f3d9c7;
   animation-duration: 5.2s;
 }
+/* #93: THE FIRST KEYFRAME NO LONGER HIDES IT. It used to open on opacity 0, and
+   animations do not advance in a hidden tab — so a caption fired while the tab
+   was in the background held frame one for its whole 4.2s life and was then
+   removed by its own timer, seen by nobody. Narrow, because a caption usually
+   follows a click and a click means a visible tab, but reachable: click, switch
+   away, a queued beat fires, come back to nothing.
+   
+   The entrance fade is what goes; the drift down and the exit fade both stay,
+   and a frozen animation now degrades to a caption that is simply there. Note
+   the prefers-reduced-motion rule below already forced opacity 1 — the
+   accessible path had accidentally been the only correct one. Found the same
+   way as #92's panel: by measuring a live element, not by reading the CSS. */
 @keyframes captionlife {
-  0%   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-  9%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  0%   { transform: translateX(-50%) translateY(-6px); }
+  9%   { transform: translateX(-50%) translateY(0); }
   78%  { opacity: 1; }
   100% { opacity: 0; }
 }
