@@ -2581,13 +2581,40 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
    first keyframe hides the element renders it invisible until the animation
    ADVANCES, and animations do not advance in a hidden tab — the stage would sit
    there unseen for its whole budget and then be cut by its own deadline. The
-   fade was 180ms and worth less than the correctness. See #92's reveal and
-   #93's caption; all three were found by measuring a live element rather than
-   by reading the CSS, which looks perfectly reasonable in every case. */
+   fade was 180ms and worth less than the correctness.
+
+   THE PATTERN IS WIDER THAN THIS RULE AND IS NOT ALL A BUG. Measured in a
+   hidden tab, NINE element/animation pairs inside the event stage compute
+   opacity 0: evs-in, evs-warmth, evs-wound, evs-creep, evstage-rise,
+   evstage-hint and others. Only some are the same mistake.
+
+   The difference is INTENT. This rule and evstage-rise faded purely to arrive
+   softly, so the fade was worth less than being seen and it is gone. But
+   evs-warmth, evs-wound, evs-creep and the King's cues HOLD at zero until 62%
+   or 70% of their run and then bloom -- that hold IS the composition, and
+   stripping opacity out of them would not fix a bug, it would delete the scene.
+   They are left alone deliberately.
+
+   And note what the harm actually is, because it is smaller than it first
+   looks: a frozen animation means the beat is missed by someone whose tab is in
+   the background, and the narration in #log already carried the information. It
+   is not silent corruption. What it DOES break is verification -- an instrument
+   cannot see what never advances, which is how a gold rim shipped on every item
+   for two issues without being noticed.
+
+   Do not read this as a sweep of the stylesheet. It is a description of one
+   family. */
 @keyframes evstage-in { from { transform: scale(1.012); } to { transform: scale(1); } }
+/* Opacity out of this one too -- the FOURTH instance, and it was hiding inside
+   the stage a few lines from the warning about the other three. Taking opacity
+   out of evstage-in made the PANEL degrade to visible in a hidden tab; its
+   CONTENTS still held frame one at zero, so what a returning player got was a
+   visible empty panel rather than an invisible one, which is not obviously
+   better. Measured, not read: .evstage-seat computed opacity 0 in a hidden tab
+   in the pack and villager scenes. It rises without fading now. */
 @keyframes evstage-rise {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
-  to   { opacity: 1; transform: translate(-50%, -50%); }
+  from { transform: translate(-50%, calc(-50% + 10px)); }
+  to   { transform: translate(-50%, -50%); }
 }
 @keyframes evstage-nil {
   from { opacity: 0; transform: translate(-50%, -50%) scale(.72); }
