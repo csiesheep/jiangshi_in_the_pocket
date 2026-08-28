@@ -197,10 +197,17 @@
        pleased to see you. -->
   <symbol id="scene-villager-a" viewBox="0 0 200 260">
     <defs>
+      <!-- LIVING SKIN. Warm and low chroma: the same desaturated range the
+           tiers live in, on the other side of neutral. The old value was the
+           grey-green the King's skull is drawn in, which is the point. -->
       <linearGradient id="vSkin" x1=".24" y1="0" x2=".78" y2="1">
-        <stop offset="0" stop-color="#b39c81"/><stop offset=".42" stop-color="#8a7460"/>
-        <stop offset="1" stop-color="#3b3129"/>
+        <stop offset="0" stop-color="#cba98a"/><stop offset=".26" stop-color="#b08b6c"/>
+        <stop offset=".62" stop-color="#8a6a51"/><stop offset="1" stop-color="#4a3830"/>
       </linearGradient>
+      <radialGradient id="vBlood" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#c07a5c" stop-opacity=".4"/>
+        <stop offset="1" stop-color="#c07a5c" stop-opacity="0"/>
+      </radialGradient>
       <linearGradient id="vRobeA" x1=".2" y1="0" x2=".82" y2="1">
         <stop offset="0" stop-color="#8b7f5c"/><stop offset=".3" stop-color="#6b6248"/>
         <stop offset=".68" stop-color="#413c2c"/><stop offset="1" stop-color="#1d1a13"/>
@@ -267,7 +274,7 @@
 
     <!-- Short thick legs, bare shins under a robe that stops at the calf. -->
     <path d="M78 168l-3 42h20l2 -42zM104 168l2 42h20l-3 -42z" fill="url(#vSkin)"/>
-    <path d="M78 168l-3 42h5l2 -42z" fill="#c0aa8e" opacity=".26"/>
+    <path d="M78 168l-3 42h5l2 -42z" fill="#e0c19d" opacity=".3"/>
     <path d="M68.0 195.4L67.9 199.5L83.5 200.7L84.0 196.6Z" fill="#565040"/><path d="M67.9 199.1L67.6 203.2L83.2 204.4L83.5 200.3Z" fill="#6b6350"/><path d="M67.9 202.8L67.6 206.9L82.6 208.1L83.0 204.0Z" fill="#565040"/><path d="M67.8 206.6L67.4 210.7L82.3 211.8L82.5 207.7Z" fill="#6b6350"/><path d="M67.7 210.3L67.3 214.4L81.8 215.5L82.0 211.4Z" fill="#565040"/><path d="M67.6 214.0L67.6 218.1L80.9 219.2L81.6 215.1Z" fill="#6b6350"/><path d="M67.5 217.8L67.6 221.9L80.4 222.9L81.1 218.8Z" fill="#565040"/>
     <path d="M116.0 196.6L116.5 200.7L132.1 199.5L132.0 195.4Z" fill="#565040"/><path d="M116.5 200.3L117.1 204.4L132.1 203.2L132.1 199.1Z" fill="#6b6350"/><path d="M117.0 204.0L117.4 208.1L132.4 206.9L132.1 202.8Z" fill="#565040"/><path d="M117.5 207.7L118.1 211.8L132.3 210.7L132.2 206.6Z" fill="#6b6350"/><path d="M118.0 211.4L118.6 215.5L132.3 214.4L132.3 210.3Z" fill="#565040"/><path d="M118.4 215.1L118.8 219.2L132.6 218.1L132.4 214.0Z" fill="#6b6350"/><path d="M118.9 218.8L118.9 222.9L133.1 221.8L132.5 217.8Z" fill="#565040"/>
     <!-- STRAW SANDALS: flat, wide, and woven, which is a value pattern rather
@@ -322,24 +329,33 @@
     <path d="M115 30l6 4 -1.6 5 -5 -3.4z" fill="#5d5a4e"/>
     <!-- structure: a brow shelf, a cheekbone, a hollow. The King's three. -->
     <path d="M84 37q16 -7 32 0 -2 5 -5 7 -11 -4 -22 0 -3 -2 -5 -7z" fill="url(#vBrow)"/>
-    <ellipse cx="87" cy="47" rx="6.4" ry="4.2" fill="#cbb99e" opacity=".28"/>
-    <ellipse cx="113" cy="47" rx="5.6" ry="3.8" fill="#cbb99e" opacity=".18"/>
+    <ellipse cx="87" cy="47" rx="6.4" ry="4.2" fill="#e6bd97" opacity=".28"/>
+    <ellipse cx="113" cy="47" rx="5.6" ry="3.8" fill="#e6bd97" opacity=".18"/>
     <!-- eyes CRINKLED shut, which is what a broad smile does to an old face -->
-    <path d="M84 42q7 -4 13 -1 -6 4 -13 1z" fill="#2a231a"/>
-    <path d="M116 42q-7 -4 -13 -1 6 4 13 1z" fill="#2a231a"/>
-    <path d="M85 40q6 -3 11 -1" stroke="#241d16" stroke-width="1.5" fill="none" opacity=".8"/>
-    <path d="M115 40q-6 -3 -11 -1" stroke="#241d16" stroke-width="1.5" fill="none" opacity=".8"/>
+    <path d="M84 41q7 -5 13 -1.6 -6 1 -13 1.6z" fill="#b78f6e"/>
+    <path d="M116 41q-7 -5 -13 -1.6 6 1 13 1.6z" fill="#ab8464"/>
+    <path d="M84 41.6q6.4 -1 12.6 -2.2" stroke="#4a3428" stroke-width="1.5" fill="none" opacity=".85"/>
+    <path d="M116 41.6q-6.4 -1 -12.6 -2.2" stroke="#4a3428" stroke-width="1.5" fill="none" opacity=".85"/>
+    <path d="M79 39l-4 -2M79 42l-5 1M121 39l4 -2M121 42l5 1" stroke="#6b4f3c"
+          stroke-width="1" fill="none" opacity=".5"/>
     <path d="M98 44l-2 5q1.8 1.4 4.6 0z" fill="#5d4e3c" opacity=".7"/>
 
     <!-- ON THE FACE. The head is cy 40 ry 21, so it ends at y 61; this was
          drawn at 62 to 74 and his teeth were on his collar. -->
-    <path d="M87 51q13 8 26 0 -2.6 10 -13 10t-13 -10z" fill="#231c15"/>
-    <path d="M89 52.4q11 6 22 0l-.7 2.8q-10.5 5 -20.6 0z" fill="#d8d2be"/>
-    <path d="M93 53.4l.5 3M97.8 54.1l.2 3.1M104 54l-.4 3.1M108.4 53.2l-.7 2.8"
-          stroke="#231c15" stroke-width=".8" fill="none"/>
-    <path d="M91 58.4q9 3.4 18 0 -3.4 3.4 -9 3.4t-9 -3.4z" fill="#3d2f24"/>
-    <path d="M85 49q2.4 5 2.4 10l-1.7 -.8q-.8 -5 -2.4 -8.4z" fill="#4a3d2e" opacity=".65"/>
-    <path d="M115 49q-2.4 5 -2.4 10l1.7 -.8q.8 -5 2.4 -8.4z" fill="#4a3d2e" opacity=".65"/>
+    <!-- A MOUTH. It keeps its WIDTH, which is the wrong part of it, and gains
+         lips and a short tooth line, which are the alive part. A full row of
+         bared teeth is what the tiers have, and a skull grinning is not
+         unsettling — it is just a skull. -->
+    <path d="M86 50.4q14 3 28 0 -1 3 -3.4 3.6 -10.6 2 -21.2 0 -2.4 -.6 -3.4 -3.6z" fill="#8f5f4a"/>
+    <path d="M88 52.4q12 5 24 0l-1.2 3.6q-10.8 4 -21.6 0z" fill="#2a1d17"/>
+    <path d="M89.6 52.9q10.4 3.6 20.8 0l-.5 2q-9.9 3.4 -19.8 0z" fill="#e0d8c4"/>
+    <path d="M95 53.8l.3 2M100 54.1v2M105 53.8l-.3 2" stroke="#2a1d17" stroke-width=".7" fill="none"/>
+    <path d="M89 56q11 4.4 22 0 -2.6 4.4 -11 4.4t-11 -4.4z" fill="#a06a52"/>
+    <path d="M91 57.2q9 3 18 0l-.6 1.6q-8.4 2.6 -16.8 0z" fill="#c48a6c" opacity=".75"/>
+    <path d="M85 48q2.4 5 2.4 10l-1.7 -.8q-.8 -5 -2.4 -8.4z" fill="#6b4c39" opacity=".6"/>
+    <path d="M115 48q-2.4 5 -2.4 10l1.7 -.8q.8 -5 2.4 -8.4z" fill="#6b4c39" opacity=".6"/>
+    <ellipse cx="86" cy="50" rx="6" ry="4.4" fill="url(#vBlood)"/>
+    <ellipse cx="114" cy="50" rx="5.4" ry="4" fill="url(#vBlood)"/>
     </g>
   </symbol>
 
@@ -357,10 +373,17 @@
        that a mark can be saturated and a garment cannot. -->
   <symbol id="scene-villager-b" viewBox="0 0 200 260">
     <defs>
+      <!-- LIVING SKIN. Warm and low chroma: the same desaturated range the
+           tiers live in, on the other side of neutral. The old value was the
+           grey-green the King's skull is drawn in, which is the point. -->
       <linearGradient id="vSkin" x1=".24" y1="0" x2=".78" y2="1">
-        <stop offset="0" stop-color="#b39c81"/><stop offset=".42" stop-color="#8a7460"/>
-        <stop offset="1" stop-color="#3b3129"/>
+        <stop offset="0" stop-color="#cba98a"/><stop offset=".26" stop-color="#b08b6c"/>
+        <stop offset=".62" stop-color="#8a6a51"/><stop offset="1" stop-color="#4a3830"/>
       </linearGradient>
+      <radialGradient id="vBlood" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#c07a5c" stop-opacity=".4"/>
+        <stop offset="1" stop-color="#c07a5c" stop-opacity="0"/>
+      </radialGradient>
       <linearGradient id="vRobeA" x1=".2" y1="0" x2=".82" y2="1">
         <stop offset="0" stop-color="#8b7f5c"/><stop offset=".3" stop-color="#6b6248"/>
         <stop offset=".68" stop-color="#413c2c"/><stop offset="1" stop-color="#1d1a13"/>
@@ -423,69 +446,78 @@
         <feGaussianBlur stdDeviation=".9"/></filter>
     </defs>
     <g stroke="none">
-    <ellipse cx="104" cy="240" rx="38" ry="6" fill="#000" opacity=".5" filter="url(#vSoft)"/>
+    <ellipse cx="102" cy="240" rx="34" ry="5.5" fill="#000" opacity=".5" filter="url(#vSoft)"/>
 
-    <!-- THE STAFF, drawn first so her hands close over it rather than the pole
-         being painted across her grip. -->
-    <path d="M132 18h6l-3 220h-6z" fill="url(#vStaff)"/>
-    <path d="M132.6 22h1.8l-2.2 210h-1.8z" fill="#c2ab74" opacity=".26"/>
+    <!-- SHE IS A PROFILE, and two passes of turning her head and narrowing her
+         body did not make her one. A profile is not a thin front-on figure: it
+         has ONE shoulder, a NOSE breaking the outline, and feet that both point
+         the same way with one ahead of the other. Those three cues are what the
+         eye reads, and none of them were there.
 
-    <!-- Legs under the jacket, in pale grey wraps and cloth shoes. -->
-    <path d="M86 176l-4 42h16l3 -42zM104 176l3 42h16l-4 -42z" fill="#4a4841"/>
+         She faces the staff, which is why the staff is drawn first: her hands
+         close over it rather than the pole being painted across her grip. -->
+    <path d="M128 16h6l-3 222h-6z" fill="url(#vStaff)"/>
+    <path d="M128.6 20h1.8l-2.2 212h-1.8z" fill="#c2ab74" opacity=".24"/>
+
+    <!-- Both feet point right, the near one ahead. -->
+    <path d="M84 176l-2 44h16l3 -44zM100 176l3 42h15l-2 -42z" fill="#4a4841"/>
     <path d="M76.4 195.4L76.0 199.0L91.4 200.2L91.6 196.6Z" fill="#6e6c63"/><path d="M76.3 198.7L75.9 202.2L91.1 203.4L91.2 199.8Z" fill="#8b897e"/><path d="M76.2 201.9L75.7 205.5L90.7 206.7L90.8 203.1Z" fill="#6e6c63"/><path d="M76.1 205.2L75.5 208.7L90.5 209.9L90.4 206.3Z" fill="#8b897e"/><path d="M76.0 208.5L75.6 212.0L89.9 213.1L90.0 209.5Z" fill="#6e6c63"/><path d="M75.9 211.7L75.3 215.3L89.6 216.4L89.6 212.8Z" fill="#8b897e"/><path d="M75.8 215.0L75.9 218.6L88.5 219.6L89.2 216.0Z" fill="#6e6c63"/><path d="M75.7 218.2L75.5 221.8L88.5 222.8L88.8 219.3Z" fill="#8b897e"/>
     <path d="M110.4 196.6L110.5 200.2L126.1 199.0L125.6 195.4Z" fill="#6e6c63"/><path d="M110.8 199.8L110.8 203.4L126.2 202.2L125.7 198.7Z" fill="#8b897e"/><path d="M111.2 203.1L111.5 206.6L126.0 205.5L125.8 201.9Z" fill="#6e6c63"/><path d="M111.6 206.3L112.1 209.9L126.0 208.8L125.9 205.2Z" fill="#8b897e"/><path d="M112.0 209.5L112.7 213.1L125.9 212.1L126.0 208.5Z" fill="#6e6c63"/><path d="M112.4 212.8L112.6 216.4L126.5 215.3L126.1 211.7Z" fill="#8b897e"/><path d="M112.8 216.0L113.1 219.6L126.4 218.6L126.2 215.0Z" fill="#6e6c63"/><path d="M113.2 219.3L113.3 222.8L126.8 221.8L126.3 218.2Z" fill="#8b897e"/>
-    <path d="M76 226h24l1 8H74z" fill="url(#vGrey)"/>
-    <path d="M102 226h26l1 8h-28z" fill="url(#vGrey)"/>
-    <path d="M76 226h24l.4 2.6H75.6z" fill="#a5a399" opacity=".5"/>
+    <path d="M80 220h20l14 3 1 7H78z" fill="url(#vGrey)"/>
+    <path d="M98 218h20l13 3 1 7H96z" fill="url(#vGrey)"/>
+    <path d="M98 218h20l.6 2.4H97.4z" fill="#a5a399" opacity=".45"/>
 
-    <!-- THE INDIGO JACKET. A FIELD, so it sits at the chroma of tier 4's
-         oxblood rather than at the chroma of an accent: a bright indigo across
-         this much cloth would be the loudest thing in the game.
+    <!-- THE JACKET, and THE HINGE. Her back is the left edge and it does not
+         curve: it comes down from the shoulder, turns at a CORNER high between
+         the shoulder blades, and comes down again. A stoop is ordinary. A hinge
+         is not, and lit it reads better than it did dark because you can now see
+         where the joint ought to be and is not.
 
-         AND THE HINGE. Her back is the left edge and it does not curve — it
-         comes down from the shoulder, turns at a CORNER high between the
-         shoulder blades, and comes down again. A stoop is ordinary. This is
-         not, and lit it reads better than it did dark, because you can see
-         where the joint ought to be and is not. -->
-    <path d="M92 62q18 -2 26 10l7 30 2 46H76l3 -44 -12 -12z" fill="url(#vIndigo)"/>
-    <path d="M92 62q-12 0 -17 8l-2 22 -3 44h-4l3 -44 -12 -12z" fill="#5f6a84" opacity=".2"/>
-    <path d="M67 90l12 12 -3 44h-5l3 -44z" fill="#141821" opacity=".55"/>
-    <!-- the trim, lighter blue, down the front opening only -->
-    <path d="M108 66l6 4 4 32 1 46h-7l-1 -45 -4 -31z" fill="url(#vTrim)"/>
-    <path d="M108 66l6 4 .8 3 -6 -3.6z" fill="#8fa0bd" opacity=".5"/>
-    <path d="M120 78q5 11 6 24l-3 .4q-1 -12 -5 -22z" fill="#252b39"/>
-    <!-- THE RED SASH: an accent, so it is SMALL. Two units of cloth, not twenty. -->
-    <path d="M76 126q25 7 48 0l.5 6q-25 7 -49 0z" fill="url(#vSash)"/>
-    <path d="M76 126q25 7 48 0" stroke="#a04a38" stroke-width=".8" fill="none" opacity=".3"/>
+         The indigo is a FIELD, so it sits at the chroma of tier 4's oxblood
+         rather than an accent's. A bright indigo across this much cloth would be
+         the loudest thing in the game. -->
+    <path d="M94 66q14 0 18 8l4 30 2 56H78l4 -54L70 96z" fill="url(#vIndigo)"/>
+    <path d="M94 66q-9 0 -12 6l-2 22 -4 54h-4l4 -54L70 96z" fill="#5f6a84" opacity=".18"/>
+    <path d="M70 96l12 10 -4 54h-4l4 -54z" fill="#141821" opacity=".6"/>
+    <path d="M112 74l4 30 2 56h-6l-2 -55 -3 -29z" fill="url(#vTrim)"/>
+    <path d="M112 74l4 30 -2.6 .4 -3.6 -29z" fill="#8fa0bd" opacity=".4"/>
+    <path d="M78 160h40l1 18H77z" fill="#1a1e28"/>
+    <path d="M80 126q19 6 36 0l.5 6q-19 6 -37 0z" fill="url(#vSash)"/>
+    <path d="M80 126q19 6 36 0" stroke="#a04a38" stroke-width=".8" fill="none" opacity=".3"/>
 
-    <!-- BOTH HANDS CLOSED ON THE STAFF, and the pole's highlight is CUT where
-         they grip it, because light does not reach wood a hand is round. -->
-    <path d="M100 96q14 -4 28 2l-2 8q-12 -5 -24 -2z" fill="url(#vIndigo)"/>
-    <path d="M124 94q9 1 10 8 1 6 -5 7t-9 -4z" fill="url(#vSkin)"/>
-    <path d="M124 94q9 1 10 8l-2.6 .6q-1.4 -5 -8.4 -6z" fill="#c0aa8e" opacity=".34"/>
-    <path d="M102 118q13 -4 26 2l-2 8q-11 -5 -22 -2z" fill="url(#vIndigo)"/>
-    <path d="M124 116q9 1 10 8 1 6 -5 7t-9 -4z" fill="url(#vSkin)"/>
-    <path d="M121 104q7 -1 12 2" stroke="#2b241c" stroke-width="1.1" fill="none" opacity=".6"/>
+    <!-- ONE SHOULDER, and both arms going forward to the pole from it. -->
+    <path d="M100 70q10 2 16 10l10 14 -6 5 -9 -13q-5 -6 -12 -7z" fill="url(#vIndigo)"/>
+    <path d="M96 88q10 1 17 9l9 11 -6 5 -8 -10q-6 -7 -13 -7z" fill="url(#vIndigo)"/>
+    <path d="M100 70q10 2 16 10l-2 1.6q-6 -7 -14 -9z" fill="#5f6a84" opacity=".22"/>
+    <!-- and the staff's highlight is CUT where a hand is closed on it -->
+    <path d="M122 92q9 1 10 7 1 6 -5 7t-9 -4z" fill="url(#vSkin)"/>
+    <path d="M122 92q9 1 10 7l-2.6 .6q-1.4 -4.4 -8.4 -5.4z" fill="#e0c19d" opacity=".38"/>
+    <path d="M120 110q9 1 10 7 1 6 -5 7t-9 -4z" fill="url(#vSkin)"/>
+    <path d="M119 101q7 -1 12 2M117 119q7 -1 12 2" stroke="#2b241c" stroke-width="1"
+          fill="none" opacity=".55"/>
 
-    <!-- THE HEADCLOTH, pale, wrapped over her hair and hanging at the neck. -->
-    <!-- IN PROFILE. Square to the viewer she was A in different clothes; the
-         reference has her turned, leaning her weight into the staff. -->
-    <path d="M86 26q14 -6 22 6 5 8 3 17 -1 8 -6 12l-14 1q-9 -6 -9 -19 0 -11 4 -17z"
+    <!-- THE HEAD IN PROFILE. The NOSE is the cue: without it a turned head is
+         just a head. Forehead, brow, nose, lip, chin, and the jaw running back
+         under a headcloth that covers the skull and falls behind the neck. -->
+    <path d="M86 22q13 -2 17 10 2 7 1 13l4 4 -5 3 -1 6q-1 5 -7 6l-14 1q-9 -7 -9 -20 0 -16 14 -23z"
           fill="url(#vSkin)"/>
-    <path d="M110 44q4 2 4 5t-4 4l-1 -4z" fill="url(#vSkin)"/>
-    <path d="M82 40q1 -20 17 -20 10 0 14 8 -6 -5 -14 -5 -13 0 -14 18z" fill="#8e8c80"/>
-    <path d="M82 40q1 -20 17 -20l.3 2.6q-13 .6 -14.3 17.8z" fill="#b6b4a6" opacity=".45"/>
-    <path d="M81 38q0 13 7 19l-5 7q-9 -9 -8 -26z" fill="#7d7b70"/>
-    <path d="M88 60h13l1 8H87z" fill="url(#vSkin)"/>
-    <!-- a face in three quarter profile, and deeply lined: she is the oldest of
-         the three by a distance and the lines are most of what says so -->
-    <path d="M90 42q14 -5 21 1 -1 4 -3 6 -8 -4 -16 -1 -1.6 -2 -2 -6z" fill="url(#vBrow)"/>
-    <ellipse cx="103" cy="53" rx="5.4" ry="3.6" fill="#cbb99e" opacity=".24"/>
-    <ellipse cx="101" cy="47" rx="4.2" ry="2.9" fill="#241d16"/>
-    <path d="M106 40q4 4 4.4 8l-2.6 .4q-.6 -3.6 -3.4 -6.6z" fill="#6b5a46" opacity=".55"/>
-    <path d="M92 55q7 3 12 1M93 59q7 2 11 0M97 51q5 1 8 -1" stroke="#3a2f24"
-          stroke-width="1" fill="none" opacity=".7"/>
-    <path d="M97 61q7 2 12 -1 -2 4 -6 4t-6 -3z" fill="#2b221a"/>
+    <path d="M74 34q3 -18 18 -18 8 0 12 5 -6 -3 -12 -3 -13 0 -15 17z" fill="#8e8c80"/>
+    <path d="M74 34q3 -18 18 -18l.3 2.4q-12 .8 -15.3 16z" fill="#b6b4a6" opacity=".42"/>
+    <path d="M72 32q-1 14 6 21l-6 8q-9 -10 -8 -28z" fill="#7d7b70"/>
+    <path d="M72 32q-1 14 6 21l-1.8 2.4q-7.6 -8.6 -6.6 -23z" fill="#a8a69a" opacity=".3"/>
+    <path d="M86 62h11l1 8q-7 3 -13 0z" fill="url(#vSkin)"/>
+    <!-- deeply lined: she is the oldest of the three by a distance -->
+    <path d="M84 40q13 -5 19 1 -1 4 -3 5 -7 -3 -14 0 -1.4 -2 -2 -6z" fill="url(#vBrow)"/>
+    <ellipse cx="97" cy="45" rx="3.8" ry="2.6" fill="#e2d3bd"/>
+    <ellipse cx="98" cy="45" rx="2.2" ry="2.2" fill="#4a3527"/>
+    <ellipse cx="98" cy="45" rx="1" ry="1" fill="#100c09"/>
+    <ellipse cx="97.2" cy="44.2" rx=".8" ry=".7" fill="#fff4e2" opacity=".85"/>
+    <path d="M92 43q5 -2 8 0" stroke="#241d16" stroke-width="1.3" fill="none" opacity=".75"/>
+    <ellipse cx="92" cy="52" rx="5" ry="3.4" fill="#e6bd97" opacity=".22"/>
+    <ellipse cx="93" cy="53" rx="6" ry="4.4" fill="url(#vBlood)"/>
+    <path d="M88 55q7 2 12 0M89 59q6 2 10 0M95 49q4 1 6 -1" stroke="#3a2f24"
+          stroke-width="1" fill="none" opacity=".65"/>
+    <path d="M95 61q6 1 10 -1 -2 4 -5 4t-5 -3z" fill="#2b221a"/>
     </g>
   </symbol>
 
@@ -504,10 +536,17 @@
        Nothing strange is smuggled into the drawing on top of the timing. -->
   <symbol id="scene-villager-c" viewBox="0 0 200 260">
     <defs>
+      <!-- LIVING SKIN. Warm and low chroma: the same desaturated range the
+           tiers live in, on the other side of neutral. The old value was the
+           grey-green the King's skull is drawn in, which is the point. -->
       <linearGradient id="vSkin" x1=".24" y1="0" x2=".78" y2="1">
-        <stop offset="0" stop-color="#b39c81"/><stop offset=".42" stop-color="#8a7460"/>
-        <stop offset="1" stop-color="#3b3129"/>
+        <stop offset="0" stop-color="#cba98a"/><stop offset=".26" stop-color="#b08b6c"/>
+        <stop offset=".62" stop-color="#8a6a51"/><stop offset="1" stop-color="#4a3830"/>
       </linearGradient>
+      <radialGradient id="vBlood" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#c07a5c" stop-opacity=".4"/>
+        <stop offset="1" stop-color="#c07a5c" stop-opacity="0"/>
+      </radialGradient>
       <linearGradient id="vRobeA" x1=".2" y1="0" x2=".82" y2="1">
         <stop offset="0" stop-color="#8b7f5c"/><stop offset=".3" stop-color="#6b6248"/>
         <stop offset=".68" stop-color="#413c2c"/><stop offset="1" stop-color="#1d1a13"/>
@@ -575,7 +614,7 @@
     <!-- BAREFOOT, and it is the detail of hers that matters most: everyone else
          in this game is shod. -->
     <path d="M86 178l-3 46h14l2 -46zM102 178l2 46h14l-3 -46z" fill="url(#vSkin)"/>
-    <path d="M86 178l-3 46h4l2 -46z" fill="#c0aa8e" opacity=".24"/>
+    <path d="M86 178l-3 46h4l2 -46z" fill="#e0c19d" opacity=".28"/>
     <path d="M82 224h16l1 8q-9 3 -18 0z" fill="url(#vSkin)"/>
     <path d="M102 224h16l1 8q-9 3 -18 0z" fill="url(#vSkin)"/>
     <path d="M83 231h15M103 231h15" stroke="#3b3129" stroke-width=".8" fill="none" opacity=".5"/>
@@ -610,15 +649,22 @@
           fill="url(#vHair)"/>
     <path d="M82 40q0 -22 18 -22l.4 2.6q-14 1 -15.4 20z" fill="#4b4b53" opacity=".4"/>
     <path d="M84 44q16 -6 32 0 -2 5 -4 7 -12 -5 -24 0 -2 -2 -4 -7z" fill="url(#vBrow)"/>
-    <ellipse cx="90" cy="50" rx="4.6" ry="3.4" fill="#211b16"/>
-    <ellipse cx="110" cy="50" rx="4.6" ry="3.4" fill="#211b16"/>
-    <ellipse cx="88.6" cy="49" rx="1.4" ry="1.1" fill="#d8cfc0" opacity=".55"/>
-    <ellipse cx="108.6" cy="49" rx="1.4" ry="1.1" fill="#d8cfc0" opacity=".45"/>
+    <ellipse cx="90" cy="50" rx="4.6" ry="3.4" fill="#e4d6c0"/>
+    <ellipse cx="110" cy="50" rx="4.6" ry="3.4" fill="#d8cab4"/>
+    <ellipse cx="90.4" cy="50" rx="2.7" ry="2.7" fill="#4a3527"/>
+    <ellipse cx="110.4" cy="50" rx="2.7" ry="2.7" fill="#42301f"/>
+    <ellipse cx="90.4" cy="50" rx="1.2" ry="1.2" fill="#0e0b08"/>
+    <ellipse cx="110.4" cy="50" rx="1.2" ry="1.2" fill="#0e0b08"/>
+    <ellipse cx="89.3" cy="49" rx="1.1" ry=".9" fill="#fff6e6" opacity=".9"/>
+    <ellipse cx="109.3" cy="49" rx="1.1" ry=".9" fill="#fff6e6" opacity=".75"/>
     <path d="M85 45q6 -3 11 -2M115 45q-6 -3 -11 -2" stroke="#241d16" stroke-width="1.4"
           fill="none" opacity=".75"/>
-    <ellipse cx="89" cy="56" rx="6" ry="4" fill="#cbb99e" opacity=".26"/>
+    <ellipse cx="89" cy="56" rx="6" ry="4" fill="#e6bd97" opacity=".26"/>
+    <ellipse cx="88" cy="57" rx="7" ry="5" fill="url(#vBlood)"/>
+    <ellipse cx="112" cy="57" rx="6" ry="4.4" fill="url(#vBlood)"/>
     <path d="M100 51l-2 6q2 1.4 4.6 0z" fill="#5d4e3c" opacity=".6"/>
-    <path d="M95 62q5 1.6 10 0 -2 3 -5 3t-5 -3z" fill="#3a2b24"/>
+    <path d="M95 61.4q5 1.6 10 0 -2 3.4 -5 3.4t-5 -3.4z" fill="#8f5f4a"/>
+    <path d="M96 62.2q4 1.2 8 0 -1.6 2 -4 2t-4 -2z" fill="#3a2018"/>
     </g>
   </symbol>
 
