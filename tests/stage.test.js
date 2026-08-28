@@ -2462,3 +2462,93 @@ test("equipment: the three slots differ when filled and match when empty (#85)",
   assert(relicName && /gold/.test(relicName.style.color),
     "the tablet's name has stopped taking a colour of its own");
 });
+
+// The marker over the .scare--* block in style.css says those rules are dead
+// and that the tier table above them is not. This is that claim, executed.
+//
+// It is here rather than left as prose because "these rules are unreachable" is
+// a sentence a reader can only believe, and this repo has now been caught twice
+// by exactly that shape. The point of the guard is that somebody who gives
+// scareNow a caller finds out from a red suite instead of from a marker they
+// were never going to read.
+test("the full-screen scare is unreachable, and the tier table is not", async () => {
+  // Built rather than escaped, for the reason noComments spells out above: a
+  // newline escape written through a shell heredoc has already become a REAL
+  // newline in this file once, and took thirty tests out of the run quietly.
+  const NEWLINE = String.fromCharCode(10);
+  const src = await fetch("../js/render.js", NO_STORE).then((r) => r.text());
+  const bare = noComments(src);
+  const sheet = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+
+  // FIRST, PROVE THE REGION IS NOT EMPTY. Every assertion below is about
+  // something being absent or contained, and all of them pass triumphantly
+  // against a stylesheet that no longer has any of these rules at all. A guard
+  // whose subject has been deleted is not a guard.
+  const scareRules = sheet.split(NEWLINE).filter((l) => l.trim().indexOf(".scare--") === 0);
+  assert(scareRules.length > 5,
+    "the .scare--* rules are gone from style.css, so this guard is now watching " +
+    "nothing - if they were deleted on purpose, delete the marker and this test too");
+
+  // The class is applied in exactly the places the marker says, and those
+  // places are inside scareNow.
+  const lines = bare.split(NEWLINE);
+  const opens = lines.findIndex((l) => l.indexOf("function scareNow") === 0);
+  assert(opens !== -1, "scareNow is gone from render.js - the marker in style.css is stale");
+  let depth = 0, closes = -1;
+  for (let i = opens; i < lines.length; i++) {
+    for (const ch of lines[i]) {
+      if (ch === "{") depth++;
+      else if (ch === "}") depth--;
+    }
+    if (depth === 0 && i > opens) { closes = i; break; }
+  }
+  assert(closes > opens, "could not find the end of scareNow");
+
+  const applies = [];
+  lines.forEach((l, i) => { if (l.indexOf("scare--") !== -1) applies.push(i); });
+  assert(applies.length > 0,
+    "nothing in render.js applies a .scare--* class any more, so the stylesheet " +
+    "block is dead for a different reason than the marker gives");
+  for (const i of applies) {
+    assert(i > opens && i < closes,
+      // Comment-stripped line number, said as such: noComments collapses each
+      // block comment to one space, so this does NOT match the file on disk and
+      // sending somebody to that line in an editor would waste their time.
+      "a .scare--* class is applied OUTSIDE scareNow (comment-stripped line " +
+      (i + 1) + ") - the marker in style.css says those rules cannot be " +
+      "reached and it has just become wrong");
+  }
+
+  // And scareNow has no caller. Counted rather than grepped for absence: the
+  // definition is a real occurrence, so the honest assertion is "exactly one".
+  const scareNowHits = lines.filter((l) => l.indexOf("scareNow") !== -1);
+  assert(scareNowHits.length === 1,
+    "scareNow appears " + scareNowHits.length + " times in comment-stripped " +
+    "render.js rather than once - something calls it now, so the .scare--* " +
+    "rules are live again and the marker over them is wrong");
+
+  // THE OTHER HALF, and the one the marker exists to protect: the tier table is
+  // NOT dead, and a sweep that reads "unreachable" and takes the lot would
+  // silently remove the hop's timing from every fight in the game.
+  //
+  // THE FIRST VERSION OF THIS ASSERTION DID NOT WORK, and only deleting the
+  // live caller on purpose revealed it. It counted every line matching
+  // "scareTier(" and required more than one - but scareTier's OWN DEFINITION
+  // matches, and so does the dead call inside scareNow. Removing the real
+  // caller in announceFight left two matches and the guard passed, cheerfully,
+  // having watched the exact thing it exists to watch get deleted.
+  //
+  // So the claim has to be spelled out as what it means: a call site that is
+  // neither the definition nor inside the dead function.
+  const liveTierCalls = [];
+  lines.forEach((l, i) => {
+    if (l.indexOf("scareTier(") === -1) return;
+    if (l.indexOf("function scareTier") !== -1) return;   // the definition
+    if (i > opens && i < closes) return;                  // scareNow's dead call
+    liveTierCalls.push(i + 1);
+  });
+  assert(liveTierCalls.length > 0,
+    "scareTier has no caller outside scareNow any more, so the tier table is " +
+    "as dead as the pictures - if that is deliberate, the marker in style.css " +
+    "needs rewriting, not this test relaxing");
+});

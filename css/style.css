@@ -2928,6 +2928,52 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
    definition. So --zb-seal was never set and icons.svg's var(--zb-seal, 1)
    always took the fallback. */
 
+/* ---- UNREACHABLE SINCE #97, AND KEPT ON PURPOSE (#100) --------------------
+   NOTHING ON THE PAGE APPLIES A .scare--* CLASS. The full-screen scare went
+   with #97, and the jolt that replaced it (#103) is a small motion INSIDE the
+   creature panel with classes of its own - so the scare is not coming back and
+   nothing below is waiting for it.
+
+   MARKED RATHER THAN DELETED, and the reason is the same one that keeps
+   SCARE_SLOTS in render.js: this is the only surviving record of the crowd
+   choreography - the lean of the paper, the judder, the still frame that holds
+   everything at rest. Delete it and the design is gone, not merely disabled.
+   What is NOT acceptable is the table sitting here unmarked, looking live.
+
+   WHAT IS STILL LIVE, so nobody reads this marker as covering more than it
+   does - and this list is longer than the first draft of this comment said,
+   which is why it is spelled out:
+
+     SCARE_TIERS / scareTier   live, and read for TWO different fields.
+                               announceFight takes `beats` for the hop on every
+                               fight; packRow and the creature panel take `cls`
+                               to choose the artwork.
+     the scare artwork itself  LIVE. icon("scare", cls, ...) draws the creature
+                               in the pack row and in the creature panel. The
+                               drawings never went anywhere - what went is the
+                               full-screen staging of them.
+     SCARE_DRESSING            dead with the rest: only dressScare reads it, and
+                               only scareNow calls dressScare.
+
+   So the dead thing is the STAGING, not the pictures and not the tiers. A sweep
+   that reads "unreachable" and takes everything with `scare` in its name would
+   silently remove the hop's timing from every fight and the creature from the
+   panel.
+
+   ESTABLISHED BY EXECUTION, NOT BY READING THIS. Guarded by "the full-screen
+   scare is unreachable, and the tier table is not" in tests/stage.test.js,
+   which runs with every suite. It checks that these rules still EXIST - a
+   guard over an empty region proves nothing - that every .scare--* assignment
+   sits inside scareNow, that scareNow has no call site in comment-stripped
+   source, and that scareTier still does. Give scareNow a caller and that test
+   goes red; this marker is then the thing to delete.
+
+   ONE STALE THING LEFT ALONE DELIBERATELY: the two comments below name the
+   tiers by the four-stage creature names the engine retired at #92, when a
+   tier stopped being a headcount. They are wrong, and they are wrong INSIDE a
+   record of a removed design, where rewriting them would be editing the record
+   to tidy it. Noted here instead, which is where a reader arrives first. */
+
 /* 白殭's paper still moves. A slow lean and settle — one motion, no repeat. */
 .scare--n3 .scare-art { animation: scare-flutter 1s ease-out both; transform-origin: 50% 12%; }
 
