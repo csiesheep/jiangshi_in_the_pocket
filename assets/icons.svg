@@ -169,6 +169,99 @@
     </g>
   </symbol>
 
+  <!-- THE LANTERN IS THE BODY (#90). Three scenes, one object, because the
+       palette already said so: film tungsten is commented "the lantern: the
+       living's light". These are not items and must not read as item cards; the
+       reveal panel does that job. This is the light you are carrying, and what
+       happens to it is what happened to you.
+
+       Drawn as three DIFFERENT symbols rather than one recoloured, so hue is
+       not carrying the whole load: the silhouettes differ (tipped against
+       upright), the flames differ in size and shape, and the light differs in
+       direction. Any one of the three channels alone should still name it. -->
+
+  <!-- Minus one. The flame knocked down. It survives, which is the point: this
+       costs a heart, it does not end you. Tipped off true, and the only light
+       left is a low pool at the base. -->
+  <symbol id="scene-lamp-guttered" viewBox="0 0 96 96">
+    <g transform="rotate(-13 48 52)">
+      <g stroke="none" fill="#05060a">
+        <path d="M41 17q7 -9 14 0" fill="none" stroke="#05060a" stroke-width="2.4"/>
+        <rect x="35" y="26" width="26" height="5" rx="1.6"/>
+        <path d="M37.5 31h21l2.6 26q.4 6 -6 6H41q-6.4 0 -6 -6z"/>
+        <rect x="36" y="63" width="24" height="5.4" rx="1.7"/>
+      </g>
+      <!-- What is left of it. Small, low, and leaning away from the blow. -->
+      <g stroke="none">
+        <path d="M46.6 52q4.6 3.4 4.2 6.6q-.4 3.2 -4.2 3.2q-3.8 0 -4.2 -3.2q-.4 -3.2 4.2 -6.6z"
+              fill="#c98a4b" opacity=".92"/>
+        <ellipse cx="46.6" cy="59.4" rx="2" ry="2.4" fill="#e8b06a" opacity=".8"/>
+      </g>
+      <!-- The pool it still throws, and no further. -->
+      <ellipse cx="47" cy="66" rx="15" ry="4.6" fill="#c98a4b" opacity=".16" stroke="none"/>
+    </g>
+  </symbol>
+
+  <!-- Plus one. The flame drawn back up. It arrives from BELOW, like a lamp
+       being carried back into the room rather than switched on, which is what
+       the mend scene's own comment has always asked for. Upright, tall, and the
+       light goes up the way nothing else in this film does. -->
+  <symbol id="scene-lamp-risen" viewBox="0 0 96 96">
+    <g stroke="none" fill="#05060a">
+      <path d="M41 15q7 -9 14 0" fill="none" stroke="#05060a" stroke-width="2.4"/>
+      <rect x="35" y="24" width="26" height="5" rx="1.6"/>
+      <path d="M37.5 29h21l2.6 27q.4 6 -6 6H41q-6.4 0 -6 -6z"/>
+      <rect x="36" y="62" width="24" height="5.4" rx="1.7"/>
+    </g>
+    <!-- Tall, steady, and reaching the top of the glass. -->
+    <g stroke="none">
+      <path d="M48 34q7.6 8.4 7.6 14.6q0 7.4 -7.6 7.4q-7.6 0 -7.6 -7.4q0 -6.2 7.6 -14.6z"
+            fill="#c98a4b"/>
+      <path d="M48 41q4 5 4 8.4q0 4.2 -4 4.2q-4 0 -4 -4.2q0 -3.4 4 -8.4z"
+            fill="#e8b06a"/>
+    </g>
+    <!-- Rising. Three strokes of warmth going UP out of the cap, which is the
+         one direction of travel no other scene in the set uses. -->
+    <g stroke="#e8b06a" stroke-linecap="round" fill="none" opacity=".5">
+      <path d="M48 20v-8" stroke-width="2.2"/>
+      <path d="M38 23v-5" stroke-width="1.8" opacity=".7"/>
+      <path d="M58 23v-5" stroke-width="1.8" opacity=".7"/>
+    </g>
+    <ellipse cx="48" cy="66" rx="20" ry="6" fill="#c98a4b" opacity=".22" stroke="none"/>
+  </symbol>
+
+  <!-- 中毒. The flame has gone over to the other light. Upright like mend, so
+       the silhouette alone will not save you, and then everything inside it is
+       wrong: the flame is film moon rather than tungsten, it is squat instead of
+       tall, and the corpse colour is climbing the glass from the BOTTOM while
+       mend's warmth climbs out of the top. Opposite in hue and in direction,
+       which is the confusion that costs a player something. -->
+  <symbol id="scene-lamp-green" viewBox="0 0 96 96">
+    <g stroke="none" fill="#05060a">
+      <path d="M41 15q7 -9 14 0" fill="none" stroke="#05060a" stroke-width="2.4"/>
+      <rect x="35" y="24" width="26" height="5" rx="1.6"/>
+      <path d="M37.5 29h21l2.6 27q.4 6 -6 6H41q-6.4 0 -6 -6z"/>
+      <rect x="36" y="62" width="24" height="5.4" rx="1.7"/>
+    </g>
+    <!-- Coming up the inside of the glass. -->
+    <path d="M38.6 62h18.8l-1.4 -14q-8 3.4 -16 0z" fill="#9fb2ab" opacity=".3" stroke="none"/>
+    <!-- Squat, cold, and sitting low in the housing. -->
+    <g stroke="none">
+      <path d="M48 42q6.4 7.2 6.4 11.4q0 5.4 -6.4 5.4q-6.4 0 -6.4 -5.4q0 -4.2 6.4 -11.4z"
+            fill="#9fb2ab" opacity=".95"/>
+      <path d="M48 48q3.2 3.8 3.2 6q0 3 -3.2 3q-3.2 0 -3.2 -3q0 -2.2 3.2 -6z"
+            fill="#cfe0d8"/>
+    </g>
+    <!-- Two tendrils, reaching. The only green in the film and it is the
+         corpse white moon rather than anything living. -->
+    <g stroke="#9fb2ab" stroke-linecap="round" fill="none" opacity=".42">
+      <path d="M33 60q-5 -6 -2 -12" stroke-width="1.9"/>
+      <path d="M63 60q5 -6 2 -12" stroke-width="1.9"/>
+    </g>
+    <ellipse cx="48" cy="66" rx="17" ry="5" fill="#9fb2ab" opacity=".14" stroke="none"/>
+  </symbol>
+
+
   <symbol id="scene-foyer" viewBox="0 0 96 96">
     <g stroke="none">
       <rect width="96" height="96" fill="#17120e"/>

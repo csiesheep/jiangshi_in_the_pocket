@@ -2512,9 +2512,41 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   height: calc(min(34vmin, 260px) * var(--seat-scale));
   color: var(--muted);
 }
-.evstage-art--hurt   { color: var(--danger); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--danger) 34%, transparent)); }
-.evstage-art--mend   { color: var(--accent); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--accent) 34%, transparent)); }
-.evstage-art--poison { color: var(--accent); opacity: .82; }
+/* THE LANTERN SCENES (#90). The drawings carry their own colour -- explicit
+   fills inside the symbol, the way scene-standing does -- because a <use> clone
+   lives in a shadow tree that document selectors cannot reach. So these classes
+   set no colour; what they set is the GLOW, which is the thing a flat SVG
+   cannot do for itself and the thing that makes a small lantern read at all
+   over a dark room.
+
+   Red is not spent here. --danger used to light the hurt scene when it was a
+   heart and a numeral; the film reserves red for 硃砂 and talisman paper, and
+   the wound is told by the flame going DOWN rather than by anything turning
+   red. */
+/* ON A TILE, THE SUBJECT IS SIZED BY THE ROOM, NOT BY THE WINDOW (#90).
+   .evstage-art is min(34vmin, 260px), which was right when a stage filled the
+   screen: the subject scaled with the viewport because the stage WAS the
+   viewport. The panel is now var(--tile), and those two track different things
+   -- a wide short window gives a small --tile and a large vmin, and the lantern
+   grows straight out of the room it is standing in. The guard caught it as a
+   161px subject in a 96px panel.
+   .68 is not arbitrary: it reproduces exactly what the villager has been
+   rendering at (min(34vmin,260) against --tile at the default viewport), so
+   the figure is untouched and only its ANCHOR changes. */
+.evstage--tile .evstage-art {
+  width: calc(var(--tile) * .68 * var(--seat-scale, 1));
+  height: calc(var(--tile) * .68 * var(--seat-scale, 1));
+}
+
+.evstage-art--hurt {
+  filter: drop-shadow(0 3px 16px color-mix(in srgb, var(--film-tungsten) 30%, transparent));
+}
+.evstage-art--mend {
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--film-tungsten) 46%, transparent));
+}
+.evstage-art--poison {
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--film-moon) 34%, transparent));
+}
 .evstage-art--villager { color: var(--gold); }
 
 /* The number. Not a placeholder any more — it is one of the three ways hurt and

@@ -411,6 +411,19 @@ const SCENES = {
     layer(inner, "ink");
     layer(inner, "tungsten");
     fog(inner, 1);
+    // #90: A SUBJECT, because the wash alone was not an event. Mounted on a
+    // tile these four scenes were weather and nothing else, and a player who
+    // saw one could not say what had happened -- getting poisoned and getting
+    // better were the same picture. The lantern is the body: the palette
+    // already called film tungsten "the lantern: the living's light", and what
+    // happens to the light is what happened to you.
+    //
+    // Seated at 0.62 rather than 1. The tile panel wears a mask that is fully
+    // opaque only to 44% and gone by 80%, so a subject at the villager's scale
+    // would have its edges eaten. Centre-weighted whether the composition wants
+    // it or not.
+    seat(inner, art("scene", "lamp-guttered", "evstage-art--hurt"),
+         { x: 50, y: 50, scale: 0.62 });
     layer(inner, "wound");
     grain(inner, 0.26);
   },
@@ -422,6 +435,12 @@ const SCENES = {
     layer(inner, "ink");
     layer(inner, "warmth");
     fog(inner, 1);
+    // The flame drawn back up, and the warmth leaves the top of the glass. UP
+    // is the direction no other scene in the set travels in, which is half of
+    // what tells this from 中毒 without a caption; the other half is that this
+    // one is tungsten and that one is moon.
+    seat(inner, art("scene", "lamp-risen", "evstage-art--mend"),
+         { x: 50, y: 50, scale: 0.62 });
     grain(inner, 0.2);
   },
 
@@ -433,6 +452,12 @@ const SCENES = {
     layer(inner, "moon");
     layer(inner, "creep");
     fog(inner, 2);
+    // Upright like mend on purpose, so the silhouette alone will not rescue a
+    // player -- and then everything inside is wrong. The flame has gone over to
+    // the other light, it sits squat instead of tall, and the corpse colour
+    // climbs the glass from the BOTTOM while mend's warmth leaves the top.
+    seat(inner, art("scene", "lamp-green", "evstage-art--poison"),
+         { x: 50, y: 50, scale: 0.62 });
     grain(inner, 0.3);
   },
 

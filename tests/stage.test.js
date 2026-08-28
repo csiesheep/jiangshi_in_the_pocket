@@ -1403,6 +1403,131 @@ test("stage: both tile panels dissolve at the same radius (#98)", serial(async (
     `a scene and a find should melt into the room the same way`);
 }));
 
+test("scenes: 中毒, -1 and +1 each have a subject, and it is their own (#90)", serial(async () => {
+  // WHAT IS GUARDED HERE IS THE MECHANISM, NOT THE DRAWING. Whether a picture
+  // is recognisable is perceptual, and a test claiming to measure that would be
+  // measuring something else and reporting it as recognition. These four
+  // properties are the ones that fail INVISIBLY -- each of them turns the
+  // subject off while leaving a scene that still mounts, still animates and
+  // still passes everything else in this file.
+  //
+  // And the instrument is deliberately NOT pairwise separability, which settled
+  // the icons. That asks "are these two different" with both pictures present.
+  // A player sees one scene, once, for about a second, with nothing to compare
+  // it against; poison and mend already passed that test on the day the user
+  // reported they could not tell them apart.
+  const sprite = document.createElement("div");
+  sprite.style.display = "none";
+  sprite.innerHTML = ICON_SVG;
+  document.body.appendChild(sprite);
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const adopted = [...document.adoptedStyleSheets];
+  try {
+    document.adoptedStyleSheets = [...adopted, sheet];
+
+    // The opaque radius of the panel's mask, read from the stylesheet rather
+    // than copied here: --tile-edge holds full black to its second stop and is
+    // gone by the last. Anything outside the first number is being faded, and
+    // anything outside the last is simply not on screen.
+    const edge = css.slice(css.indexOf("--tile-edge:"), css.indexOf("--tile-edge:") + 260);
+    const opaquePct = Number((edge.match(/#000\s+(\d+)%/g) || []).pop().match(/(\d+)%/)[1]);
+    assert(opaquePct > 0, "could not read the mask's opaque radius from --tile-edge");
+
+    const seen = {};
+    for (const kind of ["hurt", "mend", "poison"]) {
+      const done = eventStage(kind, { n: 3, hp: -1 });
+      const el = document.querySelector(".evstage");
+      assert(el, kind + ": no stage mounted");
+      const artNode = el.querySelector("svg.evstage-art");
+      assert(artNode, kind + " has no subject — it is a light wash again, and a wash " +
+        "is weather rather than an event");
+      const use = artNode.querySelector("use");
+      seen[kind] = use && use.getAttribute("href");
+
+      // VISIBLE AT REST. A first keyframe at opacity 0 renders the subject
+      // invisible until the animation ADVANCES, and animations do not advance
+      // in a hidden tab. Nine known members of that family before these three.
+      for (const n of [artNode, artNode.parentElement])
+        for (const a of n.getAnimations()) { try { a.currentTime = 0; a.pause(); } catch (e) {} }
+      eq(getComputedStyle(artNode).opacity, "1",
+        kind + "'s subject starts transparent, so it is invisible in any frame the " +
+        "animation has not reached");
+      eq(getComputedStyle(artNode.parentElement).opacity, "1",
+        kind + "'s seat starts transparent");
+
+      // INSIDE THE MASK. The panel fades to nothing before its edge, so a
+      // subject sized like the villager's would have its corners eaten. The
+      // half-diagonals compare with the root-two cancelling on both sides,
+      // which is why this reduces to a width against the opaque fraction.
+      const pw = parseFloat(getComputedStyle(el).width);
+      const aw = parseFloat(getComputedStyle(artNode).width);
+      assert(pw > 0 && aw > 0, kind + ": could not measure the subject against the panel");
+      assert(aw <= pw * (opaquePct / 100),
+        `${kind}'s subject is ${Math.round(aw)}px in a ${Math.round(pw)}px panel, outside ` +
+        `the mask's ${opaquePct}% opaque radius — its edges are being faded away`);
+
+      el.remove();
+      await done;
+    }
+
+    // THREE SYMBOLS, NOT ONE RECOLOURED. The load-bearing assertion: if these
+    // share a drawing then hue carries the whole burden of telling them apart,
+    // and hue alone is exactly what failed. Getting better and being poisoned
+    // are opposite outcomes and must not be one picture in two colours.
+    const ids = Object.values(seen);
+    assert(ids.every(Boolean), "a scene's subject draws no symbol: " + JSON.stringify(seen));
+    eq(new Set(ids).size, 3,
+      "the three scenes share a drawing (" + JSON.stringify(seen) + ") — hue is then the " +
+      "only thing between 中毒 and +1, which is the failure this replaced");
+  } finally {
+    document.adoptedStyleSheets = adopted;
+    host.remove();
+    sprite.remove();
+    for (const el of document.querySelectorAll(".evstage")) el.remove();
+  }
+}));
+
+test("scenes: nothing stays a wash, and it is the control (#90)", serial(async () => {
+  // THE ONE THAT MUST NOT GAIN A SUBJECT. Its own comment argues harder about
+  // it than about anything else in the file: the room simply watches, and it is
+  // the scene most easily mistaken for the game having failed — which is
+  // literally what happened when it was a black box. It is fixed now by being
+  // LIGHTER, not by having something put in it.
+  //
+  // It is also the control for the three above: they share every layer with it,
+  // so if a change to ink, fog or grain breaks something, this is where it
+  // shows first without a subject to hide behind.
+  const sprite = document.createElement("div");
+  sprite.style.display = "none";
+  sprite.innerHTML = ICON_SVG;
+  document.body.appendChild(sprite);
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  try {
+    const done = eventStage("nothing", {});
+    const el = document.querySelector(".evstage");
+    assert(el, "nothing did not mount");
+    assert(!el.querySelector("svg.evstage-art"),
+      "the nothing scene has gained a subject — an event that is defined by nothing " +
+      "arriving must not have something arrive in it");
+    assert(el.querySelector(".evs-candle") && el.querySelector(".evs-watch"),
+      "the nothing scene lost the candle or the watch, which are what it IS");
+    el.remove();
+    await done;
+  } finally {
+    host.remove();
+    sprite.remove();
+    for (const el of document.querySelectorAll(".evstage")) el.remove();
+  }
+}));
+
 // ---- The sprite sheet itself (#65) ---------------------------------------------
 
 test("icons: the sprite sheet is well-formed XML", () => {
