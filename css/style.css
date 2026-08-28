@@ -3254,10 +3254,124 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
      would make him the pack, which is the one thing he is not. */
   animation: king-step 2.4s cubic-bezier(.33,.02,.4,1) both;
 }
+/* ---- 陰氣, and what is in it (#99) ---------------------------------------------
+   ONE RED IN THE FRAME. The 佛珠 and the ring eyes are the only colour on him,
+   and they are the SAME colour, defined once here. Three reds arriving from
+   three places would be an accident; one material red used three times is a
+   decision.
+
+   It is deliberately not the danger token, which is what this game paints the
+   hurt numeral and the hearts in. That colour means "you are losing health",
+   and on a full-screen figure a mala in it would read as a status cue rather
+   than as an object. This is the family 硃砂 and 血符 already use: a mineral
+   and a pigment, not a warning.
+
+   Custom properties INHERIT INTO A SHADOW TREE, which is why the symbols can
+   read it through var() even though no document selector can reach inside a
+   <use>. It is the one channel that crosses. */
+.kingscene { --king-red: #8a2118; }
+
+/* The smoke. Wider than he is and rising above his head, with no hard outline
+   anywhere: three overlapping radial washes that reach transparent, so the mass
+   frays at every edge instead of ending. */
+.king-miasma {
+  position: absolute;
+  /* Bigger than the frame. The eyes are scattered across the whole width
+     now, and smoke that only covered the middle left the outer ones
+     hanging in plain darkness instead of opening INSIDE something. */
+  inset: -30%;
+  pointer-events: none;
+  /* PALE, NOT BLACK, and that is the correction the render forced. The
+     reference's smoke is black because its ground is white; this scene's ground
+     is already black, so black smoke on it is invisible and, worse, the ten
+     black hands standing in it disappeared completely. Not one was on screen.
+     The smoke is the LIGHT here and the hands are the dark in it — the same
+     relationship as the reference, arrived at from the other side. */
+  background:
+    radial-gradient(58% 52% at 50% 40%, rgba(150,166,158,.22), rgba(120,136,130,.1) 54%, transparent 78%),
+    radial-gradient(40% 32% at 26% 52%, rgba(132,148,142,.14), transparent 70%),
+    radial-gradient(40% 32% at 74% 50%, rgba(132,148,142,.14), transparent 70%);
+  animation: king-breathe 2.4s ease-out both;
+}
+@keyframes king-breathe {
+  0%   { transform: scale(1.06); opacity: .55; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+/* The hands and the eyes sit behind him and fill the frame: he is unmasked and
+   full screen, so they may spread as wide as the window. */
+.king-hands .king-art--behind { width: min(88vmin, 800px); height: min(88vmin, 800px); }
+.king-hands, .king-eyes {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+/* Square-ish, to match the 200x200 canvas these two are drawn on, so the
+   letterboxing does not squeeze ten hands back onto his shoulders. */
+.king-art--behind {
+  display: block;
+  width: min(86vmin, 780px);
+  height: min(86vmin, 780px);
+}
+.king-hands { animation: king-reach 2.4s cubic-bezier(.3,.05,.3,1) both; }
+@keyframes king-reach {
+  0%   { transform: translate(-50%, -50%) scale(.9);  opacity: .35; }
+  62%  { transform: translate(-50%, -50%) scale(.96); opacity: .8; }
+  100% { transform: translate(-50%, -50%) scale(1.02); opacity: 1; }
+}
+
+/* THE EYES OPEN. This one holds near zero and then blooms, and that is the
+   composition rather than the frozen-animation bug: the note beside evs-warmth
+   draws the line at INTENT, and a hold that is the whole point of the shot is
+   the case it protects. He is the set-piece; his figure is already visible from
+   frame one at .3, so a tab that never advances still shows a jiangshi in the
+   dark, and what it loses is the eyes arriving rather than the scene. */
+.king-eyes--deep .king-art--behind { width: min(98vmin, 900px); height: min(98vmin, 900px); }
+.king-eyes--deep { filter: blur(1.5px); animation: king-open 2.4s ease-out both; }
+.king-eyes--near { animation: king-open 2.4s ease-out 140ms both; }
+@keyframes king-open {
+  0%   { opacity: .04; }
+  46%  { opacity: .1; }
+  74%  { opacity: .74; }
+  100% { opacity: .92; }
+}
+.evstage--still .king-miasma,
+.evstage--still .king-hands,
+.evstage--still .king-eyes { animation: none; opacity: 1; }
+.evstage--still .king-hands { transform: translate(-50%, -50%) scale(1.02); }
+
+/* 佛珠. Exactly over him, and moving a beat behind: the same arc, started
+   later and settled later, so on the way up the beads trail and on the landing
+   they keep going for a moment after he has stopped. A string of beads that
+   moved in perfect lockstep with the body would look painted on.
+
+   It is the only colour in the frame and it is a MATERIAL red, not --danger:
+   see the symbol for why that distinction matters here. */
+.king-mala {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  animation: king-step 2.4s cubic-bezier(.33,.02,.4,1) 90ms both,
+             king-sway 2.4s cubic-bezier(.3,.1,.3,1) both;
+}
+@keyframes king-sway {
+  0%   { rotate: 0deg; }
+  52%  { rotate: 0deg; }
+  70%  { rotate: -2.4deg; }
+  88%  { rotate: 1.8deg; }
+  100% { rotate: 0deg; }
+}
+.evstage--still .king-mala { animation: none; transform: translate(-50%, -50%); }
+
 .king-art {
   display: block;
-  width: min(30vmin, 260px);
-  height: min(48vmin, 420px);
+  /* Larger than he was: he is the set-piece of the whole night and he sat
+     small in a frame full of eyes. */
+  width: min(38vmin, 330px);
+  height: min(60vmin, 520px);
   color: #d7d9de;
   opacity: .9;
   filter: drop-shadow(0 0 34px rgba(0, 0, 0, .96)) contrast(1.08);
@@ -3318,7 +3432,8 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .king-dark, .king-bow, .king-frost, .king-weave, .king-shadow, .king-fig {
+  .king-dark, .king-bow, .king-frost, .king-weave, .king-shadow, .king-fig,
+  .king-mala, .king-miasma, .king-hands, .king-eyes {
     animation: none;
     opacity: 1;
   }

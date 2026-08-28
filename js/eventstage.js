@@ -200,18 +200,43 @@ function buildKing(inner, ctx) {
   // The shadow is built FIRST and is full from the opening frame — it is the
   // layer that arrives before the man, and he resolves out of the dark behind
   // it a beat later.
-  for (const part of ["shadow", "dark", "bow", "frost", "weave"]) {
+  // 陰氣 first, then what is in it, then him. The miasma is a CSS layer like
+  // the others; the hands and the eyes are drawings, so they come through the
+  // sheet. Order is depth: smoke, deep eyes, hands, near eyes, then the man.
+  for (const part of ["shadow", "dark", "bow", "frost", "weave", "miasma"]) {
     const n = document.createElement("span");
     n.className = `king-${part}`;
     n.setAttribute("aria-hidden", "true");
     inner.appendChild(n);
   }
+  for (const [cls, sym] of [["king-eyes king-eyes--deep", "eyes"],
+                           ["king-hands", "hands"],
+                           ["king-eyes king-eyes--near", "eyes"]]) {
+    const n = document.createElement("span");
+    n.className = cls;
+    n.setAttribute("aria-hidden", "true");
+    const a = icon("king", sym, "king-art king-art--behind");
+    if (a) { n.appendChild(a); inner.appendChild(n); }
+  }
+
   const fig = document.createElement("span");
   fig.className = "king-fig";
   fig.setAttribute("aria-hidden", "true");
   const art = icon("king", "figure", "king-art");
   if (art) fig.appendChild(art);
   inner.appendChild(fig);
+
+  // 佛珠, mounted as its own layer rather than inside his symbol. It hangs on a
+  // man who rises and lands, so it has to move OUT OF TIME with him, and CSS
+  // cannot reach inside a <use> shadow tree to animate one part of a drawing.
+  const mala = document.createElement("span");
+  mala.className = "king-mala";
+  mala.setAttribute("aria-hidden", "true");
+  const beads = icon("king", "mala", "king-art king-art--mala");
+  if (beads) {
+    mala.appendChild(beads);
+    inner.appendChild(mala);
+  }
   grain(inner, 0.22);
 }
 

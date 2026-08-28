@@ -433,10 +433,18 @@ function repeatingAnimations(cssText, selectorFilter) {
       if (selectorFilter && !selectorFilter(r.selectorText || "")) continue;
       const s = r.style;
       const bad = [];
-      // "1" and "" are the only acceptable counts. Anything else runs the
+      // PER ANIMATION, NOT PER RULE. These properties are comma-separated LISTS
+      // when an element carries more than one animation, and the first version
+      // of this compared the whole list against "1" — so an element running two
+      // animations, each exactly once, reported `iteration-count: 1, 1` and was
+      // failed as a strobe. That is the guard reading a string where it meant to
+      // read a property, and it flagged a correct rule the day one arrived.
+      //
+      // "1" and "" are still the only acceptable counts. Anything else runs the
       // brightness change more than once, including a plain 2.
-      if (s.animationIterationCount && !["1", ""].includes(s.animationIterationCount)) {
-        bad.push("iteration-count: " + s.animationIterationCount);
+      const each = (v) => String(v || "").split(",").map((x) => x.trim());
+      for (const n of each(s.animationIterationCount)) {
+        if (!["1", ""].includes(n)) bad.push("iteration-count: " + n);
       }
       if (s.animationDirection && s.animationDirection.includes("alternate")) {
         bad.push("direction: " + s.animationDirection);

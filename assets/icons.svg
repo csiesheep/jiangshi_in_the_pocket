@@ -1347,6 +1347,23 @@
         <stop offset=".55" stop-color="#dbe6df" stop-opacity=".16"/>
         <stop offset="1" stop-color="#dbe6df" stop-opacity="0"/>
       </radialGradient>
+      <!-- the shadow a brow SHELF throws down into the sockets: strongest
+           right under the ridge, gone by the cheekbone -->
+      <!-- Fades in AND out. The first version of this started opaque at its
+           top edge, so the rectangle carrying it drew a hard line straight
+           across the face and the head read as a helmet with a brim. That is
+           the third time a shading gradient has been given a hard edge in this
+           drawing: a shadow ends at transparent at BOTH ends, always. -->
+      <linearGradient id="kgShelf" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0b0f0d" stop-opacity="0"/>
+        <stop offset=".3" stop-color="#0b0f0d" stop-opacity=".78"/>
+        <stop offset=".62" stop-color="#0b0f0d" stop-opacity=".34"/>
+        <stop offset="1" stop-color="#0b0f0d" stop-opacity="0"/>
+      </linearGradient>
+      <radialGradient id="kgHollow" cx="50%" cy="35%" r="62%">
+        <stop offset="0" stop-color="#121715" stop-opacity=".8"/>
+        <stop offset="1" stop-color="#161c19" stop-opacity="0"/>
+      </radialGradient>
       <linearGradient id="kgBrow" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="#202723" stop-opacity="0"/>
         <stop offset=".42" stop-color="#202723" stop-opacity=".62"/>
@@ -1362,7 +1379,7 @@
         <stop offset="1" stop-color="#1d2320" stop-opacity="0"/>
       </radialGradient>
       <radialGradient id="kgCheek" cx="50%" cy="40%" r="60%">
-        <stop offset="0" stop-color="#b9c8bf" stop-opacity=".34"/>
+        <stop offset="0" stop-color="#c6d4cb" stop-opacity=".52"/>
         <stop offset="1" stop-color="#b9c8bf" stop-opacity="0"/>
       </radialGradient>
       <linearGradient id="kgPanel" x1="0" y1="0" x2=".4" y2="1">
@@ -1494,47 +1511,53 @@
          wedges for the temple, brow and cheeks; at head crop they read as chips
          out of the bone and a headband across the forehead. Every shading shape
          here is a curve that follows the form under it. -->
-    <path d="M60 16c7.4 0 12 5.8 12.4 13.4c.5 8.4 -1.6 15.4 -4.8 21.4c-2.2 4.2 -4.6 6.6 -7.6 6.6s-5.4 -2.4 -7.6 -6.6c-3.2 -6 -5.3 -13 -4.8 -21.4c.4 -7.6 5 -13.4 12.4 -13.4z"
+    <path d="M60 18c8 0 11 5 11 12c0 5 3 9 4 14c.6 4.5 -3 10 -7.5 13.5c-2.5 2 -5.1 3 -7.5 3s-5 -1 -7.5 -3c-4.5 -3.5 -8.1 -9 -7.5 -13.5c1 -5 4 -9 4 -14c0 -7 3 -12 11 -12z"
           fill="url(#kgSkull)"/>
     <!-- the crown, lit from behind and above. A radial wash CLIPPED TO THE
          SKULL, so it can never show an edge the head does not have. -->
     <clipPath id="kgSkullClip">
-      <path d="M60 16c7.4 0 12 5.8 12.4 13.4c.5 8.4 -1.6 15.4 -4.8 21.4c-2.2 4.2 -4.6 6.6 -7.6 6.6s-5.4 -2.4 -7.6 -6.6c-3.2 -6 -5.3 -13 -4.8 -21.4c.4 -7.6 5 -13.4 12.4 -13.4z"/>
+      <path d="M60 18c8 0 11 5 11 12c0 5 3 9 4 14c.6 4.5 -3 10 -7.5 13.5c-2.5 2 -5.1 3 -7.5 3s-5 -1 -7.5 -3c-4.5 -3.5 -8.1 -9 -7.5 -13.5c1 -5 4 -9 4 -14c0 -7 3 -12 11 -12z"/>
     </clipPath>
     <g clip-path="url(#kgSkullClip)">
-      <ellipse cx="59" cy="24" rx="15" ry="13" fill="url(#kgCrown)"/>
+      <ellipse cx="59" cy="27" rx="13" ry="12" fill="url(#kgCrown)"/>
       <!-- temples: a soft darkening INSIDE the silhouette. The wedges that
            were here read as horns. -->
-      <ellipse cx="46.5" cy="34" rx="6" ry="9" fill="url(#kgTemple)"/>
-      <ellipse cx="73.5" cy="34" rx="6" ry="9" fill="url(#kgTemple)"/>
+      <ellipse cx="47.5" cy="33" rx="5.5" ry="8" fill="url(#kgTemple)"/>
+      <ellipse cx="72.5" cy="33" rx="5.5" ry="8" fill="url(#kgTemple)"/>
       <!-- the brow, fading downward instead of ending in a line -->
       <path d="M46 28h28v15H46z" fill="url(#kgBrow)"/>
-      <!-- cheekbones as soft light rather than lit slivers -->
-      <ellipse cx="50.5" cy="46.5" rx="5" ry="3.6" fill="url(#kgCheek)"/>
-      <ellipse cx="69.5" cy="46.5" rx="5" ry="3.6" fill="url(#kgCheek)"/>
+      <!-- THE SHELF. A dried face is bone with skin over it: the ridge stands
+           proud and drops a shadow into the eye. This is the shadow. -->
+      <path d="M47 33h26v18H47z" fill="url(#kgShelf)"/>
+      <!-- cheekbones: the widest light on the face now, with the hollow
+           under them doing as much work as the highlight -->
+      <ellipse cx="49.5" cy="45" rx="6.2" ry="3.8" fill="url(#kgCheek)"/>
+      <ellipse cx="70.5" cy="45" rx="6.2" ry="3.8" fill="url(#kgCheek)"/>
+      <ellipse cx="52" cy="52.5" rx="6" ry="4.6" fill="url(#kgHollow)"/>
+      <ellipse cx="68" cy="52.5" rx="6" ry="4.6" fill="url(#kgHollow)"/>
     </g>
     <!-- the ridge of the brow still catches a hard line of light, because bone
          under skin does. It is short and it sits ON the curve. -->
-    <g fill="#c2d0c8" opacity=".34">
-      <path d="M49.8 34.6c2.4 -1.5 5 -2.3 7.8 -2.5c0 .5 0 1 -.1 1.5c-2.6 .2 -5 1 -7.2 2.3c-.2 -.4 -.4 -.9 -.5 -1.3z"/>
-      <path d="M70.2 34.6c-2.4 -1.5 -5 -2.3 -7.8 -2.5c0 .5 0 1 .1 1.5c2.6 .2 5 1 7.2 2.3c.2 -.4 .4 -.9 .5 -1.3z"/>
+    <g fill="#c2d0c8" opacity=".26">
+      <path d="M50 34.6c2.3 -1.4 4.8 -2.2 7.4 -2.4c0 .4 0 .9 -.1 1.3c-2.4 .2 -4.7 .9 -6.8 2.1c-.2 -.3 -.4 -.7 -.5 -1z"/>
+      <path d="M70 34.6c-2.3 -1.4 -4.8 -2.2 -7.4 -2.4c0 .4 0 .9 .1 1.3c2.4 .2 4.7 .9 6.8 2.1c.2 -.3 .4 -.7 .5 -1z"/>
     </g>
-    <!-- SOCKETS. Closer together, smaller and set deeper: wide-set eyes on a
-         broad cranium is the alien face, and the reference is a dried man. -->
+    <!-- SOCKETS. In the reference the eyes are ALMOST LOST inside dark
+         hollows. The catchlights here were the brightest thing on the whole
+         face, which made them read as open and wet — the one detail that kept
+         the head looking like a grey alien rather than a dried man. They are
+         now the smallest and dimmest highlight on him: just enough that the
+         sockets are eyes rather than holes, and no more. -->
     <g>
-      <path d="M54.5 36.4c2.9 0 4.9 2 4.9 4.4c0 2.4 -2 4.2 -4.9 4.2c-2.9 0 -4.9 -1.8 -4.9 -4.2c0 -2.4 2 -4.4 4.9 -4.4z" fill="#2a322e"/>
-      <path d="M65.5 36.4c2.9 0 4.9 2 4.9 4.4c0 2.4 -2 4.2 -4.9 4.2c-2.9 0 -4.9 -1.8 -4.9 -4.2c0 -2.4 2 -4.4 4.9 -4.4z" fill="#232a27"/>
-      <ellipse cx="54.7" cy="41.4" rx="3.1" ry="2.6" fill="#080b0d"/>
-      <ellipse cx="65.7" cy="41.4" rx="3.1" ry="2.6" fill="#05080a"/>
-      <path d="M51.6 41.4c0 -1.4 1.4 -2.6 3.1 -2.6s3.1 1.2 3.1 2.6c-.9 -1 -2 -1.4 -3.1 -1.4s-2.2 .4 -3.1 1.4z" fill="#1b211e" opacity=".9"/>
-      <path d="M62.6 41.4c0 -1.4 1.4 -2.6 3.1 -2.6s3.1 1.2 3.1 2.6c-.9 -1 -2 -1.4 -3.1 -1.4s-2.2 .4 -3.1 1.4z" fill="#171c1a" opacity=".9"/>
-      <ellipse cx="55.8" cy="40.5" rx="1.1" ry=".9" fill="#e2ece6" opacity=".82"/>
-      <ellipse cx="66.8" cy="40.5" rx="1" ry=".8" fill="#e2ece6" opacity=".6"/>
-    </g>
-    <!-- the hollow under each cheekbone, soft, clipped to the head -->
-    <g clip-path="url(#kgSkullClip)">
-      <ellipse cx="51" cy="51.5" rx="4.6" ry="3" fill="url(#kgTemple)"/>
-      <ellipse cx="69" cy="51.5" rx="4.6" ry="3" fill="url(#kgTemple)"/>
+      <path d="M54.5 37.4c2.7 0 4.6 1.9 4.6 4.2c0 2.3 -1.9 4 -4.6 4c-2.7 0 -4.6 -1.7 -4.6 -4c0 -2.3 1.9 -4.2 4.6 -4.2z" fill="#1e2522"/>
+      <path d="M65.5 37.4c2.7 0 4.6 1.9 4.6 4.2c0 2.3 -1.9 4 -4.6 4c-2.7 0 -4.6 -1.7 -4.6 -4c0 -2.3 1.9 -4.2 4.6 -4.2z" fill="#191f1c"/>
+      <ellipse cx="54.7" cy="42.2" rx="2.9" ry="2.4" fill="#05070a"/>
+      <ellipse cx="65.7" cy="42.2" rx="2.9" ry="2.4" fill="#030507"/>
+      <!-- the lid shadow comes further down, so the eye is under an overhang -->
+      <path d="M51.8 42.2c0 -1.6 1.3 -2.9 2.9 -2.9s2.9 1.3 2.9 2.9c-.9 -1.2 -1.9 -1.8 -2.9 -1.8s-2 .6 -2.9 1.8z" fill="#121714" opacity=".95"/>
+      <path d="M62.8 42.2c0 -1.6 1.3 -2.9 2.9 -2.9s2.9 1.3 2.9 2.9c-.9 -1.2 -1.9 -1.8 -2.9 -1.8s-2 .6 -2.9 1.8z" fill="#0f1411" opacity=".95"/>
+      <ellipse cx="55.5" cy="41.6" rx=".62" ry=".5" fill="#8d9b94" opacity=".5"/>
+      <ellipse cx="66.5" cy="41.6" rx=".55" ry=".45" fill="#8d9b94" opacity=".36"/>
     </g>
     <!-- NOSE. LONGER, with a base. The short ridge of the last pass left a
          smooth blank between the eyes and the mouth, which was most of what
@@ -1578,6 +1601,132 @@
     <g opacity="var(--king-face, 1)">
       <path d="M53.6 40.4h.01M66.4 40.4h.01" stroke="#0d1113" stroke-width=".2" fill="none"/>
     </g>
+    </g>
+  </symbol>
+
+  <!-- 佛珠, the mala (#99). A separate symbol from king-figure because it MOVES
+       SEPARATELY: it hangs on a man who rises and lands, so it is the one part
+       of him that should be out of time with the rest, and CSS cannot reach
+       inside a <use> shadow tree to animate a part of it.
+
+       THE RED IS A MATERIAL, NOT THE INTERFACE. The danger token (#ef6449) is
+       what the hurt numeral and the hearts are painted in: in this game that
+       colour means "you are losing health", and a mala in it on a full screen
+       figure would read as a status cue rather than an object. This is old
+       lacquer, from the family 硃砂 and 血符 already use, #5c150f to #c33a26,
+       which is a mineral and a pigment rather than a warning.
+
+       IT IS BROKEN, and that is the point rather than a detail. Prayer beads on
+       a jiangshi are a BINDING: the thing a monk put on him to hold him. The
+       left arm hangs its full length; the right one stops partway, its cord
+       parted and everything past the break gone. What was tied on him has given
+       way, which is why he is loose in the village tonight. -->
+  <!-- 陰氣: the hands and the eyes behind him (#99). Two symbols rather than
+       one, because they sit at different depths and move differently.
+
+       THE HANDS are pure silhouette. In the reference they carry no modelling
+       and no light at all, and that is what makes them read as things coming
+       out of the dark rather than as figures standing in it. Ten of them, at
+       every angle, larger nearer the front, each a forearm and a clawed hand
+       that emerges from the smoke rather than being attached to anything. -->
+  <symbol id="king-hands" viewBox="0 0 200 200">
+    <g stroke="none" fill="#080c11">
+      <g transform="translate(34 78) rotate(-41) scale(1.55)" opacity="0.95"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(162 92) rotate(28) scale(1.35)" opacity="0.92"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(18 124) rotate(-66) scale(1.3)" opacity="0.88"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(188 118) rotate(49) scale(1.5)" opacity="0.9"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(56 50) rotate(-17) scale(1.1)" opacity="0.84"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(142 44) rotate(9) scale(1.28)" opacity="0.8"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(78 26) rotate(-5) scale(0.86)" opacity="0.74"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(120 36) rotate(19) scale(0.72)" opacity="0.72"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(24 172) rotate(-85) scale(1.18)" opacity="0.66"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(180 160) rotate(71) scale(1.05)" opacity="0.62"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+      <g transform="translate(98 14) rotate(6) scale(0.66)" opacity="0.56"><path d="M-2.6 -.4h5.2l1.4 30h-8z"/><path d="M0 0c-2.4 0 -3.7 -1.5 -3.7 -3.3c0 -1.3 .4 -2.5 1 -3.5l-2.3 -5.3c-.3 -.8 .1 -1.6 .9 -1.8c.7 -.2 1.5 .2 1.7 .9l1.7 4.1l-.7 -6.3c-.1 -.9 .5 -1.7 1.4 -1.7c.8 0 1.5 .6 1.5 1.5l.3 6.1l.9 -6c.1 -.9 .9 -1.5 1.7 -1.3c.8 .1 1.4 .9 1.2 1.7l-1 6.1l1.9 -4.5c.3 -.7 1.1 -1 1.8 -.7c.7 .3 1 1.1 .7 1.8l-2.7 6.1c.5 .9 .8 2 .8 3.1c0 1.8 -1.3 3.3 -3.7 3.3z"/></g>
+    </g>
+  </symbol>
+
+  <!-- THE EYES. Concentric RINGS and not eyeballs: two circles each, which is
+       exactly how the reference draws them and is why they read as eyes opening
+       in the dark rather than as lamps. Thirteen, at varying sizes and depths,
+       the largest above and behind his head.
+
+       They take the same red as the 佛珠 through a custom property, because
+       there is ONE red in this frame. Three reds arriving separately would be
+       an accident; one material red used three times is a decision. -->
+  <symbol id="king-eyes" viewBox="0 0 200 200">
+    <g>
+      <g opacity="0.95" transform="translate(100 20) scale(1 1.0)"><circle r="7.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.12"/><circle r="2.1" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.84" transform="translate(38 52) scale(1 0.86)"><circle r="5.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.04"/><circle r="1.7" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.82" transform="translate(164 46) scale(1 1.12)"><circle r="4.8" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.15"/><circle r="1.7" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.74" transform="translate(18 86) scale(1 0.92)"><circle r="4.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.67"/><circle r="1.6" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.74" transform="translate(184 92) scale(1 1.06)"><circle r="4.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.8"/><circle r="1.2" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.68" transform="translate(58 28) scale(1 0.8)"><circle r="3.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.82"/><circle r="1.11" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.68" transform="translate(146 22) scale(1 1.16)"><circle r="3.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.51"/><circle r="1.13" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.6" transform="translate(10 128) scale(1 0.9)"><circle r="3.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.68"/><circle r="1.29" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.6" transform="translate(192 134) scale(1 1.04)"><circle r="3.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.77"/><circle r="0.96" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.54" transform="translate(34 166) scale(1 0.88)"><circle r="2.8" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.45"/><circle r="0.91" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.54" transform="translate(168 170) scale(1 1.1)"><circle r="2.6" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.52"/><circle r="0.92" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.48" transform="translate(72 8) scale(1 0.95)"><circle r="2.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.58"/><circle r="0.91" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.48" transform="translate(128 6) scale(1 1.0)"><circle r="2.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.35"/><circle r="0.66" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.44" transform="translate(120 150) scale(1 0.9)"><circle r="2.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.4"/><circle r="0.65" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.44" transform="translate(80 158) scale(1 1.08)"><circle r="1.9" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.46"/><circle r="0.67" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+    </g>
+  </symbol>
+
+  <symbol id="king-mala" viewBox="0 0 120 200">
+    <defs>
+      <radialGradient id="kmBead" cx="34%" cy="30%" r="74%">
+        <stop offset="0" stop-color="#a8402c"/>
+        <stop offset=".42" stop-color="var(--king-red, #8a2118)"/>
+        <stop offset="1" stop-color="#38100c"/>
+      </radialGradient>
+    </defs>
+    <g stroke="none">
+      <g fill="none" stroke="#2b0e0a" stroke-width=".9" opacity=".9">
+        <path d="M51.0 57.5 L50.05 61.18 L49.38 64.8 L48.97 68.38 L48.82 71.9 L48.95 75.38 L49.34 78.8 L50.01 82.17 L50.94 85.5 L52.13 88.78 L53.6 92.0"/>
+        <path d="M69.0 57.5 L69.98 60.72 L70.77 63.78 L71.36 66.68 L71.75 69.42 L71.95 72.0"/>
+      </g>
+      <!-- THE BREAK, made legible. A short frayed cord and then nothing: the
+           gap where the rest of the string should be is the whole statement,
+           so it is left empty rather than filled with scattered beads. -->
+      <g fill="none" stroke="#341210" stroke-width=".7" opacity=".9">
+        <path d="M71.95 72.0q1.7 2.6 .5 5.6"/>
+        <path d="M71.95 72.0q-1.3 2.8 -2.9 4.6"/>
+      </g>
+        <circle cx="51.0" cy="57.5" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="50.05" cy="61.18" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="49.38" cy="64.8" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="48.97" cy="68.38" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="48.82" cy="71.9" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="48.95" cy="75.38" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="49.34" cy="78.8" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="50.01" cy="82.17" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="50.94" cy="85.5" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="52.13" cy="88.78" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="53.6" cy="92.0" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="69.0" cy="57.5" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="69.98" cy="60.72" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="70.77" cy="63.78" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="71.36" cy="66.68" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="71.75" cy="69.42" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="71.95" cy="72.0" r="1.5" fill="url(#kmBead)"/>
+        <circle cx="50.55" cy="57.0" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="49.6" cy="60.68" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="48.93" cy="64.3" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="48.52" cy="67.88" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="48.37" cy="71.4" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="48.5" cy="74.88" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="48.89" cy="78.3" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="49.56" cy="81.67" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="50.49" cy="85.0" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="51.68" cy="88.28" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="53.15" cy="91.5" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="68.55" cy="57.0" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="69.53" cy="60.22" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="70.32" cy="63.28" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="70.91" cy="66.18" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="71.3" cy="68.92" r=".45" fill="#e08a70" opacity=".38"/>
+        <circle cx="71.5" cy="71.5" r=".45" fill="#e08a70" opacity=".38"/>
     </g>
   </symbol>
 
