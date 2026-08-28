@@ -10,10 +10,30 @@ DO NOT TAKE THAT ON FAITH; IT IS ONE COMMAND:
 
     python tools/make_zh.py ; echo $?
 
-Six lines of explanation and exit 1. Both theme files byte-identical after.
+Six lines of explanation and exit 1. It writes nothing, anywhere.
+
+AND THE PATHS ARE ABSOLUTE, POINTING AT A DIFFERENT WORKTREE:
+
+    BASE / OUT  ->  ...\jiangshi_in_the_pocket-fe\data\...
+
+So it reads exactly one file — -fe's theme.json, before the exit — and never
+reads or writes the tree you ran it from. Checkable the same way: run it from a
+directory with no data/ folder at all and it still prints the same six lines and
+exits 1.
+
+That is harmless while it dies at the nouns. IT STOPS BEING HARMLESS FOR THE
+PERSON THE EXIT MESSAGE INVITES — someone who rewrites this the other way round
+and fixes strip_gloss first inherits a script that silently writes into another
+checkout. A foot-gun aimed precisely at the reader this file is addressed to.
+
+An earlier draft of this paragraph said "both theme files byte-identical after",
+which is true and misleading: it invites the reader to think the script read
+them and declined to write. It never touches them. Precision about WHY a check
+passes is worth as much as the check.
+
 The previous docstring said "NOT the source of truth any more", which is also
-true and helped nobody, because it is a claim a reader can only believe. This
-one is a claim a reader can RUN — and the difference is the whole reason the
+true and helped nobody, because it is a claim a reader can only believe. These
+are claims a reader can RUN — and the difference is the whole reason the
 paragraph exists.
 
 Stated as the MECHANISM rather than as a line number or a count of dead lines,
