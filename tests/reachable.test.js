@@ -32,7 +32,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "7aff7b49");
+suite(import.meta.url, "ab5ca996");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -94,9 +94,22 @@ const BUFF_REACHABLE = reachable("buffSword");
 // successfully — so the pack limit, the one-blade hand and the uniqueness rules
 // all constrain the answer instead of being assumed away.
 function assembledAttacks({ withBuff, only = null }) {
+  // ONE GATE, NOT FOUR. `only` used to be applied in four places — the sword
+  // filter, the talisman filter, the buff and the banner — and a test that
+  // dropped a SWORD exercised exactly one of them. Breaking the talisman filter
+  // alone left the whole suite green: a HALF-decorative restriction is
+  // invisible, which is the same shape as the vacuity the restriction guard was
+  // written to catch.
+  //
+  // Four copies of a check is four places to forget. Every acquisition goes
+  // through take() now, so there is one place the restriction can be wrong and
+  // one probe is enough to prove it binds. A fifth gate cannot be added without
+  // passing through here.
   const allowed = (id) => !only || only.has(id);
-  const swords = items.filter((i) => i.cat === "weapon" && allowed(i.id));
-  const talismans = items.filter((i) => i.cat === "magic" && i.attack && allowed(i.id));
+  const take = (s, id) => (allowed(id) ? E.pickUpItem(s, id) : { ok: false, reason: "not-allowed" });
+
+  const swords = items.filter((i) => i.cat === "weapon");
+  const talismans = items.filter((i) => i.cat === "magic" && i.attack);
   const out = [];
 
   for (const sword of swords) {
@@ -108,19 +121,13 @@ function assembledAttacks({ withBuff, only = null }) {
         // to be DONE rather than waved at, or the pack stops constraining.
         for (const id of E.heldIds(s).slice()) E.dropItem(s, id, E.heldCount(s, id));
 
-        if (!E.pickUpItem(s, sword.id).ok) continue;
+        if (!take(s, sword.id).ok) continue;
         if (withBuff) {
-          // Gated by `only` like everything else. Both of these are in the
-          // search tables today, so the restriction changes nothing — which is
-          // exactly why they must be gated anyway: make either one a villager's
-          // gift tomorrow and this notices instead of quietly assuming it.
-          if (!allowed("truefire-talisman")) continue;
-          if (!E.pickUpItem(s, "truefire-talisman").ok) continue;
+          if (!take(s, "truefire-talisman").ok) continue;
           if (!E.buffSword(s, sword.id).ok) continue;
         }
-        if (banner && !allowed("soul-banner")) continue;
-        if (banner && !E.pickUpItem(s, "soul-banner").ok) continue;
-        if (tal && !E.held(s, tal.id) && !E.pickUpItem(s, tal.id).ok) continue;
+        if (banner && !take(s, "soul-banner").ok) continue;
+        if (tal && !E.held(s, tal.id) && !take(s, tal.id).ok) continue;
 
         // Only spend what is genuinely in hand or pack at this moment.
         const useBanner = banner && E.held(s, "soul-banner");
@@ -135,7 +142,32 @@ function assembledAttacks({ withBuff, only = null }) {
   return out;
 }
 
-const playerCeiling = Math.max(...assembledAttacks({ withBuff: BUFF_REACHABLE }));
+// THE BEST A PLAYER CAN DO, over buffed AND unbuffed loadouts.
+//
+// This used to be assembledAttacks({ withBuff: BUFF_REACHABLE }) alone, which
+// is a different question: "the best loadout that HAS the buff". Those agree
+// today, because the buff only ever adds, so the buffed maximum is the overall
+// maximum — and they agree in a way that hides a hole.
+//
+// Restrict 真火符 away — precisely the case the restriction exists for, if it
+// ever became a villager's gift — and the buffed arm has NO loadouts at all,
+// because every candidate `continue`s at the buff. Math.max of nothing is
+// -Infinity, so the invariant would have failed with "a player who refuses
+// every villager tops out lower than one who accepts": true, and useless. The
+// answer a reader needs there is the best UNBUFFED kit a refuser can still
+// assemble, which is a number somebody can act on.
+//
+// The function was not wrong. "None" is an honest answer to "which ceilings are
+// reachable WITH the buff". The caller was asking it the wrong question.
+function ceilingFor(only) {
+  const arms = BUFF_REACHABLE ? [false, true] : [false];
+  const all = arms.flatMap((withBuff) => assembledAttacks({ withBuff, only }));
+  // No loadout at all means no blade: that is bare-handed, and START_ATTACK is
+  // the honest floor rather than an absent number.
+  return all.length ? Math.max(...all) : E.RULES.START_ATTACK;
+}
+
+const playerCeiling = ceilingFor(null);
 
 // ---- The invariant --------------------------------------------------------
 
@@ -216,13 +248,31 @@ const VILLAGER_ONLY = [...GIFTS].filter((id) => !SEARCHABLE.has(id)).sort();
 //
 // So that is a test now rather than something someone thought to try once.
 test("§13: the item restriction actually restricts", () => {
-  const full = Math.max(...assembledAttacks({ withBuff: BUFF_REACHABLE, only: SEARCHABLE }));
+  const full = ceilingFor(SEARCHABLE);
   const without = new Set([...SEARCHABLE].filter((id) => id !== "sevenstar-sword"));
-  const lesser = Math.max(...assembledAttacks({ withBuff: BUFF_REACHABLE, only: without }));
+  const lesser = ceilingFor(without);
 
   assert(lesser < full,
     `dropping the best blade from the allowed set left the ceiling at ${lesser}, ` +
     "unchanged — `only` is not binding, so the refusal invariant below proves nothing");
+
+  // ONE probe is enough BECAUSE there is one gate. It was not enough when there
+  // were four: this test dropped a sword and exercised the sword filter alone,
+  // and breaking the talisman filter left the whole suite green. If a second
+  // gate ever appears outside take(), this line stops being sufficient and the
+  // comment in assembledAttacks is the one to read.
+
+  // AND THE RESTRICTED CEILING MUST STAY A NUMBER. Dropping 真火符 removes every
+  // BUFFED loadout — each one `continue`s at the buff — so asking only the
+  // buffed arm returns an empty set and Math.max of nothing is -Infinity. The
+  // invariant would then fail with "tops out lower than one who accepts": true,
+  // and useless to anyone trying to act on it. ceilingFor falls back to the
+  // unbuffed arm, which is the number that answers the question.
+  const noFire = ceilingFor(new Set([...SEARCHABLE].filter((id) => id !== "truefire-talisman")));
+  assert(Number.isFinite(noFire),
+    `dropping 真火符 gave ${noFire} rather than a number — the ceiling is being read ` +
+    "from the buffed arm alone, which is empty when the buff talisman is barred");
+  assert(noFire > 0, `a player barred from 真火符 tops out at ${noFire}, which cannot be right`);
 });
 
 test("§13: refusing every villager cannot put the King out of reach", () => {
@@ -243,9 +293,7 @@ test("§13: refusing every villager cannot put the King out of reach", () => {
     "this invariant has to be recomputed rather than reasoned");
 
   // Computed over the restricted set, not argued from the two facts above.
-  const refuserCeiling = Math.max(
-    ...assembledAttacks({ withBuff: BUFF_REACHABLE, only: SEARCHABLE })
-  );
+  const refuserCeiling = ceilingFor(SEARCHABLE);
   eq(refuserCeiling, playerCeiling,
     "a player who refuses every villager tops out lower than one who accepts");
   assert(refuserCeiling >= E.RULES.KING_THRESHOLD,
