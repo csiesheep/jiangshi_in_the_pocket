@@ -1733,6 +1733,21 @@ function wireControls() {
          the game down with it */
     });
   }
+
+  // The reachability tool (#96), behind a flag that MUST NAME ITS TARGET:
+  // ?reach=burial, ?reach=seal, ?reach=king. Unlike the robot there is no bare
+  // form, and that is the design rather than an omission — a tool you have to
+  // aim cannot be mistaken for one that plays, and nothing it produces is a
+  // rate. See the header of reach.js, and tools/bots-report.md for numbers.
+  //
+  // Dynamically imported and not in SHELL, for the robot's reasons: a player
+  // who never asks never downloads it.
+  const reachTarget = new URLSearchParams(location.search).get("reach");
+  if (reachTarget) {
+    import("./reach.js").then((m) => m.mountReach(reachTarget)).catch(() => {
+      /* same as above: a debugging affordance must not take the game down */
+    });
+  }
 }
 
 // ---- Language ----------------------------------------------------------------

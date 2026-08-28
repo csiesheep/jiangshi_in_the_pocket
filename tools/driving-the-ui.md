@@ -118,6 +118,44 @@ A focus change can be verified for WIRING with a synthetic `FocusEvent`, which
 proves the handler runs. It cannot be verified for BEHAVIOUR, which is what a
 keyboard player actually gets. Say which of the two a claim covers.
 
+**6. The ending is a thing ON SCREEN. Never `state.status`.** Pressing "play
+again" constructs a **new Game** whose `status` is already `"playing"` while the
+previous overlay is still mounted. A driver gated on `status !== "playing"`
+therefore sees nothing ended, ever: no doorways to press, because the overlay
+covers them, and no ending to acknowledge. **Measured at 2155 wasted steps.**
+
+This is the same lesson the method note below records about `offsetParent`,
+arriving from the other side. Together they are one rule: **the ending is the
+card**, and every attempt to infer it from anywhere else has failed differently
+— once by ignoring visibility, once by trusting it, once by trusting status.
+
+**7. A modal can be up while the game is still `"playing"`.** The drop dialog
+and the 硃砂 picker both cover the board with a scrim, so every doorway is
+hidden and a driver that only hunts doorways spins behind it. **Measured at 9000
+steps.** Look for `.notecard` before looking for anything else.
+
+## A driver can produce a confident false finding
+
+Not a wall — the opposite. A worked example of an instrument inventing a result,
+kept because it looked exactly like a discovery.
+
+A steering driver scored each action card by the largest number in its text, to
+pick the strongest option. That reads a health **cost** as though it were an
+attack, so it took the most expensive card every time and every run died inside
+the first hour. What it reported was `wentOutside: 0` **across eighteen nights**
+— a clean, consistent, plausible finding about the game, which was entirely a
+finding about the chooser.
+
+The fix is to stop having an opinion: `.action--primary` is the option the game
+itself marks as recommended, and following it is what a player does.
+
+The general form: **when a driver reports that something never happens, suspect
+the driver first.** Also compare `js/reach.js`'s `diedAt` tally — recording
+which link each run died at, rather than how many reached each link, is what
+distinguishes "the chain is blocked" from "the chain leaks everywhere". A
+28-sample reading once said the coin-flipping robot could never reach the
+tablet; at 665 samples it does.
+
 ## The arithmetic that ends it
 
     ~1 turn per 30-second call
