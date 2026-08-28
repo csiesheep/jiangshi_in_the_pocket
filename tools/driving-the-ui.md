@@ -13,28 +13,30 @@ found" after finding four. Every one was invisible to the suites and to
 thousands of bot runs, because the bots call the engine and read `outcome` and
 nothing ever rendered the ending.
 
-So the card is worth *looking at*, per outcome. Status as of writing:
+So the card is worth *looking at*, per outcome — and **which endings have been
+rendered, and what would close the gap, is tracked on issue #96**, not here.
+That table is deliberately not copied into this file: two copies of a status
+that changes the moment somebody plays a winning game is exactly the drift this
+project keeps paying for.
 
-| ending | rendered and read by anybody? |
-|---|---|
-| 傷重不治 loss | **yes** — played, twice |
-| 埋葬 burial | **no** |
-| 鎮屍 seal | **no** |
-| loss to the King | **no** |
+**This file answers a different question: HOW THE ENVIRONMENT DEFEATS A DRIVER.**
+#96 is the coverage gap; this is the four walls in the way of closing it.
 
-The burial has never been seen. The seal and the King are further out of reach
-than the burial was, and "the burial is unresolved" should not be read as
-implying the other two are fine.
-
-This is **not** evidence the game cannot be won. `tools/bots-report.md` puts the
+One thing worth stating here because it constrains everything below: this is
+**not** evidence the game cannot be won. `tools/bots-report.md` puts the
 hunter's burials at **322 and 342 per 1000** across two disjoint batches,
-computed from the same engine the UI drives. It is evidence that nothing has
-ever *rendered* the win.
+computed from the same engine the UI drives. Nothing has ever *rendered* a win;
+that is all.
 
-(Cited from the report rather than from memory: the figure 314 was in flight
-during this work and is the hunter's rate under a *forced always-give-rice*
-variant, not the shipped policy. Two numbers, one digit apart in the mind, from
-different measurements — which is the whole reason to quote a source.)
+(Cited from the report rather than from memory, and that is not a flourish. An
+earlier draft of this line said 314 — a real number from this session, one digit
+away in the mind, belonging to the hunter under a *forced always-give-rice*
+variant rather than the shipped policy. It was caught here only because the act
+of committing prompted a check against the source. The same figure reached a
+GitHub issue by the same route and was corrected there afterwards. Two people
+absorbed it from the same conversation and neither noticed, because a number
+taken from a real measurement does not feel like a quotation — it feels like
+knowledge.)
 
 ## The four blockers, in the order they bite
 
