@@ -3371,12 +3371,19 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 /* The dark ground, and it never goes opaque: the tile stays faintly readable
    underneath, which is what keeps the panel a thing ON the board rather than a
    hole cut in it. */
+/* DARKER (#103): 僵屍的背景再暗一點. Centre 62% -> 78%, edge 88% -> 96%.
+   Both numbers moved, and the edge deliberately less than the centre so the
+   panel still opens onto the room instead of closing over it — the tile has to
+   stay faintly visible or this becomes a full-screen layer by another route,
+   which is the thing #97 removed. Not taken to 100%: the tiers differ partly
+   by how much light they give back, and a black ground behind a dark figure
+   flattens 白殭 and 飛殭 into each other. */
 .creature-ink {
   position: absolute;
   inset: 0;
   background: radial-gradient(120% 90% at 50% 48%,
-    color-mix(in srgb, var(--film-ink) 62%, transparent),
-    color-mix(in srgb, var(--film-ink) 88%, transparent) 78%);
+    color-mix(in srgb, var(--film-ink) 78%, transparent),
+    color-mix(in srgb, var(--film-ink) 96%, transparent) 78%);
 }
 /* CENTRED BY MARGIN, NOT BY TRANSFORM, and that is a correctness fix rather
    than a style. resolveBeat's fell keyframes open with a bare
@@ -3393,7 +3400,7 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 
    Margin centring leaves transform entirely to the animations, so no keyframe
    anywhere has to remember to preserve it. */
-.creature-art,
+.creature-breath,
 .creature-was {
   position: absolute;
   left: 50%;
@@ -3413,6 +3420,21 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   height: var(--creature-size);
   margin-left: calc(var(--creature-size) / -2);
   margin-top: calc(var(--creature-size) / -2);
+  display: block;
+}
+
+/* THE ART FILLS ITS WRAPPER AND POSITIONS NOTHING (#103). The breath needs a
+   transform of its own for the whole fight, and .creature-art already has three
+   writers of that property — the entrance, resolveBeat's fell keyframes and its
+   flee keyframes. Splitting them across two elements is the same fix
+   .scare-pose made for the same reason.
+
+   The centring stays on the wrapper, in margins, exactly as the note above
+   requires: at rest the art's box is identical to what it was, which is what
+   the #94 guard measures. */
+.creature-art {
+  width: 100%;
+  height: 100%;
   display: block;
 }
 /* The sentence and the number. Bottom of the panel, inside the mask's soft

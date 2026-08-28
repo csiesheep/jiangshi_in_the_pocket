@@ -1887,6 +1887,17 @@ export function resolveBeat(opts = {}) {
       return resolve();
     }
 
+    // THE BREATH STOPS WHEN THE STRIKE STARTS. It lives on a wrapper, so it is
+    // not competing with the keyframes below for a property — that collision is
+    // designed out rather than cancelled. This is the other reason: a creature
+    // being felled should not still be breathing. Cancelled BY NAME, so nothing
+    // else's animation is touched.
+    if (panel) {
+      for (const b of panel.querySelectorAll(".creature-breath")) {
+        for (const a of b.getAnimations()) if (a.id === CREATURE_IDLE) a.cancel();
+      }
+    }
+
     const flee = opts.mode === "flee";
     const duration = flee ? FLEE_BEAT_MS : BEAT_MS;
     let swing = null;
@@ -3697,6 +3708,7 @@ function packRow(subject) {
 // AND IT IS NOT A CONTROL. No handler, no tabindex, pointer-events none in the
 // stylesheet. After #96 taught every panel in this game to want a tap, this one
 // has to visibly not want one, because the taps belong to the cards under it.
+const CREATURE_IDLE = "creature-idle";
 const CREATURE_TIERS = { 3: "n3", 4: "n4", 5: "n5", 6: "n6" };
 const VILLAGERS_FOR_PANEL = ["villager-a", "villager-b", "villager-c"];
 
@@ -3732,6 +3744,80 @@ export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
   const art = icon("scare", tier, "creature-art");
   if (art) art.setAttribute("aria-hidden", "true");
 
+  // ITS OWN LAYER FOR THE BREATH, and I have to be accurate about why, because
+  // the obvious reason turned out not to be true.
+  //
+  // I expected a breath on .creature-art to fight resolveBeat's fell keyframes
+  // for the transform property, the way the centring was lost when the strike
+  // moved onto this panel. I BUILT THAT VERSION AND MEASURED IT: an infinite
+  // transform animation on the art, uncancelled, with the strike landing on top
+  // of it, and the figure sat at 187.5, 255.3 at the fell animation's first
+  // active frame — drift 0.00, 0.00. No bug. The fell animation is ADDED LATER,
+  // and the later animation wins the property during its active phase, so the
+  // collision resolves correctly on its own.
+  //
+  // What the wrapper actually buys is that the correctness stops depending on
+  // that ORDER. Today the breath is added at panel time and the strike later;
+  // anything that ever restarted the breath mid-fight — a re-render, a resumed
+  // turn — would make it the later animation and it would win over a creature
+  // in mid-fall. That failure would be silent and would look like a physics
+  // glitch rather than a composite-order one. Two elements cannot have that
+  // argument at all, and .scare-pose is in this file for the same reason.
+  //
+  // The wrapper takes the positioning and the art becomes 100% of it, so at
+  // rest the art's box is unchanged: measured identical to the wrapper's at
+  // 124x124, which is what the #94 centring guard reads.
+  const breath = art ? document.createElement("span") : null;
+  if (breath) { breath.className = "creature-breath"; breath.appendChild(art); }
+
+  // THE JOLT (#103). 僵屍圖片增加一個小動畫,讓玩家有遇到僵屍的驚嚇感. #97 was
+  // right to take the full-screen scare away and it took the punch with it;
+  // this is the punch, inside the panel.
+  //
+  // IT COSTS NOTHING, and that is checkable rather than hopeful: fightBeat
+  // calls creaturePanel and then paintFight synchronously and awaits neither,
+  // so the jolt plays over the window opening and the night budget is
+  // unchanged. #97's 1.4x-1.7x is not handed back. Any version of this that
+  // something WAITED for would spend it.
+  //
+  // Timed WITH the sound rather than after it: announceFight fires hopThud,
+  // combatSting and buzz and resolves in the same tick, so the panel is raised
+  // on the beat the cues land, and the ordinary path opens at delay 0. Picture
+  // and sound together is the scare; 200ms apart is two events.
+  const jolt = (el, delay) => el.animate(
+    [
+      { opacity: 0, transform: "scale(.86) translate(0, -2%)", offset: 0 },
+      { opacity: 1, transform: "scale(1.07) translate(0, 1%)", offset: 0.42 },
+      { opacity: 1, transform: "scale(.99) translate(0, 0)", offset: 0.72 },
+      { opacity: 1, transform: "scale(1) translate(0, 0)", offset: 1 },
+    ],
+    { duration: 260, delay, easing: "cubic-bezier(.16,.9,.3,1)", fill: "both" });
+
+  // 輕微 IS THE WHOLE BRIEF. The file's own rule, written about the King: "a
+  // long stillness broken once. A creature that bounces repeatedly is a SPRITE,
+  // which is the single thing he must never look like." If a player can
+  // identify the period, it has become one.
+  //
+  // 5.2 seconds, 1.2% of scale, a fifth of a percent of drift: under the
+  // threshold of counting. A breath, not a bounce. Compositor-owned transform
+  // on a wrapper that does nothing else, so it is cheap for the whole fight.
+  //
+  // Delayed past the entrance rather than chained to its `finished` promise,
+  // because animation promises do not settle in a tab that is not compositing
+  // and this file takes that lesson everywhere else it waits.
+  const startBreath = (el, after) => {
+    const a = el.animate(
+      [
+        { transform: "scale(1) translateY(0)" },
+        { transform: "scale(1.012) translateY(-.22%)", offset: 0.5 },
+        { transform: "scale(1) translateY(0)" },
+      ],
+      { duration: 5200, delay: after, iterations: Infinity, easing: "ease-in-out" });
+    // Named so resolveBeat can stop this one and nothing else.
+    a.id = CREATURE_IDLE;
+    return a;
+  };
+
   // ONE TEXT, ONCE. 寫一句僵屍的故事,加上攻擊力 — the story and the number are a
   // single caption under the creature, and they are ALSO the prompt: the fight
   // window is given none, because renderActions positions a prompt in the
@@ -3764,7 +3850,7 @@ export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
     const was = icon("scene", who, "creature-was");
     if (was && art) {
       el.appendChild(was);
-      el.appendChild(art);
+      el.appendChild(breath);
       if (!reduced) {
         // He is small and it fills the panel, so the size difference is the
         // effect rather than a problem: the thing gets bigger because it is no
@@ -3777,17 +3863,31 @@ export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
         if (going.finished && going.finished.then) {
           going.finished.then(() => was.remove(), () => {});
         }
+        // THE TRANSFORMATION KEEPS ITS OWN TIMING and does NOT get the jolt.
+        // The man is still leaving; a startle landing mid-crossfade would cut
+        // the one sequence #94 already had to repair. Same 380/120 resolve-in
+        // it has always had, and the breath starts after both have finished.
         art.animate([{ opacity: 0, transform: "scale(.72)" },
                      { opacity: 1, transform: "scale(1)" }],
                     { duration: 380, delay: 120, easing: "cubic-bezier(.2,.7,.3,1)", fill: "both" });
+        startBreath(breath, 560);
       } else {
         was.remove();
       }
     } else if (art) {
-      el.appendChild(art);
+      el.appendChild(breath);
     }
   } else if (art) {
-    el.appendChild(art);
+    el.appendChild(breath);
+    // The ordinary route into a fight, and until #103 it had NO entrance at all
+    // — the creature simply appeared. `reduced` means no MOVEMENT rather than
+    // no picture, which is this file's established reading, so a
+    // motion-sensitive player gets the composition arrived at rather than
+    // travelled to.
+    if (!reduced && typeof breath.animate === "function") {
+      jolt(art, 0);
+      startBreath(breath, 300);
+    }
   }
 
   el.appendChild(cap);
