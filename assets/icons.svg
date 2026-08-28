@@ -1316,6 +1316,26 @@
     <path d="M60 8V2" stroke-width="2.4"/>
     <circle cx="60" cy="2" r="2.6" fill="currentColor" stroke="none"/>
 
+    <!-- The face. Calm never lets this arrive. -->
+    <g opacity="var(--king-face, 1)">
+      <path d="M53 28a3 2 0 1 0 6 0 3 2 0 1 0-6 0Z" fill="currentColor" fill-opacity=".7" stroke="none"/>
+      <path d="M61 28a3 2 0 1 0 6 0 3 2 0 1 0-6 0Z" fill="currentColor" fill-opacity=".7" stroke="none"/>
+      <path d="M55 38h10" stroke-width="1.8" stroke-opacity=".75"/>
+    </g>
+
+  </symbol>
+
+<!-- king-figure CLOSES HERE, and it did not until 2026-08-27. Its closing tag
+     was in the wrong place, so scare-n3 through scare-n6 parsed as symbols
+     NESTED INSIDE it, with the Kings own face group stranded after them.
+     Nothing rendered wrong: a symbol is never drawn except through a use, and
+     every id stays reachable document wide, so all five kept working.
+
+     WHAT IT BROKE WAS SCOPING, which is the one thing this sheet is careful
+     about. A rule written for the King in the shape the items already use
+     would have matched all four zombie tiers as well. Found by counting the
+     Kings own shapes and getting 70 from the DOM against 21 in the file. -->
+
 <!-- ==== The four, as four ======================================================
      #45 restaged the room around a sprite nobody redrew. The dressing escalated
      correctly and the creature never did: every tier drew #scare-zombie, flat
@@ -1476,13 +1496,7 @@
   <path d="M52 100c6 3 12 3 17 0" stroke="#cfe0ea" stroke-width="1.6" fill="none" opacity=".3" filter="url(#n6b)"/>
 </symbol>
 
-    <!-- The face. Calm never lets this arrive. -->
-    <g opacity="var(--king-face, 1)">
-      <path d="M53 28a3 2 0 1 0 6 0 3 2 0 1 0-6 0Z" fill="currentColor" fill-opacity=".7" stroke="none"/>
-      <path d="M61 28a3 2 0 1 0 6 0 3 2 0 1 0-6 0Z" fill="currentColor" fill-opacity=".7" stroke="none"/>
-      <path d="M55 38h10" stroke-width="1.8" stroke-opacity=".75"/>
-    </g>
-  </symbol>
+
 
   <symbol id="scare-zombie" viewBox="0 0 120 120">
     <!-- Built for poster size, not for the 24x24 grid. Depth comes from layered
