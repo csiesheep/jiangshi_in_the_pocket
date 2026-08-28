@@ -397,7 +397,10 @@ export class Game {
     // waiting. It is left in the theme, unused: a guard asserts the key exists
     // in both languages and that they differ, so renaming it to mark it dead
     // would break a test in order to add a comment.
-    return eventStage(kind, { n: ev.n, hp: ev.hp });
+    // The line goes to the panel as well as to the log and the caption. It is
+    // read here rather than in the stage because it depends on the event AND
+    // the hour band, neither of which the panel knows.
+    return eventStage(kind, { n: ev.n, hp: ev.hp, line: this.eventLine(ev) });
   }
 
   async eventBeat() {
@@ -418,10 +421,22 @@ export class Game {
     const ev = E.drawEvent(this.state);
     if (!ev) return;
 
-    this.tell(this.eventLine(ev));
+    // log() AND NOT tell(), which is the whole of "remove 浮在棋盤上方的字幕列"
+    // for this line. The panel draws these words under the scene now, so
+    // tell()'s caption would put the same sentence on the board twice, 392px
+    // apart, for the 4200ms the caption lives — measured, both present.
+    //
+    // NOT a deletion of caption(). tell() is called at nineteen sites and this
+    // is the only one whose words have another visible carrier; the other
+    // eighteen would go screen-reader-only, which is exactly the condition that
+    // made a search result invisible and started this whole run of panels.
+    // `warded` alone makes the case: its comment says a turn that quietly skips
+    // its own event is indistinguishable from a turn that broke.
+    const line = this.eventLine(ev);
+    if (line) log(line);
     // The line is written BEFORE the stage, and that ordering is what makes the
-    // stage skippable: the news is already in the log and the caption, so
-    // dismissing the picture costs the picture and nothing else.
+    // stage skippable: the news is already in the log, so dismissing the
+    // picture costs the picture and nothing else.
     await this.eventStageFor(ev);
 
     // The villager is asked before anything is resolved: whether you give the

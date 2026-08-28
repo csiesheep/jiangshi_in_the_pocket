@@ -133,6 +133,7 @@ export function eventStage(kind, opts = {}) {
     // deadline again.
     awaitTap: true,
     build: (inner, ctx) => scene(inner, ctx),
+    line: opts.line,
     ctx: { ...opts, reduced },
     budget, reduced,
     // A scene that throws still owes the caller the beat it was pacing on.
@@ -219,7 +220,7 @@ function buildKing(inner, ctx) {
 // by the King. Extracted rather than copied: a second copy of the skip handling
 // is a second place for a listener to leak, and the whole reason skipping is
 // safe is a property of this function rather than of any scene.
-function runStage({ cls, build, ctx, budget, reduced, onBuildError, onTile, awaitTap }) {
+function runStage({ cls, build, ctx, budget, reduced, line, onBuildError, onTile, awaitTap }) {
   return new Promise((resolve) => {
     // Never stack. A fight can follow a rite in the same turn and each would
     // otherwise leave its own full-screen layer behind — the same rule the
@@ -281,6 +282,62 @@ function runStage({ cls, build, ctx, budget, reduced, onBuildError, onTile, awai
     } catch {
       el.remove();
       return resolve(onBuildError ? onBuildError() : undefined);
+    }
+
+    // THE EVENT'S OWN LINE, under the picture (#93), the way the reveal puts a
+    // name and a description under the item it is showing.
+    //
+    // A PARAMETER, unlike the accessible name, and the difference is worth
+    // stating because they sit four lines apart. The name is the same words on
+    // every panel and the panel can fetch it, so making it a parameter only
+    // created something to forget. This line is per event AND per hour band --
+    // the panel knows neither -- so it has to arrive from the caller, and a
+    // caller that forgets it produces a visibly empty space rather than a
+    // silent failure.
+    //
+    // aria-hidden for the reveal's reason and the caption's: tell() wrote this
+    // to the log, a live region, before the stage was called. A screen reader
+    // has already heard it once.
+    if (line) {
+      const p = document.createElement("p");
+      p.className = "evstage-line";
+      p.textContent = line;
+      p.setAttribute("aria-hidden", "true");
+
+      // THE DELTA, IN THE DESCRIPTION (#95). "-1 heart" and "+1 heart" for an
+      // HP event, as the sign and the game's own heart symbol rather than as
+      // words.
+      //
+      // NO THEME STRING, and that is the ruling honoured rather than dodged.
+      // The instruction was that it must not be a hardcoded English phrase, for
+      // the reason the weapon attack had to come from the theme: 攻擊力 3 and
+      // "attack 3" have to stay ONE fact. Here there is no phrase to translate
+      // at all -- a sign, a numeral and a picture read the same in both
+      // languages -- so putting "{n} heart" in the theme would CREATE the
+      // second source the rule exists to prevent. Same reasoning, opposite
+      // conclusion, which is why it is written down.
+      //
+      // The idiom is costRow()'s, down to the symbol and the four-heart cap:
+      // the action cards have shown a cost this way since long before this
+      // panel existed, and a second way of drawing the same fact would be worse
+      // than either.
+      const hp = ctx && ctx.hp;
+      if (typeof hp === "number" && hp !== 0) {
+        const row = document.createElement("span");
+        row.className = "evstage-hp evstage-hp--" + (hp > 0 ? "mend" : "hurt");
+        const n = document.createElement("span");
+        n.className = "evstage-hp-num";
+        n.textContent = (hp > 0 ? "+" : "\u2212") + Math.abs(hp);
+        row.appendChild(n);
+        for (let i = 0; i < Math.min(Math.abs(hp), 4); i++) {
+          const h = icon("stat", "heart", "evstage-heart");
+          if (h) row.appendChild(h);
+        }
+        p.appendChild(document.createTextNode(" "));
+        p.appendChild(row);
+      }
+
+      el.appendChild(p);
     }
 
     // THE HINT, BACK (#92) and on the rule it always had: twice a run, then

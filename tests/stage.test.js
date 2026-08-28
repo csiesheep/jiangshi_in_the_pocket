@@ -1612,6 +1612,62 @@ test("scenes: nothing stays a wash, and it is the control (#90)", serial(async (
   }
 }));
 
+test("stage: the event's line is on the panel and NOT floating above the board (#94)", serial(async () => {
+  // 浮在棋盤上方的字幕列 — the floating line above the board goes. The panel draws
+  // these words under the scene now, so tell()'s caption would put the same
+  // sentence on the board twice, 392px apart, for the 4200ms a caption lives.
+  //
+  // WHAT THIS MUST NOT BECOME is a check that caption() is gone. tell() is
+  // called at nineteen sites in app.js and this is the ONLY one whose words
+  // have another visible carrier; deleting the mechanism would turn the other
+  // eighteen screen-reader-only, which is the condition that made a search
+  // result invisible and started this whole run of panels. So this asserts the
+  // narrow thing: the event line reaches log() and the panel, and not caption().
+  const src = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
+  const beat = noComments(src.slice(src.indexOf("async eventBeat(")));
+  // From AFTER this method's own "async ", not from the first one in the slice
+  // -- which is at index 0, so the body came out EMPTY and the negative
+  // assertion below passed against nothing. The positive assertion is what
+  // caught it, which is the argument for always pairing them.
+  const body = beat.slice(0, beat.indexOf("async ", 8));
+  assert(body.length > 100, "the eventBeat slice is empty, so nothing below is being checked");
+  assert(!/this\.tell\(this\.eventLine/.test(body),
+    "the event line still goes through tell(), so it is drawn over the board as well " +
+    "as on the panel — the same sentence twice");
+  assert(/log\(line\)/.test(body),
+    "the event line no longer reaches log() — a screen reader would lose the beat " +
+    "entirely, since the panel is aria-hidden");
+  assert(/line: this\.eventLine\(ev\)/.test(noComments(src)),
+    "the panel is not being given the line to draw");
+
+  // And caption() itself is untouched, because eighteen other moments need it.
+  assert(/export function caption/.test(
+    await fetch("../js/render.js", NO_STORE).then((r) => r.text())),
+    "caption() has been deleted — eighteen tell() sites have no other visible carrier");
+
+  // The panel really draws it, and hides it from a screen reader the way the
+  // caption did: log() has already said these words in a live region.
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  try {
+    const p = eventStage("nothing", { line: "The floorboards settle." });
+    await new Promise((r) => setTimeout(r, 30));
+    const el = document.querySelector(".evstage");
+    const ln = el.querySelector(".evstage-line");
+    assert(ln, "the panel drew no line");
+    eq(ln.textContent, "The floorboards settle.", "the panel drew the wrong words");
+    eq(ln.getAttribute("aria-hidden"), "true",
+      "the panel's line is announced as well as logged — the same sentence twice");
+    tap();
+    await p;
+  } finally {
+    host.remove();
+    for (const el of document.querySelectorAll(".evstage")) el.remove();
+  }
+}));
+
 // ---- The sprite sheet itself (#65) ---------------------------------------------
 
 test("icons: the sprite sheet is well-formed XML", () => {

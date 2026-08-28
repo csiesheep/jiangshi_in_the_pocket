@@ -2552,6 +2552,15 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 /* The number. Not a placeholder any more — it is one of the three ways hurt and
    mend are told apart (colour, direction, sign), and it is a numeral the log has
    already said in words, so a player who skips loses nothing by it. */
+/* RETIRED 2026-08-27. Nothing has ever built .evstage-tally in the shipped
+   code, and the job its comment claimed has now been given to something else:
+   it read "one of the three ways hurt and mend are told apart (colour,
+   direction, sign)", and the ruling "add -1 heart and +1 heart in the
+   description" put the SIGN inside .evstage-line instead. A big numeral over
+   the scene is not what was asked for.
+   Kept and marked rather than deleted, on the same reasoning as the hint
+   machinery: this area has reversed twice in a day. What is not acceptable is
+   a rule sitting here claiming to do a job that something else is now doing. */
 .evstage-tally {
   position: absolute;
   left: 50%;
@@ -2565,6 +2574,22 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 }
 .evstage-tally--hurt { color: var(--danger); }
 .evstage-tally--mend { color: var(--accent); }
+
+/* The delta, inline at the end of the event's line (#95). Sign plus the game's
+   own heart, the way an action card has always priced a move -- and NOT red for
+   the wound: the film spends red on 硃砂 and talisman paper only, and the
+   lantern already says which way the night went by going down or coming up. */
+.evstage-hp {
+  display: inline-flex;
+  align-items: center;
+  gap: .22em;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+.evstage-hp-num { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.evstage-heart { width: .78em; height: .78em; flex: none; fill: currentColor; }
+.evstage-hp--hurt { color: color-mix(in srgb, var(--film-tungsten) 55%, var(--muted)); }
+.evstage-hp--mend { color: var(--film-tungsten); }
 
 /* Nothing happened, drawn as a thing rather than as an absence — a blank stage
    and a broken stage look identical. */
@@ -4539,9 +4564,35 @@ body.asleep .fog {
   background: transparent;
 }
 .revealicon { width: 100%; height: 100%; color: var(--gold); }
-/* The 神主牌 is not gold. It is lit by the corpse-green other light, as it is
-   everywhere else it appears. */
-.reveal--relic .revealicon { color: var(--film-moon); }
+/* THE 神主牌 IS GOLD ON THIS PANEL (#93), and that reverses #88's reasoning
+   rather than ignoring it. #88 lit the tablet by --film-moon because it is the
+   one object that is not yours: something on an altar your lamp does not reach.
+   That was right for one icon among fourteen in a pack. It is wrong on the
+   panel that exists to mark the moment you TOOK it, where corpse-green argues
+   the opposite of what the moment means.
+
+   GOLD MEANS YOURS in this panel's language — it is why the empty-slot ghosts
+   are deliberately not gold — and the tablet is exactly that once you have it.
+   The rule is being kept here, not broken.
+
+   And the "green frame" the ruling names is not a frame: every item symbol
+   carries a 0.3 currentColor stroke from the sprite sheet's own rule, so
+   setting colour to film-moon outlined the whole tablet in corpse-green. The
+   fix is at the colour. There is no border here to remove.
+
+   The equipment slot still draws it moonlit and is deliberately untouched: the
+   slot says what you are CARRYING, this panel marks the moment you got it. */
+.reveal--relic .revealicon { color: var(--gold); }
+.reveal--relic {
+  /* Deep gold rather than the ordinary ground, so the night's object is
+     visibly not just another find. Still a wash that reaches transparent
+     before the edge — the panel does not grow a frame to be special. */
+  background: radial-gradient(circle at 50% 48%,
+    color-mix(in srgb, var(--gold) 26%, #120c02) 0%,
+    color-mix(in srgb, var(--gold) 17%, #0d0902) 38%,
+    color-mix(in srgb, var(--gold) 10%, transparent) 58%,
+    transparent 78%);
+}
 .revealname {
   margin: 0;
   max-width: 18ch;
@@ -4561,7 +4612,21 @@ body.asleep .fog {
   color: var(--gold);
   font-variant-numeric: tabular-nums;
 }
-.reveal--relic .revealstat { color: var(--film-moon); }
+.reveal--relic .revealstat { color: var(--gold); }
+/* The event's line, under its picture (#93). Same register as the reveal's
+   description, because it is doing the same job on the other panel. */
+.evstage-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 14%;
+  margin: 0;
+  text-align: center;
+  font-size: max(11px, calc(var(--tile) * .056));
+  line-height: 1.35;
+  color: var(--text);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .9), 0 0 18px rgba(0, 0, 0, .7);
+}
 .revealblurb {
   margin: 0;
   max-width: 24ch;
