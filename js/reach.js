@@ -106,6 +106,18 @@ function stepToward(board, want) {
   return null;
 }
 
+// Does this tile have a way OUT of the house? Asked by standing on it, because
+// a tile does not carry its own exits in a form that answers this — listMoves
+// reads from wherever the player is, so the only honest way to ask about
+// somewhere else is to be there for the length of the question.
+function hasOutside(board, tile) {
+  const save = { ...board.player };
+  board.player = { world: tile.world, x: tile.x, y: tile.y };
+  const yes = B.listMoves(board).some((m) => m.type === "outside");
+  board.player = save;
+  return yes;
+}
+
 function placed(board, id) {
   for (const w of ["indoor", "outdoor"]) {
     for (const t of board.worlds[w].values()) if (t.id === id) return t;
@@ -290,10 +302,37 @@ export function reachFor(targetName, opts = {}) {
             const outside = moves.filter((m) => m.type === "outside");
             const explore = moves.filter((m) => m.type === "explore");
             const wantOut = goalId === "mass-grave" && board.player.world === "indoor";
-            const pool = wantOut && outside.length ? outside
-              : explore.length ? explore
-              : moves.filter((m) => m.type === "move" || m.type === "cross");
-            if (pool.length) dir = pool[(Math.random() * pool.length) | 0].dir;
+
+            // WALK TO A DOOR, do not wait to be standing beside one. The first
+            // version took an outside exit only when the room it happened to be
+            // in had one, and otherwise explored, so a run holding the tablet
+            // wandered until something killed it. This paths to the nearest room
+            // that HAS a way out.
+            //
+            // ON ITS OWN IT IS NOT THE FIX, and saying so is the point of
+            // writing it down. Over 50 nights before this change, 24 runs took
+            // the tablet and 2 got outside — and the furthest-link tally put 22
+            // of those 24 deaths AT the tablet, meaning they died carrying it
+            // rather than wandering unable to find a gate. Shortening the trip
+            // reduces exposure, which helps; it does not address the cause.
+            //
+            // THE CAUSE, MEASURED: the pack ends EMPTY. Sampled mid-run at 6
+            // health, state.items was {} and all four cells were cell--empty.
+            // A run starts with three 糯米 and this tool declines every find
+            // (see openModal), so the longest exposed stretch of the night is
+            // walked with nothing to heal with and nothing to fight with. That
+            // is a consequence of a reachability choice made two functions
+            // above, and it is the next thing to change if this target needs to
+            // land more often.
+            if (wantOut && !outside.length) {
+              dir = stepToward(board, (t) => t.world === "indoor" && hasOutside(board, t));
+            }
+            if (!dir) {
+              const pool = wantOut && outside.length ? outside
+                : explore.length ? explore
+                : moves.filter((m) => m.type === "move" || m.type === "cross");
+              if (pool.length) dir = pool[(Math.random() * pool.length) | 0].dir;
+            }
           }
           const want = dir && doors.find((d) => d.dataset.dir === dir);
           (want || doors[(Math.random() * doors.length) | 0]).click();
