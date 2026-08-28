@@ -2223,22 +2223,62 @@ span.handart { cursor: default; }
   margin: 0 auto 18px;
   border-radius: 6px;
 }
-#overlay.overlay--won { --verdict: #e6c887; }
+/* ---- THE WIN GOES LIGHT (#105) -----------------------------------------------
+   panel 改成亮色. A deliberate inversion, and the only one in the game: every
+   other surface is dark film, and these are the two screens where the night is
+   OVER. The card stops being a window onto the dark and becomes the morning.
+
+   It has to feel like dawn rather than like a dialog box, which is a colour
+   decision rather than a brightness one — the ground is warm paper, not white,
+   and the ink is the same brown-black the silhouettes are drawn in, so the
+   picture and the panel are lit by one light.
+
+   EVERY COLOUR IS RESTATED, none inherited. The dark values are --text and
+   --muted, which are pale by design; leaving any of them would put pale type on
+   pale paper, which is the classic version of this mistake and one this file has
+   already made once with .dropfoundname. */
+#overlay.overlay--won { --verdict: #3b2a14; }
+#overlay.overlay--won::before {
+  background:
+    linear-gradient(to top, rgba(246, 234, 208, .5), rgba(246, 234, 208, .08) 60%),
+    radial-gradient(90% 60% at 50% 100%, rgba(232, 196, 122, .4), transparent 72%);
+}
 #overlay.overlay--won .overlay-card {
-  border-color: color-mix(in srgb, var(--gold) 55%, var(--border));
-  box-shadow: 0 0 46px rgba(201, 162, 75, .22), 0 12px 40px rgba(0, 0, 0, .5);
+  background: linear-gradient(180deg, #f7eeda 0%, #efe2c8 62%, #e4d5b8 100%);
+  color: #2c2114;
+  border-color: #c9b183;
+  box-shadow: 0 0 60px rgba(232, 196, 122, .3), 0 14px 44px rgba(0, 0, 0, .5);
 }
+#overlay.overlay--won .overlay-card p { color: #4a3a24; }
+#overlay.overlay--won .verdict-epilogue { color: #33261a; }
 #overlay.overlay--won .verdict-summary {
-  border-top-color: color-mix(in srgb, var(--gold) 45%, var(--border));
+  border-top-color: #cbb68d;
 }
+#overlay.overlay--won .verdict-summary li { color: #55452c; }
+#overlay.overlay--won .overlay-card .btn {
+  background: #e6d6b4;
+  border-color: #bfa678;
+  color: #2c2114;
+}
+#overlay.overlay--won .overlay-card .btn--primary { border-color: #8d6a34; }
+#overlay.overlay--won .overlay-card .btn:hover { border-color: #8d6a34; }
 #overlay.overlay--won .verdict-summary::before {
   content: "The tale they'll tell";
   display: block;
   font-family: var(--font-display);
-  color: var(--gold);
+  /* Measured against the card's DARKEST stop, not its lightest: #7a5a24 came
+     out at 4.38 there, just under AA, and a gradient means the lightest stop is
+     the flattering measurement rather than the true one. */
+  color: #63481a;
   font-size: .92rem;
   letter-spacing: .06em;
   margin-bottom: 6px;
+}
+/* The frame sits on the paper rather than on the dark, so it loses the rounded
+   card look and gains a hairline the same colour as the card's own edge. */
+#overlay.overlay--won .verdict-scene {
+  border-radius: 3px;
+  border: 1px solid #cbb68d;
 }
 
 /* Lost: the blood layer sits between veil and card in DOM order, so the card
@@ -2273,6 +2313,53 @@ span.handart { cursor: default; }
   background: #a01a12;
 }
 @keyframes dripfall { to { transform: scaleY(1); } }
+
+/* 然後暈開 (#105): the stain spreading where the drop lands.
+   OUTSIDE the drip, not inside it. The drip is scaleY(0 -> 1) from the top, so
+   anything parented to it is stretched by the same transform and a round bloom
+   would arrive as a line. This is a sibling positioned at the drip's foot.
+   Its delay is the drip's own fall plus its start, computed in render.js, so a
+   stain appears exactly when its drop stops — deterministic, like the positions
+   the table has always used. */
+.blood .bloom {
+  position: absolute;
+  width: var(--size, 40px);
+  height: var(--size, 40px);
+  margin-left: calc(var(--size, 40px) / -2);
+  margin-top: calc(var(--size, 40px) / -3);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%,
+    rgba(160, 26, 18, .82) 0%, rgba(124, 19, 15, .55) 38%,
+    rgba(74, 13, 10, .28) 66%, rgba(74, 13, 10, 0) 100%);
+  transform: scale(0);
+  opacity: 0;
+  animation: bloom 2.8s cubic-bezier(.16, .74, .3, 1) var(--delay, 9s) forwards;
+}
+/* Two properties rather than one: a stain does not fade UP as it spreads, it
+   arrives quickly and then keeps spreading while it darkens into the cloth. */
+@keyframes bloom {
+  0%   { transform: scale(0);   opacity: 0; }
+  22%  { transform: scale(.52); opacity: 1; }
+  100% { transform: scale(1);   opacity: .9; }
+}
+/* The quiet death gets the same stain, wider and slower — the difference
+   between the two is density and speed, not one of them being bloodless. */
+.blood--health .bloom { animation-duration: 5.4s; }
+.blood--health .drip { opacity: .82; }
+
+/* The King's own frame (#105). Same box as the win scenes so the five cards
+   agree with each other, and a ground dark enough that the hands read as coming
+   out of it rather than as floating on the card. transform-box so the hands'
+   keyframes scale about the frame's centre and not the SVG user-space origin,
+   which would swing them off the side. */
+.verdict-king {
+  background: radial-gradient(120% 130% at 50% 18%, #171a22 0%, #0a0c11 62%, #05060a 100%);
+  color: var(--king-red, #8a2118);
+}
+.verdict-kinghands {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
 
 .verdict-hand {
   position: absolute;
@@ -2400,6 +2487,15 @@ span.handart { cursor: default; }
 /* Stillness: the stage arrives set — lit, fallen, steady — with no journey. */
 #overlay.overlay--still::before { animation: none; opacity: 1; }
 #overlay.overlay--still .blood .drip { animation: none; transform: none; }
+/* reduced motion means NO MOVEMENT, NOT NO PICTURE — so the stains are shown
+   already spread rather than withheld. Without this they sit at scale(0) and
+   opacity 0 for ever, which is the fill-mode trap this file has hit before:
+   an animation that has not advanced is not a still frame, it is nothing. */
+#overlay.overlay--still .blood .bloom {
+  animation: none;
+  transform: scale(1);
+  opacity: .9;
+}
 #overlay.overlay--still .overlay-card h2 { animation: none; }
 #overlay.overlay--still .pool { animation: none; transform: none; }
 #overlay.overlay--still .tollwrap::before,

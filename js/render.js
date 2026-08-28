@@ -4157,17 +4157,42 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
   const reason = opts.tone === "lost" ? opts.reason || "combat" : null;
   if (reason) ov.classList.add(`overlay--lost-${reason}`);
 
-  if (reason === "combat" && intense()) {
-    const blood = document.createElement("div");
-    blood.className = "blood";
-    blood.setAttribute("aria-hidden", "true");
+  // 血滴滴下來,然後暈開 (#105). The drips already fell; what is new is that they
+  // BLOOM where they land — the stain spreading after the drop stops.
+  //
+  // IT IS ON BOTH DEATHS, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. The
+  // ruling names 傷重不治, which is the title BOTH lossReasons carry, and the
+  // dressing a player is most likely to have seen is "health" — dying of wounds
+  // is the common death, and it had no blood at all. Giving the ruling only to
+  // "combat" would have satisfied the issue while missing the card the user was
+  // looking at.
+  //
+  // The two deaths still read apart, by DENSITY AND SPEED rather than by one of
+  // them being bloodless: combat is eight fast drips and a dragged handprint,
+  // health is four slow ones over the rising pool. The old comment's reading —
+  // "no violence, the wounds were already taken, the dark just rises" — survives
+  // as the pool, which stays.
+  //
+  // FIXED POSITIONS, per the house rule, and the bloom inherits it: its delay is
+  // the drip's own fall time plus its start, so a blooms lands exactly when its
+  // drop does. Nothing here is random and the same ending looks the same twice.
+  const BLOOD = {
     // [left %, length px, fall seconds, delay seconds]
-    const DRIPS = [
+    combat: [
       [6, 300, 8, 1.3], [17, 180, 6.5, 2.2], [29, 380, 9.5, 1.1],
       [43, 220, 7, 3], [58, 330, 8.5, 1.7], [72, 190, 6, 2.6],
       [86, 280, 7.5, 2], [95, 150, 5.5, 3.3],
-    ];
-    for (const [x, len, dur, delay] of DRIPS) {
+    ],
+    health: [
+      [12, 260, 11, 2.4], [38, 340, 13, 4.1],
+      [67, 210, 10, 3.2], [88, 300, 12, 5.5],
+    ],
+  };
+  if (BLOOD[reason] && intense()) {
+    const blood = document.createElement("div");
+    blood.className = `blood blood--${reason}`;
+    blood.setAttribute("aria-hidden", "true");
+    for (const [x, len, dur, delay] of BLOOD[reason]) {
       const d = document.createElement("span");
       d.className = "drip";
       d.style.left = `${x}%`;
@@ -4175,15 +4200,30 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
       d.style.setProperty("--dur", `${dur}s`);
       d.style.setProperty("--delay", `${delay}s`);
       blood.appendChild(d);
+
+      // The stain, at the foot of the drip it belongs to. Its own element
+      // rather than a ::after on the drip, because the drip is scaleY'd from
+      // the top and anything inside it is stretched by the same transform —
+      // a bloom drawn there would arrive as an ellipse squashed to a line.
+      const b = document.createElement("span");
+      b.className = "bloom";
+      b.style.left = `${x}%`;
+      b.style.top = `${len}px`;
+      b.style.setProperty("--size", `${Math.round(len / 7)}px`);
+      b.style.setProperty("--delay", `${delay + dur}s`);
+      blood.appendChild(b);
     }
     ov.appendChild(blood);
+  }
+  if (reason === "combat") {
     const hand = icon("verdict", "hand", "verdict-hand");
     if (hand) {
       hand.setAttribute("viewBox", "0 0 90 130"); // not on the 24 grid
       ov.appendChild(hand);
     }
   } else if (reason === "health") {
-    // No violence — the wounds were already taken. The dark just rises.
+    // The dark still rises. The blood above it is new; this is not replaced by
+    // it, because the pool is what makes this death the quiet one.
     const pool = document.createElement("div");
     pool.className = "pool";
     pool.setAttribute("aria-hidden", "true");
@@ -4192,23 +4232,70 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
 
   const card = document.createElement("div");
   card.className = "overlay-card";
+  // THE SCENE IS CHOSEN BY OUTCOME, NOT BY TONE (#105), and that is the whole
+  // reason the two wins were the same picture. `tone` is "won" for both, so a
+  // branch on it can only ever draw one thing — no amount of new art fixes that
+  // from the other side. It matters beyond appearance: 鎮屍 is the HIDDEN
+  // ending, and a player who found it was shown the common one's frame.
+  //
+  // Falls back to dawn for an unknown outcome rather than drawing nothing: a
+  // card with no picture is the failure mode this file already shipped once.
+  const WON_SCENE = { WIN_BURIAL: "burial", WIN_SEAL: "seal" };
   if (opts.tone === "won") {
-    const scene = icon("verdict", "dawn", "verdict-scene");
+    const which = WON_SCENE[opts.outcome] || "dawn";
+    const scene = icon("verdict", which, "verdict-scene");
     if (scene) {
       scene.setAttribute("viewBox", "0 0 240 120"); // a film frame, not the 24 grid
       card.appendChild(scene);
     }
+    // So the two wins can be dressed apart as well as drawn apart.
+    if (opts.outcome) ov.classList.add(`overlay--won-${which}`);
   }
   if (reason === "midnight") {
-    // The clock that killed you, stopped where it caught you, still tolling.
-    const wrap = document.createElement("div");
-    wrap.className = "tollwrap";
-    wrap.setAttribute("aria-hidden", "true");
-    const clock = icon("verdict", "midnight", "verdict-midnight");
-    if (clock) {
-      clock.setAttribute("viewBox", "0 0 96 96");
-      wrap.appendChild(clock);
-      card.appendChild(wrap);
+    // 王帶走了你 (#105): him, from the waist up, and the black hands behind him
+    // MOVE. It was a stopped clock — which told you WHEN rather than WHO, on the
+    // one card where the thing that took you has a face.
+    //
+    // NOT NEW ART. king-figure and king-hands already ship at 200x200 and 200x300
+    // and kingScene() already knows the order the layers work in. This is that
+    // composition cropped to the upper body: the <use> boxes deliberately hang
+    // below the frame so the figure is cut at the waist by the viewport rather
+    // than by a second drawing of him.
+    const scene = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    scene.setAttribute("class", "verdict-scene verdict-king");
+    scene.setAttribute("viewBox", "0 0 240 120");
+    scene.setAttribute("aria-hidden", "true");
+    const at = (id, x, y, w, h, cls) => {
+      const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      u.setAttribute("href", `#${id}`);
+      u.setAttribute("x", x); u.setAttribute("y", y);
+      u.setAttribute("width", w); u.setAttribute("height", h);
+      if (cls) u.setAttribute("class", cls);
+      scene.appendChild(u);
+      return u;
+    };
+    if (document.getElementById("king-figure")) {
+      // Hands first so they are BEHIND him, which is the order kingScene uses
+      // and the order the ruling asks for: 背後的黑手.
+      const hands = at("king-hands", 0, -40, 240, 240, "verdict-kinghands");
+      at("king-figure", 60, -14, 120, 180);
+      card.appendChild(scene);
+
+      // THEY MOVE, and the movement is a reach rather than a bounce. Same rule
+      // the King's own scene is held to: a creature that repeats a visible
+      // period is a sprite. 7.4s, and the travel is under two percent.
+      //
+      // reducedMotion means NO MOVEMENT, NOT NO HANDS — this file's standing
+      // reading — so the still frame keeps them at the near end of the reach,
+      // which is the composition rather than the start of one.
+      if (!reducedMotion() && typeof hands.animate === "function") {
+        hands.animate(
+          [{ transform: "scale(1) translateY(0)" },
+           { transform: "scale(1.018) translateY(-.6%)", offset: 0.5 },
+           { transform: "scale(1) translateY(0)" }],
+          { duration: 7400, iterations: Infinity, easing: "ease-in-out" }
+        );
+      }
     }
   }
   const h = document.createElement("h2");

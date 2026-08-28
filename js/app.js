@@ -1579,6 +1579,11 @@ export class Game {
 
     const opts = {
       tone: won ? "won" : this.state.status === "lost" ? "lost" : "over",
+      // THE OUTCOME, NOT ONLY THE TONE (#105). The card's artwork was chosen
+      // from `tone`, so BOTH wins drew the same picture by construction — and
+      // 鎮屍 is the hidden ending, so the player who found it got the common
+      // one's frame. Tone still dresses the room; the outcome picks the scene.
+      outcome,
       summary,
       epilogue: closing,
     };

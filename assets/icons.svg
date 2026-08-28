@@ -3458,6 +3458,95 @@
        end of a run steps outside the night palette entirely — the win is the
        game's only sunrise, the loss its only spilled blood. -->
 
+  <!-- 下葬. The tablet going INTO the ground: a mound, a figure bent over the
+       hole lowering something in, and the shovel still standing where it was
+       pushed. The action is DOWNWARD AND AWAY.
+
+       It has to read against 鎮屍 with no text at all, which is why one frame
+       has a mound and no body and the other has a body and no mound. That is
+       the whole discriminator and it survives being shrunk. -->
+  <symbol id="verdict-burial" viewBox="0 0 240 120">
+    <defs>
+      <linearGradient id="vg-restsky" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#f6ead0"/><stop offset=".55" stop-color="#e9d7b4"/>
+        <stop offset="1" stop-color="#cdc0a8"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="240" height="120" fill="url(#vg-restsky)" stroke="none"/>
+    <circle cx="196" cy="30" r="15" fill="#f7ecd2" stroke="none" opacity=".85"/>
+    <circle cx="196" cy="30" r="27" fill="#f7ecd2" stroke="none" opacity=".16"/>
+    <!-- The house, in silhouette. A Chinese roof is the one shape that says
+         WHERE this is without a caption: the sweep between ridge and eaves, and
+         tips that flick UP rather than hanging down. Drawn as a filled band
+         rather than a line, because at 340px wide a line disappears. -->
+    <path d="M2 60 Q8 51 18 55 C36 45 48 39 60 37 C72 39 84 45 102 55
+             Q112 51 118 60 L110 68 C92 56 76 50 60 48 C44 50 28 56 10 68 Z"
+          fill="#0b0d11" stroke="none"/>
+    <path d="M20 68 h80 v34 h-80 z" fill="#0b0d11" stroke="none"/>
+    <!-- The lit doorway is the one warm thing in either frame. On both of these
+         endings somebody is still home, which is the whole difference between
+         them and the other three. -->
+    <path d="M52 80 h16 v22 h-16 z" fill="#e8c47a" stroke="none" opacity=".72"/>
+    <path d="M0 102c34-5 52-7 74-7 18 0 26 3 44 3s26-3 46-3c22 0 48 3 76 7v18H0z"
+          fill="#14171d" stroke="none"/>
+    <!-- the grave, mounded and fresh -->
+    <path d="M158 102c6-11 30-11 36 0z" fill="#0b0d11" stroke="none"/>
+    <!-- the one burying it: bent at the waist, arms down, and the tablet already
+         below the line of their own knees -->
+    <g fill="#0b0d11" stroke="none">
+      <circle cx="150" cy="60" r="7"/>
+      <path d="M144 67c8-3 14-1 18 4l6 12-7 4-6-9-3 24h-8l-2-24z"/>
+      <path d="M162 83l10 6-4 6-10-6z"/>
+    </g>
+    <path d="M168 88h11v13h-11z" fill="#0b0d11" stroke="none"/>
+    <path d="M170 90h7v2h-7z" fill="#f6ead0" stroke="none" opacity=".45"/>
+    <path d="M170 94h7v2h-7z" fill="#f6ead0" stroke="none" opacity=".45"/>
+    <!-- the shovel, planted where it went in -->
+    <path d="M206 62v38" stroke="#0b0d11" stroke-width="3" fill="none"/>
+    <path d="M201 100h10v9h-10z" fill="#0b0d11" stroke="none"/>
+  </symbol>
+
+  <!-- 鎮屍. Not putting something into the ground: PRESSING something onto him.
+       He is lying flat, which is a silhouette no other ending has, and the
+       figure over him pushes DOWN AND ONTO rather than down and away.
+
+       The 符 under the hand is the only pale mark below the skyline, so the eye
+       lands on the seal itself rather than on either figure. -->
+  <symbol id="verdict-seal" viewBox="0 0 240 120">
+    <rect x="0" y="0" width="240" height="120" fill="url(#vg-restsky)" stroke="none"/>
+    <circle cx="196" cy="30" r="15" fill="#f7ecd2" stroke="none" opacity=".85"/>
+    <circle cx="196" cy="30" r="27" fill="#f7ecd2" stroke="none" opacity=".16"/>
+    <!-- The house, in silhouette. A Chinese roof is the one shape that says
+         WHERE this is without a caption: the sweep between ridge and eaves, and
+         tips that flick UP rather than hanging down. Drawn as a filled band
+         rather than a line, because at 340px wide a line disappears. -->
+    <path d="M2 60 Q8 51 18 55 C36 45 48 39 60 37 C72 39 84 45 102 55
+             Q112 51 118 60 L110 68 C92 56 76 50 60 48 C44 50 28 56 10 68 Z"
+          fill="#0b0d11" stroke="none"/>
+    <path d="M20 68 h80 v34 h-80 z" fill="#0b0d11" stroke="none"/>
+    <!-- The lit doorway is the one warm thing in either frame. On both of these
+         endings somebody is still home, which is the whole difference between
+         them and the other three. -->
+    <path d="M52 80 h16 v22 h-16 z" fill="#e8c47a" stroke="none" opacity=".72"/>
+    <path d="M0 102c34-5 52-7 74-7 18 0 26 3 44 3s26-3 46-3c22 0 48 3 76 7v18H0z"
+          fill="#14171d" stroke="none"/>
+    <!-- him, laid out: flat, long, feet to the left. The shape reads as a body
+         before anything else in this half of the frame does. -->
+    <g fill="#0b0d11" stroke="none">
+      <path d="M142 102c0-5 4-8 12-8h44c8 0 12 3 12 8z"/>
+      <circle cx="203" cy="90" r="7"/>
+      <path d="M150 94h8v-4h-8z"/>
+    </g>
+    <!-- the one sealing him, knelt at his head, both arms straight down -->
+    <g fill="#0b0d11" stroke="none">
+      <circle cx="192" cy="56" r="7"/>
+      <path d="M186 63h13l5 14-6 3-4-9-2 8h-9l-1-10z"/>
+      <path d="M195 77l6 4-4 5-6-4z"/>
+    </g>
+    <path d="M197 83h9v10h-9z" fill="#f7ecd2" stroke="none"/>
+    <path d="M201 85v6" stroke="#a8341f" stroke-width="1.4" fill="none" opacity=".85"/>
+  </symbol>
+
   <!-- Dawn over the Family Plot: the sun up at last, the fresh grave beside a
        figure who stayed to see it. Drawn wide, a film frame rather than a tile. -->
   <symbol id="verdict-dawn" viewBox="0 0 240 120">

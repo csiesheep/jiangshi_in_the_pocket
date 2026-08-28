@@ -72,7 +72,21 @@ function build(){
     const ov = d.getElementById("overlay");
     const cell = document.createElement("div");
     cell.className = "cell";
-    const clone = ov.cloneNode(true); clone.id = "";
+    // THE ID STAYS ON THE CLONE, and that is not sloppiness about duplicate
+    // ids. Almost every rule that dresses these cards is scoped to
+    // "#overlay.overlay--won" and the like — the light win panel, the loss
+    // borders, the staging washes. Stripping the id made this page show five
+    // cards with none of their dressing, which looks like the cards are plain
+    // rather than like the page is lying.
+    //
+    // Duplicate ids are invalid HTML and CSS still matches every one of them,
+    // which is exactly what is wanted here: five cards, all dressed. Nothing on
+    // this page calls getElementById on them, and the iframe's own #overlay is
+    // in a different document.
+    //
+    // Same family as the missing artwork this page shipped with: a card that
+    // renders SOMETHING is the most convincing way to be wrong.
+    const clone = ov.cloneNode(true); clone.id = "overlay";
     const lab = document.createElement("div"); lab.className="lab"; lab.textContent = name;
     cell.appendChild(clone); cell.appendChild(lab);
     out.appendChild(cell);
