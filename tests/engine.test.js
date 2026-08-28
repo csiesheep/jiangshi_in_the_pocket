@@ -176,7 +176,7 @@ test("dread: every term pushes it up, and none of them pull it down", () => {
   const late = base();
   E.setTurn(late, 21); // the top of the eleven o'clock band
   const bloody = base();
-  bloody.foughtThisHour = 12;
+  bloody.facedThisHour = 12;
   const deep = base();
   deep.turn = 10; // late in the band, with the hour about to turn
   const carrying = base();
@@ -192,7 +192,7 @@ test("dread: the worst the game gets is worse than any single thing", () => {
   const s = game({ seed: 1 });
   E.setTurn(s, 30);
   s.health = 1;
-  s.foughtThisHour = 12;
+  s.facedThisHour = 12;
   s.tablet = true;
   const worst = E.dread(s);
   assert(worst > 0.85, `a 1 HP relic-carrying midnight should be near the top, got ${worst}`);
@@ -226,7 +226,7 @@ test("dread: pure, and deterministic under a seed", () => {
   const b = game({ seed: 77 });
   for (let i = 0; i < 4; i++) { E.advanceTurn(a); E.advanceTurn(b); }
   eq(E.dread(a), E.dread(b), "same seed, same fear");
-  const snap = (s) => JSON.stringify({ h: s.health, t: s.turn, f: s.foughtThisHour });
+  const snap = (s) => JSON.stringify({ h: s.health, t: s.turn, f: s.facedThisHour });
   const before = snap(a);
   E.dread(a);
   eq(snap(a), before, "reading the dial changes nothing");
@@ -455,15 +455,15 @@ test("phantoms: rolling them does not disturb the game's own rng", () => {
   eq(withPhantoms.rng(), without.rng(), "and stays in step");
 });
 
-test("foughtThisHour: counts the risen, and resets when the hour turns", () => {
+test("facedThisHour: sums what came at you, and resets when the hour turns", () => {
   const s = game({ seed: 1 });
-  eq(s.foughtThisHour, 0);
+  eq(s.facedThisHour, 0);
   E.resolveCombat(s, 3, {});
   E.resolveCombat(s, 2, {});
-  eq(s.foughtThisHour, 5, "five risen put down this hour");
+  eq(s.facedThisHour, 5, "attack 5 faced this hour");
   while (s.hour === 21) E.advanceTurn(s); // walk into the ten o'clock band
   eq(s.hour, 22, "the hour turned");
-  eq(s.foughtThisHour, 0, "and the count went with it");
+  eq(s.facedThisHour, 0, "and the weight went with it");
 });
 
 test("clockTime: pure and deterministic under a seed", () => {
@@ -1354,13 +1354,13 @@ test("villager: the charm comes from nowhere else in the game", async () => {
 });
 
 // ---- 破牆 --------------------------------------------------------------------------
-test("breach: three at nine, four at ten, five at eleven", () => {
+test("breach: attack 3 at nine, 4 at ten, 5 at eleven", () => {
   const s = game({ seed: 1 });
-  eq(E.breachCount(s), 3);
+  eq(E.breachStrength(s), 3);
   E.setTurn(s, 11);
-  eq(E.breachCount(s), 4);
+  eq(E.breachStrength(s), 4);
   E.setTurn(s, 21);
-  eq(E.breachCount(s), 5);
+  eq(E.breachStrength(s), 5);
 });
 
 // THE ORDERING, per §8: the breach is checked AFTER the room's own event, and

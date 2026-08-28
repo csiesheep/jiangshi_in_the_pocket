@@ -73,7 +73,7 @@ function openKey(state, won) {
   if (won) return state.health <= 1 ? "won-hurt" : "won";
   if (state.outcome === OUTCOMES.LOSS_KING) return "king";
   if (state.lossReason === "combat") {
-    return (state.foughtThisHour || 0) >= SWARMED ? "combat-swarmed" : "combat";
+    return (state.facedThisHour || 0) >= SWARMED ? "combat-swarmed" : "combat";
   }
   if (state.lossReason === "health") {
     return state.hour >= RULES.FINAL_HOUR ? "health-worn" : "health";

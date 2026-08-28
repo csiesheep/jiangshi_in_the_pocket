@@ -1352,6 +1352,26 @@ const SCARE_BASE_MS = 300;
 // identically. Fixed rather than random: a seeded run is meant to replay the
 // same, and Math.random here would make the same fight look different twice.
 // [x%, y%, scale, share of the run before it appears]
+// RETIRED 2026-08-28 by #92, and kept rather than deleted.
+//
+// Six seats at 1.00 down to 0.58, for the picture this game used to draw: n
+// jiangshi came through the wall and n faces arrived, at different distances,
+// with per-slot tilt and handedness so that six of them read as a crowd rather
+// than one head stamped six times. It was a good solution to that problem.
+//
+// That problem is gone. n is one creature's 攻擊力 now, so only INDEX ZERO is
+// ever read, and the other five entries are dead. They are marked and left
+// because the choreography here is not trivial and is not recorded anywhere
+// else: the lead scale, the entry direction, the per-slot delays and the tilt
+// table are what a crowd would need again.
+//
+// TO BRING IT BACK: read `faces` from something other than the constant 1 in
+// jumpScare, and the same for `heldFaces` in the reduced-motion path. Nothing
+// else here changed.
+//
+// What is NOT acceptable is this table sitting unmarked while one index is
+// read, because the next person to open it will conclude the crowd still
+// exists and write code that expects six.
 const SCARE_SLOTS = [
   [50, 50, 1.0, 0.0],
   [21, 38, 0.62, 0.1],
@@ -1530,7 +1550,7 @@ function scareNow(count, from = null) {
       still.className = `scare scare--still scare--${tier.cls}`;
       still.setAttribute("aria-hidden", "true");
       dressScare(still, tier);
-      const heldFaces = Math.max(1, Math.min(count || 1, SCARE_SLOTS.length));
+      const heldFaces = 1; // #92: one creature, at the lead seat. See SCARE_SLOTS.
       for (let i = 0; i < heldFaces; i++) {
         const [hx, hy, hscale] = SCARE_SLOTS[i];
         const held = icon("scare", tier.cls, "scare-art");
@@ -1572,7 +1592,7 @@ function scareNow(count, from = null) {
     }
 
     // Encounters run 3 to 6, so weight across that band rather than from zero.
-    const faces = Math.max(1, Math.min(count || 1, SCARE_SLOTS.length));
+    const faces = 1; // #92: one creature, at the lead seat. See SCARE_SLOTS.
     const weight = Math.min(Math.max((faces - 3) / 3, 0), 1);
     const duration = SCARE_BASE_MS + Math.round(weight * 200);
 
@@ -3432,17 +3452,24 @@ function windowHead(pop, actionsEl) {
   return head;
 }
 
-// The pack, present for the whole fight rather than a flash and a digit. The
-// scare deposited them; this is what it left behind.
-function packRow(count) {
+// What you are fighting, present for the whole fight rather than a flash and a
+// digit. The scare showed it; this is what it left behind.
+//
+// ONE FIGURE, AT THE TIER THAT WAS DRAWN (#92). It used to append `count`
+// copies of a HARD CODED "n4", which was wrong twice over: the row was the
+// multiple-jiangshi picture this issue removes, and the hard-coded id meant the
+// header disagreed with the creature in the film at every strength except 4.
+// That second half was a bug before this issue existed.
+//
+// THE ROW ITSELF STAYS even though it now holds one thing, because .swingart
+// is absolutely positioned against .packrow: delete the row and the weapon
+// crossing it silently loses its containing block.
+function packRow(n) {
   const row = document.createElement("div");
   row.className = "packrow";
-  row.setAttribute("aria-hidden", "true"); // the prompt already says how many
-  for (let i = 0; i < count; i++) {
-    const fig = icon("scare", "n4", "packfig");
-    if (!fig) break;
-    row.appendChild(fig);
-  }
+  row.setAttribute("aria-hidden", "true"); // the prompt already says the number
+  const fig = icon("scare", scareTier(n).cls, "packfig");
+  if (fig) row.appendChild(fig);
   return row;
 }
 

@@ -217,7 +217,11 @@ export function newGame(data, opts = {}) {
     outcome: null,
     status: "playing", // playing | won | lost
     lossReason: null,
-    foughtThisHour: 0, // risen put down since the hour turned; feeds dread()
+    // The WEIGHT of what has come at you since the hour turned, not a count
+    // of bodies: #92 made n a creature's 攻擊力 rather than a headcount, so
+    // this accumulates strength. The arithmetic is unchanged and so are both
+    // thresholds; only the word was wrong.
+    facedThisHour: 0, // feeds dread() and the epilogue's relentless ending
     relief: 0, // 1 the moment something is survived, gone two turns later
     healthCap: opts.healthCap ?? RULES.HEALTH_CAP,
   };
@@ -279,7 +283,7 @@ export function advanceTurn(state) {
   const hour = hourForTurn(state.turn);
   if (hour !== state.hour) {
     state.hour = hour;
-    state.foughtThisHour = 0;
+    state.facedThisHour = 0;
   }
   return state;
 }
@@ -350,7 +354,7 @@ export function dread(state) {
   // the opposite curve, steep at the top and flat where the fear is.
   const hp = Math.min(1, Math.max(0, state.health) / RULES.START_HEALTH);
   const hurt = (1 - hp) ** 2;
-  const fought = Math.min(1, (state.foughtThisHour || 0) / FOUGHT_FULL);
+  const fought = Math.min(1, (state.facedThisHour || 0) / FOUGHT_FULL);
   const running = c.perHour > 0 ? 1 - c.left / c.perHour : 0;
   const carrying = state.tablet ? 1 : 0;
   const w = DREAD_WEIGHTS;
@@ -993,7 +997,7 @@ export function resolveCombat(state, n, use = {}) {
   if (tal && tal.consumed) { dropItem(state, talId); spent.push(talId); }
 
   const damage = combatDamage(n, attack, hasCharm(state));
-  state.foughtThisHour += n;
+  state.facedThisHour += n;
   state.health -= damage;
   if (state.health <= 0) {
     state.health = 0;
@@ -1105,7 +1109,7 @@ export function resolveVillager(state, ev, giveRice) {
 //
 // The board owns "is this a dead end"; this owns "and so what". Given both
 // facts it answers with a number, and 0 means nothing comes through.
-export function breachCount(state) {
+export function breachStrength(state) {
   return (RULES.BREACH_COUNT || {})[bandKey(state)] || 0;
 }
 
@@ -1126,7 +1130,7 @@ export function breachAfterEvent(state, { deadEnd = false, fled = false, warded 
   // the flag is read.
   if (warded) return 0;
   if (!deadEnd) return 0;
-  return breachCount(state);
+  return breachStrength(state);
 }
 
 // ---- How a night ends ---------------------------------------------------------

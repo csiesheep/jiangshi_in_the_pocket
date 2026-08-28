@@ -187,7 +187,7 @@ export class Game {
     this.state = E.newGame(data, { seed });
     this.board = Bd.createBoard(data, { seed });
     // Kept for the end-of-run verdict; the engine has no use for them.
-    this.tally = { putDown: 0, found: 0 };
+    this.tally = { putDown: 0, fights: 0, found: 0 };
     // One search per turn, and turn 1 has not had its yet.
     this.searched = false;
   }
@@ -847,7 +847,14 @@ export class Game {
     //
     // Until #67 this counter was initialised, printed, and incremented nowhere
     // at all, so every run ever played closed on "0 put down".
+    // TWO COUNTERS, because #92 split what used to be one number. `n` is the
+    // creature's 攻擊力 now, so accumulating it gives the WEIGHT of the night's
+    // fighting, which is what dread and the epilogue want. The verdict card
+    // wants something else: it prints a count of creatures as a fact, and
+    // summing attack powers and calling the total a number of jiangshi would
+    // make that line lie. So the card counts FIGHTS.
     this.tally.putDown += n;
+    this.tally.fights += 1;
 
     // Paper first, then the swing. Keyed off what resolveCombat actually
     // consumed rather than off what was chosen, so a loadout that never got to
@@ -1475,7 +1482,7 @@ export class Game {
 
     const summary = [
       this.verdictLine("lasted", { hour: formatHour(this.state.hour) }),
-      this.verdictLine("put-down", { n: this.tally.putDown, monsters: this.word("monsters") }),
+      this.verdictLine("put-down", { n: this.tally.fights, monsters: this.word("monsters") }),
       this.tally.found === 1
         ? this.verdictLine("found-one")
         : this.verdictLine("found-many", { n: this.tally.found }),
