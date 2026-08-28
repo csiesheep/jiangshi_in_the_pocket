@@ -1083,7 +1083,16 @@ export function resolveEvent(state, ev, choices = {}) {
 }
 
 // Someone is still alive in here, and hurt. Rice buys them; refusing leaves you
-// with whatever was chasing them — the band's worst pack.
+// with whatever was chasing them — one creature, at the attack the event
+// carries, which is what ev.turnsInto is.
+//
+// It said "the band's worst pack" until #92, and that sentence sat directly
+// above the line that returns the number. n stopped being a headcount this
+// morning and became a single creature's 攻擊力, so the comment was describing
+// a model the code no longer has, in the one place a reader would come to check
+// what the number means. Same class as the 白殭 黑殭 跳殭 飛殭 names retired in
+// the same issue: a spec in disguise, and the next reader would have believed
+// it over the code.
 //
 // This is the ONLY source of 護身符 in the game: it is in no search table, so a
 // player who never spends rice on a stranger never sees the charm at all.
