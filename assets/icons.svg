@@ -1986,15 +1986,15 @@
 <symbol id="scare-n4" viewBox="0 0 200 260">
     <defs>
       <linearGradient id="t4robe" x1=".22" y1="0" x2=".8" y2="1">
-        <stop offset="0" stop-color="#7e2a1e"/><stop offset=".26" stop-color="#5d1b13"/>
-        <stop offset=".62" stop-color="#37100c"/><stop offset="1" stop-color="#150606"/>
+        <stop offset="0" stop-color="#744c46"/><stop offset=".26" stop-color="#563632"/>
+        <stop offset=".62" stop-color="#33201e"/><stop offset="1" stop-color="#130c0c"/>
       </linearGradient>
       <linearGradient id="t4sleeve" x1=".1" y1="0" x2=".95" y2=".7">
-        <stop offset="0" stop-color="#6d2318"/><stop offset=".5" stop-color="#40110c"/>
-        <stop offset="1" stop-color="#1b0807"/>
+        <stop offset="0" stop-color="#64413c"/><stop offset=".5" stop-color="#3b2422"/>
+        <stop offset="1" stop-color="#19100f"/>
       </linearGradient>
       <linearGradient id="t4panel" x1=".3" y1="0" x2=".7" y2="1">
-        <stop offset="0" stop-color="#43201f"/><stop offset="1" stop-color="#160807"/>
+        <stop offset="0" stop-color="#3e2d2c"/><stop offset="1" stop-color="#140e0d"/>
       </linearGradient>
       <linearGradient id="t4claw" x1=".1" y1="0" x2=".9" y2=".8">
         <stop offset="0" stop-color="#39404b"/><stop offset=".45" stop-color="#232830"/>
@@ -2116,15 +2116,15 @@
 <symbol id="scare-n5" viewBox="0 0 200 260">
     <defs>
       <linearGradient id="t5skin" x1=".24" y1=".05" x2=".76" y2=".95">
-        <stop offset="0" stop-color="#a5442f"/><stop offset=".22" stop-color="#7e2c1e"/>
-        <stop offset=".58" stop-color="#4a1712"/><stop offset="1" stop-color="#1c0808"/>
+        <stop offset="0" stop-color="#98675c"/><stop offset=".22" stop-color="#744a43"/>
+        <stop offset=".58" stop-color="#442a28"/><stop offset="1" stop-color="#1a1010"/>
       </linearGradient>
       <linearGradient id="t5arm" x1=".1" y1="0" x2=".9" y2=".9">
-        <stop offset="0" stop-color="#8f3524"/><stop offset=".5" stop-color="#551a13"/>
-        <stop offset="1" stop-color="#1d0908"/>
+        <stop offset="0" stop-color="#84564d"/><stop offset=".5" stop-color="#4e302d"/>
+        <stop offset="1" stop-color="#1b1110"/>
       </linearGradient>
       <linearGradient id="t5dark" x1=".3" y1="0" x2=".8" y2="1">
-        <stop offset="0" stop-color="#5c1e15"/><stop offset="1" stop-color="#160707"/>
+        <stop offset="0" stop-color="#553531"/><stop offset="1" stop-color="#140d0d"/>
       </linearGradient>
       <linearGradient id="t5trouser" x1=".2" y1="0" x2=".85" y2="1">
         <stop offset="0" stop-color="#2b3038"/><stop offset=".5" stop-color="#171a20"/>
@@ -2146,7 +2146,7 @@
         <stop offset="1" stop-color="#15100b"/>
       </linearGradient>
       <linearGradient id="t5band" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#7d2a1f"/><stop offset="1" stop-color="#38100c"/>
+        <stop offset="0" stop-color="#734943"/><stop offset="1" stop-color="#341f1d"/>
       </linearGradient>
       <filter id="t5soft" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="3"/></filter>
