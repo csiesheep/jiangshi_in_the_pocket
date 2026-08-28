@@ -2606,6 +2606,28 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   animation: evstage-nil 1s ease-out both;
 }
 
+/* SAME TYPE AS THE REVEAL'S HINT (#96). Ruled: "make the font size and font
+   style the same among item search panel and event panel." Measured at a 365px
+   tile before changing anything, because the CSS suggested the difference was
+   in the descriptions and it was not:
+
+     .revealblurb  20.44px system-ui  |  .evstage-line  20.44px system-ui
+     .revealhint   17.52px UPPERCASE  |  .evstage-hint  13.12px lowercase
+
+   The descriptions were already identical in size, family, weight and leading.
+   The HINTS were not, and they are the same three words on two panels a player
+   sees alternately: a third bigger on one, and opposite letter-casing.
+
+   Unified onto the reveal's, which is the one that scales: .82rem is fixed
+   while the panel is var(--tile), so it drifted from the design at every board
+   size but the default. Same class of mistake as a subject sized by the window.
+
+   THE FADE IS GONE WITH IT, and that is not a sweep of the opacity family the
+   note above triages. That note's test is INTENT: fades that only soften an
+   arrival were removed, holds that ARE the composition were kept. This one only
+   softens an arrival, and the hint it is being made identical to has no
+   animation at all — so "make them the same" answers it. In a hidden tab this
+   was invisible for its whole life. */
 .evstage-hint {
   position: absolute;
   left: 0;
@@ -2614,11 +2636,13 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   margin: 0;
   text-align: center;
   color: var(--muted);
-  font-size: .82rem;
-  letter-spacing: .09em;
-  text-transform: lowercase;
-  opacity: .0;
-  animation: evstage-hint .9s ease-out .35s both;
+  font-size: max(9px, calc(var(--tile) * .048));
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  /* No opacity, because .revealhint has none. It rested at .75, which was
+     tied to the fade that has gone -- and .75 of --muted is a different grey
+     from --muted, so leaving it would have kept the two hints looking
+     different while every type property matched. */
 }
 
 /* Calm mode: the stage still happens, the assault in it does not. Less contrast,
@@ -2632,6 +2656,9 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 .evstage--still .evstage-seat,
 .evstage--still .evstage-tally,
 .evstage--still .evstage-nil,
+/* The hint has no animation and no resting opacity to restore since #96; this
+   is left as the harmless no-op it became rather than swept, in case the fade
+   is ever wanted back. */
 .evstage--still .evstage-hint { animation: none; opacity: 1; }
 
 /* NO OPACITY IN THIS ONE. Third instance of the same trap: an animation whose
@@ -2693,7 +2720,10 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
     opacity: 1;
   }
   .evstage-nil { opacity: .55; }
-  .evstage-hint { opacity: .75; }
+  /* .evstage-hint is NOT dimmed here any more. It used to rest at .75, so this
+     restored that value after the block above forced 1; with the resting value
+     gone this would make the hint DARKER for a reduced-motion player than for
+     anyone else, which is backwards and is not what the rule was for. */
 }
 
 /* ---- The four 僵屍 -------------------------------------------------------------
