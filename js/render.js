@@ -3724,6 +3724,18 @@ export function clearCreaturePanel() {
 // changes is the man they just saw, with no second source of truth.
 export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
   clearCreaturePanel();
+  // .board-pane AND NOT #board, and that is load-bearing rather than arbitrary.
+  // renderBoard() does `el.innerHTML = ""` on #board, and refresh() calls it —
+  // during a fight, whenever medicine is spent or health changes. Mounting the
+  // panel inside #board would delete the creature, its caption and its breath
+  // mid-fight, and rebuild nothing, because creaturePanel has exactly one
+  // caller and it runs once per fight.
+  //
+  // The pane is #board's PARENT, so the wipe passes underneath it. Measured:
+  // after a mid-fight refresh() the panel is still mounted and the breath is
+  // the same Animation object, not a restarted one — which also settles the
+  // order-dependence the wrapper below is there to survive. It does not arise
+  // today; it would the moment this line changed.
   const host = document.querySelector(".board-pane");
   if (!host) return null;
   const tier = CREATURE_TIERS[Math.max(3, Math.min(Number(n) || 3, 6))];
