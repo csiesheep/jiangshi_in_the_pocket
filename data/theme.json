@@ -74,7 +74,7 @@
     "next-turn": "Next turn",
     "next-turn-sub": "six minutes",
     "quiet-prompt": "The room is quiet.",
-    "fight-prompt": "{n} of them.",
+    "fight-prompt": "Attack {n}.",
     "fight-with": "Fight with the {item}",
     "fight-bare": "Fight bare-handed",
     "fight-spend": "Burn the {items}",
