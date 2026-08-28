@@ -381,8 +381,7 @@
     "lines": [
       "You know why you are here. At the end of the village a coffin has waited too long for anyone to come and claim it.",
       "His {relic} is in the {crypt}. Take it out through the moon gate in the {courtyard} — the only way out of the village — and put it back in the ground at the {grave}. Give the man his name and he can rest.",
-      "You have from nine until the third watch, and not one turn more. When the drum sounds he wakes, and he comes to whatever room you are in.",
-      "Doors are on the walls. Use them."
+      "You have from nine until the third watch, and not one turn more. When the drum sounds he wakes, and he comes to whatever room you are in."
     ],
     "dismiss": "Fold it away"
   },
