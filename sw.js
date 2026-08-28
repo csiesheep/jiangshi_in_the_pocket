@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-6822ec30";
+const CACHE = "jiangshi-367db97f";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -51,29 +51,29 @@ const SHELL_DIGEST = {
   "./":                                     "827e33435d",
   "index.html":                             "827e33435d",
   "game.html":                              "46c13916a3",
-  "rulebook.html":                          "5ba255e0f5",
+  "rulebook.html":                          "ec7a1b1b20",
   "tiles.html":                             "3fa8606460",
   "credits.html":                           "067a6ba293",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "6c904341b6",
   "css/style.css":                          "efec7a9e04",
-  "js/app.js":                              "e63ca916b3",
+  "js/app.js":                              "189d959406",
   "js/eventstage.js":                       "8606064148",
-  "js/engine.js":                           "558f44878d",
+  "js/engine.js":                           "a84dffd29d",
   "js/board.js":                            "766fddc50b",
-  "js/render.js":                           "cd77b74322",
+  "js/render.js":                           "8cb11683fc",
   "js/icons.js":                            "36c76d4f67",
   "js/audio.js":                            "3717c47b48",
   "js/menu.js":                             "e53fb78a06",
   "js/tiles.js":                            "c586e3d4e7",
   "js/shell.js":                            "95f2af021d",
   "js/tally.js":                            "b48bede2e4",
-  "js/epilogue.js":                         "b5a27bacbe",
+  "js/epilogue.js":                         "21104192de",
   "js/lang.js":                             "1e7b3f3b4a",
   "js/langswitch.js":                       "a2493ab9de",
   "js/rulebook.js":                         "035594a5da",
   "js/credits.js":                          "e6cedc628e",
-  "assets/icons.svg":                       "f7ec530246",
+  "assets/icons.svg":                       "bc3ede4476",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
   "assets/icons/icon-192.png":              "83b7d80dc2",
   "assets/icons/icon-512.png":              "8114a3228c",
