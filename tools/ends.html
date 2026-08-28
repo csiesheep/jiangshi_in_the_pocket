@@ -20,7 +20,10 @@
        display:flex;align-items:center;gap:12px;padding:0 12px;border-bottom:1px solid #1a1d24}
   #bar button{background:#1a1d24;color:#c9a24b;border:1px solid #2a2e36;padding:4px 10px;cursor:pointer;font:inherit}
   #ends{position:absolute;top:34px;left:0;right:0;bottom:0;display:flex;overflow:auto}
-  .cell{position:relative;flex:0 0 340px;height:100%;border-right:1px solid #1a1d24;overflow:hidden}
+  .cell{position:relative;flex:0 0 440px;min-height:660px;border-right:1px solid #1a1d24;overflow:hidden}
+  /* 440 because the cards have art now. At 340 every one of the five was
+     cut off at the bottom — including the ones nobody had changed, which is
+     how it went unnoticed: a clipped card still shows a card. */
   .cell > .lab{position:absolute;left:8px;top:6px;z-index:5;color:#c9a24b}
   .cell > div[class*=overlay]{position:absolute;inset:0}
 </style>
