@@ -38,7 +38,7 @@ absorbed it from the same conversation and neither noticed, because a number
 taken from a real measurement does not feel like a quotation — it feels like
 knowledge.)
 
-## The four blockers, in the order they bite
+## The blockers, in the order they bite
 
 **1. The letter modal.** The night opens on the folded note. It carries no
 `data-kind` button, so a driver looking only for action buttons sees an empty
@@ -91,6 +91,32 @@ nothing while nobody is evaluating**. Steps observed "between" polls turn out to
 have happened *during* them. A dedicated burst loop — driving as hard as it can
 inside one call — reached the tool's 30-second ceiling having advanced
 **exactly one game turn**.
+
+**5. Native tab order cannot be verified from any pane we have.** Added after
+#98, and stated carefully because the obvious phrasing is wrong.
+
+It is NOT "hidden panes cannot dispatch focus events". Two panes were tried and
+they failed differently:
+
+- A pane that does not composite reports `document.hasFocus()` **false**. There,
+  `element.focus()` moves `document.activeElement` but fires **no focus event at
+  all** — so a handler on `focus` never runs, and a guard that drives focus
+  programmatically silently tests nothing.
+- A pane that DOES composite reports `hasFocus()` **true**, and still does not
+  advance focus on Tab. Measured: seven synthetic Tab keys, `activeElement`
+  unchanged, `focusin` count 0 — while a keydown recorder confirmed **three Tab
+  keydowns arrived with `defaultPrevented` false**. The keys reach the page,
+  nothing swallows them, and the browser's focus manager does not move.
+
+So the useful statement is the negative one: **no pane has verified native tab
+order**, and the second measurement is what makes it useful — it rules out the
+page's own handlers as the cause. Without it the reading would have been "our
+focus containment swallows Tab", which is the opposite conclusion from the same
+symptom.
+
+A focus change can be verified for WIRING with a synthetic `FocusEvent`, which
+proves the handler runs. It cannot be verified for BEHAVIOUR, which is what a
+keyboard player actually gets. Say which of the two a claim covers.
 
 ## The arithmetic that ends it
 
