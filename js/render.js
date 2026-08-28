@@ -1345,6 +1345,29 @@ function mountDoorways(boardEl) {
 // there are no buttons to click and none for the global number keys to find.
 // That is what stops a player mashing 1 from firing whatever appears
 // underneath.
+// ---- The full-screen scare: NOTHING CALLS ANY OF THIS (#97) -----------------
+//
+// Everything from here to the end of scareNow is unreachable as of #97, which
+// took the full-screen picture out of the only path that ever ran it. The two
+// names below this block that DO still have live callers are:
+//
+//   SCARE_TIERS / scareTier   -- announceFight reads `beats` for the hop
+//                                rhythm, and packRow reads `cls` for the
+//                                King's threshold picture. Both are live.
+//   scare-n3..n6 (the sprite) -- creaturePanel draws them. The symbols are the
+//                                creature now and are not affected by any of
+//                                this.
+//
+// `lead` and `at` on SCARE_TIERS were read only by scareNow and are now dead
+// fields on a live table.
+//
+// KEPT RATHER THAN DELETED, DELIBERATELY, and the decision is not mine to make
+// alone: the SCARE_SLOTS note below is a dated ruling that this choreography is
+// recorded nowhere else, and #97's scope — whether the full-screen scare is
+// gone from every route or only from the jiangshi event — was put to the user
+// and has not come back. Deleting it would answer that question by making it
+// expensive to reverse. What is NOT acceptable is it sitting here unmarked,
+// which is the same argument the SCARE_SLOTS note makes about itself.
 const SCARE_BASE_MS = 300;
 
 // Where each of the risen stands, in order. One face for the smallest pack, up
@@ -1365,9 +1388,13 @@ const SCARE_BASE_MS = 300;
 // else: the lead scale, the entry direction, the per-slot delays and the tilt
 // table are what a crowd would need again.
 //
-// TO BRING IT BACK: read `faces` from something other than the constant 1 in
-// jumpScare, and the same for `heldFaces` in the reduced-motion path. Nothing
-// else here changed.
+// TO BRING IT BACK, and this got harder in #97: it used to be "read `faces`
+// from something other than the constant 1 in jumpScare". jumpScare is gone —
+// it became announceFight, which has no picture — so a crowd now needs
+// scareNow called from somewhere as well, and something to decide that a fight
+// deserves a full-screen layer when the creature panel already shows it. The
+// table is still the only record of the choreography; the one-line restore is
+// not.
 //
 // What is NOT acceptable is this table sitting unmarked while one index is
 // read, because the next person to open it will conclude the crowd still

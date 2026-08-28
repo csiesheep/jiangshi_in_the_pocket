@@ -2739,6 +2739,19 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 }
 
 /* ---- The four 僵屍 -------------------------------------------------------------
+   NOTHING RENDERS THESE RULES AS OF #97. The full-screen scare they dress was
+   the only thing that ever built a .scare element, and #97 replaced it with a
+   sound-only announcement because the creature panel already shows the same
+   creature on the tile. The rules are kept with the renderer in render.js,
+   marked there, for the same reason and under the same open question: whether
+   the full-screen layer is gone from every route or only from the jiangshi
+   event is the user's to answer, and deleting half of a retained feature would
+   answer it by making the other half useless.
+
+   The creature panel styling is .creature-* further down and is LIVE. The
+   names below describing 白僵 黑僵 跳僵 飛僵 were retired by #92 in the sprite
+   sheet itself, which now calls the tiers MASS, REACH, FORCE and PRESENCE.
+
    Same film as the event scenes: two lights, swallowing blacks, silver grain.
    The escalation logic is unchanged — strength is HOW IT ARRIVES — and what
    changes here is the register it arrives in.
