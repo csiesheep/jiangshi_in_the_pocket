@@ -1719,6 +1719,20 @@ function wireControls() {
   // The language button wires its own click inside langswitch.js (#78). It also
   // does not exist yet at this point — it is appended after this runs — so a
   // listener here would silently attach to nothing and look fine.
+
+  // The robot (#102), BEHIND A FLAG. It plays the game for you, which is a fine
+  // thing to have and a strange thing to leave in the nav of a game people came
+  // here to play — so it is mounted only for somebody who asked for it by
+  // typing ?robot=1, and costs a shipped page one URL read and nothing else.
+  //
+  // Imported dynamically for the same reason: a player who never asks never
+  // downloads it. It is also why robot.js is not in the service worker's SHELL.
+  if (new URLSearchParams(location.search).has("robot")) {
+    import("./robot.js").then((m) => m.mountRobot()).catch(() => {
+      /* the flag is a debugging affordance; failing to find it must not take
+         the game down with it */
+    });
+  }
 }
 
 // ---- Language ----------------------------------------------------------------

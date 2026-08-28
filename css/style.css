@@ -5333,3 +5333,48 @@ body.asleep .fog {
   font-size: .86rem;
 }
 .packsheet .dropleave:hover { color: var(--text); border-color: var(--muted); }
+
+/* ---- The robot's panel (#102) ---------------------------------------------
+   Only ever on screen behind ?robot=1, so this styles a surface a player never
+   meets. It is here rather than inline in robot.js because a style attribute
+   is not a place anyone looks to change how something reads.
+
+   BUILT TO BE WATCHABLE. The session that starts the robot may be one whose
+   pane does not paint — that is the normal case on this project — so the person
+   who CAN see the page is the instrument, and everything the robot knows has to
+   be legible from across a room: what it is doing, which night, what the clock
+   says, and a stop control that is never more than one press away. */
+#robot-panel {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 24px);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: .8rem;
+  /* A driver's readout is not the game's voice: it is deliberately in the
+     browser's monospace so nobody screenshots it and takes it for a screen. */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+/* Running vs stopped, told by colour AND by the word in #robot-state, because a
+   status only a colour carries is not a status for everyone. */
+#robot-panel[data-status="running"] { border-color: var(--accent); }
+#robot-panel #robot-last { opacity: .75; }
+#robot-panel #robot-stop {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+#robot-panel #robot-stop:disabled { opacity: .45; cursor: default; }
