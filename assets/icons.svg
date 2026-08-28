@@ -2113,33 +2113,148 @@
 
 <!-- 跳殭. Grave-wax — the yellow-grey of fat gone to soap underground. Head
      back, jaw open, the neck reduced to cord. This is the one that hops. -->
-<symbol id="scare-n5" viewBox="0 0 120 120">
-  <defs>
-    <linearGradient id="n5rim" x1=".14" y1="0" x2=".8" y2=".9">
-      <stop offset="0" stop-color="#d9c99b"/><stop offset=".26" stop-color="#8b7f5c"/>
-      <stop offset=".58" stop-color="#2b2719" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="n5lift" cx="32%" cy="20%" r="62%">
-      <stop offset="0" stop-color="#7d7252" stop-opacity=".85"/>
-      <stop offset="1" stop-color="#7d7252" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="n5b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.2"/></filter>
-    <filter id="n5bb" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6.5"/></filter>
-  </defs>
-  <path d="M22 120c4-15 14-24 28-29l6-2 8 2c16 5 28 14 32 29z" fill="#0b0a06"/>
-  <path d="M56 82c3 7 7 12 13 14-9 3-16 7-21 12 1-10 4-19 8-26z" fill="#100e08"/>
-  <path d="M57 80c-3-4-5-9-6-14M69 78c3-4 5-9 6-14" stroke="#8a7d59" stroke-width="4" stroke-linecap="round" fill="none" opacity=".45" filter="url(#n5b)"/>
-  <path d="M60 10c19 0 33 15 33 33 0 11-4 20-9 25l-3 9c-1 9-9 16-21 16s-20-7-21-16l-3-9c-5-5-9-14-9-25 0-18 14-33 33-33z" fill="#0c0b07"/>
-  <path d="M60 10c19 0 33 15 33 33 0 11-4 20-9 25l-3 9c-1 9-9 16-21 16s-20-7-21-16l-3-9c-5-5-9-14-9-25 0-18 14-33 33-33z" fill="url(#n5lift)" opacity=".5"/>
-  <path d="M60 10c-14 0-26 8-31 21 6-15 18-24 31-24 6 0 12 2 17 5-5-1-11-2-17-2z" fill="url(#n5rim)" filter="url(#n5b)"/>
-  <path d="M28 37c-1 2-1 4-1 6 0 11 4 20 9 25l3 9c1 5 4 9 9 12-7-3-11-7-12-12l-3-9c-5-5-9-14-9-25 0-2 2-4 4-6z" fill="url(#n5rim)" filter="url(#n5b)" opacity=".85"/>
-  <ellipse cx="45" cy="51" rx="12" ry="8.5" fill="#040301" filter="url(#n5b)" transform="rotate(-8 45 51)"/>
-  <ellipse cx="75" cy="48" rx="12" ry="8.5" fill="#040301" filter="url(#n5b)" transform="rotate(-8 75 48)"/>
-  <path d="M33 44c6-5 14-6 20-3" stroke="#c6b98e" stroke-width="2.2" fill="none" opacity=".38" filter="url(#n5b)"/>
-  <path d="M40 82c7 13 34 13 41 0l-3 17c-2 8-10 12-18 12s-16-4-18-12z" fill="#020100"/>
-  <path d="M45 84.5l3 1-2.5 12M76 84l-3 1 2.5 12" stroke="#cdbf92" stroke-width="1.9" fill="none" opacity=".45" filter="url(#n5b)"/>
-  <path d="M28 32c9-7 18-9 26-7" stroke="#6d6344" stroke-width="3" fill="none" opacity=".35" filter="url(#n5b)"/>
-</symbol>
+<symbol id="scare-n5" viewBox="0 0 200 260">
+    <defs>
+      <linearGradient id="t5skin" x1=".24" y1=".05" x2=".76" y2=".95">
+        <stop offset="0" stop-color="#a5442f"/><stop offset=".22" stop-color="#7e2c1e"/>
+        <stop offset=".58" stop-color="#4a1712"/><stop offset="1" stop-color="#1c0808"/>
+      </linearGradient>
+      <linearGradient id="t5arm" x1=".1" y1="0" x2=".9" y2=".9">
+        <stop offset="0" stop-color="#8f3524"/><stop offset=".5" stop-color="#551a13"/>
+        <stop offset="1" stop-color="#1d0908"/>
+      </linearGradient>
+      <linearGradient id="t5dark" x1=".3" y1="0" x2=".8" y2="1">
+        <stop offset="0" stop-color="#5c1e15"/><stop offset="1" stop-color="#160707"/>
+      </linearGradient>
+      <linearGradient id="t5trouser" x1=".2" y1="0" x2=".85" y2="1">
+        <stop offset="0" stop-color="#2b3038"/><stop offset=".5" stop-color="#171a20"/>
+        <stop offset="1" stop-color="#080a0d"/>
+      </linearGradient>
+      <linearGradient id="t5horn" x1=".1" y1="1" x2=".8" y2="0">
+        <stop offset="0" stop-color="#4f4630"/><stop offset=".45" stop-color="#9d8d63"/>
+        <stop offset="1" stop-color="#ddd0a4"/>
+      </linearGradient>
+      <linearGradient id="t5hair" x1=".3" y1="0" x2=".8" y2="1">
+        <stop offset="0" stop-color="#22242b"/><stop offset="1" stop-color="#050608"/>
+      </linearGradient>
+      <linearGradient id="t5club" x1="0" y1="0" x2="1" y2=".2">
+        <stop offset="0" stop-color="#4a3c1c"/><stop offset=".38" stop-color="#a58c4c"/>
+        <stop offset=".72" stop-color="#6d5a2e"/><stop offset="1" stop-color="#2a2210"/>
+      </linearGradient>
+      <linearGradient id="t5beam" x1="0" y1="0" x2=".2" y2="1">
+        <stop offset="0" stop-color="#57452f"/><stop offset=".5" stop-color="#33281b"/>
+        <stop offset="1" stop-color="#15100b"/>
+      </linearGradient>
+      <linearGradient id="t5band" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7d2a1f"/><stop offset="1" stop-color="#38100c"/>
+      </linearGradient>
+      <filter id="t5soft" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="3"/></filter>
+      <filter id="t5tiny" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="1"/></filter>
+    </defs>
+    <g stroke="none">
+    <!-- MID STRIDE. The contact shadow sits under the LEADING foot only, and it
+         is narrow: he is not planted like tier 3, he is passing through. -->
+    <ellipse cx="142" cy="234" rx="26" ry="6" fill="#000" opacity=".7" filter="url(#t5soft)"/>
+
+    <!-- THE BEAM over the far shoulder, drawn first so it passes BEHIND him. -->
+    <path d="M150 36l34 -14 5 12 -34 14z" fill="url(#t5beam)"/>
+    <path d="M116 50l40 -16 5 12 -40 16z" fill="url(#t5beam)"/>
+    <path d="M150 36l34 -14 1.6 4 -34 14z" fill="#8a7050" opacity=".3"/>
+    <path d="M184 22l5 12 -6 2 -4 -11z" fill="#0d0a07"/>
+
+    <!-- HAIR, standing up behind. Cold black against the warm body. -->
+    <path d="M78 40q-8 -22 4 -32 -4 14 4 22z" fill="url(#t5hair)"/>
+    <path d="M122 40q8 -22 -4 -32 4 14 -4 22z" fill="url(#t5hair)"/>
+    <path d="M86 26q-6 -18 2 -24 -2 12 6 18z" fill="url(#t5hair)"/>
+    <path d="M114 26q6 -18 -2 -24 2 12 -6 18z" fill="url(#t5hair)"/>
+    <path d="M100 14q-10 -14 0 -22 10 8 0 22z" fill="url(#t5hair)"/>
+
+    <!-- THE BACK LEG, trailing, and darker: it is further from the key. -->
+    <path d="M90 148l-12 44 -24 36 23 8 26 -42 7 -46z" fill="url(#t5trouser)"/>
+    <path d="M73.3 186.8L71.2 191.8L84.2 197.9L86.7 193.2Z" fill="#2a251e"/><path d="M73.3 186.8L81.3 190.6" stroke="#8d8168" stroke-width=".9" opacity="0.22" fill="none"/><path d="M71.5 191.1L69.3 196.1L82.1 202.1L84.5 197.3Z" fill="#3a332a"/><path d="M71.5 191.1L79.3 194.8" stroke="#8d8168" stroke-width=".9" opacity="0.23" fill="none"/><path d="M69.7 195.5L67.3 200.3L80.1 206.3L82.3 201.4Z" fill="#2a251e"/><path d="M69.7 195.5L77.3 199.0" stroke="#8d8168" stroke-width=".9" opacity="0.13" fill="none"/><path d="M67.9 199.8L66.1 204.8L77.3 210.2L80.1 205.5Z" fill="#3a332a"/><path d="M67.9 199.8L75.2 203.2" stroke="#8d8168" stroke-width=".9" opacity="0.27" fill="none"/><path d="M66.1 204.1L64.0 209.1L75.4 214.4L77.9 209.7Z" fill="#2a251e"/><path d="M66.1 204.1L73.2 207.4" stroke="#8d8168" stroke-width=".9" opacity="0.16" fill="none"/><path d="M64.3 208.4L61.6 213.1L73.8 218.9L75.7 213.8Z" fill="#3a332a"/><path d="M64.3 208.4L71.1 211.6" stroke="#8d8168" stroke-width=".9" opacity="0.20" fill="none"/><path d="M62.5 212.7L59.9 217.4L71.5 222.9L73.5 217.9Z" fill="#2a251e"/><path d="M62.5 212.7L69.1 215.9" stroke="#8d8168" stroke-width=".9" opacity="0.21" fill="none"/><path d="M60.7 217.1L58.3 221.8L69.1 227.0L71.3 222.1Z" fill="#3a332a"/><path d="M60.7 217.1L67.1 220.1" stroke="#8d8168" stroke-width=".9" opacity="0.15" fill="none"/><path d="M58.9 221.4L56.5 226.2L66.9 231.1L69.1 226.2Z" fill="#2a251e"/><path d="M58.9 221.4L65.0 224.3" stroke="#8d8168" stroke-width=".9" opacity="0.28" fill="none"/>
+    <path d="M56 230l23 7 -3 8 -25 -7z" fill="#14171a"/>
+
+    <!-- THE LEADING LEG, and the stride is the whole pose. -->
+    <path d="M110 148l8 44 24 34 -23 8 -28 -40 -4 -46z" fill="url(#t5trouser)"/>
+    <path d="M110 148l6 44 8 14 -8 -12 -7 -44z" fill="#4c5563" opacity=".3"/>
+    <path d="M110.3 194.0L113.1 198.2L126.1 190.5L123.7 186.0Z" fill="#2a251e"/><path d="M110.3 194.0L118.3 189.2" stroke="#8d8168" stroke-width=".9" opacity="0.14" fill="none"/><path d="M112.7 197.6L115.4 201.9L128.2 194.3L125.7 189.9Z" fill="#3a332a"/><path d="M112.7 197.6L120.5 193.0" stroke="#8d8168" stroke-width=".9" opacity="0.15" fill="none"/><path d="M115.1 201.3L118.1 205.4L129.9 198.4L127.7 193.8Z" fill="#2a251e"/><path d="M115.1 201.3L122.7 196.8" stroke="#8d8168" stroke-width=".9" opacity="0.19" fill="none"/><path d="M117.6 204.9L119.8 209.5L132.7 201.9L129.8 197.8Z" fill="#3a332a"/><path d="M117.6 204.9L124.9 200.6" stroke="#8d8168" stroke-width=".9" opacity="0.26" fill="none"/><path d="M120.0 208.6L122.3 213.0L134.6 205.9L131.8 201.7Z" fill="#2a251e"/><path d="M120.0 208.6L127.1 204.4" stroke="#8d8168" stroke-width=".9" opacity="0.16" fill="none"/><path d="M122.4 212.2L125.0 216.6L136.4 209.9L133.8 205.6Z" fill="#3a332a"/><path d="M122.4 212.2L129.2 208.2" stroke="#8d8168" stroke-width=".9" opacity="0.17" fill="none"/><path d="M124.9 215.9L127.7 220.1L138.1 214.0L135.8 209.5Z" fill="#2a251e"/><path d="M124.9 215.9L131.4 212.0" stroke="#8d8168" stroke-width=".9" opacity="0.14" fill="none"/><path d="M127.3 219.5L130.1 223.7L140.1 217.8L137.8 213.4Z" fill="#3a332a"/><path d="M127.3 219.5L133.6 215.8" stroke="#8d8168" stroke-width=".9" opacity="0.29" fill="none"/><path d="M129.7 223.2L132.0 227.7L142.7 221.4L139.8 217.3Z" fill="#2a251e"/><path d="M129.7 223.2L135.8 219.6" stroke="#8d8168" stroke-width=".9" opacity="0.27" fill="none"/>
+    <path d="M134 226l20 7 -3 8 -21 -7z" fill="#1b1f23"/>
+
+    <!-- THE TORSO. Bare, heavily muscled, and built as PLATES: pectorals and a
+         belly wall with hard boundaries, which is the King's language and the
+         reason a muscled body suits it better than a fat one did. -->
+    <path d="M100 66q20 0 26 12l8 32 -4 42q-30 8 -60 0l-4 -42 8 -32q6 -12 26 -12z" fill="url(#t5skin)"/>
+    <path d="M100 66q-16 0 -22 10l-7 30 3 40 -4 -.6 -4 -42 8 -32q6 -12 26 -12z" fill="#c05a41" opacity=".22"/>
+    <path d="M76 86q10 10 24 10t24 -10l3 14q-12 12 -27 12t-27 -12z" fill="url(#t5dark)"/>
+    <path d="M76 86q10 10 24 10t24 -10" stroke="#c96b4e" stroke-width="1.3" fill="none" opacity=".26"/>
+    <path d="M92 112h16l1 12h-18zM92 128h16l1 12h-18z" fill="#3e130f" opacity=".7"/>
+    <path d="M100 108v42" stroke="#20090a" stroke-width="2" fill="none" opacity=".7"/>
+    <path d="M74 104q6 22 4 40l-6 -1 -4 -40z" fill="#1e0a09" opacity=".6"/>
+    <path d="M126 104q-6 22 -4 40l6 -1 4 -40z" fill="#1a0808" opacity=".75"/>
+
+    <!-- THE SASH, and what hangs from it. -->
+    <path d="M68 148q32 10 64 0l2 12q-34 11 -68 0z" fill="url(#t5band)"/>
+    <path d="M68 148q32 10 64 0" stroke="#b0533c" stroke-width="1.1" fill="none" opacity=".3"/>
+    <path d="M76.0 159.5q2.1 0 1.0 12.5" stroke="#6d6552" stroke-width="1.1" fill="none"/><ellipse cx="77.0" cy="172.0" rx="5.2" ry="6.0" fill="#3d423c"/><ellipse cx="75.5" cy="170.4" rx="3.1" ry="3.1" fill="#585e54" opacity=".7"/><path d="M72.4 174.6q3.6 4.7 7.8 0z" fill="#14171a" opacity=".8"/><path d="M122.0 158.4q1.8 0 0.9 10.6" stroke="#6d6552" stroke-width="1.1" fill="none"/><ellipse cx="122.9" cy="169.0" rx="4.4" ry="5.1" fill="#3d423c"/><ellipse cx="121.6" cy="167.7" rx="2.6" ry="2.6" fill="#585e54" opacity=".7"/><path d="M118.9 171.2q3.1 4.0 6.6 0z" fill="#14171a" opacity=".8"/>
+
+    <!-- THE FAR ARM, holding the beam against the shoulder. -->
+    <path d="M126 72l18 12 8 34 -13 5 -12 -32z" fill="url(#t5arm)"/>
+    <path d="M137.8 85.2L137.1 90.5L149.6 92.0L150.2 86.8Z" fill="#2a251e"/><path d="M137.8 85.2L145.2 86.2" stroke="#8d8168" stroke-width=".9" opacity="0.25" fill="none"/><path d="M137.5 89.8L136.5 95.0L149.0 96.6L149.4 91.3Z" fill="#3a332a"/><path d="M137.5 89.8L144.6 90.7" stroke="#8d8168" stroke-width=".9" opacity="0.29" fill="none"/><path d="M137.1 94.4L136.2 99.7L148.2 101.1L148.6 95.9Z" fill="#2a251e"/><path d="M137.1 94.4L144.0 95.3" stroke="#8d8168" stroke-width=".9" opacity="0.29" fill="none"/><path d="M136.7 99.0L136.5 104.3L146.7 105.6L147.8 100.4Z" fill="#3a332a"/><path d="M136.7 99.0L143.4 99.9" stroke="#8d8168" stroke-width=".9" opacity="0.20" fill="none"/><path d="M136.4 103.6L135.3 108.8L146.9 110.3L147.1 105.0Z" fill="#2a251e"/><path d="M136.4 103.6L142.8 104.4" stroke="#8d8168" stroke-width=".9" opacity="0.24" fill="none"/><path d="M136.0 108.2L134.9 113.4L146.0 114.8L146.3 109.5Z" fill="#3a332a"/><path d="M136.0 108.2L142.2 109.0" stroke="#8d8168" stroke-width=".9" opacity="0.14" fill="none"/><path d="M135.6 112.8L135.0 118.1L144.8 119.3L145.5 114.0Z" fill="#2a251e"/><path d="M135.6 112.8L141.6 113.6" stroke="#8d8168" stroke-width=".9" opacity="0.16" fill="none"/>
+    <path d="M138 118q9 2 11 9 1 5 -4 7t-10 -2l-4 -8z" fill="#6d2a1d"/>
+    <path d="M133 124q7 -1 12 3" stroke="#250c09" stroke-width="1.5" fill="none" opacity=".8"/>
+
+    <!-- THE CLUB ARM, raised. The kanabo is the one gold thing in the frame. -->
+    <path d="M74 72L52 88l-12 34 13 6 13 -32 14 -12z" fill="url(#t5arm)"/>
+    <path d="M74 72L52 88l-4 12 6 -10z" fill="#c05a41" opacity=".22"/>
+    <path d="M46.0 88.5L44.4 93.7L57.0 96.8L58.0 91.5Z" fill="#2a251e"/><path d="M46.0 88.5L53.2 90.3" stroke="#8d8168" stroke-width=".9" opacity="0.27" fill="none"/><path d="M45.0 93.1L43.7 98.4L55.3 101.3L56.7 96.0Z" fill="#3a332a"/><path d="M45.0 93.1L52.0 94.9" stroke="#8d8168" stroke-width=".9" opacity="0.17" fill="none"/><path d="M44.1 97.7L43.3 103.1L53.5 105.7L55.3 100.5Z" fill="#2a251e"/><path d="M44.1 97.7L50.8 99.4" stroke="#8d8168" stroke-width=".9" opacity="0.24" fill="none"/><path d="M43.1 102.4L41.9 107.6L52.7 110.3L54.0 105.1Z" fill="#3a332a"/><path d="M43.1 102.4L49.7 104.0" stroke="#8d8168" stroke-width=".9" opacity="0.26" fill="none"/><path d="M42.2 107.0L41.0 112.3L51.2 114.8L52.7 109.6Z" fill="#2a251e"/><path d="M42.2 107.0L48.5 108.5" stroke="#8d8168" stroke-width=".9" opacity="0.26" fill="none"/><path d="M41.2 111.6L40.1 116.9L49.8 119.3L51.3 114.1Z" fill="#3a332a"/><path d="M41.2 111.6L47.3 113.1" stroke="#8d8168" stroke-width=".9" opacity="0.26" fill="none"/><path d="M40.3 116.2L38.8 121.4L48.9 124.0L50.0 118.6Z" fill="#2a251e"/><path d="M40.3 116.2L46.1 117.7" stroke="#8d8168" stroke-width=".9" opacity="0.19" fill="none"/>
+    <!-- HANDS. Both arms ended at a wrap, so the club hung off a bandage. -->
+    <path d="M40 120q9 1 13 8 2 5 -2 9t-10 1l-7 -6z" fill="#7e2f21"/>
+    <path d="M40 120q9 1 13 8 -6 -4 -13 -4z" fill="#b0503a" opacity=".35"/>
+    <path d="M35 128q7 -2 13 2" stroke="#2a0e0a" stroke-width="1.6" fill="none" opacity=".8"/>
+    <!-- 金棒. A kanabo tapers: a thin shaft into a heavy studded head, and the
+         studs are round rivets rather than square holes. The slab with four
+         square dots in it read as a spanner. -->
+    <g transform="rotate(-34 44 124)">
+      <path d="M30 120h30v9H30z" fill="url(#t5club)"/>
+      <path d="M30 120h30v3H30z" fill="#d8bd82" opacity=".3"/>
+      <path d="M4 110l26 6v18l-26 5q-4 -14 0 -29z" fill="url(#t5club)"/>
+      <path d="M4 110l26 6v4l-26 -5z" fill="#e2c78c" opacity=".26"/>
+      <circle cx="11" cy="120" r="2.1" fill="#2a2210"/><circle cx="21" cy="122" r="2.1" fill="#2a2210"/>
+      <circle cx="11" cy="130" r="2.1" fill="#2a2210"/><circle cx="21" cy="131" r="2.1" fill="#2a2210"/>
+      <circle cx="10.4" cy="119.3" r=".9" fill="#e2c78c" opacity=".5"/>
+      <circle cx="20.4" cy="121.3" r=".9" fill="#e2c78c" opacity=".5"/>
+    </g>
+
+    <!-- THE HEAD. Grimacing, teeth bared, horns on a bone headband. -->
+    <!-- A NECK. Without one the head sat straight on the chest and he read as a
+         mask on a body. It is short and thick, which is the right kind of neck
+         for him, but it exists. -->
+    <path d="M91 56h18l2 14q-11 4 -22 0z" fill="url(#t5dark)"/>
+    <path d="M91 56h18l1 6q-10 3 -20 0z" fill="#0e0505" opacity=".7"/>
+    <path d="M100 26q14 0 15 15 1 12 -4 17 -4 5 -11 5t-11 -5q-5 -5 -4 -17 1 -15 15 -15z"
+          fill="url(#t5skin)"/>
+    <path d="M100 26q-12 0 -13 13 3 -8 13 -8t13 8q-1 -13 -13 -13z" fill="#c05a41" opacity=".26"/>
+    <path d="M86 36q28 -7 28 0l1 6q-3 -6 -15 -6t-15 6z" fill="#0d0e10"/>
+    <path d="M87 34q26 -6 26 0" stroke="#8f8462" stroke-width="2.2" fill="none" opacity=".9"/>
+    <path d="M88 31q-7 -15 -4 -26 7 9 9 24z" fill="url(#t5horn)"/>
+    <path d="M112 31q7 -15 4 -26 -7 9 -9 24z" fill="url(#t5horn)"/>
+    <path d="M90 46q5 -3 8 -1" stroke="#e0b8a0" stroke-width="1.3" fill="none" opacity=".18"
+          filter="url(#t5tiny)"/>
+    <ellipse cx="93" cy="45" rx="4.4" ry="3" fill="#08090b"/>
+    <ellipse cx="108" cy="45" rx="4.4" ry="3" fill="#08090b"/>
+    <path d="M89 43q5 -3 8 -1" stroke="#050607" stroke-width="2" fill="none" opacity=".75"/>
+    <path d="M112 43q-5 -3 -8 -1" stroke="#050607" stroke-width="2" fill="none" opacity=".75"/>
+    <!-- A SNARL, NOT A GRIN. An even row of bright equal teeth across the whole
+         face is a jack o' lantern. This is narrower than the face, mostly dark,
+         and the teeth are uneven and only in the upper jaw. -->
+    <path d="M92 52q8 4 16 0l-1 7q-7 3 -14 0z" fill="#08090a"/>
+    <path d="M93 53q7 3 14 0l-.6 2.6q-6 2.6 -12.8 0z" fill="#b9b39a" opacity=".85"/>
+    <path d="M95 55.4l.6 3M99 55.8v3.4M103.4 55.6l-.4 3.2" stroke="#08090a" stroke-width=".9" fill="none"/>
+    <path d="M96 57.6l1 3.4M104 57.4l-1 3.2" stroke="#b9b39a" stroke-width="1.6" fill="none" opacity=".7"/>
+    </g>
+  </symbol>
 
 <!-- 飛殭. Frost in the hair, skin gone blue-white, the mouth open past what a
      jaw does, and eyes that give the light back. Fills the frame. -->
