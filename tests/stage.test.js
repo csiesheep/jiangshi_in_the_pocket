@@ -1714,24 +1714,21 @@ test("icons: the sprite sheet is well-formed XML", () => {
     "these symbols are nested inside another symbol, so any rule scoped to the " +
     "outer one silently reaches them: " + nested.join(", "));
 
-  // And the count that made the nesting visible in the first place. king-figure
-  // is his own art and nothing else; while it swallowed the four tiers it read
-  // 70 against the 14 he had then.
+  // THE SHAPE COUNT THAT USED TO SIT HERE IS GONE, and removing it is the
+  // point rather than a concession. It asserted king-figure carried fewer than
+  // N shapes, as a blunt second signal for the nesting fault above — the count
+  // is what made that fault visible, at 70 against his 14.
   //
-  // THE BOUND IS CALIBRATED TO THE SWALLOW, NOT TO THE DRAWING, and it had to be
-  // recalibrated the moment the drawing changed: the redraw took him from 14
-  // shapes to 37 legitimately, and a threshold of 30 failed on a correct commit.
-  // A guard whose number tracks the ART will fire every time the art improves,
-  // which teaches people to raise it without looking. So it sits well above any
-  // plausible drawing and well below what a swallowed neighbour costs — the
-  // four tiers are 56 shapes between them, and the nesting assertion above is
-  // the one that catches the fault exactly. This is the blunt second signal.
-  const king = doc.getElementById("king-figure");
-  assert(king, "king-figure is missing from the sheet");
-  const kingShapes = king.querySelectorAll("path,rect,circle,ellipse,polygon,polyline,line").length;
-  assert(kingShapes < 60,
-    `king-figure carries ${kingShapes} shapes — far past a drawing of one man, so ` +
-    `he has swallowed a neighbour again`);
+  // It then failed TWICE on correct commits, once at 37 and once at 93, both
+  // times because he was legitimately redrawn denser. A bound calibrated to the
+  // SUBJECT fires whenever the subject changes, and the only available response
+  // is to raise it; do that twice and everyone learns to raise it unread, which
+  // is worse than no guard because it still looks like protection.
+  //
+  // Raising it a third time would have been capitulation. The assertion above
+  // catches the fault EXACTLY — no symbol may have a symbol for an ancestor —
+  // so the proxy was never adding information, only noise. When an exact
+  // assertion exists, a proxy for the same fault is a liability.
 });
 
 test("icons: each 僵屍 tier has its own artwork", () => {
