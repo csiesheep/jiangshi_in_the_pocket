@@ -1983,32 +1983,133 @@
 
 <!-- 黑殭. Lacquered. The skin has gone hard and dark and takes a highlight like
      varnish; the paper is gone and the mouth has started to open. -->
-<symbol id="scare-n4" viewBox="0 0 120 120">
-  <defs>
-    <linearGradient id="n4rim" x1=".12" y1="0" x2=".78" y2=".9">
-      <stop offset="0" stop-color="#e8e0ee"/><stop offset=".22" stop-color="#8d8496"/>
-      <stop offset=".55" stop-color="#221e28" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="n4lift" cx="30%" cy="18%" r="60%">
-      <stop offset="0" stop-color="#7b7186" stop-opacity=".95"/>
-      <stop offset="1" stop-color="#5f5668" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="n4b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
-    <filter id="n4bb" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
-  </defs>
-  <path d="M24 120c3-18 15-28 32-32l4-1 4 1c17 4 29 14 32 32z" fill="#08070a"/>
-  <path d="M60 12c19 0 32 15 32 34 0 12-3 21-8 26l-2 11c-1 9-9 17-22 17s-21-8-22-17l-2-11c-5-5-8-14-8-26 0-19 13-34 32-34z" fill="#0a090c"/>
-  <path d="M60 12c19 0 32 15 32 34 0 12-3 21-8 26l-2 11c-1 9-9 17-22 17s-21-8-22-17l-2-11c-5-5-8-14-8-26 0-19 13-34 32-34z" fill="url(#n4lift)" opacity=".55"/>
-  <path d="M60 12c-14 0-25 8-30 21 6-15 17-24 30-24 6 0 12 2 17 5-5-1-11-2-17-2z" fill="url(#n4rim)" filter="url(#n4b)"/>
-  <path d="M29 38c-1 3-1 5-1 8 0 12 3 21 8 26l2 11c1 6 5 12 12 15-9-2-14-8-15-15l-2-11c-5-5-8-14-8-26 0-3 2-6 4-8z" fill="url(#n4rim)" filter="url(#n4b)" opacity=".85"/>
-  <path d="M88 32c3 5 4 9 4 14 0 12-3 21-8 26l-2 11c-1 6-5 11-11 14 6-4 8-9 9-14l2-11c5-5 8-14 8-26 0-5-1-10-2-14z" fill="#d6cee0" filter="url(#n4b)" opacity=".3"/>
-  <path d="M50 26c8-4 16-4 22 0-6-1-15-1-22 0z" fill="#efe9f4" opacity=".5" filter="url(#n4b)"/>
-  <ellipse cx="46" cy="53" rx="12" ry="9" fill="#030204" filter="url(#n4b)"/>
-  <ellipse cx="74" cy="53" rx="12" ry="9" fill="#030204" filter="url(#n4b)"/>
-  <path d="M34 46c6-4 13-5 19-2" stroke="#b3aabb" stroke-width="2.2" fill="none" opacity=".4" filter="url(#n4b)"/>
-  <path d="M43 87c6 8 28 8 34 0l-2 9c-2 6-8 9-15 9s-13-3-15-9z" fill="#020103"/>
-  <path d="M47.5 88.5l2.6.6-1.2 6.6M71 88.2l-2.6.6 1.2 6.4" stroke="#cec6d6" stroke-width="1.7" fill="none" opacity=".5" filter="url(#n4b)"/>
-</symbol>
+<symbol id="scare-n4" viewBox="0 0 200 260">
+    <defs>
+      <linearGradient id="t4robe" x1=".22" y1="0" x2=".8" y2="1">
+        <stop offset="0" stop-color="#7e2a1e"/><stop offset=".26" stop-color="#5d1b13"/>
+        <stop offset=".62" stop-color="#37100c"/><stop offset="1" stop-color="#150606"/>
+      </linearGradient>
+      <linearGradient id="t4sleeve" x1=".1" y1="0" x2=".95" y2=".7">
+        <stop offset="0" stop-color="#6d2318"/><stop offset=".5" stop-color="#40110c"/>
+        <stop offset="1" stop-color="#1b0807"/>
+      </linearGradient>
+      <linearGradient id="t4panel" x1=".3" y1="0" x2=".7" y2="1">
+        <stop offset="0" stop-color="#43201f"/><stop offset="1" stop-color="#160807"/>
+      </linearGradient>
+      <linearGradient id="t4claw" x1=".1" y1="0" x2=".9" y2=".8">
+        <stop offset="0" stop-color="#39404b"/><stop offset=".45" stop-color="#232830"/>
+        <stop offset="1" stop-color="#0d1013"/>
+      </linearGradient>
+      <linearGradient id="t4wisp" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#24443f" stop-opacity=".9"/>
+        <stop offset=".55" stop-color="#1b3532" stop-opacity=".45"/>
+        <stop offset="1" stop-color="#152826" stop-opacity="0"/>
+      </linearGradient>
+      <radialGradient id="t4disc" cx="38%" cy="32%" r="70%">
+        <stop offset="0" stop-color="#5fa79b"/><stop offset="1" stop-color="#22514c"/>
+      </radialGradient>
+      <linearGradient id="t4cord" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#a4894c"/><stop offset=".5" stop-color="#6d5730"/>
+        <stop offset="1" stop-color="#33280f"/>
+      </linearGradient>
+      <linearGradient id="t4face" x1=".3" y1="0" x2=".72" y2="1">
+        <stop offset="0" stop-color="#b9bcae"/><stop offset=".45" stop-color="#7b8073"/>
+        <stop offset="1" stop-color="#2b302b"/>
+      </linearGradient>
+      <linearGradient id="t4brow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0b0d0f" stop-opacity="0"/>
+        <stop offset=".4" stop-color="#0b0d0f" stop-opacity=".9"/>
+        <stop offset="1" stop-color="#0b0d0f" stop-opacity=".2"/>
+      </linearGradient>
+      <linearGradient id="t4paper" x1="0" y1="0" x2=".3" y2="1">
+        <stop offset="0" stop-color="#ddd2b0"/><stop offset=".6" stop-color="#a89a76"/>
+        <stop offset="1" stop-color="#4c4432"/>
+      </linearGradient>
+      <linearGradient id="t4hair" x1=".3" y1="0" x2=".8" y2="1">
+        <stop offset="0" stop-color="#25262c"/><stop offset=".5" stop-color="#101116"/>
+        <stop offset="1" stop-color="#050507"/>
+      </linearGradient>
+      <filter id="t4soft" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="3"/></filter>
+      <filter id="t4tiny" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="1"/></filter>
+    </defs>
+    <g stroke="none">
+    <!-- NOTHING UNDERFOOT AT ALL. Tier 3 keeps a soft contact shadow because he
+         is planted; she has none, because a shadow on the ground is a claim
+         about standing on it. Her hem dissolves instead of ending. -->
+    <path d="M36.7 196.0q-1.2 11.5 -2.5 17.8q1.2 8.6 2.9 10.9l1.5 0q-1.2 -8.6 -2.6 -10.9q1.2 -11.5 2.3 -17.8z" fill="url(#t4wisp)" opacity="0.23"/><path d="M39.9 196.0q-2.3 15.9 -4.6 24.7q-3.0 11.9 -7.4 15.1l2.1 0q3.0 -11.9 6.7 -15.1q2.3 -15.9 4.2 -24.7z" fill="url(#t4wisp)" opacity="0.39"/><path d="M48.3 196.0q1.3 10.4 2.7 16.2q-3.9 7.8 -9.8 9.9l1.6 0q3.9 -7.8 8.8 -9.9q-1.3 -10.4 -2.4 -16.2z" fill="url(#t4wisp)" opacity="0.55"/><path d="M51.0 196.0q1.6 14.5 3.3 22.4q-4.9 10.9 -12.2 13.7l1.7 0q4.9 -10.9 11.0 -13.7q-1.6 -14.5 -3.0 -22.4z" fill="url(#t4wisp)" opacity="0.44"/><path d="M54.2 196.0q3.5 3.7 7.0 5.7q-0.3 2.8 -0.8 3.5l1.7 0q0.3 -2.8 0.7 -3.5q-3.5 -3.7 -6.4 -5.7z" fill="url(#t4wisp)" opacity="0.55"/><path d="M60.6 196.0q-1.0 17.2 -2.0 26.7q3.4 12.9 8.4 16.3l1.3 0q-3.4 -12.9 -7.6 -16.3q1.0 -17.2 1.8 -26.7z" fill="url(#t4wisp)" opacity="0.57"/><path d="M65.7 196.0q-3.5 4.7 -7.0 7.3q-3.2 3.5 -7.9 4.4l2.0 0q3.2 -3.5 7.1 -4.4q3.5 -4.7 6.4 -7.3z" fill="url(#t4wisp)" opacity="0.37"/><path d="M68.7 196.0q0.1 7.8 0.1 12.1q-1.3 5.8 -3.2 7.4l1.1 0q1.3 -5.8 2.9 -7.4q-0.1 -7.8 -0.1 -12.1z" fill="url(#t4wisp)" opacity="0.43"/><path d="M72.8 196.0q1.7 16.9 3.5 26.3q4.8 12.7 12.0 16.1l1.9 0q-4.8 -12.7 -10.8 -16.1q-1.7 -16.9 -3.2 -26.3z" fill="url(#t4wisp)" opacity="0.60"/><path d="M77.6 196.0q3.5 5.7 6.9 8.8q5.2 4.3 13.0 5.4l2.0 0q-5.2 -4.3 -11.7 -5.4q-3.5 -5.7 -6.3 -8.8z" fill="url(#t4wisp)" opacity="0.43"/><path d="M82.1 196.0q3.2 6.4 6.4 9.9q0.8 4.8 2.1 6.1l1.0 0q-0.8 -4.8 -1.9 -6.1q-3.2 -6.4 -5.8 -9.9z" fill="url(#t4wisp)" opacity="0.23"/><path d="M87.1 196.0q-4.0 18.2 -7.9 28.3q3.4 13.7 8.4 17.3l1.2 0q-3.4 -13.7 -7.6 -17.3q4.0 -18.2 7.2 -28.3z" fill="url(#t4wisp)" opacity="0.26"/><path d="M88.6 196.0q3.6 14.9 7.2 23.1q-5.1 11.2 -12.8 14.1l1.5 0q5.1 -11.2 11.5 -14.1q-3.6 -14.9 -6.6 -23.1z" fill="url(#t4wisp)" opacity="0.22"/><path d="M95.0 196.0q3.7 8.2 7.3 12.8q5.4 6.2 13.5 7.8l1.4 0q-5.4 -6.2 -12.1 -7.8q-3.7 -8.2 -6.7 -12.8z" fill="url(#t4wisp)" opacity="0.60"/><path d="M97.2 196.0q1.0 4.4 1.9 6.8q-5.2 3.3 -13.1 4.2l0.9 0q5.2 -3.3 11.8 -4.2q-1.0 -4.4 -1.8 -6.8z" fill="url(#t4wisp)" opacity="0.36"/><path d="M103.1 196.0q-4.4 5.6 -8.8 8.6q4.1 4.2 10.3 5.3l1.1 0q-4.1 -4.2 -9.3 -5.3q4.4 -5.6 8.1 -8.6z" fill="url(#t4wisp)" opacity="0.58"/><path d="M108.8 196.0q-0.4 8.9 -0.8 13.9q0.2 6.7 0.6 8.5l1.6 0q-0.2 -6.7 -0.5 -8.5q0.4 -8.9 0.7 -13.9z" fill="url(#t4wisp)" opacity="0.44"/><path d="M111.4 196.0q4.2 12.6 8.5 19.6q0.1 9.5 0.2 12.0l1.2 0q-0.1 -9.5 -0.2 -12.0q-4.2 -12.6 -7.8 -19.6z" fill="url(#t4wisp)" opacity="0.49"/><path d="M114.1 196.0q4.6 7.8 9.2 12.1q0.2 5.8 0.6 7.4l1.4 0q-0.2 -5.8 -0.5 -7.4q-4.6 -7.8 -8.4 -12.1z" fill="url(#t4wisp)" opacity="0.20"/><path d="M119.3 196.0q-4.6 12.0 -9.2 18.6q1.3 9.0 3.2 11.4l1.5 0q-1.3 -9.0 -2.9 -11.4q4.6 -12.0 8.4 -18.6z" fill="url(#t4wisp)" opacity="0.22"/><path d="M124.6 196.0q1.7 10.3 3.4 15.9q-1.7 7.7 -4.1 9.8l1.7 0q1.7 -7.7 3.7 -9.8q-1.7 -10.3 -3.2 -15.9z" fill="url(#t4wisp)" opacity="0.50"/><path d="M125.9 196.0q1.7 4.1 3.4 6.4q5.2 3.1 13.0 3.9l1.0 0q-5.2 -3.1 -11.7 -3.9q-1.7 -4.1 -3.1 -6.4z" fill="url(#t4wisp)" opacity="0.38"/><path d="M133.1 196.0q-1.3 8.1 -2.6 12.5q-2.1 6.0 -5.2 7.7l1.2 0q2.1 -6.0 4.7 -7.7q1.3 -8.1 2.4 -12.5z" fill="url(#t4wisp)" opacity="0.44"/><path d="M135.9 196.0q2.6 8.9 5.2 13.8q-5.3 6.7 -13.2 8.5l1.5 0q5.3 -6.7 11.9 -8.5q-2.6 -8.9 -4.8 -13.8z" fill="url(#t4wisp)" opacity="0.49"/><path d="M140.3 196.0q2.9 6.6 5.8 10.2q-2.9 4.9 -7.3 6.3l0.9 0q2.9 -4.9 6.6 -6.3q-2.9 -6.6 -5.3 -10.2z" fill="url(#t4wisp)" opacity="0.37"/><path d="M146.5 196.0q-1.7 4.7 -3.4 7.4q-1.9 3.6 -4.7 4.5l1.9 0q1.9 -3.6 4.2 -4.5q1.7 -4.7 3.1 -7.4z" fill="url(#t4wisp)" opacity="0.38"/><path d="M151.6 196.0q-1.6 5.8 -3.1 8.9q1.7 4.3 4.2 5.5l1.9 0q-1.7 -4.3 -3.8 -5.5q1.6 -5.8 2.9 -8.9z" fill="url(#t4wisp)" opacity="0.38"/><path d="M152.7 196.0q0.3 5.0 0.6 7.8q-3.5 3.8 -8.7 4.8l1.8 0q3.5 -3.8 7.8 -4.8q-0.3 -5.0 -0.5 -7.8z" fill="url(#t4wisp)" opacity="0.54"/><path d="M156.8 196.0q2.9 7.4 5.9 11.5q1.6 5.6 4.0 7.1l1.8 0q-1.6 -5.6 -3.6 -7.1q-2.9 -7.4 -5.4 -11.5z" fill="url(#t4wisp)" opacity="0.34"/><path d="M160.8 196.0q2.8 7.6 5.6 11.8q-2.6 5.7 -6.4 7.3l1.1 0q2.6 -5.7 5.8 -7.3q-2.8 -7.6 -5.2 -11.8z" fill="url(#t4wisp)" opacity="0.37"/>
+
+    <!-- THE SLEEVES ARE PLATES. Wide, hard edged, and hanging well below the
+         hands, which is what makes the talons read as coming OUT of cloth. -->
+    <path d="M78 70L30 104l-6 46 26 8 12 -44 20 -22z" fill="url(#t4sleeve)"/>
+    <path d="M122 70l48 34 6 46 -26 8 -12 -44 -20 -22z" fill="url(#t4sleeve)"/>
+    <path d="M78 70L30 104l-4 30 18 -26z" fill="#c2513c" opacity=".16"/>
+    <path d="M50 158l26 8 -4 12 -24 -8z" fill="url(#t4panel)"/>
+    <path d="M150 158l-26 8 4 12 24 -8z" fill="url(#t4panel)"/>
+
+    <!-- THE ROBE, one warm field broken into panels rather than a single slab.
+         RED IS A FIELD HERE and nowhere else in the set: tier 3 has none, tier 5
+         wears it as a body, tier 6 emits it as light, the King wears it as
+         marks. Five states of one pigment, no two shared. -->
+    <path d="M100 62q22 0 30 12l10 54 8 78H52l8 -78 10 -54q8 -12 30 -12z" fill="url(#t4robe)"/>
+    <path d="M100 62q-14 0 -22 8l-8 46 -6 70h-12l8 -78 10 -54q8 -12 30 -12z" fill="#a8412f" opacity=".14"/>
+    <path d="M118 78l10 52 8 76h-14l-6 -76z" fill="url(#t4panel)" opacity=".85"/>
+    <path d="M82 78l-10 52 -8 76h14l6 -76z" fill="url(#t4panel)" opacity=".55"/>
+    <path d="M86 74h28l6 132H80z" fill="#2a100e" opacity=".55"/>
+    <circle cx="100" cy="96.0" r="5.4" fill="#173230"/><circle cx="100" cy="96.0" r="4.4" fill="url(#t4disc)"/><circle cx="98.4" cy="94.2" r="1.6" fill="#9fd0c6" opacity=".35"/><circle cx="100" cy="111.5" r="5.1" fill="#173230"/><circle cx="100" cy="111.5" r="4.2" fill="url(#t4disc)"/><circle cx="98.5" cy="109.8" r="1.5" fill="#9fd0c6" opacity=".35"/><circle cx="100" cy="127.0" r="4.8" fill="#173230"/><circle cx="100" cy="127.0" r="4.0" fill="url(#t4disc)"/><circle cx="98.5" cy="125.4" r="1.5" fill="#9fd0c6" opacity=".35"/><circle cx="100" cy="142.5" r="4.6" fill="#173230"/><circle cx="100" cy="142.5" r="3.7" fill="url(#t4disc)"/><circle cx="98.6" cy="140.9" r="1.4" fill="#9fd0c6" opacity=".35"/><circle cx="100" cy="158.0" r="4.3" fill="#173230"/><circle cx="100" cy="158.0" r="3.5" fill="url(#t4disc)"/><circle cx="98.7" cy="156.5" r="1.3" fill="#9fd0c6" opacity=".35"/><circle cx="100" cy="173.5" r="4.0" fill="#173230"/><circle cx="100" cy="173.5" r="3.3" fill="url(#t4disc)"/><circle cx="98.8" cy="172.1" r="1.2" fill="#9fd0c6" opacity=".35"/><circle cx="100" cy="189.0" r="3.7" fill="#173230"/><circle cx="100" cy="189.0" r="3.1" fill="url(#t4disc)"/><circle cx="98.9" cy="187.7" r="1.1" fill="#9fd0c6" opacity=".35"/>
+
+    <!-- THE CORD. Braided, gold, and the only warm metal in the frame. -->
+    <path d="M70 140q30 10 60 0l2 8q-32 11 -64 0z" fill="url(#t4cord)"/>
+    <path d="M70 140q30 10 60 0" stroke="#d8bd82" stroke-width="1.1" fill="none" opacity=".4"/>
+    <path d="M96 149l-2 26 3 -3 2 4 2 -5 3 4 1 -26z" fill="url(#t4cord)" opacity=".8"/>
+
+    <!-- ARMS CROSSED, and the talons come out of them. The crossing matters: it
+         is a closed, patient posture, and it makes the reach look like something
+         she is choosing not to use yet. -->
+    <path d="M64 128q22 14 44 2l4 12q-26 14 -52 -2z" fill="#3d1512"/>
+    <path d="M136 126q-22 16 -46 4l-4 12q28 14 54 -4z" fill="#33110f"/>
+    <path d="M66.4 143.6Q65.7 164.0 57.4 179.8Q70.0 164.6 73.6 144.4Z" fill="url(#t4claw)"/><path d="M67.1 143.6Q65.5 164.0 57.4 179.8" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.40"/><path d="M66.4 142.7Q59.1 169.2 43.1 187.4Q63.4 170.8 73.6 145.3Z" fill="url(#t4claw)"/><path d="M67.0 143.0Q58.9 169.2 43.1 187.4" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.38"/><path d="M66.5 141.8Q53.4 166.9 33.4 181.7Q57.5 169.5 73.5 146.2Z" fill="url(#t4claw)"/><path d="M67.2 142.2Q53.2 166.8 33.4 181.7" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.41"/><path d="M67.1 141.2Q50.1 161.5 29.0 171.1Q53.6 164.9 72.9 146.8Z" fill="url(#t4claw)"/><path d="M67.6 141.7Q50.0 161.4 29.0 171.1" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.39"/><path d="M67.9 140.8Q47.3 156.7 24.9 161.3Q49.8 160.5 72.1 147.2Z" fill="url(#t4claw)"/><path d="M68.3 141.4Q47.2 156.5 24.9 161.3" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.45"/><path d="M68.7 140.6Q51.7 149.1 35.2 149.3Q53.2 153.1 71.3 147.4Z" fill="url(#t4claw)"/><path d="M68.9 141.2Q51.6 148.9 35.2 149.3" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.35"/>
+    <path d="M126.4 142.4Q130.6 161.8 142.2 176.6Q134.9 161.2 133.6 141.6Z" fill="url(#t4claw)"/><path d="M127.1 142.4Q130.4 161.8 142.2 176.6" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.42"/><path d="M126.4 143.4Q137.7 167.0 157.0 182.3Q142.1 165.3 133.6 140.6Z" fill="url(#t4claw)"/><path d="M127.0 143.2Q137.6 167.1 157.0 182.3" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.31"/><path d="M126.6 144.5Q142.9 163.3 164.5 172.7Q147.0 160.3 133.4 139.5Z" fill="url(#t4claw)"/><path d="M127.2 144.0Q142.7 163.4 164.5 172.7" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.36"/><path d="M127.5 145.0Q147.4 158.8 169.9 162.4Q150.3 155.2 132.5 139.0Z" fill="url(#t4claw)"/><path d="M128.0 144.5Q147.2 159.0 169.9 162.4" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.46"/><path d="M128.5 145.3Q147.9 152.3 167.3 150.4Q149.7 148.4 131.5 138.7Z" fill="url(#t4claw)"/><path d="M128.7 144.7Q147.8 152.5 167.3 150.4" stroke="#aab2c0" stroke-width="1" fill="none" opacity="0.41"/>
+    <!-- HANDS, not pale ovals. Two light blobs at the ends of the sleeves read
+         as eyes long before they read as hands, and they were the brightest
+         thing in the frame after the robe. Narrow, knuckled, and dark on the
+         side away from the key. -->
+    <path d="M62 134q9 -4 17 1l1 8q-2 5 -9 5t-9 -5z" fill="#6d7167"/>
+    <path d="M62 134q9 -4 17 1l.5 4q-9 -4 -17 0z" fill="#9aa094" opacity=".8"/>
+    <path d="M63 143q8 4 16 0l-.6 4q-7 4 -15 0z" fill="#232622"/>
+    <path d="M121 132q9 -5 17 -1l1 8q-2 5 -9 5t-9 -5z" fill="#5d6158"/>
+    <path d="M121 132q9 -5 17 -1l.4 4q-8 -4 -17 1z" fill="#868b80" opacity=".7"/>
+    <path d="M122 141q8 4 16 0l-.6 4q-7 4 -15 0z" fill="#1d201c"/>
+
+    <!-- THE HEAD. Hair gathered up and lacquered black, a face that is mostly
+         shadow, and the 符 hanging from the hairline over ONE eye. The paper is
+         the only thing in the drawing that is not hers. -->
+    <path d="M100 18q20 0 22 20 2 18 -4 26 -6 8 -18 8t-18 -8q-6 -8 -4 -26 2 -20 22 -20z"
+          fill="url(#t4face)"/>
+    <path d="M100 16q-22 0 -24 22 -1 10 1 16 2 -14 8 -20 8 -8 15 -8t15 8q6 6 8 20 2 -6 1 -16
+             -2 -22 -24 -22z" fill="url(#t4hair)"/>
+    <path d="M84 10q16 -8 32 0 6 3 4 9 -4 -8 -20 -8t-20 8q-2 -6 4 -9z" fill="url(#t4hair)"/>
+    <ellipse cx="100" cy="8" rx="13" ry="7" fill="url(#t4hair)"/>
+    <!-- ONE eye and one mouth. Three separate small dark marks on a pale face
+         read as a beak and a wedge before they read as features. -->
+    <path d="M103 38q9 -2 14 3 -6 -1 -14 1z" fill="url(#t4brow)"/>
+    <ellipse cx="110" cy="44" rx="5.8" ry="4.2" fill="#06070a"/>
+    <path d="M105 45q5 -2 9 0" stroke="#050608" stroke-width="2.6" fill="none" opacity=".7"/>
+    <path d="M103 56q7 1 12 -1 -2 5 -6 5t-6 -4z" fill="#0a0c0c"/>
+    <path d="M92 34q8 -4 15 -2" stroke="#cdd0c4" stroke-width="1.6" fill="none" opacity=".22"
+          filter="url(#t4tiny)"/>
+
+    <!-- 符, hung from the hairline and covering one eye. Cream paper, cinnabar
+         column: the SAME red as the robe, because there is one pigment here. -->
+    <g transform="rotate(-4 88 24)">
+      <path d="M79 22h18l1 32 -20 1z" fill="url(#t4paper)"/>
+      <path d="M88 27v22M83 33h10M83 40h10" stroke="#8e1c16" stroke-width="1.7" fill="none" opacity=".85"/>
+      <path d="M78 54l20 -1 -.5 4q-9 2 -19 0z" fill="#5f5741"/>
+    </g>
+    <path d="M100 68q-16 0 -22 -6l4 -6q8 6 18 6t18 -6l4 6q-6 6 -22 6z" fill="#160707" opacity=".7"/>
+    </g>
+  </symbol>
 
 <!-- 跳殭. Grave-wax — the yellow-grey of fat gone to soap underground. Head
      back, jaw open, the neck reduced to cord. This is the one that hops. -->
