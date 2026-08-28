@@ -379,9 +379,9 @@
     "_note": "The first-run letter. Diegetic, in the same voice as the event lines, and it teaches the burial and nothing else: where the tablet is, where it has to go, the one way out of the village, and that the night is short. The King is named as a deadline, never as a second way to win — that ending is hidden and the letter is the last place it should leak.",
     "title": "A note, folded and left on the gatehouse table",
     "lines": [
-      "You know why you are here. At the far end of the village is the 義莊, and in it one coffin that has waited too long for anybody to come for it.",
-      "His 神主牌 is in the 停柩房. Take it, carry it out through the moon gate in the 天井 — that is the only way out of the village — and put it back in the ground at the 亂葬崗. Give the man his name and he can rest.",
-      "Be quick about it. You have from nine until the third watch and not one turn longer. When it sounds he is awake, and he comes to whatever room you are standing in.",
+      "You know why you are here. At the end of the village a coffin has waited too long for anyone to come and claim it.",
+      "His {relic} is in the {crypt}. Take it out through the moon gate in the {courtyard} — the only way out of the village — and put it back in the ground at the {grave}. Give the man his name and he can rest.",
+      "You have from nine until the third watch, and not one turn more. When the drum sounds he wakes, and he comes to whatever room you are in.",
       "Doors are on the walls. Use them."
     ],
     "dismiss": "Fold it away"

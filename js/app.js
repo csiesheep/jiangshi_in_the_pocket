@@ -1688,10 +1688,43 @@ function markSeen() {
   }
 }
 
+// THE LETTER TAKES ITS PLACE NAMES FROM THE THEME, and does not spell them.
+//
+// It used to hand-write them, and in English it hand-wrote them in Chinese:
+// the English letter carried 13 Han characters and sent a player who cannot
+// read them to the 停柩房, the 天井 and the 亂葬崗 (#104). The English names for
+// all three were already in the same file two keys away — tiles.sealed-crypt,
+// tiles.courtyard, tiles.mass-grave — and nothing kept the letter in step with
+// them. Rename a tile and the letter went on naming the old place, in both
+// languages, silently.
+//
+// So the letter now names them with {crypt}, {courtyard}, {grave} and {relic},
+// filled here from the same tables the board and the panel read. One place for
+// the fact, and a rename follows into the letter by itself.
+//
+// 義莊 is the one that had NO tile key, because it is not a room you can stand
+// in. The sentence was rewritten to not need it rather than a name invented for
+// it — which also served the shortening the same issue asked for.
+function noteValues() {
+  const t = (data && data.theme) || {};
+  const tiles = t.tiles || {};
+  const words = t.words || {};
+  return {
+    relic: words.relic,
+    crypt: tiles["sealed-crypt"],
+    courtyard: tiles.courtyard,
+    grave: tiles["mass-grave"],
+  };
+}
+
 function openNote() {
   const note = data && data.theme && data.theme.note;
   if (!note) return;
-  showNote(note, markSeen);
+  const values = noteValues();
+  // A missing name would leave "{crypt}" sitting in the letter, which is the
+  // visible failure fill() is built for — better a stranger sees a broken
+  // placeholder than a confident sentence pointing at nowhere.
+  showNote({ ...note, lines: (note.lines || []).map((l) => fill(l, values)) }, markSeen);
 }
 
 

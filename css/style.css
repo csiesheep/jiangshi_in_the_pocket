@@ -4735,6 +4735,48 @@ body.coldopen .menu nav { animation: fadeup 1.4s ease-out 1.9s both; }
   color: #2b2317;
 }
 .notesheet p { margin: 0 0 12px; line-height: 1.5; font-size: .96rem; }
+
+/* ---- The letter should read as HANDWRITTEN (#104) --------------------------
+   GATED ON THE DOCUMENT LANGUAGE, and that is the whole safety argument rather
+   than a refinement of it. A handwriting face cut for Latin has no Han
+   coverage, and a browser asked to set 神主牌 in one does not complain - it
+   silently falls back, so the fault is invisible in the language you tested and
+   only shows up in the one you did not. Selecting on html[lang^="en"] means the
+   Han text is NEVER handed to this stack: not because the fallback is expected
+   to work, but because it is never reached.
+
+   NO NEW FONT FILE. The site makes no external requests (see the @font-face
+   note at the top), so a real handwriting face would mean committing another
+   binary to assets/fonts, which is a decision with a licence attached and not
+   one to take in passing. This uses what a system already has and ends in the
+   generic `cursive`, so the worst case is the serif it has now.
+
+   AND IT STAYS READABLE. This is the first thing a new player reads and it is
+   the only place the game explains itself, so legibility outranks the effect:
+   the size goes UP rather than down, the lines are looser, and the ink is the
+   same. Compare the ruling already recorded on --font-display - IM Fell "does
+   not want to be read at paragraph size" - which is the same concern about the
+   same kind of face, and this letter is four paragraphs of teaching. */
+html[lang^="en"] .notesheet p {
+  font-family: "Segoe Script", "Bradley Hand", "Snell Roundhand", "Apple Chancery",
+               "Lucida Handwriting", cursive, var(--font-head);
+  font-size: 1.06rem;
+  line-height: 1.65;
+}
+/* The hand that wrote the body wrote the salutation too - but the heading keeps
+   its own size, so the letter still opens with something a stranger can read at
+   a glance before committing to the paragraphs. */
+html[lang^="en"] .notesheet h2 {
+  font-family: "Segoe Script", "Bradley Hand", "Snell Roundhand", "Apple Chancery",
+               "Lucida Handwriting", cursive, var(--font-display);
+}
+/* A letter is written on a slant, not typeset square. Kept to a fraction of a
+   degree: enough that the paper reads as placed by a hand, not enough to make
+   anybody tilt their head to read four paragraphs. */
+.notesheet { transform: rotate(-.4deg); }
+/* ...and not at all for anyone who asked for less motion, since a permanent
+   tilt is a static thing but it is still the page refusing to sit straight. */
+@media (prefers-reduced-motion: reduce) { .notesheet { transform: none; } }
 .notesheet .notedismiss {
   margin-top: 6px;
   width: 100%;

@@ -954,3 +954,77 @@ test("pack: an outcome the HUD cannot show is said out loud", async () => {
     assert((t.ui || {})["use-grind"], lang + " has no label for the button that opens a picker");
   }
 });
+
+// The first-run letter (#104). Three claims, and the first is the one that
+// shipped broken: the ENGLISH letter carried 13 Han characters and sent an
+// English player to the 停柩房, the 天井 and the 亂葬崗 by name.
+//
+// A guard rather than a fix-and-forget, because this is the shape of fault that
+// reads perfectly in the language whoever changed it was looking at.
+test("the letter: English has no Han, and both languages name places from the theme", async () => {
+  const [en, zh] = await Promise.all([
+    fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
+    fetch("../data/theme.zh-TW.json", NO_STORE).then((r) => r.json()),
+  ]);
+
+  const enNote = en.note || {};
+  const enText = [enNote.title || ""].concat(enNote.lines || []).concat([enNote.dismiss || ""]).join(" ");
+  // Prove the region is not empty before asserting about what is absent from it:
+  // a letter that lost its lines passes "contains no Han" perfectly.
+  assert((enNote.lines || []).length >= 3,
+    "the English letter has fewer than three lines - this guard is watching almost nothing");
+
+  const han = [];
+  for (const ch of enText) {
+    const c = ch.codePointAt(0);
+    if (c >= 0x3400 && c <= 0x9fff) han.push(ch);
+  }
+  assert(han.length === 0,
+    "the English letter carries Han characters (" + han.join("") + ") - an English " +
+    "player is being sent to places they cannot read; the English names are in " +
+    "this same file under tiles.* and words.relic");
+
+  // The names are not spelled in either letter: they are taken from the theme,
+  // so renaming a tile follows into the letter instead of leaving it pointing at
+  // a place that no longer exists.
+  const need = ["{relic}", "{crypt}", "{courtyard}", "{grave}"];
+  for (const [name, theme] of [["English", en], ["繁體中文", zh]]) {
+    const body = ((theme.note || {}).lines || []).join(" ");
+    for (const token of need) {
+      assert(body.indexOf(token) !== -1,
+        "the " + name + " letter no longer uses " + token + " - if a place name was " +
+        "written out by hand again, it will drift the next time that tile is renamed");
+    }
+  }
+
+  // And every placeholder must have something to resolve to, in BOTH languages -
+  // otherwise the letter renders a literal "{crypt}" at a stranger.
+  for (const [name, theme] of [["English", en], ["繁體中文", zh]]) {
+    const tiles = theme.tiles || {};
+    const words = theme.words || {};
+    const table = {
+      "{relic}": words.relic,
+      "{crypt}": tiles["sealed-crypt"],
+      "{courtyard}": tiles.courtyard,
+      "{grave}": tiles["mass-grave"],
+    };
+    for (const token of need) {
+      assert(table[token],
+        "the " + name + " letter fills " + token + " from a theme key that is missing, " +
+        "so the letter would show the placeholder itself");
+    }
+  }
+
+  // SHORTER, and pinned at the length it was cut to rather than at a mood. The
+  // ceiling is the rendered length - placeholders expanded - because that is
+  // what a player actually reads.
+  const tiles = en.tiles || {}, words = en.words || {};
+  const rendered = (enNote.lines || []).join(" ")
+    .split("{relic}").join(words.relic || "")
+    .split("{crypt}").join(tiles["sealed-crypt"] || "")
+    .split("{courtyard}").join(tiles.courtyard || "")
+    .split("{grave}").join(tiles["mass-grave"] || "");
+  assert(rendered.length < 520,
+    "the English letter has grown back to " + rendered.length + " characters - it was " +
+    "cut from 538 because it was the longest thing a new player is asked to read");
+});
