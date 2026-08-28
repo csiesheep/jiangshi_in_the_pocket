@@ -1,0 +1,79 @@
+<!-- ALL FIVE ENDINGS, SIDE BY SIDE, so somebody can look at them.
+
+     THESE ARE FORCED, NOT PLAYED. The state is set and gameOver() is called,
+     using the engine's own outcome constants — never an invented string. That
+     distinction is not pedantry: a forced render made with a made-up outcome
+     once produced a card with the wrong relic line, because the fill fell
+     through. A forced card tests the forcing as much as it tests the card.
+
+     Only WIN_BURIAL and LOSS_HEALTH have ever been reached BY PLAYING.
+     WIN_SEAL and LOSS_KING have not, by anyone or anything. See issue #96.
+
+     LOSS_COMBAT is not a fifth outcome: it is LOSS_HEALTH with lossReason
+     "combat", which the card dresses differently. Both are shown because the
+     difference is the point. -->
+<!doctype html><meta charset="utf-8"><title>五張結局頁 / All five end pages</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  body{margin:0;background:#07080b;font:12px ui-monospace,monospace;color:#c9a24b}
+  #bar{position:fixed;left:0;right:0;top:0;height:34px;z-index:10;background:#0d0f14;
+       display:flex;align-items:center;gap:12px;padding:0 12px;border-bottom:1px solid #1a1d24}
+  #bar button{background:#1a1d24;color:#c9a24b;border:1px solid #2a2e36;padding:4px 10px;cursor:pointer;font:inherit}
+  #ends{position:absolute;top:34px;left:0;right:0;bottom:0;display:flex;overflow:auto}
+  .cell{position:relative;flex:0 0 340px;height:100%;border-right:1px solid #1a1d24;overflow:hidden}
+  .cell > .lab{position:absolute;left:8px;top:6px;z-index:5;color:#c9a24b}
+  .cell > div[class*=overlay]{position:absolute;inset:0}
+</style>
+<div id="bar">
+  <strong>五張結局頁</strong>
+  <button id="lang">切換語言 / Switch language</button>
+  <span id="note">強制渲染 — 只有「下葬」和「傷重不治(血量)」曾被真正玩到</span>
+</div>
+<div id="ends">loading…</div>
+<script type="module">
+const SPECS = [
+  ["WIN_BURIAL",  {status:"won", outcome:"WIN_BURIAL", tablet:true,  hour:23, health:4, lossReason:null},   {fights:2,found:3}],
+  ["WIN_SEAL",    {status:"won", outcome:"WIN_SEAL",   tablet:false, hour:24, health:2, lossReason:null},   {fights:4,found:5}],
+  ["LOSS_HEALTH", {status:"lost",outcome:"LOSS_HEALTH",tablet:false, hour:22, health:0, lossReason:"health"},{fights:3,found:1}],
+  ["LOSS_COMBAT", {status:"lost",outcome:"LOSS_HEALTH",tablet:true,  hour:23, health:0, lossReason:"combat"},{fights:5,found:2}],
+  ["LOSS_KING",   {status:"lost",outcome:"LOSS_KING",  tablet:false, hour:24, health:6, lossReason:null},   {fights:1,found:2}],
+];
+const frame = document.createElement("iframe");
+frame.style.cssText = "position:fixed;left:-9999px;width:900px;height:800px";
+document.body.appendChild(frame);
+function build(){
+  const w = frame.contentWindow, d = frame.contentDocument;
+  const g = w.__game;
+  const out = document.getElementById("ends");
+  out.innerHTML = "";
+  for (const [name, state, tally] of SPECS){
+    d.querySelectorAll("#overlay").forEach(n=>n.remove());
+    Object.assign(g.state, state);
+    g.tally = Object.assign({fights:0,found:0}, tally);
+    g.gameOver();
+    const ov = d.getElementById("overlay");
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    const clone = ov.cloneNode(true); clone.id = "";
+    const lab = document.createElement("div"); lab.className="lab"; lab.textContent = name;
+    cell.appendChild(clone); cell.appendChild(lab);
+    out.appendChild(cell);
+  }
+  document.documentElement.lang = d.documentElement.lang;
+}
+frame.onload = () => setTimeout(build, 1400);
+frame.src = "../game.html";
+// belt and braces: if load already fired, build anyway once the game exists
+let tries = 0;
+const poll = setInterval(() => {
+  if (document.querySelectorAll("#ends .cell").length) return clearInterval(poll);
+  if (++tries > 40) return clearInterval(poll);
+  const w = frame.contentWindow;
+  if (w && w.__game) { try { build(); } catch (e) {} }
+}, 400);
+document.getElementById("lang").onclick = () => {
+  const d = frame.contentDocument;
+  const b = [...d.querySelectorAll("button")].find(x=>/繁體中文|English/.test(x.textContent||""));
+  if (b) { b.click(); setTimeout(build, 900); }
+};
+</script>
