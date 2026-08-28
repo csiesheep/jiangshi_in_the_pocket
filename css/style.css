@@ -3300,6 +3300,19 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 
 /* The hands and the eyes sit behind him and fill the frame: he is unmasked and
    full screen, so they may spread as wide as the window. */
+/* The smoke is the biggest thing in the frame: the hands have to come out of
+   it, so it must be wider than they are. */
+.king-smoke { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+              pointer-events: none; }
+.king-smoke .king-art--behind { width: 150vmax; height: 150vmax; }
+.king-smoke { animation: king-roll 2.4s ease-out both; }
+@keyframes king-roll {
+  0%   { opacity: .35; transform: translate(-50%,-50%) scale(1.1) rotate(-1.5deg); }
+  100% { opacity: 1;   transform: translate(-50%,-50%) scale(1)   rotate(0deg); }
+}
+.evstage--still .king-smoke { animation: none; opacity: 1;
+                              transform: translate(-50%,-50%); }
+
 .king-hands .king-art--behind { width: min(88vmin, 800px); height: min(88vmin, 800px); }
 .king-hands, .king-eyes {
   position: absolute;
@@ -3370,8 +3383,8 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   display: block;
   /* Larger than he was: he is the set-piece of the whole night and he sat
      small in a frame full of eyes. */
-  width: min(38vmin, 330px);
-  height: min(60vmin, 520px);
+  width: min(46vmin, 400px);
+  height: min(72vmin, 620px);
   color: #d7d9de;
   opacity: .9;
   filter: drop-shadow(0 0 34px rgba(0, 0, 0, .96)) contrast(1.08);
@@ -3433,7 +3446,7 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 
 @media (prefers-reduced-motion: reduce) {
   .king-dark, .king-bow, .king-frost, .king-weave, .king-shadow, .king-fig,
-  .king-mala, .king-miasma, .king-hands, .king-eyes {
+  .king-mala, .king-miasma, .king-hands, .king-eyes, .king-smoke {
     animation: none;
     opacity: 1;
   }

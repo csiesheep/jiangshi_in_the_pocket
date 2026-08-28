@@ -209,7 +209,8 @@ function buildKing(inner, ctx) {
     n.setAttribute("aria-hidden", "true");
     inner.appendChild(n);
   }
-  for (const [cls, sym] of [["king-eyes king-eyes--deep", "eyes"],
+  for (const [cls, sym] of [["king-smoke", "smoke"],
+                           ["king-eyes king-eyes--deep", "eyes"],
                            ["king-hands", "hands"],
                            ["king-eyes king-eyes--near", "eyes"]]) {
     const n = document.createElement("span");
