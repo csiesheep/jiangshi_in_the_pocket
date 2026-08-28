@@ -37,6 +37,33 @@
 // takes what the game has already drawn as recommended, and that is all. It is
 // not choosing well; it is choosing what the screen says.
 //
+// WHERE THE LINE ACTUALLY FALLS, because "it must have no opinions" is the
+// wrong target and following it caused a bug.
+//
+// An OPINION is a preference about playing WELL — which talisman is worth
+// spending, when to fight rather than flee, whether a blade is worth a slot.
+// Those belong to tools/bots.js and their outcomes are rates.
+//
+// PICKING UP WHAT IS IN FRONT OF YOU AND HEALING WHEN HURT IS NOT A PREFERENCE.
+// It is the absence of a handicap. This tool used to decline every find, which
+// I defended as neutrality, and it is the opposite: A POLICY OF REFUSING,
+// adopted by accident, that no player and no bot would hold. It was not neutral,
+// it was playing badly on purpose — and it cost exactly what you would expect.
+// Measured: the pack ended EMPTY, state.items {} with four empty cells at 6
+// health, so the longest exposed stretch of the night was walked with nothing
+// to heal with. 22 of 24 deaths were at the tablet link.
+//
+// So the boundary, and it is deliberately boring:
+//
+//   TAKEN, because refusing them is the opinion: a find into a free slot;
+//     medicine when hurt.
+//   ARBITRARY AND SAID SO, because choosing well would be a preference: WHICH
+//     item to give up when the pack is full. It drops the first slot. It does
+//     not rank items and must not learn to.
+//   LEFT TO THE FLOOR, because they are preferences: when to spend a talisman,
+//     whether to fight or flee. Decline what the game drew lethal, take what it
+//     drew recommended, and have no further view.
+//
 // MEASURE THE CHAIN, NOT THE OUTCOME. "Did it win" tells you only that it did
 // not. The chain says which link broke, and every useful thing this found came
 // from that: twenty-five nights of a coin-flipping robot said almost nothing
@@ -156,19 +183,62 @@ function endingCard() {
   return again ? { card, again } : null;
 }
 
-// A MODAL WHILE THE GAME IS STILL "playing". The drop dialog and the 硃砂
-// picker both cover the board with a scrim, so every doorway is hidden and a
-// driver that only hunts doorways spins behind it. Measured at 9000 steps.
+// A MODAL WHILE THE GAME IS STILL "playing". The drop dialog, the 硃砂 picker
+// and the opening letter all cover the board with a scrim, so every doorway is
+// hidden and a driver that only hunts doorways spins behind it. Measured at
+// 9000 steps.
 //
-// It LEAVES the find rather than answering: the pack is not part of any chain
-// here, and the question costs turns this does not have. That is a reachability
-// choice which makes the tool a worse player, and that is the point.
+// THE DROP DIALOG IS ANSWERED, NOT DECLINED. It used to press "leave it" on
+// every find, which is the accidental policy of refusing described in the
+// header. It now gives up the FIRST SLOT — arbitrary, and arbitrary on purpose,
+// because choosing which item to lose would be a preference and this has none.
+//
+// 點兩下: the drop cells take two taps, one to arm and one to commit, and a tap
+// on a different cell moves the arming rather than committing. So this presses
+// the same cell twice and nothing else. A driver written against the one-tap
+// version of this dialog would arm a cell and never give anything up.
+//
+// The 硃砂 picker is still declined, and that is the boundary rather than
+// laziness: grinding it SPENDS a talisman to copy another, which is exactly the
+// kind of choice the header reserves for tools/bots.js.
 function openModal() {
   const m = document.querySelector(".notecard");
   if (!m || !vis(m)) return null;
+  const pack = m.querySelector(".droppack");
+  if (pack) {
+    const cell = [...pack.querySelectorAll(".cellface")].filter(vis)[0];
+    if (cell) return { modal: m, press: cell, twice: true };
+  }
   const btns = [...m.querySelectorAll("button")].filter(vis);
   const out = btns.find((b) => /leave it|留在原地|fold it away/i.test(b.textContent));
-  return { modal: m, press: out || btns[btns.length - 1] || null };
+  return { modal: m, press: out || btns[btns.length - 1] || null, twice: false };
+}
+
+// MEDICINE WHEN HURT, and nothing else from the pack.
+//
+// .cellact is not a heal button: it is also enabled for 硃砂, which opens a
+// picker, and for 真火符, which burns the talisman into a blade. Both SPEND, and
+// spending is a preference. So the cell is matched to its slot by position and
+// only a medicine item is pressed — checked against the engine's own category
+// rather than against a name, which would be a different string in each
+// language.
+//
+// The position mapping is asserted rather than assumed: if the number of filled
+// cells does not match the number of held slots, this does nothing at all,
+// because pressing the wrong cell would spend something.
+function healIfHurt(game) {
+  const s = game.state;
+  if (!s || s.health == null || s.health >= 10) return null;
+  const ids = Object.keys(s.items || {});
+  const cells = [...document.querySelectorAll(".panel .cell:not(.cell--empty)")].filter(vis);
+  if (!cells.length || cells.length !== ids.length) return null;
+  for (let i = 0; i < ids.length; i++) {
+    const def = (s.itemsById || {})[ids[i]];
+    if (!def || def.cat !== "medicine") continue;
+    const act = cells[i].querySelector(".cellact");
+    if (act && vis(act) && !act.disabled) return act;
+  }
+  return null;
 }
 
 // THE SURVIVAL FLOOR, AND IT IS THE SCREEN'S JUDGEMENT RATHER THAN MINE.
@@ -276,7 +346,18 @@ export function reachFor(targetName, opts = {}) {
         if (here && here.id === "mass-grave" && !seen.grave) { seen.grave = 1; chain.reachedGrave++; }
 
         const modal = openModal();
-        if (modal) { if (modal.press) modal.press.click(); await tick(); continue; }
+        if (modal) {
+          if (modal.press) {
+            modal.press.click();
+            // 點兩下 — the first tap only arms the cell.
+            if (modal.twice) modal.press.click();
+          }
+          await tick();
+          continue;
+        }
+
+        const heal = healIfHurt(game);
+        if (heal) { heal.click(); await tick(); continue; }
 
         const acts = [...document.querySelectorAll("#actions .action")].filter(vis);
         if (acts.length) { chooseAction(acts).click(); await tick(); continue; }
