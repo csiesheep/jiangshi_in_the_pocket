@@ -18,7 +18,7 @@ import { Game } from "../js/app.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "d4aac2ae");
+suite(import.meta.url, "2d4b86dd");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -515,9 +515,22 @@ test("photosensitivity: the overlays specifically are clean", () => {
     "a full-screen overlay repeats a luminance change: " + offenders.join(" | "));
 });
 
-test("scare: the dressing is cumulative, so the tiers only ever escalate", () => {
-  // n3 is a lantern dropping and n6 is every candle dying; nothing the room
-  // gives up at a lower tier is taken back at a higher one.
+// NAMED FOR WHAT IT CHECKS (#100). This was "the dressing is cumulative, so the
+// tiers only ever escalate" — a claim it never verified, and could not: it reads
+// CSS TEXT, and escalation is a property of the class list the renderer builds.
+// After #99 removed the two assertions that pinned a retired model, what is left
+// is a presence check, so that is what the name says now.
+//
+// The name is the part a reader trusts without opening the body, which is why it
+// is the part that must not promise more than the body delivers — the same rule
+// that made make_zh.py's docstring worth fixing rather than the code below it.
+test("scare: the tier selectors still carry styling", () => {
+  // The escalation this file used to claim here — n3 is a lantern dropping, n6
+  // is every candle dying, and nothing given up at a lower tier comes back at a
+  // higher one — is a real design rule and is NOT checked below. Left as
+  // context, marked as context. Renaming the test while leaving its opening
+  // sentence asserting the same unchecked thing would have moved the problem by
+  // one line.
   const tiers = ["n3", "n4", "n5", "n6"].map((t) => {
     const at = tierCss.indexOf(`.scare--${t}`);
     return at;
@@ -534,13 +547,11 @@ test("scare: the dressing is cumulative, so the tiers only ever escalate", () =>
   // always would have, because it read CSS text rather than anything rendered
   // — and the rule itself had been unreachable since #97.
   //
-  // WHAT IS LEFT BELOW IS THIN AND SHOULD BE READ AS SUCH. It establishes that
-  // some tier styling exists, nothing more. The claim in this test's NAME —
-  // that the dressing only ever escalates — is not checked here and is not
-  // checked by the CSS at all; the comment above is right that it lives in the
-  // renderer's class list. Recorded rather than quietly left, because a test
-  // whose name promises more than its body delivers is the shape this file has
-  // been cleaning up all week.
+  // WHAT IS LEFT BELOW IS THIN, and the name now says so rather than the
+  // comment having to apologise for it. It establishes that some tier styling
+  // exists, nothing more. Escalation is not checked here and is not checkable
+  // from CSS text at all — it lives in the renderer's class list, as the note
+  // above says.
   assert(tiers.every((i) => i !== -1) || /scare--n/.test(tierCss), "no tier styling found");
 });
 
