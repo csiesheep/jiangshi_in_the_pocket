@@ -11,7 +11,8 @@ import {
   eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   resetStageHints,
 } from "../js/eventstage.js";
-import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET } from "../js/render.js";
+import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
+         creaturePanel, clearCreaturePanel, resolveBeat } from "../js/render.js";
 import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
@@ -1495,6 +1496,99 @@ test("stage: both tile panels dissolve at the same radius (#98)", serial(async (
   assert(Math.abs(edge - reveal) <= 6,
     `the two tile panels dissolve at different radii (mask ${edge}%, reveal ${reveal}%) — ` +
     `a scene and a find should melt into the room the same way`);
+}));
+
+// ---- The creature panel (#94) -------------------------------------------------
+// TWO PROPERTIES THAT FAIL INVISIBLY, and the branch shipped without either.
+// 345 passed before the panel existed and 345 passed after it, which means green
+// said "nothing else broke" rather than "this works" — and both of these were
+// broken at the time.
+//
+// Neither is observable at rest, which is the point. The panel measures
+// perfectly still and both faults appear only once resolveBeat's keyframes
+// apply, so a static check of geometry, colour and stacking passes over them.
+// The animation clock does not advance in a hidden tab either, so waiting does
+// not show them: the currentTime has to be SET.
+test("creature panel: the turned villager leaves, and the creature stays centred (#94)",
+     serial(async () => {
+  const sprite = document.createElement("div");
+  sprite.style.display = "none";
+  sprite.innerHTML = ICON_SVG;
+  document.body.appendChild(sprite);
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const adopted = [...document.adoptedStyleSheets];
+  try {
+    document.adoptedStyleSheets = [...adopted, sheet];
+    document.documentElement.style.setProperty("--tile", "360px");
+
+    creaturePanel(4, { turnedFrom: 1 });
+    const panel = document.querySelector(".creature");
+    assert(panel, "no creature panel was mounted");
+
+    // ONE FIGURE resolveBeat will animate. The villager the panel opens as must
+    // not still be wearing the class resolveBeat collects, or the man who has
+    // just stopped being a person comes back and topples a second time — and
+    // two figures also trip the pack-stagger branch, giving a crowd's cadence
+    // to one creature.
+    const collected = panel.querySelectorAll(".creature-art");
+    eq(collected.length, 1,
+       "the turned path leaves " + collected.length + " elements under .creature-art; " +
+       "resolveBeat animates every one it finds, so anything but the creature itself " +
+       "gets felled alongside it");
+
+    // AND THE CENTRING SURVIVES THE STRIKE. resolveBeat's fell keyframes open
+    // with a bare translateY(0), which REPLACES the transform property — so any
+    // centring living in transform is discarded on the animation's first frame.
+    // FINISH THE ENTRANCE FIRST. The clock does not advance in a hidden tab, so
+    // without this the entrance sits frozen on its opening scale and the fell
+    // keyframes replace THAT — a jump the real game never sees, because by the
+    // time a fight can resolve the entrance is long over. Three separate false
+    // readings came out of this harness before the setup was right, and every
+    // one of them looked like a finding.
+    for (const el of panel.querySelectorAll(".creature-art, .creature-was")) {
+      for (const an of el.getAnimations()) an.finish();
+    }
+    const art = collected[0];
+    const before = art.getBoundingClientRect();
+    resolveBeat({ icon: "item-sevenstar-sword" });
+    let seeked = 0;
+    for (const an of art.getAnimations()) {
+      const kf = (an.effect.getKeyframes()[0] || {}).transform || "";
+      // THE FIRST ACTIVE FRAME, and currentTime INCLUDES the delay — seeking to
+      // a small absolute number lands inside it, where no keyframe applies and
+      // the check passes without exercising anything. At the first active frame
+      // the keyframe is translateY(0) rotate(0) and intends no motion at all,
+      // so any displacement there is centring being overwritten. Later frames
+      // move the creature legitimately: it is falling over.
+      if (kf.indexOf("translateY") === 0) {
+        an.currentTime = an.effect.getTiming().delay || 0;
+        an.pause();
+        seeked++;
+      }
+    }
+    // The guard must not pass by finding nothing to check.
+    eq(seeked, 1, "no fell animation was attached to the creature, so this test " +
+                  "would have passed without exercising anything");
+    const after = art.getBoundingClientRect();
+    const moved = Math.max(Math.abs(after.left - before.left), Math.abs(after.top - before.top));
+    // Falsified both ways before being trusted: with the villager left under
+    // .creature-art the count is 2, and with the pre-fix transform centring
+    // restored this measures 111px on a 360 tile.
+    assert(moved < 4,
+      "the creature jumped " + Math.round(moved) + "px on the first frame of the strike; " +
+      "its centring is being overwritten by the fell keyframes rather than surviving them");
+  } finally {
+    document.documentElement.style.removeProperty("--tile");
+    clearCreaturePanel();
+    document.adoptedStyleSheets = adopted;
+    host.remove();
+    sprite.remove();
+  }
 }));
 
 test("scenes: 中毒, -1 and +1 each have a subject, and it is their own (#90)", serial(async () => {

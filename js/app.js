@@ -835,17 +835,17 @@ export class Game {
     // `health` is what marks a card lethal, and it is read here rather than
     // baked in above: it can move mid-window, and a card that would kill you
     // has to say so at the moment you are looking at it.
-    // NO PACK ROW ON A FIGHT ANY MORE (#94 part 2): the creature is the panel
-    // above, at full size, and drawing it again at 22px in the header is the
-    // caption doubling the user caught when the event line moved.
-    //
-    // THE ATTACK IS STILL IN THIS PROMPT AND ALSO ON THE PANEL, and that is a
-    // known interim rather than an oversight: fight-prompt's new wording is
-    // with the user, who ruled the current one hours before #94 existed.
-    // NO PROMPT AND NO PACK ROW (#94). The creature panel above carries both
-    // the picture and the one text — the story sentence with its attack — and
+    // NO PROMPT AND NO PACK ROW (#94). The creature panel above carries the
+    // picture AND the one text — the story sentence with its attack — and
     // renderActions positions a prompt in the window header, which is a second
     // element in a second place. One sentence, once.
+    //
+    // A paragraph here used to say the attack was in both the prompt and the
+    // panel, as a known interim. That was true for about an hour: the interim's
+    // REPLACEMENT landed on this very line and the interim's note stayed above
+    // it, describing a doubling that had already stopped existing. A comment
+    // that survives the thing it describes is worse than no comment, because a
+    // reader trusts it over the code.
     renderActions(acts, "", { health: s.health });
   }
 

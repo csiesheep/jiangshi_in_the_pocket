@@ -3310,13 +3310,30 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
     color-mix(in srgb, var(--film-ink) 62%, transparent),
     color-mix(in srgb, var(--film-ink) 88%, transparent) 78%);
 }
-.creature-art {
+/* CENTRED BY MARGIN, NOT BY TRANSFORM, and that is a correctness fix rather
+   than a style. resolveBeat's fell keyframes open with a bare
+   `translateY(0) rotate(0)`, which REPLACES the whole transform property — so
+   any centring living in transform is thrown away on the first frame of the
+   strike. Measured before the fix: the figure's box jumped from 368,240 to
+   479,352, a third of a tile down and to the right, at the exact moment the
+   weapon crossed it.
+
+   It was harmless under .packrow because .packfig was never transform-centred.
+   Moving the animation onto an element positioned a different way carried the
+   old element's assumption with it, and nothing static could see it: at rest
+   the transform is correct and only the animation's first frame is wrong.
+
+   Margin centring leaves transform entirely to the animations, so no keyframe
+   anywhere has to remember to preserve it. */
+.creature-art,
+.creature-was {
   position: absolute;
   left: 50%;
   top: 40%;
   width: calc(var(--tile) * .62);
   height: calc(var(--tile) * .62);
-  transform: translate(-50%, -50%);
+  margin-left: calc(var(--tile) * -.31);
+  margin-top: calc(var(--tile) * -.31);
   display: block;
 }
 /* The sentence and the number. Bottom of the panel, inside the mask's soft

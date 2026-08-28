@@ -3562,7 +3562,17 @@ export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
 
   if (turnedFrom != null) {
     const who = VILLAGERS_FOR_PANEL[(Number(turnedFrom) || 0) % VILLAGERS_FOR_PANEL.length];
-    const was = icon("scene", who, "creature-art");
+    // .creature-was, NOT .creature-art, and that is load-bearing. resolveBeat
+    // collects `.creature-art` inside the panel and animates every one it finds,
+    // so leaving the villager under that class made the man they had just
+    // watched stop being a person come back at opacity .9 and topple a second
+    // time beside the thing he became — and two figures also tripped the
+    // pack-stagger branch, giving a crowd's cadence to one creature.
+    //
+    // He is also REMOVED once his exit finishes, so the panel does not carry a
+    // spent node for the rest of the fight. The class is what makes it correct;
+    // the removal is what keeps it tidy.
+    const was = icon("scene", who, "creature-was");
     if (was && art) {
       el.appendChild(was);
       el.appendChild(art);
@@ -3570,11 +3580,16 @@ export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
         // He is small and it fills the panel, so the size difference is the
         // effect rather than a problem: the thing gets bigger because it is no
         // longer a person.
-        was.animate([{ opacity: 1, transform: "translate(-50%, -50%) scale(.62)" },
-                     { opacity: 0, transform: "translate(-50%, -50%) scale(1.02)" }],
-                    { duration: 380, easing: "cubic-bezier(.5,0,.75,0)", fill: "both" });
-        art.animate([{ opacity: 0, transform: "translate(-50%, -50%) scale(.72)" },
-                     { opacity: 1, transform: "translate(-50%, -50%) scale(1)" }],
+        // No translate in these keyframes any more: the centring is in the
+        // margins now, so transform belongs to the animation alone.
+        const going = was.animate([{ opacity: 1, transform: "scale(.62)" },
+                                   { opacity: 0, transform: "scale(1.02)" }],
+                                  { duration: 380, easing: "cubic-bezier(.5,0,.75,0)", fill: "both" });
+        if (going.finished && going.finished.then) {
+          going.finished.then(() => was.remove(), () => {});
+        }
+        art.animate([{ opacity: 0, transform: "scale(.72)" },
+                     { opacity: 1, transform: "scale(1)" }],
                     { duration: 380, delay: 120, easing: "cubic-bezier(.2,.7,.3,1)", fill: "both" });
       } else {
         was.remove();
