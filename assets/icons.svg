@@ -649,14 +649,21 @@
           fill="url(#vHair)"/>
     <path d="M82 40q0 -22 18 -22l.4 2.6q-14 1 -15.4 20z" fill="#4b4b53" opacity=".4"/>
     <path d="M84 44q16 -6 32 0 -2 5 -4 7 -12 -5 -24 0 -2 -2 -4 -7z" fill="url(#vBrow)"/>
-    <ellipse cx="90" cy="50" rx="4.6" ry="3.4" fill="#e4d6c0"/>
-    <ellipse cx="110" cy="50" rx="4.6" ry="3.4" fill="#d8cab4"/>
-    <ellipse cx="90.4" cy="50" rx="2.7" ry="2.7" fill="#4a3527"/>
-    <ellipse cx="110.4" cy="50" rx="2.7" ry="2.7" fill="#42301f"/>
-    <ellipse cx="90.4" cy="50" rx="1.2" ry="1.2" fill="#0e0b08"/>
-    <ellipse cx="110.4" cy="50" rx="1.2" ry="1.2" fill="#0e0b08"/>
-    <ellipse cx="89.3" cy="49" rx="1.1" ry=".9" fill="#fff6e6" opacity=".9"/>
-    <ellipse cx="109.3" cy="49" rx="1.1" ry=".9" fill="#fff6e6" opacity=".75"/>
+    <!-- ALMOND, NOT ROUND, and smaller. Giving her an iris and a catchlight to
+         make her alive left her eyes the largest and roundest thing in the set,
+         which reads doll-like beside an old man's crinkled lids and an old
+         woman's single profile eye. A lid over the top of each is most of the
+         fix: a round eye with nothing above it is a doll's. -->
+    <ellipse cx="90" cy="50" rx="4" ry="2.8" fill="#e4d6c0"/>
+    <ellipse cx="110" cy="50" rx="4" ry="2.8" fill="#d8cab4"/>
+    <ellipse cx="90.3" cy="50.1" rx="2.3" ry="2.3" fill="#4a3527"/>
+    <ellipse cx="110.3" cy="50.1" rx="2.3" ry="2.3" fill="#42301f"/>
+    <ellipse cx="90.3" cy="50.1" rx="1" ry="1" fill="#0e0b08"/>
+    <ellipse cx="110.3" cy="50.1" rx="1" ry="1" fill="#0e0b08"/>
+    <ellipse cx="89.4" cy="49.3" rx=".9" ry=".75" fill="#fff6e6" opacity=".85"/>
+    <ellipse cx="109.4" cy="49.3" rx=".9" ry=".75" fill="#fff6e6" opacity=".7"/>
+    <path d="M86 48.6q4 -2.4 8 0l-.6 1.2q-3.4 -2 -6.8 0z" fill="#8a6a51"/>
+    <path d="M106 48.6q4 -2.4 8 0l-.6 1.2q-3.4 -2 -6.8 0z" fill="#7d5f48"/>
     <path d="M85 45q6 -3 11 -2M115 45q-6 -3 -11 -2" stroke="#241d16" stroke-width="1.4"
           fill="none" opacity=".75"/>
     <ellipse cx="89" cy="56" rx="6" ry="4" fill="#e6bd97" opacity=".26"/>
