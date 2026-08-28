@@ -3330,10 +3330,21 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   position: absolute;
   left: 50%;
   top: 40%;
-  width: calc(var(--tile) * .62);
-  height: calc(var(--tile) * .62);
-  margin-left: calc(var(--tile) * -.31);
-  margin-top: calc(var(--tile) * -.31);
+  /* ONE PLACE FOR THE SIZE. Margin centring has a cost translate(-50%,-50%)
+     did not: a translate tracks the element's own size and a margin does not,
+     so writing .62 for the width and -.31 for the offset states the same fact
+     twice with nothing tying them. Change one and the figure goes off centre
+     silently — measured, at .50 the art sits 22px up and left of the panel's
+     centre, at .80 it sits 32px down and right.
+     The movement guard cannot see that: it compares two frames of the strike,
+     and off centre before is equal to off centre after. So this is a fact
+     stated once instead of a second guard watching for it drifting, which is
+     what .hands already does with --handicon. */
+  --creature-size: calc(var(--tile) * .62);
+  width: var(--creature-size);
+  height: var(--creature-size);
+  margin-left: calc(var(--creature-size) / -2);
+  margin-top: calc(var(--creature-size) / -2);
   display: block;
 }
 /* The sentence and the number. Bottom of the panel, inside the mask's soft
