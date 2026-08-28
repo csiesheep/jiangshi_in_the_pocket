@@ -2045,7 +2045,32 @@
         <stop offset=".72" stop-color="#fff" stop-opacity=".2"/>
         <stop offset="1" stop-color="#fff" stop-opacity="0"/>
       </radialGradient>
-      <mask id="ksMask"><rect width="200" height="200" fill="url(#ksFade)"/></mask>
+      <!-- stroke="none", and the mask is exactly where it matters. This rect
+           is the shape that says the smoke has NO EDGE: ksFade takes it to zero
+           alpha at the rim. Without stroke="none" it inherits the sheet's
+           line-art default, and a 1.5-unit stroke in currentColor paints a
+           full-alpha bright band round the whole perimeter INSIDE THE MASK, so
+           the mask hands back a hard rectangular frame of smoke exactly where it
+           was asked for nothing.
+
+           Measured through a use, both ways, at the colour the stage gives it,
+           rgb(215,217,222): 8308 pixels differ at a 700px raster, 1.7% of the
+           canvas, mean alpha 55 shipped against 0 fixed. The centre is identical
+           to the byte; the whole difference is the frame.
+
+           I CLEARED THIS SYMBOL ONCE AND WAS WRONG TWICE OVER. It is not one
+           bare shape but three, and the other two are the filtered rects, whose
+           fill and stroke are discarded because feTurbulence never reads
+           SourceGraphic. Nothing covers this one: it is not in the paint tree at
+           all, so covering was never available as a reason.
+
+           You cannot see it today, and that is geometry rather than innocence.
+           The smoke ships at 150vmax centred, so its perimeter sits at least
+           25vmax outside the viewport on every side at every viewport size. Use
+           this symbol anywhere that fits on screen and the frame is there. -->
+      <mask id="ksMask">
+        <rect width="200" height="200" fill="url(#ksFade)" stroke="none"/>
+      </mask>
     </defs>
     <g mask="url(#ksMask)">
       <rect width="200" height="200" filter="url(#ksCloud2)" opacity=".55"/>
@@ -2153,11 +2178,12 @@
        matched at 43,16,15 both ways while every centre moved, 91,26,20 intended
        against 110,68,62 shipped. After the fix all three sample points match.
 
-       The same census flagged king-smoke, and rendering it both ways showed no
-       difference at all: its one bare shape is a full bleed rect whose stroke is
-       half clipped by the viewBox and half covered by the two filtered rects
-       painted over it. A census can only find candidates. Only the render says
-       which of them is a defect. -->
+       The same census flagged king-smoke and I cleared it. That clearance was
+       wrong, on the finding and on the reason both, and the correction is on
+       ksMask in king-smoke below. A census can only find candidates, and only
+       the render says which of them is a defect, but ONLY IF THE RENDER IS
+       POINTED AT THE RIGHT SHAPE. I aimed mine at the two rects that paint and
+       missed the one that masks. -->
 <symbol id="king-eyes" viewBox="0 0 200 200">
     <g>
       <g opacity="0.95" transform="translate(100 20) scale(1 1.0)"><circle r="7.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.12"/><circle r="2.1" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
