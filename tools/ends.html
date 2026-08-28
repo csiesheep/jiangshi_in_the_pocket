@@ -41,8 +41,26 @@ const SPECS = [
 const frame = document.createElement("iframe");
 frame.style.cssText = "position:fixed;left:-9999px;width:900px;height:800px";
 document.body.appendChild(frame);
+// THE SPRITE HAS TO BE IN THIS DOCUMENT. The cards draw their art with
+// <use href="#verdict-dawn">, and a <use> resolves only against the document
+// it lives in — so a card cloned out of the frame renders as text with an
+// empty box where the picture was. Measured before this line existed: 109
+// symbols in the frame, 0 here. Copy the sprite across once, before building.
+function adoptSprite(d){
+  if (document.querySelector("symbol")) return;
+  // Find it by what it CONTAINS, not by where it sits or what it is labelled.
+  // A selector chain guessing at aria-hidden matched a different svg entirely,
+  // so the correct fallback behind the || never ran and this cloned an icon.
+  const sprite = [...d.querySelectorAll("svg")].find((s) => s.querySelector("symbol"));
+  if (!sprite) return;
+  const holder = document.createElement("div");
+  holder.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  holder.appendChild(sprite.cloneNode(true));
+  document.body.appendChild(holder);
+}
 function build(){
   const w = frame.contentWindow, d = frame.contentDocument;
+  adoptSprite(d);
   const g = w.__game;
   const out = document.getElementById("ends");
   out.innerHTML = "";
