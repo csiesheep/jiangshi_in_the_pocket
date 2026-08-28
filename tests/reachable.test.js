@@ -32,7 +32,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "644ac51a");
+suite(import.meta.url, "7aff7b49");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -199,6 +199,31 @@ idsIn(events, new Set()); // walked for shape; gifts carry their own key
   }
 })(events);
 const VILLAGER_ONLY = [...GIFTS].filter((id) => !SEARCHABLE.has(id)).sort();
+
+// THE RESTRICTION HAS TO BIND, AND THAT IS A SEPARATE FACT FROM THE RESULT.
+//
+// The invariant below leans on eq(refuserCeiling, playerCeiling). Equality is
+// green when refusing genuinely costs nothing — and ALSO green if `only` were
+// decorative and restricted nothing at all. A vacuous invariant looks exactly
+// like a satisfied one, which is this project's oldest recurring failure.
+//
+// My own falsification did not catch that. I removed 真火符 from the magic
+// table, which attacks the DATA: it trips the VILLAGER_ONLY assertion and never
+// exercises the restriction. The mechanism was left unproven until the reviewer
+// attacked it from the other side — dropping the best sword out of the set
+// passed as `only`, which must lower the ceiling if the parameter binds. It
+// did: expected 13, got 11.
+//
+// So that is a test now rather than something someone thought to try once.
+test("§13: the item restriction actually restricts", () => {
+  const full = Math.max(...assembledAttacks({ withBuff: BUFF_REACHABLE, only: SEARCHABLE }));
+  const without = new Set([...SEARCHABLE].filter((id) => id !== "sevenstar-sword"));
+  const lesser = Math.max(...assembledAttacks({ withBuff: BUFF_REACHABLE, only: without }));
+
+  assert(lesser < full,
+    `dropping the best blade from the allowed set left the ceiling at ${lesser}, ` +
+    "unchanged — `only` is not binding, so the refusal invariant below proves nothing");
+});
 
 test("§13: refusing every villager cannot put the King out of reach", () => {
   // The load-bearing fact, derived rather than stated: of the three gifts, only
