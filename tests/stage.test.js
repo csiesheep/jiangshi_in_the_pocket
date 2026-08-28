@@ -524,9 +524,23 @@ test("scare: the dressing is cumulative, so the tiers only ever escalate", () =>
   });
   // The escalation itself is asserted through the class list the renderer
   // builds, not through CSS text — see the DOM test below.
-  assert(/--zb-seal: 0/.test(tierCss), "the brow 符 is never removed at any tier");
-  assert(/\.scare--n4, \.scare--n5, \.scare--n6/.test(tierCss),
-    "the 符 should be present on 白殭 alone — losing it IS the escalation");
+  //
+  // TWO ASSERTIONS REMOVED HERE by #99, with the rule they guarded. They
+  // required the TEXT of `.scare--n4, .scare--n5, .scare--n6 { --zb-seal: 0 }`,
+  // and the second said out loud "the 符 should be present on 白殭 alone —
+  // losing it IS the escalation". That is the retired four-stage naming pinned
+  // as a requirement: tier 4 wears red as a field and draws the paper, so the
+  // test demanded the opposite of what the sheet draws. It passed anyway, and
+  // always would have, because it read CSS text rather than anything rendered
+  // — and the rule itself had been unreachable since #97.
+  //
+  // WHAT IS LEFT BELOW IS THIN AND SHOULD BE READ AS SUCH. It establishes that
+  // some tier styling exists, nothing more. The claim in this test's NAME —
+  // that the dressing only ever escalates — is not checked here and is not
+  // checked by the CSS at all; the comment above is right that it lives in the
+  // renderer's class list. Recorded rather than quietly left, because a test
+  // whose name promises more than its body delivers is the shape this file has
+  // been cleaning up all week.
   assert(tiers.every((i) => i !== -1) || /scare--n/.test(tierCss), "no tier styling found");
 });
 

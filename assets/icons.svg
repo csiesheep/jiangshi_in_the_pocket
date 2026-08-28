@@ -2270,6 +2270,28 @@
      Kings own shapes and getting 70 from the DOM against 21 in the file. -->
 
 <!-- ==== The four, as four ======================================================
+     SUPERSEDED 2026-08-28 by #92, and kept rather than deleted. THE BLOCK BELOW
+     THIS ONE IS THE CURRENT RECORD — read it first; where the two disagree, it
+     wins.
+
+     What is retired here is the NAMING and everything resting on it: the four
+     stage progression 白殭 黑殭 跳殭 飛殭, and with it the sentence at the foot
+     of this block giving the 符 to 白殭 alone. Under the live scheme the tiers
+     are 攻擊力 and red has one rule across the set — tier 3 carries NONE and
+     TIER 4 WEARS IT AS A FIELD, which is why scare-n4 draws the paper.
+
+     THAT SENTENCE HAS ALREADY MANUFACTURED A BUG REPORT. A session cutting the
+     full-screen scare read this block, reached "the 符 belongs to 白殭 alone",
+     and had "the 符 is on the wrong tier" written out as a defect before it got
+     as far as the block below. A stale comment in confident prose does not
+     merely fail to help — it produces findings that are not there.
+
+     Kept because the rest of it is still true and is not recorded anywhere
+     else: why these are bodies rather than heads, why the escalation has to
+     read with the dressing off, and why they are modelled in tone rather than
+     line. The live block leans on that history when it says "they were heads
+     before, and good ones".
+
      #45 restaged the room around a sprite nobody redrew. The dressing escalated
      correctly and the creature never did: every tier drew #scare-zombie, flat
      outline line art in one inherited colour, scaled and repeated N times, so
@@ -2492,8 +2514,13 @@
     </g>
   </symbol>
 
-<!-- 黑殭. Lacquered. The skin has gone hard and dark and takes a highlight like
-     varnish; the paper is gone and the mouth has started to open. -->
+<!-- TIER 4, REACH. Lacquered: the skin has gone hard and dark and takes a
+     highlight like varnish, and the mouth has started to open.
+
+     This said "黑殭 ... the paper is gone" until #99, directly above the code
+     that DRAWS the paper — the 符 hung from the hairline over one eye, and the
+     robe panel that makes tier 4 the one place red is a FIELD. Retired name,
+     and a description of a different picture. -->
 <symbol id="scare-n4" viewBox="0 0 200 260">
     <defs>
       <linearGradient id="t4robe" x1=".22" y1="0" x2=".8" y2="1">
@@ -2622,8 +2649,10 @@
     </g>
   </symbol>
 
-<!-- 跳殭. Grave-wax — the yellow-grey of fat gone to soap underground. Head
-     back, jaw open, the neck reduced to cord. This is the one that hops. -->
+<!-- TIER 5, FORCE — the one that closes the distance. Grave-wax: the yellow-grey
+     of fat gone to soap underground. Head back, jaw open, the neck reduced to
+     cord. (Led with 跳殭 and "this is the one that hops" until #99: a retired
+     name, and a distinction the live scheme does not draw.) -->
 <symbol id="scare-n5" viewBox="0 0 200 260">
     <defs>
       <linearGradient id="t5skin" x1=".24" y1=".05" x2=".76" y2=".95">
@@ -2771,8 +2800,9 @@
     </g>
   </symbol>
 
-<!-- 飛殭. Frost in the hair, skin gone blue-white, the mouth open past what a
-     jaw does, and eyes that give the light back. Fills the frame. -->
+<!-- TIER 6, PRESENCE — the one that abolishes the distance. Frost in the hair,
+     skin gone blue-white, the mouth open past what a jaw does, and eyes that
+     give the light back. Fills the frame. (Led with 飛殭 until #99.) -->
 <symbol id="scare-n6" viewBox="0 0 200 260">
     <defs>
       <radialGradient id="t6glow">

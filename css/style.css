@@ -2869,9 +2869,15 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   animation: scare-eyeshine 1.2s cubic-bezier(.7,0,.3,1) both;
 }
 
-/* The 符 on the brow: present on 白殭, gone above it. Custom properties are the
-   only thing that crosses a <use> shadow boundary. */
-.scare--n4, .scare--n5, .scare--n6 { --zb-seal: 0; }
+/* REMOVED 2026-08-28 by #99: `.scare--n4, .scare--n5, .scare--n6 { --zb-seal: 0 }`.
+   It said "the 符 is present on 白殭 and gone above it", which was the retired
+   four-stage naming, and under the live scheme tier 4 WEARS red as a field and
+   draws the paper. It had also been inert twice over: dead since #92 when tiers
+   stopped being headcounts, and unreachable since #97 — scareNow is the only
+   thing that applies a .scare--* class and nothing calls scareNow. Established
+   by call site, not by comment: it appears once in comment-stripped js/, its own
+   definition. So --zb-seal was never set and icons.svg's var(--zb-seal, 1)
+   always took the fallback. */
 
 /* 白殭's paper still moves. A slow lean and settle — one motion, no repeat. */
 .scare--n3 .scare-art { animation: scare-flutter 1s ease-out both; transform-origin: 50% 12%; }
