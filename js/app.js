@@ -190,7 +190,7 @@ export class Game {
     this.state = E.newGame(data, { seed });
     this.board = Bd.createBoard(data, { seed });
     // Kept for the end-of-run verdict; the engine has no use for them.
-    this.tally = { putDown: 0, fights: 0, found: 0 };
+    this.tally = { fights: 0, found: 0 };
     // One search per turn, and turn 1 has not had its yet.
     this.searched = false;
   }
@@ -382,7 +382,7 @@ export class Game {
   // and the stage is the moment before the arithmetic, not after it.
   //
   // JIANGSHI is the deliberate hole. It goes on to fightBeat, which already
-  // stages the pack with jumpScare, and running a stage here would put two
+  // stages the creature with jumpScare, and running a stage here would put two
   // full-screen layers back to back. fightBeat cannot simply hand its scare
   // over either: the breach and the refused villager both reach it without
   // passing through an event beat.
@@ -725,8 +725,8 @@ export class Game {
         if (banner) use.banner = true;
         if (talisman) use.talisman = talisman;
         const def = talisman ? s.itemsById[talisman] : null;
-        // 血符 is paid in blood on top of whatever the pack does to you, so the
-        // hearts on the card have to carry both or the card is lying.
+        // 血符 is paid in blood on top of whatever the creature does to you,
+        // so the hearts on the card have to carry both or the card is lying.
         const blood = def && def.costHp ? def.costHp : 0;
         const attack = E.attackWith(s, use);
         raw.push({
@@ -857,34 +857,40 @@ export class Game {
 
     // 血符 is written in your own blood and paid before the blow lands. When it
     // takes the last of you there is no fight at all — you never made the
-    // strike, and the pack is still standing when the run ends.
+    // strike, and it is still standing when the run ends.
     if (r.diedPaying) {
       paperFlutter();
       // Not counted. The 血符 took the last of you before the swing, so the
-      // pack is still standing — the one branch where a fight puts nobody down.
+      // creature is still standing — the one branch where a fight puts nothing
+      // down.
       this.refresh();
       this.tell(this.line("died-paying", { item: this.itemName("blood-talisman") }), "toll");
       await wait(RESULT_BEAT_MS);
       return done();
     }
 
-    // The pack goes down here and nowhere else. resolveCombat has no branch
-    // that leaves them standing once the strike lands — not even one that kills
-    // you, which still counts, because they went down too. By n rather than by
-    // one: a pack of four is four.
+    // The creature goes down here and nowhere else. resolveCombat has no branch
+    // that leaves it standing once the strike lands — not even one that kills
+    // you, which still counts, because it went down too.
     //
     // A fight you RAN from is not a fight you won, and that rule needs no test
     // of its own: doFlee and doEscape never reach this line.
     //
     // Until #67 this counter was initialised, printed, and incremented nowhere
-    // at all, so every run ever played closed on "0 put down".
-    // TWO COUNTERS, because #92 split what used to be one number. `n` is the
-    // creature's 攻擊力 now, so accumulating it gives the WEIGHT of the night's
-    // fighting, which is what dread and the epilogue want. The verdict card
-    // wants something else: it prints a count of creatures as a fact, and
-    // summing attack powers and calling the total a number of jiangshi would
-    // make that line lie. So the card counts FIGHTS.
-    this.tally.putDown += n;
+    // at all, so every run ever played closed on "0 put down". That is the trap
+    // this line exists to hold shut.
+    //
+    // ONE COUNTER, AND IT COUNTS FIGHTS. There was a second, tally.putDown,
+    // which summed `n` — #92 made `n` the creature's 攻擊力 rather than a head
+    // count, so the sum was the WEIGHT of the night's fighting. It was written
+    // for dread and the epilogue and neither of them ever read it: it was
+    // initialised, incremented here, and consumed nowhere, for as long as it
+    // existed. Removed rather than wired up, because the thing that would have
+    // wanted it does not exist either.
+    //
+    // The card must NOT print a sum of attack powers. It says "{n} jiangshi put
+    // down", so a 攻擊力 6 creature would close the run at six jiangshi and the
+    // line would be a lie. It counts fights, which is a count of creatures.
     this.tally.fights += 1;
 
     // Paper first, then the swing. Keyed off what resolveCombat actually
@@ -893,7 +899,7 @@ export class Game {
     if (r.spent.some((id) => (s.itemsById[id] || {}).cat === "magic")) paperFlutter();
     // The blow itself. combatHit has existed since the fork and nothing ever
     // called it, so every fight in this game has resolved in silence — the
-    // scare arrived, the pack fell over, and the swing made no sound at all.
+    // scare arrived, the creature fell over, and the swing made no sound at all.
     // The weapon id picks the layer over the impact, so a 桃木劍 and a 七星劍
     // do not land the same.
     combatHit(n, r.weaponId);
@@ -940,7 +946,11 @@ export class Game {
 
   // ---- The villager --------------------------------------------------------
   // The one event that asks a question. Rice buys the stranger; refusing leaves
-  // you with whatever was chasing them — the band's worst pack.
+  // you with whatever was chasing them — one creature, at the attack the event
+  // carries. It said "the band's worst pack" here too until this sweep: #92
+  // corrected that sentence in engine.js, beside the line that returns the
+  // number, and missed this copy of it. One fact in two places, and only one
+  // of them was told.
   //
   // There is deliberately no drop prompt on the gift, and it is worth saying
   // why rather than guarding for a case that cannot arise: the rice you just
@@ -1378,8 +1388,8 @@ export class Game {
     // in it ended the night with no exchange at all. #56 removed that rule, so
     // the appointment is the same wherever you are standing and there is no
     // branch here any more.
-    // Not the pack's sting. That one rises because the question is how fast
-    // they reach you; this one falls, because there is no question.
+    // Not the creature's sting. That one rises because the question is how fast
+    // it reaches you; this one falls, because there is no question.
     //
     // The room goes quiet and STAYS quiet. duckForScare takes the bed and the
     // murmur away and nothing here puts them back — the silence is the sound
@@ -1388,7 +1398,7 @@ export class Game {
     kingArrives();
     duckForScare();
 
-    // His own scene, not jumpScare(1). One face from the pack's art read as
+    // His own scene, not jumpScare(1). One figure from the creature art read as
     // LESS than an ordinary doorway encounter, which is exactly backwards for
     // the one arrival the whole night walks toward.
     //
