@@ -2312,27 +2312,44 @@ export function revealPanel(game, opts, onDone) {
 export function showDropDialog(game, foundId, opts = {}) {
   const s = game.state;
   const wrap = document.createElement("div");
-  wrap.className = "notecard dropcard";
+  // inkcard/inksheet, NOT dropcard/notesheet, and the split is the point of
+  // #98. .notesheet is parchment — cream gradient, dark text, a radius and a
+  // shadow — which is right for showNote, because a letter IS paper and the
+  // metaphor is doing real work there. Every panel built since #92 is the
+  // opposite: dark ink over the room, sized against the board, no frame. This
+  // dialog was the last thing wearing the old skin.
+  //
+  // The classes are deliberately GENERIC so showCinnabarDialog can follow by
+  // swapping one string. It is NOT swapped here: that is the user's call and
+  // not a tidy-up to slip into this issue.
+  wrap.className = "notecard inkcard";
   wrap.setAttribute("role", "dialog");
   wrap.setAttribute("aria-modal", "true");
-  wrap.setAttribute("aria-labelledby", "drop-title");
+  // NAMED WITHOUT A HEADING, the same split revealPanel makes between what is
+  // drawn and what is announced. The visible "You found {item}" is gone
+  // because the reveal a second ago said exactly that, at size — but the
+  // reveal is DISMISSED by the time this opens, so a screen reader user
+  // arriving here would have nothing left telling them which item this is
+  // about. So the heading's words become the dialog's accessible name.
+  wrap.setAttribute("aria-label", ui(game, "drop-title", { item: itemName(game, foundId) }));
 
   const sheet = document.createElement("div");
-  sheet.className = "notesheet";
+  sheet.className = "inksheet packsheet";
 
-  const h = document.createElement("h2");
-  h.id = "drop-title";
-  h.textContent = ui(game, "drop-title", { item: itemName(game, foundId) });
-  sheet.appendChild(h);
+  // THE ASK, IN ONE BAND. This was a heading naming the find, a lede, and then
+  // a 74px hero cell of the find with its name under it — three restatements
+  // of the panel the player had just been shown and tapped away. The user's
+  // ruling was that it is too big; the size was duplication rather than
+  // typography, and no font is touched here.
+  //
+  // The find itself STAYS, as a cell, and that is a kept decision rather than
+  // an oversight: it is drawn the same way as the things it is being weighed
+  // against, because the question is a comparison and a different idiom on one
+  // side of it makes the comparison harder. What goes is its restatement in
+  // words, twice, and the vertical stack that put it in its own storey.
+  const ask = document.createElement("div");
+  ask.className = "dropask";
 
-  const lede = document.createElement("p");
-  lede.textContent = ui(game, "drop-lede");
-  sheet.appendChild(lede);
-
-  // The find, drawn the same way as the things it is being weighed against. It
-  // was a small-icon row while the choices were sentences; against a row of
-  // pack cells a different idiom would have made the comparison harder, not
-  // clearer.
   const found = document.createElement("div");
   found.className = "cell dropfound";
   const foundFace = document.createElement("div");
@@ -2340,11 +2357,13 @@ export function showDropDialog(game, foundId, opts = {}) {
   const foundArt = icon("item", foundId, "cellicon");
   if (foundArt) foundFace.appendChild(foundArt);
   found.appendChild(foundFace);
-  const foundName = document.createElement("p");
-  foundName.className = "dropfoundname";
-  foundName.textContent = itemName(game, foundId);
-  found.appendChild(foundName);
-  sheet.appendChild(found);
+  ask.appendChild(found);
+
+  const lede = document.createElement("p");
+  lede.className = "dropq";
+  lede.textContent = ui(game, "drop-lede");
+  ask.appendChild(lede);
+  sheet.appendChild(ask);
 
   // #94: THE PACK, AS THE PACK. This was a list of text buttons — "Drop 糯米",
   // "Drop 五雷符 ×3" — under a picture of the find, which made the player read
@@ -2356,6 +2375,19 @@ export function showDropDialog(game, foundId, opts = {}) {
   // The count badge is doing work the prose used to: a stack shares one slot,
   // so dropping one of three frees nothing and the whole stack goes down. "×3"
   // on the cell says that better than a sentence explaining it.
+  // Built before the cells so their handlers can close over it. aria-live, so a
+  // keyboard user hears each item as they tab across — the same moment a mouse
+  // user sees it.
+  const detail = document.createElement("div");
+  detail.className = "dropdetail";
+  detail.setAttribute("aria-live", "polite");
+  const detailName = document.createElement("p");
+  detailName.className = "dropdetailname";
+  const detailEffect = document.createElement("p");
+  detailEffect.className = "dropdetaileffect";
+  detail.appendChild(detailName);
+  detail.appendChild(detailEffect);
+
   const list = document.createElement("div");
   list.className = "droppack";
   // One entry per slot, deduplicated the way the panel is: a stack appears once.
@@ -2399,22 +2431,29 @@ export function showDropDialog(game, foundId, opts = {}) {
     }
     cell.appendChild(btn);
 
-    // The pack's own tooltip, down to the class, so it reveals on hover, on
-    // focus and on tap — and so closeAllCells() closes it like any other.
-    const tip = document.createElement("div");
-    tip.className = "celltip";
-    tip.setAttribute("role", "tooltip");
-    const tipName = document.createElement("p");
-    tipName.className = "tipname";
-    tipName.textContent = n > 1 ? `${nm} ×${n}` : nm;
-    tip.appendChild(tipName);
-    if (effect) {
-      const e = document.createElement("p");
-      e.className = "tipeffect";
-      e.textContent = effect;
-      tip.appendChild(e);
-    }
-    cell.appendChild(tip);
+    // A RESERVED LINE, NOT A FLOATING TIP, and this is the third answer to the
+    // same question rather than a preference.
+    //
+    // #94 gave these cells the pack's own .celltip. In the sidebar that opens
+    // upward, which is right because the pack sits low in a tall panel. Here it
+    // covered the find, so #94 flipped it downward — and downward covered
+    // "leave it where it is", the way OUT, which is worse. #98 moved the find
+    // up beside the question, freeing the space above the cells, and I measured
+    // the result: the tip stops covering the leave button and starts covering
+    // the find again. Both victims come from one cause — a floating box inside
+    // a modal this small has nowhere to land that is not on top of something.
+    //
+    // So the detail gets its own storey below the cells, its height reserved so
+    // nothing moves when it fills. Nothing can be covered because nothing
+    // overlaps, and that is a property of the layout rather than a position
+    // that has to keep being re-chosen.
+    const say = n > 1 ? `${nm} ×${n}` : nm;
+    const show = () => {
+      detailName.textContent = say;
+      detailEffect.textContent = effect || "";
+    };
+    btn.addEventListener("mouseenter", show);
+    btn.addEventListener("focus", show);
 
     btn.addEventListener("click", (ev) => {
       ev.stopPropagation();
@@ -2427,6 +2466,7 @@ export function showDropDialog(game, foundId, opts = {}) {
     list.appendChild(cell);
   }
   sheet.appendChild(list);
+  sheet.appendChild(detail);
 
   const leave = document.createElement("button");
   leave.type = "button";
@@ -2448,6 +2488,24 @@ export function showDropDialog(game, foundId, opts = {}) {
     if (e.key === "Escape") {
       done();
       if (opts.onLeave) opts.onLeave(foundId);
+      return;
+    }
+    // FOCUS CONTAINMENT, which this dialog did not have. It set initial focus
+    // and listened for Escape, and that is not the same thing: Tab walked
+    // straight out into the board behind the scrim, onto doorways and pack
+    // cells that are covered, unclickable and still in the tab order. A
+    // keyboard user could leave a modal without answering it and land on
+    // controls they cannot see.
+    //
+    // Escape is deliberately still a way out — declining is a legal answer —
+    // so this contains the ring rather than trapping the user.
+    if (e.key !== "Tab") return;
+    const stops = [...wrap.querySelectorAll("button")].filter((b) => !b.disabled);
+    if (!stops.length) return;
+    const edge = e.shiftKey ? stops[0] : stops[stops.length - 1];
+    if (document.activeElement === edge || !wrap.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? stops[stops.length - 1] : stops[0]).focus();
     }
   };
   leave.addEventListener("click", () => {

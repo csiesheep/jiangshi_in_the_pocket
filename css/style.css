@@ -5125,50 +5125,162 @@ body.asleep .fog {
     color-mix(in srgb, var(--film-ink) 66%, transparent) 78%);
 }
 
-/* ---- Choosing what to give up (#94) --------------------------------------------
+/* ---- Choosing what to give up (#94, reskinned #98) -----------------------------
    The pack, drawn as the pack. This was a column of text buttons under a
    picture of the find, which asked the player to read four sentences to answer
    a question about five objects. It is a comparison, so it is made between
-   pictures.
+   pictures. #98 changed the SKIN and kept that idea exactly.
 
    Modal, deliberately, and NOT over the tile like the search reveal. A reveal
    is news and belongs where it happened; this stops the turn until it is
    answered, and a modal is the honest shape for a question you cannot walk
-   past. The user asked for "upon the tile" for the event panel and did not ask
-   for it here, having just seen the reveal — they said where they wanted
-   position changed. */
+   past.
+
+   #98, the user: "redesign the full backpack panel. it is too big now. make it
+   more fit the style of the game." Both halves have one answer each.
+
+   TOO BIG WAS DUPLICATION, NOT TYPOGRAPHY, and no font-size shrank here. The
+   dialog opened a second after revealPanel had shown the same item at size,
+   with its name, its attack and its blurb, and waited for a tap. It then led
+   with a heading naming that item again and a 74px hero cell of it with the
+   name underneath. Cutting the two restatements takes out a heading, a name,
+   and a whole vertical storey; the find itself stays, moved up beside the
+   question, because the comparison is the point.
+
+   THE STYLE OF THE GAME IS DARK INK OVER THE ROOM. .notesheet is parchment and
+   was the last survivor of an older language here. It is still correct for
+   showNote — a letter IS paper — so the paper rules are untouched and this
+   panel gets its own.
+
+   SIZED AGAINST --tile, NOT AGAINST CHARACTERS. The old width was 30rem, and
+   .notesheet's is 42ch. `ch` is the advance of "0", which says nothing about a
+   full-width CJK line, and rem was chosen by eye against English prose. The
+   Chinese runs about half the width at the same size -- drop-lede is 65 English
+   characters and 18 glyphs -- so a box sized for the English is more than twice
+   the width its text needs, and "too big" is WORSE in Chinese, not better. One
+   width, from the board, and the text wraps inside it in either language. */
+/* The scrim is a shade lighter than the paper card's, because this panel is
+   itself dark and the room behind it is meant to stay readable -- "over the
+   room" is the idiom. It still blocks: the board is not clickable through it,
+   which is what makes this modal rather than decorative. */
+.inkcard { background: rgba(4, 4, 6, .66); }
+
+.inksheet {
+  /* ONE WIDTH, FROM THE BOARD, and the cells follow it rather than the other
+     way round. The floor is a hit-target floor, not a prose floor: below it
+     four cells and their gaps stop being comfortably tappable.
+
+     .9 was chosen by measuring, not by eye. The sidebar pack is
+     `repeat(var(--pack-cells, 4), minmax(0, 1fr))` inside a sidebar that is a
+     FIXED 300px column (style.css:502), so its cells are ~62px and do NOT
+     scale with --tile. I measured 62px against a 359px tile, saw the ratio
+     .173, and nearly wrote that down as the rule -- it is a coincidence of one
+     viewport. What is actually required is that these cells look like the pack
+     the player already knows, so .9 is the multiplier that lands this panel's
+     four columns on ~64px at the default tile. */
+  width: min(92vw, max(300px, calc(var(--tile) * .9)));
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 18px 18px 16px;
+  border: 0;
+  border-radius: 0;
+  /* No frame and no radius: the same wash the reveal and the creature panel
+     use, reaching transparent before the box's own edge, so there is no drawn
+     boundary to round. */
+  background: radial-gradient(120% 100% at 50% 40%,
+    color-mix(in srgb, var(--film-ink) 92%, transparent) 0%,
+    color-mix(in srgb, var(--film-ink) 88%, transparent) 52%,
+    color-mix(in srgb, var(--film-ink) 70%, transparent) 78%,
+    transparent 100%);
+  color: var(--text);
+  font-family: var(--font-head);
+}
+
+/* THE ASK, IN ONE ROW: what you found, then why you are being asked. The find
+   keeps the cell idiom it is compared in; the words stop repeating it. */
+.dropask {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin: 0 0 12px;
+  text-align: left;
+}
+.dropq {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  /* No max-width in ch. The panel's width is the measure, and a CJK line has
+     no spaces to break on -- it can break between almost any two glyphs, so a
+     layout that leans on English word-wrap holds in one language only. */
+  font-size: max(12px, calc(var(--tile) * .046));
+  line-height: 1.45;
+  color: var(--text);
+}
+/* A quarter of the panel, so the find is exactly one pack cell wide and the
+   comparison is like for like -- which is the whole reason it is drawn as a
+   cell rather than as a heading.
+
+   THE WIDTH IS ON THE FLEX ITEM, not on the .cellface inside it. Putting the
+   percentage on the cellface made it resolve against a max-content parent,
+   which is circular: the parent sized to the child while the child sized to
+   the parent, and it collapsed. Measured, the question next to it came out
+   0px wide and 311px tall -- one glyph per line. */
+.dropfound {
+  align-items: center;
+  margin: 0;
+  flex: 0 0 auto;
+  width: calc((100% - 30px) / 4);
+  min-width: 52px;
+}
+.dropfound .cellface {
+  width: 100%;
+  height: auto;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+/* THE SAME RULE THE PACK ITSELF USES: four equal columns filling the width,
+   not a fixed cell size repeated. The old rule was `repeat(auto-fit, 66px)`,
+   which is the pack's fill at one tile size written down as a constant -- the
+   number went stale the moment the panel stopped being 480px wide. Mirroring
+   `repeat(4, minmax(0, 1fr))` means the cells are whatever the panel's width
+   divided by the pack's capacity is, at every size, in both languages. */
 .droppack {
   display: grid;
-  grid-template-columns: repeat(auto-fit, 66px);
-  justify-content: center;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin: 14px 0 4px;
+  margin: 0 0 12px;
 }
-/* The cells size themselves here rather than off the sidebar grid, and keep the
-   pack's own fill so the picture is the same size the player already knows. */
-.dropcell .cellface { width: 66px; height: 66px; }
-/* THE TOOLTIP OPENS DOWNWARD HERE. In the sidebar a cell's tip goes above it,
-   which is right there because the pack sits low in the panel. In this dialog
-   the cells sit directly under the find, so opening upward covered the very
-   thing the player is weighing them against — seen the moment one was opened,
-   not deducible from the rule. */
-.dropcell .celltip { top: calc(100% + 6px); bottom: auto; }
+/* .cellface already declares aspect-ratio: 1, so a width is the whole size. */
+.dropcell .cellface { width: 100%; height: auto; }
+/* THE DETAIL HAS ITS OWN STOREY, so there is no position left to get wrong.
+   #94 opened the tip downward because upward covered the find; downward covered
+   the way out. I moved the find beside the question and measured: upward stops
+   covering the leave button and starts covering the find again. Both victims,
+   one cause -- a floating box in a modal this small always lands on something.
+
+   Reserved height, so the panel does not resize as the detail fills. Two lines
+   is what the longest effect string needs in either language; the min-height is
+   in em so it tracks the type rather than being a pixel guess. */
+.dropdetail {
+  min-height: 2.7em;
+  margin: 0 0 12px;
+  text-align: center;
+}
+.dropdetailname { margin: 0; font-size: .84rem; color: var(--text); }
+.dropdetaileffect { margin: 2px 0 0; font-size: .74rem; color: var(--accent); }
 .dropcell .cellface:hover { border-color: var(--danger); }
 .dropcell .cellface:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
 
-/* The find, in the same cell language as the things it is weighed against. */
-.dropfound { align-items: center; margin: 6px auto 0; width: max-content; }
-.dropfound .cellface {
-  width: 74px; height: 74px;
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+/* The way out, in the panel's own voice rather than the paper's. */
+.packsheet .dropleave {
+  display: block;
+  width: 100%;
+  padding: 9px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: .86rem;
 }
-.dropfoundname {
-  margin: 6px 0 0;
-  text-align: center;
-  font-size: .84rem;
-  /* INHERITS. This card is paper, not panel — var(--text) is the dark-UI colour
-     and put pale type on cream, which the measurement did not catch and looking
-     at it did. The cells inside stay dark because a cell IS dark wherever it is
-     drawn; the words around them belong to the card. */
-  font-weight: 600;
-}
+.packsheet .dropleave:hover { color: var(--text); border-color: var(--muted); }

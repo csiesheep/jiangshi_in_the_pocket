@@ -12,7 +12,8 @@ import {
   resetStageHints,
 } from "../js/eventstage.js";
 import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
-         creaturePanel, clearCreaturePanel, resolveBeat } from "../js/render.js";
+         creaturePanel, clearCreaturePanel, resolveBeat,
+         showDropDialog } from "../js/render.js";
 import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
@@ -1299,6 +1300,90 @@ test("reveal: tile-sized, no frame, and the edges reach transparent (#97)", seri
   } finally {
     document.adoptedStyleSheets = adopted;
     host.remove();
+  }
+}));
+
+test("drop dialog: the detail covers neither the find nor the way out (#98)", serial(async () => {
+  // THIS HAS BEEN GOT WRONG IN BOTH DIRECTIONS, which is why it is a test and
+  // not a comment. #94 gave the cells the pack's floating .celltip, which opens
+  // upward and covered the FIND they were being weighed against. #94 flipped it
+  // downward, and downward covered "leave it where it is" -- the way OUT. #98
+  // moved the find up beside the question and measured: upward stopped covering
+  // the leave button and started covering the find again.
+  //
+  // A position cannot satisfy this. The detail has its own storey now, and this
+  // asserts the PROPERTY rather than the position, so any future attempt to
+  // float it again fails here rather than in a screenshot.
+  const names = ["tiles", "items", "search", "events", "theme"];
+  const [tiles, items, search, events, theme] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  // SNAPSHOT, not the live list -- adoptedStyleSheets is an observable array.
+  const adopted = [...document.adoptedStyleSheets];
+  const sprite = document.createElement("div");
+  sprite.style.display = "none";
+  sprite.innerHTML = ICON_SVG;
+  document.body.appendChild(sprite);
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  let close = null;
+  try {
+    document.adoptedStyleSheets = [...adopted, sheet];
+    const probe = document.createElement("div");
+    probe.style.width = "var(--tile)";
+    host.querySelector(".board-pane").appendChild(probe);
+    const tile = parseFloat(getComputedStyle(probe).width);
+    // SKIP, NOT FAIL: --tile is a clamp on 28vh, so a zero-height window
+    // resolves it to nothing and there is no panel to measure.
+    skipUnless(tile > 0,
+      "--tile resolved to nothing: this window has zero height, so the dialog " +
+      "has no width and every rectangle here would be empty");
+
+    const game = new Game({ tiles, items, search, events, theme, baseTheme: theme, lang: "en" },
+                          { seed: 11 });
+    // A pack with a magic STACK in it, so the badge and the whole-stack label
+    // are drawn too -- the widest the detail line ever gets.
+    game.state.items = { "truefire-talisman": 3, "coin-sword": 1 };
+    close = showDropDialog(game, "sevenstar-sword", {
+      onDrop() {}, onDropStack() {}, onLeave() {} });
+
+    const detail = document.querySelector(".dropdetail");
+    const leave = document.querySelector(".dropleave");
+    const found = document.querySelector(".dropfound .cellface");
+    assert(detail && leave && found, "the drop dialog did not mount its three parts");
+
+    // A floating tip would report a zero-size rect while hidden and pass this
+    // vacuously, so the region is proved non-empty before anything is asserted
+    // about what it does not touch.
+    const box = (el) => el.getBoundingClientRect();
+    assert(box(detail).width > 0 && box(detail).height > 0,
+      "the detail region has no area, so 'it covers nothing' would be true of nothing");
+
+    const overlaps = (a, b) => {
+      const x = box(a), y = box(b);
+      return !(x.right <= y.left || x.left >= y.right || x.bottom <= y.top || x.top >= y.bottom);
+    };
+    assert(!overlaps(detail, leave),
+      "the item detail is drawn over 'leave it where it is' — the way out of a " +
+      "modal must never be covered by a hint about what is inside it");
+    assert(!overlaps(detail, found),
+      "the item detail is drawn over the find — which is the thing every cell " +
+      "in this dialog is being weighed against");
+
+    // And it must actually say something, or it covers nothing by being empty.
+    const first = document.querySelector(".dropcell .cellface");
+    first.dispatchEvent(new MouseEvent("mouseenter"));
+    assert(detail.textContent.trim().length > 0,
+      "hovering a cell puts nothing in the detail region");
+  } finally {
+    if (close) close();
+    document.adoptedStyleSheets = adopted;
+    host.remove();
+    sprite.remove();
   }
 }));
 
