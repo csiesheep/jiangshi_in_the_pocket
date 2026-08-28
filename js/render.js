@@ -2388,6 +2388,18 @@ export function showDropDialog(game, foundId, opts = {}) {
   detail.appendChild(detailName);
   detail.appendChild(detailEffect);
 
+  // 點兩下 — 先顯示，再確認 (#98). WHICH CELL IS ARMED, held for the whole
+  // dialog rather than per cell, because arming one has to disarm the others
+  // and no cell can know about its siblings.
+  let armed = null;
+  const disarm = () => {
+    if (!armed) return;
+    armed.classList.remove("dropcell--armed");
+    const face = armed.querySelector(".cellface");
+    if (face) face.setAttribute("aria-pressed", "false");
+    armed = null;
+  };
+
   const list = document.createElement("div");
   list.className = "droppack";
   // One entry per slot, deduplicated the way the panel is: a stack appears once.
@@ -2420,6 +2432,11 @@ export function showDropDialog(game, foundId, opts = {}) {
     btn.setAttribute("aria-label", whole
       ? ui(game, "drop-stack", { item: nm, n })
       : ui(game, "drop-one", { item: nm }));
+    // ARMED IS SPOKEN AS PRESSED, so the two-tap state reaches a screen reader
+    // with no new string in either language — which was the constraint. The
+    // detail region is aria-live, so the first tap also reads out the name and
+    // the effect: exactly the 先顯示 half, in the channel that has no hover.
+    btn.setAttribute("aria-pressed", "false");
     const art = icon("item", id, "cellicon");
     if (art) btn.appendChild(art);
     if (n > 1) {
@@ -2455,8 +2472,32 @@ export function showDropDialog(game, foundId, opts = {}) {
     btn.addEventListener("mouseenter", show);
     btn.addEventListener("focus", show);
 
+    // 點兩下 — 先顯示，再確認. The user's ruling, and the reason is that this is
+    // irreversible: one tap used to give the item up, so a touch player had no
+    // way to read what something did before losing it. The sidebar has said for
+    // a long time that a tap must REVEAL rather than act; this dialog was the
+    // one place that acted.
+    //
+    // A SECOND TAP ON THE SAME CELL COMMITS. A tap on a DIFFERENT cell moves
+    // the arming rather than committing, so a mis-aim costs nothing — which is
+    // the case worth being careful about and the reason this is compared
+    // against the CELL rather than against a boolean.
+    //
+    // This applies to the mouse too, and that is a deliberate reading of 點兩下
+    // rather than an oversight. Branching on pointerType would make one element
+    // behave two ways by device, which is a trap for whoever tests it next; and
+    // on a pointer device the 先顯示 half has already happened on hover, so the
+    // two clicks read as arm-then-confirm rather than as two reveals.
     btn.addEventListener("click", (ev) => {
       ev.stopPropagation();
+      if (armed !== cell) {
+        disarm();
+        armed = cell;
+        cell.classList.add("dropcell--armed");
+        btn.setAttribute("aria-pressed", "true");
+        show();
+        return;
+      }
       done();
       // A stack shares one slot, so dropping one of three frees nothing. Put
       // the whole stack down, then take the find through the ordinary door.
@@ -2467,6 +2508,9 @@ export function showDropDialog(game, foundId, opts = {}) {
   }
   sheet.appendChild(list);
   sheet.appendChild(detail);
+  // A tap anywhere that is not a cell puts the armed one down again. The cells
+  // stopPropagation, so reaching this listener means the tap missed them.
+  wrap.addEventListener("click", disarm);
 
   const leave = document.createElement("button");
   leave.type = "button";

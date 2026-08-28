@@ -1303,6 +1303,62 @@ test("reveal: tile-sized, no frame, and the edges reach transparent (#97)", seri
   }
 }));
 
+test("drop dialog: one tap reveals, a second on the SAME cell drops (#98)", serial(async () => {
+  // 點兩下 — 先顯示，再確認. The user's ruling, and the property that matters is
+  // not "two taps" but WHICH two: a tap on a different cell must move the
+  // arming rather than commit, or a mis-aim still costs an item irreversibly.
+  // That is the case this guard exists for; "the first tap does nothing" is the
+  // easy half.
+  const names = ["tiles", "items", "search", "events", "theme"];
+  const [tiles, items, search, events, theme] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const sprite = document.createElement("div");
+  sprite.style.display = "none";
+  sprite.innerHTML = ICON_SVG;
+  document.body.appendChild(sprite);
+  let close = null;
+  const dropped = [];
+  try {
+    const game = new Game({ tiles, items, search, events, theme, baseTheme: theme, lang: "en" },
+                          { seed: 13 });
+    // Two distinct slots, so "a different cell" exists to be tapped.
+    game.state.items = { "truefire-talisman": 3, "coin-sword": 1 };
+    close = showDropDialog(game, "sevenstar-sword", {
+      onDrop: (id) => dropped.push(id),
+      onDropStack: (id, n) => dropped.push(id + " x" + n),
+      onLeave() {} });
+
+    const cells = [...document.querySelectorAll(".dropcell")];
+    assert(cells.length >= 2,
+      "this guard needs two slots to tell 'moves the arming' from 'commits'");
+    const face = (i) => cells[i].querySelector(".cellface");
+    const tap = (i) => face(i).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    tap(0);
+    eq(dropped.length, 0, "the FIRST tap dropped the item — 先顯示 never happened");
+    assert(cells[0].classList.contains("dropcell--armed"),
+      "the first tap left no visible armed state, so the second tap is a mystery");
+    eq(face(0).getAttribute("aria-pressed"), "true",
+      "the armed state is visual only — a screen reader cannot tell the taps apart");
+
+    tap(1);
+    eq(dropped.length, 0,
+      "tapping a DIFFERENT cell committed a drop — a mis-aim costs an item, which " +
+      "is the whole thing the two-tap ruling exists to prevent");
+    assert(!cells[0].classList.contains("dropcell--armed") &&
+           cells[1].classList.contains("dropcell--armed"),
+      "the arming did not move to the cell that was tapped");
+
+    tap(1);
+    eq(dropped.length, 1, "the second tap on the armed cell did not drop anything");
+  } finally {
+    if (close) close();
+    document.querySelectorAll(".notecard").forEach((n) => n.remove());
+    sprite.remove();
+  }
+}));
+
 test("drop dialog: the detail covers neither the find nor the way out (#98)", serial(async () => {
   // THIS HAS BEEN GOT WRONG IN BOTH DIRECTIONS, which is why it is a test and
   // not a comment. #94 gave the cells the pack's floating .celltip, which opens

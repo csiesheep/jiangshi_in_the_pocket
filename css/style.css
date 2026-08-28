@@ -5321,6 +5321,21 @@ body.asleep .fog {
 .dropcell .cellface:hover { border-color: var(--danger); }
 .dropcell .cellface:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
 
+/* ARMED: the first of 點兩下, so the second tap is not a mystery.
+   In this panel's OWN vocabulary rather than the found cell's. The found cell
+   wears --accent because it is what you GAIN; these cells already say --danger
+   on hover and focus because they are what you LOSE, and an armed one is the
+   strongest form of that rather than a different idea. Giving it the find's
+   accent would have made the thing about to be destroyed look like the thing
+   about to be picked up.
+   Solid and filled, so it is distinct from hover on a device that has one and
+   legible on a device that does not. */
+.dropcell--armed .cellface {
+  border-color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+  background: color-mix(in srgb, var(--danger) 16%, var(--bg-2));
+}
+
 /* The way out, in the panel's own voice rather than the paper's. */
 .packsheet .dropleave {
   display: block;
