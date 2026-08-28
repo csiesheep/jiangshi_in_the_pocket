@@ -536,6 +536,9 @@ const PACK_SLOTS = [
   [17, 62, 0.66], [83, 62, 0.66], [50, 66, 0.58],
 ];
 
+// The three villagers, in the order the turn indexes them.
+const VILLAGERS = ["villager-a", "villager-b", "villager-c"];
+
 const SCENES = {
   // 僵屍. Registered and reachable, but eventBeat does NOT run it: a drawn
   // JIANGSHI goes on to fightBeat, which stages the pack with jumpScare and its
@@ -635,7 +638,12 @@ const SCENES = {
   //
   // That wrongness is the whole scene, because this is the event that can become
   // a fight. Refuse the rice and it stands up straight.
-  villager(inner) {
+  //
+  // THREE PEOPLE NOW, not one (#93), and each carries the wrongness its own
+  // way: the old man's smile is the only part of his face the lantern finds,
+  // the old woman's back hinges where a spine does not, and the young woman
+  // is too still to be someone standing.
+  villager(inner, ctx) {
     layer(inner, "ink");
     layer(inner, "tungsten");
     fog(inner, 2);
@@ -649,7 +657,14 @@ const SCENES = {
     // higher puts the whole body in the clear, which is what makes a silhouette
     // a posture. Still off-centre, because a figure dead centre is a portrait
     // and this one is standing at the edge of the light.
-    const fig = seat(inner, art("scene", "villager", "evstage-art--villager"),
+    // WHICH OF THE THREE, and it is deterministic (#93). A replayed seed has
+    // to show the same person in the same room, so this is picked from the turn
+    // rather than from a random draw: reaching for state.searchRng or the event
+    // stream to decide a piece of FLAVOUR would shift every later draw in the
+    // night and make the seed mean something different. Same reasoning, and the
+    // same shape, as the empty-handed line picking by turn % length.
+    const who = VILLAGERS[(Number(ctx && ctx.turn) || 0) % VILLAGERS.length];
+    const fig = seat(inner, art("scene", who, "evstage-art--villager"),
                      { x: 58, y: 43, scale: 0.66 });
     if (fig) fig.classList.add("evs-wrong");
     grain(inner, 0.26);

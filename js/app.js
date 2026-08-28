@@ -400,7 +400,10 @@ export class Game {
     // The line goes to the panel as well as to the log and the caption. It is
     // read here rather than in the stage because it depends on the event AND
     // the hour band, neither of which the panel knows.
-    return eventStage(kind, { n: ev.n, hp: ev.hp, line: this.eventLine(ev) });
+    // turn goes through for the villager, which picks which of the three
+    // people is standing there. Deterministic by seed, like every other draw.
+    return eventStage(kind, { n: ev.n, hp: ev.hp, turn: this.state.turn,
+                              line: this.eventLine(ev) });
   }
 
   async eventBeat() {
