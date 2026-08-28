@@ -1690,6 +1690,39 @@ test("icons: the sprite sheet is well-formed XML", () => {
   const symbols = doc.querySelectorAll("symbol").length;
   assert(symbols >= 90,
     `only ${symbols} symbols parsed — the sheet is being truncated by a parse error`);
+
+  // NO SYMBOL INSIDE ANOTHER SYMBOL. Well-formed is not the same as correct,
+  // and this file has now proved it twice from opposite directions: once a
+  // double hyphen made a valid comment illegal, and once king-figure's closing
+  // tag simply sat in the wrong place, so scare-n3 through scare-n6 parsed as
+  // its CHILDREN. The document was flawless XML and every check anyone had
+  // asked of it passed.
+  //
+  // Nothing rendered wrong either, because a symbol is only ever drawn through
+  // a use and ids stay reachable across the document. It had no symptom at all
+  // until someone tried to scope a rule to the King — at which point a selector
+  // naming exactly one id would have repainted every 僵屍 a player fights,
+  // because the damage is downstream of the match rather than in it.
+  //
+  // TESTED BY THE PARENT'S TAG, not by depth. Depth cannot tell a symbol inside
+  // <defs> from a symbol inside another symbol, and a depth test reports this
+  // sheet clean.
+  const nested = [...doc.querySelectorAll("symbol")]
+    .filter((n) => n.parentNode && n.parentNode.closest && n.parentNode.closest("symbol"))
+    .map((n) => n.getAttribute("id"));
+  eq(nested, [],
+    "these symbols are nested inside another symbol, so any rule scoped to the " +
+    "outer one silently reaches them: " + nested.join(", "));
+
+  // And the count that made the nesting visible in the first place. king-figure
+  // is his own art and nothing else; when it swallowed the four tiers this read
+  // 70. A number that jumps by a factor of five is the loudest thing available.
+  const king = doc.getElementById("king-figure");
+  assert(king, "king-figure is missing from the sheet");
+  const kingShapes = king.querySelectorAll("path,rect,circle,ellipse,polygon,polyline,line").length;
+  assert(kingShapes < 30,
+    `king-figure carries ${kingShapes} shapes — his own art is around fourteen, so ` +
+    `he has swallowed something again`);
 });
 
 test("icons: each 僵屍 tier has its own artwork", () => {
