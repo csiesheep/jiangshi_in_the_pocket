@@ -1963,7 +1963,19 @@ span.handart { cursor: default; }
 }
 
 .action { display: flex; align-items: center; gap: 8px; margin-bottom: 0; }
-.action--primary { grid-column: 1 / -1; }
+/* EQUAL SIZE (#94 part 3): 每個按鈕大小一樣. The recommended card used to span
+   the whole grid, which is what made the buttons unequal — and that span was
+   ALSO a mark — but not the only one, which I nearly got wrong by reading the
+   grid rule and stopping there. `.action--primary { border-color: var(--accent) }`
+   sits forty lines below and marks the same card in green, so removing the span
+   does not leave it unmarked.
+
+   It does leave it marked ONCE where it was marked twice, and a 1px border is
+   the quieter of the two. So the ground lifts by 8 percent of the SAME accent
+   rather than a new colour: one signal, stated twice in one hue, at the same
+   size as every other card. A second colour arriving here would be a new thing
+   to learn for a distinction the border already makes. */
+.action--primary { background: color-mix(in srgb, var(--accent) 8%, var(--bg-2)); }
 .action-icon { width: 22px; height: 22px; color: var(--gold); flex: none; }
 .action-compass { color: var(--muted); font-size: 1rem; flex: none; }
 /* Only reachable if the sprite fetch fails: with icons loaded a flee card

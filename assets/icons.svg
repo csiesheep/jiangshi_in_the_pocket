@@ -1654,6 +1654,38 @@
   <!-- ========================= Interface ========================== -->
 
   <!-- Calm mode: a steady flame, unbothered. -->
+  <!-- BARE HANDS (#94). Every other fight card carries the thing it spends —
+       a blade, a talisman, the banner — and the one option that spends nothing
+       had no picture at all, because itemArt(null) returns null and there is no
+       item id for having nothing. So the card that costs you the most was the
+       only one with an empty space where the others show what they cost.
+
+       Two open hands, palms toward you, thumbs in: the same 24 box and the same
+       painted treatment as the items, and stroke="none" because this sheet's
+       default is line art in currentColor. Not a fist — a fist is a threat and
+       this is the absence of one. -->
+  <symbol id="ui-hands" viewBox="0 0 24 24">
+    <defs>
+      <linearGradient id="bhP" x1=".2" y1="0" x2=".85" y2="1">
+        <stop offset="0" stop-color="#c9ab8b"/><stop offset=".42" stop-color="#9a7d63"/>
+        <stop offset="1" stop-color="#4a3a2e"/>
+      </linearGradient>
+      <linearGradient id="bhQ" x1=".2" y1="0" x2=".85" y2="1">
+        <stop offset="0" stop-color="#bb9d7e"/><stop offset=".42" stop-color="#8b6f57"/>
+        <stop offset="1" stop-color="#3f3227"/>
+      </linearGradient>
+    </defs>
+    <g stroke="none">
+      <path d="M7.4 12.9c-.5-1-.4-2 .3-2.3.6-.3 1.2.1 1.6.9l.5 1-.9-4.4c-.2-.8.1-1.5.8-1.6.6-.1 1.1.4 1.3 1.2l.8 3.6-.2-4.6c0-.8.4-1.4 1.1-1.4.6 0 1.1.5 1.1 1.3l.2 4.5.7-3.5c.2-.8.7-1.2 1.3-1.1.6.1.9.8.8 1.6l-.9 5c-.3 1.7-.6 2.9-1.5 3.8-1 1-2.3 1.4-3.6 1.2-1.2-.2-2-.9-2.6-2z" fill="url(#bhP)"/>
+      <path d="M7.4 12.9c-.5-1-.4-2 .3-2.3.6-.3 1.2.1 1.6.9l.2.4c-.3-.5-.8-.8-1.2-.6-.5.2-.6.9-.3 1.6z" fill="#ddc09f" opacity=".55"/>
+      <path d="M10.9 8.1c-.2-.8.1-1.5.8-1.6.6-.1 1.1.4 1.3 1.2l.1.5c-.2-.6-.6-1-1.1-.9-.5.1-.7.5-.6 1.1z" fill="#ddc09f" opacity=".4"/>
+      <path d="M9.6 17.6c1 .9 2.3 1.2 3.5.9-1.1.9-2.5 1-3.5.1z" fill="#2e241c" opacity=".7"/>
+      <path d="M16.6 12.9c.5-1 .4-2-.3-2.3l-.3-.1-.5 3c-.3 1.7-.6 2.9-1.5 3.8l-.3.3c1-.1 1.9-.6 2.5-1.5.5-.8.8-1.9 1-3.1z" fill="url(#bhQ)"/>
+      <path d="M11.1 12.4c.9-.3 1.9-.3 2.8 0" stroke="#6d5643" stroke-width=".5" fill="none" opacity=".5"/>
+      <path d="M11.3 14c.8-.25 1.6-.25 2.4 0" stroke="#6d5643" stroke-width=".45" fill="none" opacity=".4"/>
+    </g>
+  </symbol>
+
   <symbol id="ui-calm" viewBox="0 0 24 24">
     <path d="M12 3.5c3.2 3.4 5.5 6 5.5 9.1a5.5 5.5 0 0 1-11 0c0-3.1 2.3-5.7 5.5-9.1z"/>
     <path d="M12 12.4c1.2 1.3 2 2.2 2 3.3a2 2 0 0 1-4 0c0-1.1.8-2 2-3.3z"/>

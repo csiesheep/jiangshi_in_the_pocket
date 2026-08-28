@@ -794,7 +794,11 @@ export class Game {
       // so the sword is the right mark only when nothing else is being spent —
       // a card headed 五雷符 with a blade on it is answering a question nobody
       // asked. The banner outranks a talisman: it is the rarer thing to burn.
-      icon: itemArt(o.spends[0] || sword),
+      // BARE HANDS HAVE A PICTURE NOW (#94). itemArt returns null when there
+      // is nothing to spend and no blade in hand, so the one option that costs
+      // the most was the only card with an empty space where every other card
+      // shows what it spends.
+      icon: itemArt(o.spends[0] || sword) || "ui-hands",
       cost: { hp: -o.damage },
       primary: o.spends.length === 0,
       onClick: () => this.doFight(n, o, opts, done),
