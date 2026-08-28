@@ -613,8 +613,18 @@ const SCENES = {
     layer(inner, "ink");
     layer(inner, "tungsten");
     fog(inner, 2);
-    const fig = seat(inner, art("scene", "standing", "evstage-art--villager"),
-                     { x: 63, y: 56, scale: 1 });
+    // scene-villager, not scene-standing. The two look alike and are not the
+    // same job: scene-standing is also dropped into an unopened dark doorway,
+    // where the figure has to stay ambiguous. A hurt villager there would answer
+    // the question that slot exists to leave open.
+    // Seated like the lanterns rather than at the old full size. At scale 1 and
+    // y 56 the figure was composed for a FULL SCREEN: on a tile it ran into the
+    // event's own description and lost its legs behind the text. Smaller and
+    // higher puts the whole body in the clear, which is what makes a silhouette
+    // a posture. Still off-centre, because a figure dead centre is a portrait
+    // and this one is standing at the edge of the light.
+    const fig = seat(inner, art("scene", "villager", "evstage-art--villager"),
+                     { x: 58, y: 43, scale: 0.66 });
     if (fig) fig.classList.add("evs-wrong");
     grain(inner, 0.26);
   },

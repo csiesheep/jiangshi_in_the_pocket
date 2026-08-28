@@ -3064,12 +3064,36 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
   mix-blend-mode: overlay;
 }
 
-/* The villager's posture. Too upright, a couple of degrees off true, and just
-   tall enough to be wrong — the whole scene is in this transform, because this
-   is the event that can stand up and become a fight. */
+/* The villager's posture, and now its one movement (#97).
+   Too upright, a couple of degrees off true, and just tall enough to be wrong.
+
+   THE MOTION IS THE THING YOU ARE AFRAID IT WILL DO. This is the event that can
+   become a fight: refuse the rice and it stands up straight. So it holds at the
+   wrong angle for most of the beat and then, once, CORRECTS — the tilt goes to
+   true, the stoop comes out, and it settles a fraction taller. Nothing lunges
+   and nothing arrives. The scare is the thing that did not move, moving once,
+   which is this file's whole motion grammar.
+
+   It is a hint and not the outcome: giving the rice is still an option when the
+   panel resolves, so the figure may straighten and then be helped. Showing the
+   full stance here would spend the fight before the player has chosen.
+
+   NO OPACITY IN THE KEYFRAMES. The figure is visible in frame one and stays
+   visible; a tab that never advances the animation shows a villager standing
+   wrong, which is the composition, rather than nothing at all. */
 .evs-wrong {
   transform: translate(-50%, -50%) rotate(-2.4deg) scaleY(1.06);
   filter: drop-shadow(0 0 26px rgba(0, 0, 0, .9));
+  animation: evs-straighten 1100ms cubic-bezier(.16, .9, .3, 1) both;
+}
+/* Reduced motion gets the composition rather than the movement: it stands at
+   the wrong angle and simply does not correct. The information was never in the
+   motion, so nothing is lost by holding the frame. */
+.evstage--still .evs-wrong { animation: none; }
+@keyframes evs-straighten {
+  0%   { transform: translate(-50%, -50%) rotate(-2.4deg) scaleY(1.06); }
+  72%  { transform: translate(-50%, -50%) rotate(-2.4deg) scaleY(1.06); }
+  100% { transform: translate(-50%, -50%) rotate(0deg) scaleY(1.09) translateY(-1.5%); }
 }
 .evstage-art--villager { color: #2a2d33; opacity: .96; }
 
