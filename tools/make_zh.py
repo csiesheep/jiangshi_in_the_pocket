@@ -79,6 +79,11 @@ o["tileBlurbs"] = collections.OrderedDict([
 ])
 
 o["itemBlurbs"] = collections.OrderedDict([
+    # Not an item: the 神主牌 has no entry in items.json on purpose. It is
+    # keyed here because the equipment slot and the reveal panel both read
+    # itemBlurbs under "relic", and a line only in the generated file would
+    # be dropped the next time this ran.
+    ("relic", "死者的名字，刻在木上。把它帶回去，屍身才有地方可以喊回來。"),
     ("precept-knife", "和尚的刀，本來只用來裁布割繩。還是一直磨著。"),
     ("peachwood-sword", "桃木不好開鋒，卻很吃得住邪。"),
     ("coin-sword", "舊錢串在鐵線骨上。上面的皇帝都死了，要的就是這個。"),

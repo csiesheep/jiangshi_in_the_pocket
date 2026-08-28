@@ -104,6 +104,7 @@
     "start-failed": "Failed to start the game — see console.",
     "slot-empty": "Empty",
     "reveal-nothing": "Nothing here",
+    "reveal-go": "Tap to continue",
     "slot-stack": "{n} of them, sharing one slot",
     "use": "Use",
     "use-item": "Use {item}",
@@ -252,6 +253,7 @@
   },
   "itemBlurbs": {
     "_note": "One line each, said when the thing is found. What it is and what it is for, in the same short diegetic register as the rest of the writing.",
+    "relic": "The name of the dead, cut into wood. Carry it back and the body has somewhere to be called home to.",
     "precept-knife": "A monk’s blade, meant for cutting cloth and rope. It has been kept sharp anyway.",
     "peachwood-sword": "Peach wood takes an edge badly and takes a spirit well.",
     "coin-sword": "Old coins lashed to a spine of wire. Every emperor on it is dead, which is the point.",

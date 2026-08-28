@@ -4387,35 +4387,76 @@ body.asleep .fog {
 .langswitch:hover,
 .langswitch:focus-visible { color: var(--gold); border-color: var(--gold); }
 
-/* ---- The search reveal (#92) ---------------------------------------------------
+/* ---- The reveal panel (#92, #96, #97) ------------------------------------------
    Over the tile, because WHICH ROOM gave you this is half the news — a caption
    at the top of the pane could not say that. The pane is the anchor the actions
    pop-out already uses.
 
+   TILE-SIZED, EDGES FADED, NO FRAME. It was a small bordered card; the ruling
+   is that it fills the room it happened in and dissolves into it rather than
+   sitting on top of it in a box. So there is no border, no radius and no
+   shadow: the ground is one radial wash that reaches transparent before the
+   edge of the square, which is what 邊緣自然淡出 asks for and what a hard-edged
+   panel cannot do at any radius.
+
+   The BOX stays tile-sized even though the wash is an ellipse inside it,
+   because the box is the click target and a tile-sized target is half the point
+   of the size change. The transparent corners still take the click.
+
+   Type scales off --tile rather than sitting at a fixed rem, so the panel reads
+   the same at every board size — with a px floor, because --tile bottoms out at
+   96px and a description set from that alone would print at five pixels.
+
    The empty-handed state borrows the game's existing word for nothing: the same
-   dashed frame the empty pack cell and the empty equipment slot draw. It is not
-   a new idiom, it is the one the panel already had.
+   dashed frame the empty pack cell and the empty equipment slot draw. That
+   frame is INSIDE the panel and is not the panel's own edge — it is the shape
+   of an absence, which is why it survives a ruling that removed the framing.
 
    One-shot animation, no iteration and no alternation, so it passes the
-   photosensitivity guard. Its removal is on a TIMER rather than animationend —
-   a hidden tab does not advance animations, and this one has the turn waiting
-   behind it. */
+   photosensitivity guard. */
 .reveal {
   position: absolute;
   left: 50%;
   top: 50%;
+  width: var(--tile);
+  height: var(--tile);
+  /* Centred by MARGIN, not by transform, for the reason .evstage--tile is:
+     revealin animates the transform, so a translate here is overwritten for the
+     length of the animation and the panel plays its entrance off-centre. Both
+     tile panels centre the same way now. */
+  margin: calc(var(--tile) / -2) 0 0 calc(var(--tile) / -2);
   z-index: 6;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 14px 18px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--panel) 92%, black);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, .6);
-  pointer-events: none;
-  transform: translate(-50%, -50%);
+  justify-content: center;
+  gap: calc(var(--tile) * .022);
+  /* Off --tile, NOT a percentage. A percentage padding resolves against the
+     CONTAINING BLOCK's width, which is the whole board pane -- 7% of 900px is
+     63px a side against a 96px panel, and border-box cannot shrink below its
+     own padding, so the panel came out 126px wide over a 96px tile. Caught by
+     measuring it with the real sheet adopted; it is invisible in the
+     declaration. */
+  padding: 0 calc(var(--tile) * .07);
+  box-sizing: border-box;
+  /* NO BORDER, NO RADIUS, NO SHADOW. The wash is the panel: opaque enough at
+     the centre to carry text over the room art, gone by 78% so the square's own
+     edge is never drawn. A border-radius would round a boundary nobody can see.
+   */
+  border: 0;
+  background: radial-gradient(circle at 50% 48%,
+    color-mix(in srgb, var(--bg) 94%, black) 0%,
+    color-mix(in srgb, var(--bg) 90%, transparent) 38%,
+    color-mix(in srgb, var(--bg) 62%, transparent) 58%,
+    transparent 78%);
+  text-align: center;
+  /* IT IS THE CONTROL NOW (#96). It waits for a click instead of timing out, so
+     it must accept one -- pointer-events: none here would have made the panel
+     unclickable and the game unwinnable, with no timer left to rescue it. And
+     it has to LOOK clickable, because the ruling is that there is no button: the
+     cursor and the lift on hover are the only things saying so. */
+  cursor: pointer;
+  transition: filter .14s ease-out;
   /* TRANSFORM ONLY, and opacity deliberately left out of it. An animation with
      opacity in its first keyframe plus a fill mode renders the element at
      opacity 0 until the animation ADVANCES -- and animations do not advance in
@@ -4426,36 +4467,72 @@ body.asleep .fog {
      perfectly visible panel that simply did not slide. */
   animation: revealin .34s ease-out;
 }
+/* The art holder. For something found it is now nothing but a box to centre the
+   picture in — the border and the fill went with the framing. */
 .revealframe {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 84px;
-  height: 84px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-2);
+  width: calc(var(--tile) * .40);
+  height: calc(var(--tile) * .40);
+  border: 0;
+  background: none;
 }
 /* Nothing found: the dashed empty frame this game already uses to mean "there
    is nothing here", with no picture in it. */
 .reveal--none .revealframe {
-  border-style: dashed;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
   background: transparent;
 }
-.revealicon { width: 64px; height: 64px; color: var(--gold); }
+.revealicon { width: 100%; height: 100%; color: var(--gold); }
+/* The 神主牌 is not gold. It is lit by the corpse-green other light, as it is
+   everywhere else it appears. */
+.reveal--relic .revealicon { color: var(--film-moon); }
 .revealname {
   margin: 0;
-  max-width: 16ch;
+  max-width: 18ch;
   font-family: var(--font-head);
-  font-size: .95rem;
-  line-height: 1.3;
-  text-align: center;
+  font-size: max(13px, calc(var(--tile) * .082));
+  line-height: 1.25;
   color: var(--text);
 }
+.revealblurb {
+  margin: 0;
+  max-width: 24ch;
+  font-size: max(10px, calc(var(--tile) * .056));
+  line-height: 1.35;
+  color: var(--muted);
+}
 .reveal--none .revealname { color: var(--muted); }
+/* THE ONLY AFFORDANCE LEFT AT REST. With no border and no shadow there is
+   nothing to light up, so the panel itself brightens — slightly, because the
+   cursor and the hint are already saying it. */
+.reveal:hover { filter: brightness(1.09); }
+/* The focus ring stays. "No obvious frame" was a ruling about how the panel
+   sits on the board at rest; a keyboard user still has to see what is focused,
+   and this is drawn only when the keyboard asked for it. Inset, so it lands on
+   the wash rather than out on the transparent corners where it would look like
+   a box around nothing. */
+.reveal:focus-visible { outline: 2px solid var(--way-new); outline-offset: -8px; }
+/* Shown the first couple of runs only, on the event stage's policy: a player
+   who does not know the panel waits for them reads it as a stall, and after a
+   couple of times it is furniture. */
+.revealhint {
+  margin: calc(var(--tile) * .03) 0 0;
+  font-size: max(9px, calc(var(--tile) * .048));
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* No translate in here now that the panel is centred by margin — and still no
+   opacity: an animation whose first keyframe hides the element renders it
+   invisible until the animation ADVANCES, and animations do not advance in a
+   hidden tab. */
 @keyframes revealin {
-  0%   { transform: translate(-50%, -50%) scale(.92); }
-  100% { transform: translate(-50%, -50%) scale(1); }
+  0%   { transform: scale(.94); }
+  100% { transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; }
@@ -4465,10 +4542,22 @@ body.asleep .fog {
    Off the full screen and onto the room it happened in, at the size of that
    room, with NO FRAME: the image is the whole panel.
 
-   FRAMED MEANS "HERE IS A THING", FULL-BLEED MEANS "THIS IS HAPPENING". The
-   search reveal is framed because it presents an object you now own; this is
-   unframed because it is the room doing something. Do not tidy one into the
-   other.
+   THERE IS NO LONGER A VISUAL DISTINCTION between this and the reveal panel,
+   and the rule that used to be stated here — framed means "here is a thing",
+   full-bleed means "this is happening" — WAS RETIRED BY #97, which unframed the
+   reveal too. Both are now tile-sized, unframed and soft-edged. Anyone reading
+   this looking for the difference in the CSS will not find one, and that is
+   correct rather than a job half done.
+
+   What actually separates them is not how they look:
+     - WHAT THEY SHOW. This is a room doing something. The reveal is an object
+       you now hold, and it carries that object's name and description.
+     - HOW THEY END. This ends on a BEAT, on the stage's own budget, because the
+       night has thirty of them and thirty clicks is not a game. The reveal ends
+       on a CLICK and waits as long as it takes, because there are a handful of
+       them a night and each one is news.
+   That second difference is the load-bearing one: it is why this still owns a
+   timer and the reveal no longer does.
 
    It costs no more time than it did. The budget in eventstage.js is untouched:
    30 turns x (1100 - 780) = 9.6s over a night, exactly as before. Presentation

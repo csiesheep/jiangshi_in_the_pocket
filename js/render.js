@@ -2006,24 +2006,40 @@ export function showNote(note, onClose) {
 // advance in a hidden tab, and a reveal that never left would sit over the
 // board forever — with the turn never ending behind it, since onDone hangs off
 // the same timer.
-const REVEAL_MS = 1300;
-let revealTimer = null;
-let revealDone = null;
+// How many times a run explains that a layer over the board is dismissed. It
+// lives here rather than in eventstage.js so there is ONE number and the stage
+// imports it. The BUDGETS stay separate on purpose: the stage's hint teaches an
+// optional skip, this one teaches a REQUIRED click, and letting either starve
+// the other would leave the more necessary lesson untaught.
+export const HINT_TIMES = 2;
 
-// ENDING A REVEAL IS ONE OPERATION, and it has to be, because the timer carries
-// the turn. Its callback is refresh() and renderEndTurn() for a found item, so
-// removing the element and leaving the timer pending would fire the rest of the
+let revealDone = null;
+let revealHintsLeft = HINT_TIMES;
+let revealTeardown = null;
+
+// Reset per run, beside the stage's own reset, so a second night explains
+// itself again to whoever picked the game up in between.
+export function resetRevealHint() {
+  revealHintsLeft = HINT_TIMES;
+}
+
+// ENDING A REVEAL IS ONE OPERATION, and it has to be, because the CALLBACK carries
+// the turn. It is refresh() and renderEndTurn() for a found item, so
+// removing the element and leaving anything pending would fire the rest of the
 // turn later — into whatever had replaced it. A player quick enough to click a
 // doorway while the panel is still up would advance the turn twice and be the
 // least likely person to be believed reporting it.
 //
-// So: remove, cancel and complete together, exactly once. Pre-empting a reveal
+// So: unbind, remove and complete together, exactly once. Pre-empting a reveal
 // FINISHES it rather than abandoning it — the pack still lands and the turn
 // still ends — because dropping the callback would leave the find unpainted and
 // the end-turn control unrendered.
 function endReveal() {
-  clearTimeout(revealTimer);
-  revealTimer = null;
+  if (revealTeardown) {
+    const off = revealTeardown;
+    revealTeardown = null;
+    off();
+  }
   for (const el of document.querySelectorAll(".reveal")) el.remove();
   const fn = revealDone;
   revealDone = null;
@@ -2032,11 +2048,24 @@ function endReveal() {
 
 // For anything that is about to take the space over the tile. One layer over
 // the board at a time.
-export function clearSearchReveal() {
+// MORE reachable since #96, not less. While the reveal waited 1300ms this was a
+// narrow race; now that it waits indefinitely, a player who ignores it and
+// clicks a doorway instead is an ordinary way to play rather than a fast
+// finger. The event stage calls this, and the reveal completes on the way past.
+export function clearRevealPanel() {
   endReveal();
 }
 
-export function searchReveal(game, opts, onDone) {
+// NOT searchReveal any more. The 神主牌 takes this panel too, and the rite that
+// hands it over is not a search -- a function named for one caller is a comment
+// that lies as soon as there are two.
+//
+// opts is either { id } for something out of the pack, or the three pieces
+// directly -- { sym, name, blurb } -- for something that is not an item. The
+// tablet is the whole reason for the second form: it has no entry in items.json
+// on purpose, because it is the object of the night rather than a thing you
+// carry, and it must not become one just to be shown.
+export function revealPanel(game, opts, onDone) {
   const done = typeof onDone === "function" ? onDone : () => {};
   const pane = document.querySelector(".board-pane");
   if (!pane) return void done();
@@ -2046,31 +2075,107 @@ export function searchReveal(game, opts, onDone) {
   // cheaper to hold than to reason about each time.
   endReveal();
 
-  const id = opts && opts.id;
+  const o = opts || {};
+  const id = o.id;
+  // WHAT IS BEING SHOWN, resolved once. An item answers all three from the
+  // sources the pack tooltip already reads, so the panel and the cell cannot
+  // drift apart; a caller with no id hands them over itself.
+  const sym = o.sym || (id ? ["item", id] : null);
+  const name = o.name || (id ? itemName(game, id) : ui(game, "reveal-nothing"));
+  // The description the ruling asked for, from itemBlurbs -- whose own _note
+  // says these are "said when the thing is found", which is exactly this moment
+  // and was until now the one place they were never said. The equipment slot
+  // reads the same map under the same "relic" key for the tablet.
+  const blurb = o.blurb != null ? o.blurb
+    : (id ? (game.data.theme.itemBlurbs || {})[id] || "" : "");
+
   const el = document.createElement("div");
-  el.className = "reveal" + (id ? "" : " reveal--none");
-  // aria-hidden for caption()'s reason: log() has already narrated this
-  // outcome in full, and a panel that announced itself would say it twice.
-  el.setAttribute("aria-hidden", "true");
+  el.className = "reveal" + (sym ? "" : " reveal--none") + (o.cls ? " " + o.cls : "");
+
+  // NOT aria-hidden, and that is a decision rather than an inheritance. It was
+  // hidden while it dismissed itself, on caption()'s reasoning: log() had
+  // already narrated the outcome and a panel that announced itself would say it
+  // twice. THAT REASONING DOES NOT SURVIVE THE PANEL BLOCKING. A screen reader
+  // user, told what they found and then facing a silent panel that holds the
+  // turn until it is clicked, has no way to learn that a click is owed.
+  //
+  // So it is a control, and its accessible name is the ACTION rather than the
+  // item: a button announces its label and not its contents, so the find is not
+  // said a second time. It takes focus for the same reason, so the way out is
+  // under the keyboard as well as under the cursor.
+  el.setAttribute("role", "button");
+  el.setAttribute("tabindex", "0");
+  el.setAttribute("aria-label", ui(game, "reveal-go"));
 
   const frame = document.createElement("div");
   frame.className = "revealframe";
-  const art = id ? icon("item", id, "revealicon") : null;
+  const art = sym ? icon(sym[0], sym[1], "revealicon") : null;
   if (art) frame.appendChild(art);
   el.appendChild(frame);
 
-  const name = document.createElement("p");
-  name.className = "revealname";
+  const nameEl = document.createElement("p");
+  nameEl.className = "revealname";
   // Nothing chosen here varies. The empty-handed LINE varies by turn and stays
   // in the narration where it lives; the panel says the same words every time,
   // so a replayed seed shows the same reveal in the same room without the
   // search stream being touched for flavour.
-  name.textContent = id ? itemName(game, id) : ui(game, "reveal-nothing");
-  el.appendChild(name);
+  nameEl.textContent = name;
+  el.appendChild(nameEl);
+
+  if (blurb) {
+    const b = document.createElement("p");
+    b.className = "revealblurb";
+    b.textContent = blurb;
+    el.appendChild(b);
+  }
+
+  // IT WAITS FOR THE PLAYER NOW (#96) rather than timing out. The timer used to
+  // be a safety net: whatever happened, 1300ms later the turn moved on. With it
+  // gone the way out is the ONLY way out, so there are TWO of them, taken from
+  // the event stage rather than invented again. A click anywhere on the panel,
+  // and any key. A failure of one is not a dead game.
+  //
+  // The key handler is the stage's, down to the parts that are not obvious:
+  // modified keys are left alone, Tab still walks the page rather than being
+  // trapped, and it listens in CAPTURE so this is dismissed before any
+  // page level shortcut sees the key. M for mute in particular must not fire
+  // while "press anything" is the way forward.
+  const onClick = () => endReveal();
+  const onKey = (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "Tab") return;
+    // Swallowed rather than merely handled: the end turn control is mounted the
+    // moment this resolves, and a keyup arriving after that could land on a
+    // button that did not exist when the key went down.
+    e.preventDefault();
+    e.stopPropagation();
+    endReveal();
+  };
+  revealTeardown = () => {
+    window.removeEventListener("keydown", onKey, true);
+    el.removeEventListener("click", onClick);
+  };
+  window.addEventListener("keydown", onKey, true);
+  el.addEventListener("click", onClick);
+
+  // The hint, on the stage's policy and for its reason: a player who does not
+  // yet know the panel waits for them reads it as a stall. After a couple of
+  // times it is furniture, and furniture in the middle of the board is worse
+  // than no hint at all.
+  if (revealHintsLeft > 0) {
+    revealHintsLeft--;
+    const hint = document.createElement("p");
+    hint.className = "revealhint";
+    hint.textContent = ui(game, "reveal-go");
+    // The panel's own accessible name already says this, so as text it is
+    // decoration and a screen reader should not hear it twice.
+    hint.setAttribute("aria-hidden", "true");
+    el.appendChild(hint);
+  }
 
   pane.appendChild(el);
   revealDone = done;
-  revealTimer = setTimeout(endReveal, REVEAL_MS);
+  el.focus({ preventScroll: true });
 }
 
 export function showDropDialog(game, foundId, opts = {}) {

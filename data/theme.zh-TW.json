@@ -110,6 +110,7 @@
     "mass-grave": "無主的坑。把神主牌埋回這裡。"
   },
   "itemBlurbs": {
+    "relic": "死者的名字，刻在木上。把它帶回去，屍身才有地方可以喊回來。",
     "precept-knife": "和尚的刀，本來只用來裁布割繩。還是一直磨著。",
     "peachwood-sword": "桃木不好開鋒，卻很吃得住邪。",
     "coin-sword": "舊錢串在鐵線骨上。上面的皇帝都死了，要的就是這個。",
@@ -281,6 +282,7 @@
     "kit-bare": "只有兩隻手",
     "slot-empty": "空的",
     "reveal-nothing": "什麼都沒有",
+    "reveal-go": "點一下繼續",
     "slot-stack": "{n}張，共用一格",
     "use": "使用",
     "use-item": "使用{item}",

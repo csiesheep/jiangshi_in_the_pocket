@@ -43,7 +43,7 @@
 // see the note on skipping.
 
 import { enterScene, leaveScene, icon, reducedMotion, grain,
-         clearSearchReveal } from "./render.js";
+         clearRevealPanel, HINT_TIMES } from "./render.js";
 
 // The beat the stage is replacing. Kept here as its own name rather than
 // imported from app.js so the arithmetic in the header can be checked against
@@ -61,7 +61,9 @@ const REDUCED_MS = 700; // a held frame; nobody needs a held frame for long
 // yet know the stage can be dismissed; after that it is furniture, and
 // furniture in the middle of the screen thirty times a night is worse than no
 // hint at all.
-const HINT_TIMES = 2;
+// The number lives in render.js so the two layers over the board cannot drift
+// apart on how often a run explains itself. The budgets stay separate: this
+// hint teaches an optional skip, the reveal's teaches a required click.
 let hintsLeft = HINT_TIMES;
 
 // ---- Fast mode, retired (#72) -------------------------------------------------
@@ -105,11 +107,16 @@ export function eventStage(kind, opts = {}) {
     // #95: OVER THE TILE, AT TILE SIZE, UNFRAMED. An event is not a thing being
     // handed to you, it is the room doing something, so it does not get a box.
     //
-    // THE RULE, so the next layer over the board can be decided rather than
-    // guessed: FRAMED MEANS "HERE IS A THING", FULL-BLEED MEANS "THIS IS
-    // HAPPENING". The search reveal is framed because it presents an object you
-    // now own. This is full-bleed because it is a scene. Neither is a mistake to
-    // be tidied into the other.
+    // A RULE ONCE STOOD HERE and it is gone: framed meant "here is a thing" and
+    // full-bleed meant "this is happening", which stopped being true the moment
+    // #97 unframed the reveal panel as well. The two layers over the board are
+    // no longer told apart by their frames, because neither has one.
+    //
+    // They are told apart by HOW THEY END, and that is the difference worth
+    // knowing here: this ends on a beat, because a night holds thirty of them
+    // and thirty clicks is not a game. The reveal waits for a click, because
+    // there are a handful a night and each one is news. That is why the budget
+    // below is still this function's problem and is not the reveal's.
     //
     // The 殭屍王 does not take this branch. His is the one set-piece that is not
     // an event beat, it plays once a night, and full screen is the point of it.
@@ -207,7 +214,7 @@ function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError, on
     // if the player clicked through it, and finishing it here is what keeps its
     // timer from firing the rest of that turn underneath this panel — removal
     // and cancellation are the same call on purpose.
-    if (onTile) clearSearchReveal();
+    if (onTile) clearRevealPanel();
 
     // Where it mounts. On the tile it is a panel over the board and belongs to
     // the board's own anchor, beside the reveal and the actions pop-out; the

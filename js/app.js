@@ -51,7 +51,8 @@ import {
   tileName as tName,
   itemName as iName,
   showDropDialog,
-  searchReveal,
+  revealPanel,
+  resetRevealHint,
   onPackUse,
   caption,
   jumpScare,
@@ -486,8 +487,42 @@ export class Game {
       // it has its own line on the verdict card two rows down, and counting it
       // here said "1 item found" to a player who had found four and the tablet.
       this.tell(this.line("relic-found", { relic: this.word("relic") }), "good");
-      this.refresh();
-      return wait(RESULT_BEAT_MS);
+
+      // THE PANEL, and the tablet is the moment it exists for. Everything else
+      // it shows is a thing you picked up in a room; this is the thing the
+      // whole night was for, and it was going past in a caption and a 620ms
+      // beat.
+      //
+      // It is not an item and does not become one to be shown here: no entry in
+      // items.json, no id, so the three pieces are handed over directly. The
+      // description comes from itemBlurbs under the "relic" key, which the
+      // equipment slot already reads and which had never been written — so the
+      // slot's tooltip gains it too, from the same single source.
+      //
+      // THE PANEL OWNS THE BEAT NOW. The wait(RESULT_BEAT_MS) that used to
+      // close this rite is gone rather than kept alongside: a click-dismissed
+      // panel racing a timer that ends the moment anyway would mean the tablet
+      // sometimes waited for the player and sometimes did not, depending on how
+      // fast they were, which is the one thing a ruling about waiting cannot
+      // tolerate. refresh() moves into the callback for the same reason the
+      // search's does — you are told, and then you watch it land.
+      return new Promise((resolve) => {
+        revealPanel(this, {
+          sym: ["ui", "relic"],
+          // relic-name, not word("relic"). The two are different jobs and the
+          // theme keeps them apart: word() is the INLINE noun, "the tablet",
+          // for the middle of a sentence, and it is what the caption above says.
+          // This is a TITLE, in the same 神主牌 Ancestral Tablet idiom every item
+          // name on this panel uses -- and it is the string the equipment slot
+          // already titles the same object with.
+          name: this.ui("relic-name"),
+          blurb: (this.data.theme.itemBlurbs || {}).relic || "",
+          cls: "reveal--relic",
+        }, () => {
+          this.refresh();
+          resolve();
+        });
+      });
     }
     // A burial ends the run. gameOver is reached from arrive(), which checks
     // status the moment this returns; the beat here is the spade going in.
@@ -986,7 +1021,7 @@ export class Game {
       // the clock and the hearts have not moved and there is nothing else being
       // held. If a search ever costs health, this is the line that has to be
       // split.
-      return void searchReveal(this, { id: out.id }, () => {
+      return void revealPanel(this, { id: out.id }, () => {
         this.refresh();
         this.renderEndTurn();
       });
@@ -1035,7 +1070,7 @@ export class Game {
           },
         },
       ];
-      return void searchReveal(this, { id: out.id }, () => {
+      return void revealPanel(this, { id: out.id }, () => {
         renderActions(armed, this.ui("replace-prompt", { item: name(out.id) }));
       });
     }
@@ -1043,7 +1078,7 @@ export class Game {
     if (out.result === "OFFER_DROP") {
       log(this.line("search-nowhere", { item: iName(this, out.id) }));
       // #92: reveal, then the dialog opens on top of what you were just shown.
-      return void searchReveal(this, { id: out.id }, () => showDropDialog(this, out.id, {
+      return void revealPanel(this, { id: out.id }, () => showDropDialog(this, out.id, {
         onDrop: (dropId, foundId) => this.takeInstead(foundId, dropId),
         onDropStack: (dropId, n, foundId) => {
           // A stack is one slot however deep it is, so dropping one of three
@@ -1074,7 +1109,7 @@ export class Game {
     // so nothing on the HUD changes and nothing ever did — a search that came
     // up empty used to be a pause and then the turn ending. Now the room says
     // so, over the room, and the beat has a shape.
-    searchReveal(this, { id: null }, () => {
+    revealPanel(this, { id: null }, () => {
       this.refresh();
       this.renderEndTurn();
     });
@@ -1494,6 +1529,10 @@ function startNewGame(seed) {
   // a run. A fresh run earns that again — someone else may have picked the game
   // up since — and it costs two lines rather than a preference nobody asked for.
   resetStageHints();
+  // The reveal explains itself on the same policy and resets at the same
+  // moment, so the two layers over the board do not disagree about whether this
+  // is a fresh player.
+  resetRevealHint();
   // A run is in progress: the screen stays lit. Released at the verdict, so a
   // finished game is not quietly holding the phone awake.
   keepAwake(true);

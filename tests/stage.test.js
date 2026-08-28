@@ -11,7 +11,7 @@ import {
   eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   resetStageHints,
 } from "../js/eventstage.js";
-import { ghostIcon } from "../js/render.js";
+import { ghostIcon, revealPanel } from "../js/render.js";
 import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
@@ -996,7 +996,17 @@ test("icons: an empty slot's ghost is INLINED, not referenced (#91)", () => {
     "the ghost's fill rule no longer sets none: " + strip.body.trim());
 });
 
-test("search: the pack takes the item AFTER the reveal has spoken (#92)", async () => {
+test("search: the pack takes the item AFTER the reveal is dismissed (#92, #96)", serial(async () => {
+  // SERIAL, and it has to be. This mounts a .board-pane and a reveal, which are
+  // the same single layer over the board that every stage test drives. Run
+  // unqueued, it overlapped the stage suite and their runStage() called
+  // clearRevealPanel() on THIS panel -- which failed as "the reveal dismissed
+  // itself", a message pointing squarely at product code that was behaving
+  // correctly the whole time. The stack said eventStage; the panel was
+  // innocent.
+  //
+  // Waiting on a click rather than a timer is what exposed it: the old panel
+  // was gone in 1300ms and rarely overlapped anything.
   // THE ORDER IS THE FEATURE, and it fails silently. Move refresh() back in
   // front of the reveal and the pack simply gains its cell early: no error, no
   // red, the panel still appears — and the reveal stops being news and becomes
@@ -1060,9 +1070,25 @@ test("search: the pack takes the item AFTER the reveal has spoken (#92)", async 
       ") — refresh() has moved back in front of the panel, so the player is being " +
       "told something they can already see");
 
-    // And after it has gone.
+    // IT DOES NOT LEAVE ON ITS OWN ANY MORE (#96). Waiting well past the old
+    // 1300ms budget and finding it still there is half the guard: the ruling is
+    // that the player dismisses it, and a timer creeping back in would be
+    // invisible except that the panel stopped waiting.
     await sleep(1600);
-    assert(!document.querySelector(".reveal"), "the reveal never left");
+    assert(document.querySelector(".reveal"),
+      "the reveal dismissed itself — it is supposed to wait for the player");
+    assert(filled() === before,
+      "the pack changed while the reveal was still waiting (" + before + " -> " + filled() + ")");
+
+    // AND IT MUST BE DISMISSIBLE. With no timer, the click is the way out and a
+    // listener that failed to attach would be a hung game rather than a
+    // cosmetic bug — everything green and the player unable to continue. So
+    // this asserts the way out WORKS, not that the panel looks right.
+    document.querySelector(".reveal").click();
+    await sleep(120);
+    assert(!document.querySelector(".reveal"),
+      "clicking the reveal did not dismiss it — there is no timer behind this, " +
+      "so the turn cannot continue");
     assert(filled() === before + 1,
       "the pack never gained the item (" + before + " -> " + filled() +
       ") — the reveal's callback is not committing the find");
@@ -1070,7 +1096,181 @@ test("search: the pack takes the item AFTER the reveal has spoken (#92)", async 
     host.remove();
     for (const el of document.querySelectorAll(".reveal")) el.remove();
   }
-});
+}));
+
+test("reveal: tile-sized, no frame, and the edges reach transparent (#97)", serial(async () => {
+  // THE RULING IS A SHAPE, so it is measured as one. "Looks unframed" is not
+  // checkable; "the computed border width is 0 and the background's last colour
+  // stop is transparent" is, and those are the two things that would silently
+  // come back if someone restored the card.
+  // THE STYLESHEET HAS TO BE ON THE PAGE. tests/index.html does not link it --
+  // every other CSS guard here reads style.css as TEXT -- so a .reveal built in
+  // this document has no styles at all and measures 900x0. The first draft of
+  // this test did exactly that and reported the panel as the wrong size, which
+  // is the same mistake the icon bench made: reconstructing the thing without
+  // the sheet that makes it what it is.
+  //
+  // So the real sheet is adopted for the length of the test and taken off
+  // again. That means these numbers are the ones that ship, clamp() and all,
+  // rather than declarations read out of a string.
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  const adopted = document.adoptedStyleSheets;
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  try {
+    document.adoptedStyleSheets = [...adopted, sheet];
+    const pane = host.querySelector(".board-pane");
+    const el = document.createElement("div");
+    el.className = "reveal";
+    pane.appendChild(el);
+    const cs = getComputedStyle(el);
+
+    // The tile size is MEASURED rather than read: --tile is a clamp(), and a
+    // custom property read off the root comes back as its unresolved token, so
+    // parseFloat would have quietly returned the clamp's first number.
+    const probe = document.createElement("div");
+    probe.style.width = "var(--tile)";
+    pane.appendChild(probe);
+    const tile = parseFloat(getComputedStyle(probe).width);
+    assert(tile > 0, "--tile did not resolve, so this test cannot check the size");
+    const w = parseFloat(cs.width), h = parseFloat(cs.height);
+    assert(Math.abs(w - tile) <= 1 && Math.abs(h - tile) <= 1,
+      `the reveal is ${Math.round(w)}x${Math.round(h)} against a ${Math.round(tile)}px ` +
+      `tile — the ruling is that it is the size of the room it happened in`);
+
+    // No frame. All four borders, because a single side coming back is exactly
+    // the kind of half-revert nobody sees.
+    for (const side of ["Top", "Right", "Bottom", "Left"]) {
+      eq(parseFloat(cs["border" + side + "Width"]), 0,
+        `the reveal grew a ${side.toLowerCase()} border — the ruling is no visible frame`);
+    }
+    assert(cs.boxShadow === "none",
+      `the reveal has a box-shadow (${cs.boxShadow}) — a shadow draws the edge the ` +
+      `border no longer does`);
+
+    // And the edge FADES. A flat background colour would satisfy everything
+    // above while still ending in a hard square line, which is the thing
+    // 邊緣自然淡出 is asking not to happen.
+    assert(/gradient/.test(cs.backgroundImage),
+      "the reveal's ground is not a gradient, so its edges cannot fade");
+    assert(/transparent|rgba\(0, 0, 0, 0\)/.test(cs.backgroundImage),
+      "the reveal's gradient never reaches transparent — the square's edge is still drawn");
+  } finally {
+    document.adoptedStyleSheets = adopted;
+    host.remove();
+  }
+}));
+
+test("reveal: it says what the thing is, from the pack's own source (#97)", serial(async () => {
+  // The description was the other half of the ruling and it is the half that
+  // can rot quietly: itemBlurbs is a hand-written map, and a panel reading a
+  // key that is not there shows nothing at all rather than failing.
+  const names = ["tiles", "items", "search", "events", "theme"];
+  const [tiles, items, search, events, theme] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const blurbs = theme.itemBlurbs || {};
+  const ids = (items.items || items).map((it) => it.id);
+  for (const id of ids) {
+    assert(blurbs[id],
+      `${id} has no itemBlurbs line, so its reveal panel would show a picture and a ` +
+      `name with the description missing`);
+  }
+  // The tablet is not an item and is keyed separately. It had NO entry until
+  // #97 even though the equipment slot has been reading this key since #90.
+  assert(blurbs.relic,
+    "itemBlurbs.relic is missing — the 神主牌 panel and the equipment slot tooltip " +
+    "both read it, and both show nothing when it is absent");
+
+  // icon() looks the symbol up with getElementById and returns NULL when it is
+  // not there, so without the sprite sheet in the document this guard would
+  // report "the panel shows no picture" about a panel that draws one perfectly
+  // well in the game. The sheet goes in hidden and comes out again.
+  const sprite = document.createElement("div");
+  sprite.style.display = "none";
+  sprite.innerHTML = ICON_SVG;
+  document.body.appendChild(sprite);
+
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  try {
+    const game = new Game({ tiles, items, search, events, theme, baseTheme: theme, lang: "en" },
+                          { seed: 7 });
+    const id = ids[0];
+    revealPanel(game, { id }, () => {});
+    const el = document.querySelector(".reveal");
+    assert(el, "no panel mounted");
+    eq(el.querySelector(".revealblurb").textContent, blurbs[id],
+      "the panel's description is not the item's blurb — it has grown a second source");
+    assert(el.querySelector(".revealicon"), "the panel shows no picture");
+    el.click();
+
+    // And the tablet, which reaches the same panel without being an item.
+    revealPanel(game, { sym: ["ui", "relic"], name: game.ui("relic-name"),
+                        blurb: blurbs.relic, cls: "reveal--relic" }, () => {});
+    const relic = document.querySelector(".reveal");
+    assert(relic.classList.contains("reveal--relic"), "the tablet panel lost its class");
+    eq(relic.querySelector(".revealblurb").textContent, blurbs.relic,
+      "the tablet panel is not showing the relic blurb");
+    const use = relic.querySelector(".revealicon use");
+    assert(use && /relic/.test(use.getAttribute("href") || ""),
+      "the tablet panel is not drawing the relic symbol");
+    relic.click();
+  } finally {
+    sprite.remove();
+    host.remove();
+    for (const el of document.querySelectorAll(".reveal")) el.remove();
+  }
+}));
+
+test("rite: taking the 神主牌 waits for the player, and adds no timer of its own (#97)", serial(async () => {
+  // TWO WAYS TO GET THIS WRONG and only one of them is visible. Forgetting the
+  // panel is obvious the moment anyone plays. Keeping wait(RESULT_BEAT_MS)
+  // alongside it is not: the rite would resolve on whichever finished LAST, so
+  // a player who clicked quickly would still sit through the leftover beat and
+  // a slow one would never notice the timer at all. This asserts the rite is
+  // still unresolved well past that beat, which is the only way to tell.
+  const src = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
+  const cut = (text) => {
+    const r = text.slice(text.indexOf('goal === "TAKE_TABLET"'));
+    return r.slice(0, r.indexOf("\n    }"));
+  };
+  const body = cut(src);
+  // NEGATIVE ASSERTIONS READ THE CODE ONLY. The comment above this rite says
+  // in so many words that wait(RESULT_BEAT_MS) is gone, and the first draft of
+  // this guard went red on that sentence -- the fourth guard in this file to
+  // fail on its own explanation, which is what noComments() exists for.
+  const code = cut(noComments(src));
+  assert(/revealPanel\(/.test(code), "the rite no longer opens the reveal panel");
+  assert(!/wait\(RESULT_BEAT_MS\)/.test(code),
+    "the rite still waits a fixed beat as well as the panel — the two race, and " +
+    "whether the tablet waits for the player depends on how fast they click");
+  // The ruling that survived #97 unchanged, and the reason it is easy to lose:
+  // the panel makes the tablet LOOK exactly like a find.
+  assert(/NOT counted as an item found/.test(body),
+    "the comment explaining why the tablet is not counted as an item found is gone");
+  assert(!/noteFound\(\)/.test(code),
+    "the rite now counts the tablet as an item found — it has its own verdict row");
+  // THE TITLE, not the inline noun. theme.words.relic is "tablet", for the
+  // middle of a sentence; theme.ui.relic-name is "神主牌 Ancestral Tablet",
+  // which is what the equipment slot titles it with and what every item name on
+  // this panel looks like. word("relic") put a lowercase "tablet" under the
+  // picture and looked like a missing string rather than a wrong one.
+  //
+  // THE PANEL'S name FIELD ONLY. The first draft forbade word("relic") anywhere
+  // in the rite and went red on the CAPTION, which is the one place the inline
+  // noun belongs -- "Among the coffins, the tablet." Both strings are correct
+  // here; what matters is which one goes where.
+  assert(/name: this\.ui\("relic-name"\)/.test(code),
+    "the tablet panel is not titled from ui.relic-name — words.relic is the inline " +
+    "noun for the middle of a sentence, and under the picture it reads as a " +
+    "missing string rather than a name");
+}));
 
 // ---- The sprite sheet itself (#65) ---------------------------------------------
 
