@@ -4581,7 +4581,22 @@ body.asleep .fog {
    fix is at the colour. There is no border here to remove.
 
    The equipment slot still draws it moonlit and is deliberately untouched: the
-   slot says what you are CARRYING, this panel marks the moment you got it. */
+   slot says what you are CARRYING, this panel marks the moment you got it.
+
+   AND THE TABLET ITSELF STAYS GREY-GREEN. 神主牌維持原色 — ruled, not
+   unfinished. A gold ground around a grey-green object looks like a job someone
+   abandoned halfway, so this is written here because the next person to see it
+   will otherwise "finish" it in good faith.
+
+   It is also the right answer. The gold is the LIGHT ON the tablet, not what
+   the tablet is made of: it is a name cut into wood, and the wood does not
+   become precious because you are carrying it. Gold means yours; the stone
+   stays stone.
+
+   ui-relic paints its own greys and greens — gradients from #cfdcd6 to #2b322f
+   with a #9fb2ab face — and that symbol is SHARED WITH THE EQUIPMENT SLOT. So
+   recolouring the drawing changes both surfaces at once, which is why this was
+   the user's call rather than a styling decision here. */
 .reveal--relic .revealicon { color: var(--gold); }
 .reveal--relic {
   /* Deep gold rather than the ordinary ground, so the night's object is
