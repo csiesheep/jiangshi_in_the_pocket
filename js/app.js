@@ -1534,11 +1534,17 @@ export class Game {
     }
     verdictSting(won);
 
+    // TWO BUTTONS, NOT FOUR (#101). Replay-this-seed and copy-replay-link are
+    // gone by ruling, and with them the last thing on this card that spoke to
+    // somebody comparing runs rather than somebody who has just finished one.
+    // What is left is the only two things a player wants at an ending: go
+    // again, or leave.
+    //
+    // THE SEED ITSELF IS UNTOUCHED. ?seed= still works, newGame still takes
+    // one, and every bot sweep and every replayed night still lands where it
+    // did. This removes the seed from the CARD, not from the game.
     const again = [
       { label: this.ui("play-again"), primary: true, onClick: () => startNewGame() },
-      { label: this.ui("replay-seed"), onClick: () => startNewGame(this.seed) },
-      // A finished run is exactly when someone wants to hand the seed on.
-      { label: this.ui("copy-link"), onClick: (btn) => copyReplayLink(btn) },
       { label: this.ui("menu"), href: "index.html" },
     ];
 
@@ -1549,7 +1555,6 @@ export class Game {
         ? this.verdictLine("found-one")
         : this.verdictLine("found-many", { n: this.tally.found }),
       this.relicLine(outcome),
-      this.verdictLine("seed", { seed: this.seed }),
     ];
 
     // The sentence somebody might actually screenshot, above the rows nobody
@@ -1650,29 +1655,6 @@ function seedFromUrl() {
 // verdict card is where it belongs anyway — a seed is worth sharing at the end
 // of a night rather than in the middle of one. The caller always hands us its
 // own button now, so the old lookup fallback would only ever have found nothing.
-async function copyReplayLink(btn) {
-  if (!btn) return;
-  const url = `${location.origin}${location.pathname}?seed=${game.seed}`;
-  try {
-    await navigator.clipboard.writeText(url);
-    const was = btn.title || btn.textContent;
-    if (btn.title) {
-      btn.title = uiWord("link-copied");
-      btn.classList.add("utilbtn--done");
-      setTimeout(() => {
-        btn.title = was;
-        btn.classList.remove("utilbtn--done");
-      }, 1800);
-    } else {
-      btn.textContent = uiWord("link-copied");
-      setTimeout(() => (btn.textContent = was), 1800);
-    }
-  } catch {
-    // Clipboard refused (insecure context or denied permission) — put the link
-    // in the log so it can still be copied by hand.
-    log(uiWord("replay-link-fallback", { url }));
-  }
-}
 
 // The toggle carries the state, not just a label: a button reading "Mute" tells
 // you nothing about whether sound is currently on.

@@ -43,7 +43,6 @@
     "third-watch": "The third watch. The drum goes, and then nothing goes at all.",
     "died-paying": "You write the {item} and there is not enough of you left to finish it.",
     "search-nowhere": "{item}, and nowhere to put it.",
-    "replay-link": "Replay link: {url}",
     "start-failed": "Failed to start the game — see console.",
     "empty-handed": [
       "You turn the room over and come up with nothing.",
@@ -95,11 +94,7 @@
     "give": "Give the rice",
     "refuse": "Keep it",
     "play-again": "Play again",
-    "replay-seed": "Replay this seed",
-    "copy-link": "Copy replay link",
     "menu": "Menu",
-    "link-copied": "Link copied",
-    "replay-link-fallback": "Replay link: {url}",
     "start-failed": "Failed to start the game — see console.",
     "slot-empty": "Empty",
     "reveal-nothing": "Nothing here",
@@ -452,7 +447,6 @@
     "relic-buried": "The {relic} is buried",
     "relic-carried": "The {relic} was on you, unburied",
     "relic-lost": "The {relic} was never found",
-    "seed": "Seed {seed}",
     "won-fallback": "You made it to dawn",
     "lost-fallback": "You are one of them now"
   },

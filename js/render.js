@@ -4076,6 +4076,14 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
     card.appendChild(list);
   }
 
+  // THE ACTIONS ARE A ROW, AND NEED TO BE ONE (#101). They were appended
+  // straight onto the card as siblings of the heading and the summary, held
+  // apart by a 4px margin each — which is not an arrangement, it is what you
+  // get without one. Two buttons is a different shape from four and wants
+  // saying deliberately, so they go in their own element and the CSS treats
+  // that element as the row.
+  const row = document.createElement("div");
+  row.className = "overlay-actions";
   for (const a of actions) {
     const cls = "btn" + (a.primary ? " btn--primary" : "");
     let el;
@@ -4089,8 +4097,9 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
     }
     el.className = cls;
     el.textContent = a.label;
-    card.appendChild(el);
+    row.appendChild(el);
   }
+  card.appendChild(row);
 
   ov.appendChild(card);
   ov.hidden = false;

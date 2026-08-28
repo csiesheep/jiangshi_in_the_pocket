@@ -238,7 +238,6 @@
     "third-watch": "三更。鼓聲響過，之後什麼都不響了。",
     "died-paying": "你寫{item}，血不夠寫完。",
     "strike-eleven": "十一點。最後一個時辰——牌翻完了，就是三更。",
-    "replay-link": "重玩連結：{url}",
     "start-failed": "遊戲起不來——請看主控台。",
     "empty-handed": [
       "你把房間翻了一遍，什麼也沒有。",
@@ -316,11 +315,7 @@
     "badge-bury": "在這裡把神主牌埋了。",
     "badge-heal": "在這裡歇著能回血。",
     "play-again": "再玩一次",
-    "replay-seed": "重玩這個種子",
-    "copy-link": "複製重玩連結",
     "menu": "回主選單",
-    "link-copied": "連結複製好了",
-    "replay-link-fallback": "重玩連結：{url}",
     "start-failed": "遊戲起不來——請看主控台。",
     "stat-health": "健康",
     "stat-attack": "攻擊力",
@@ -386,7 +381,6 @@
     "relic-buried": "{relic}埋回土裡了",
     "relic-carried": "{relic}還在你身上，沒有埋",
     "relic-lost": "始終沒有找到{relic}",
-    "seed": "種子 {seed}",
     "won-fallback": "你撐到天亮了",
     "lost-fallback": "你成了他們的一員"
   },

@@ -2133,7 +2133,56 @@ span.handart { cursor: default; }
 }
 .overlay-card h2 { font-size: 2rem; margin: 0 0 8px; }
 .overlay-card p { color: var(--muted); margin: 0 0 24px; }
-.overlay-card .btn { display: inline-block; margin: 4px; width: auto; }
+/* THE ENDING'S BUTTONS (#101). The user's complaint was that these "read as
+   default browser controls wearing the game's serif", and that turned out to
+   be a diagnosis rather than an impression: `.btn` HAD NO APPEARANCE AT ALL.
+   The only rules touching it anywhere were a focus outline and the
+   inline-block/margin line this replaces, so these really were native controls
+   inheriting the page font. `.btn--primary` was applied by render.js and
+   styled nowhere, so the one action a player wants was indistinguishable from
+   the way out.
+
+   Borrowed from .action rather than invented: same border, radius, surface and
+   text tokens the in-game choices use, so the last card of a run is dressed in
+   the same language as every decision that led to it.
+
+   Everything here is scoped under .overlay-card deliberately — .btn is a
+   generic name and this is the one place the ruling was about. */
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.overlay-card .btn {
+  flex: 0 1 auto;
+  /* A FLOOR AGAINST A SHORT LABEL, AND IT IS SLACK TODAY — said plainly because
+     the first version of this comment claimed the floor was carrying 繁體中文
+     and measurement said otherwise. Measured at 360px: 「再玩一次」 and
+     「回主選單」 both come out 97px on their own, against a 9ch floor of about
+     68px, so nothing here is currently holding them up. It stays as cheap
+     insurance for a future two-character label, not because it is doing work
+     now. Set in ch so it tracks the font rather than a guess about it. */
+  min-width: 9ch;
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .95rem;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+/* The one thing a player is most likely to want, said quietly — the same accent
+   border the recommended fight card uses, not a filled shout. */
+.overlay-card .btn--primary {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.overlay-card .btn:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
 
 /* ---- The two endings, staged -----------------------------------------------
    Won is the hero's ending: the game's only sunrise, gold on the card, the
