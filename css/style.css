@@ -3282,13 +3282,39 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
                          to   { opacity: 1; transform: scale(1.06); } }
 @keyframes king-frost  { from { opacity: 0; transform: scaleX(.55); }
                          to   { opacity: 1; transform: scaleX(1); } }
-/* The hold is longer here than anywhere else in the film. He is already there;
-   what you are waiting through is the fact of him. */
+/* THE HOP (#98). The hold is still longer here than anywhere else in the film —
+   he is already there, and what you are waiting through is the fact of him —
+   and then he comes one hop closer.
+
+   ONE hop, not a cycle. Iteration count stays at 1 and nothing alternates or
+   steps, because the no-strobe rule is real and watching; and because this
+   file's grammar is a long stillness broken once. A creature that bounces
+   repeatedly is a sprite, which is the single thing he must never look like.
+
+   The arc is doing the work of the drawing: he is drawn AIRBORNE, hem lifted
+   and swinging clear, so the frame he spends most of the beat in is the one the
+   reference chose. He rises out of the hold, hangs, lands heavier and nearer,
+   and settles. The landing overshoots by a hair and comes back, which is weight.
+
+   HE STARTS VISIBLE. Not opacity 0: this is the one animation in the file whose
+   subject is the whole point of the scene, and a tab that never advances it must
+   still show a jiangshi standing in the dark rather than an empty letterbox. He
+   resolves from .3 instead, which reads as him coming out of the dark and
+   degrades to a dim, complete figure.
+
+   He can afford this. Every pacing argument in eventstage.js is thirty times a
+   night; he plays ONCE, and KING_MS was never part of that multiplication. */
 @keyframes king-step {
-  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(1); }
-  18%  { opacity: .55; transform: translate(-50%, -50%) scale(1); }
-  70%  { opacity: .92; transform: translate(-50%, -50%) scale(1.004); }
-  100% { opacity: 1;   transform: translate(-50%, calc(-50% + 1.4%)) scale(1.03); }
+  0%   { opacity: .3;  transform: translate(-50%, -50%)             scale(.97); }
+  30%  { opacity: .78; transform: translate(-50%, -50%)             scale(.97); }
+  52%  { opacity: .9;  transform: translate(-50%, -50%)             scale(.975); }
+  /* up */
+  68%  { opacity: .96; transform: translate(-50%, calc(-50% - 7%))  scale(1.015); }
+  /* the hang, which is the frame the drawing was made for */
+  76%  { opacity: .98; transform: translate(-50%, calc(-50% - 8%))  scale(1.02); }
+  /* down, nearer, and heavier than he went up */
+  90%  { opacity: 1;   transform: translate(-50%, calc(-50% + 2.4%)) scale(1.055); }
+  100% { opacity: 1;   transform: translate(-50%, calc(-50% + 1.4%)) scale(1.045); }
 }
 
 @media (prefers-reduced-motion: reduce) {
