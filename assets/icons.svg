@@ -1654,23 +1654,42 @@
        They take the same red as the 佛珠 through a custom property, because
        there is ONE red in this frame. Three reds arriving separately would be
        an accident; one material red used three times is a decision. -->
-  <symbol id="king-eyes" viewBox="0 0 200 200">
+    <!-- THE PUPILS CARRY stroke="none" AND THEY MUST. Each is a filled dot of
+       radius one to two units, and this sheet's default is line art: a shape
+       with no stroke attribute of its own inherits stroke currentColor at 1.5
+       units from the symbol rule at the top of the file. On a dot that small the
+       inherited rim is WIDER THAN THE DOT, so all fifteen shipped with a near
+       white ring burying the red, which is the one colour on him and the whole
+       point of the ONE RED IN THE FRAME note in style.css. The outer rings were
+       never affected: they declare their own stroke, so they keep it.
+
+       Found by rendering the symbol twice, once through the sheet's stylesheet
+       and once without it, and MEASURING rather than looking: the outer rings
+       matched at 43,16,15 both ways while every centre moved, 91,26,20 intended
+       against 110,68,62 shipped. After the fix all three sample points match.
+
+       The same census flagged king-smoke, and rendering it both ways showed no
+       difference at all: its one bare shape is a full bleed rect whose stroke is
+       half clipped by the viewBox and half covered by the two filtered rects
+       painted over it. A census can only find candidates. Only the render says
+       which of them is a defect. -->
+<symbol id="king-eyes" viewBox="0 0 200 200">
     <g>
-      <g opacity="0.95" transform="translate(100 20) scale(1 1.0)"><circle r="7.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.12"/><circle r="2.1" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.84" transform="translate(38 52) scale(1 0.86)"><circle r="5.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.04"/><circle r="1.7" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.82" transform="translate(164 46) scale(1 1.12)"><circle r="4.8" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.15"/><circle r="1.7" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.74" transform="translate(18 86) scale(1 0.92)"><circle r="4.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.67"/><circle r="1.6" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.74" transform="translate(184 92) scale(1 1.06)"><circle r="4.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.8"/><circle r="1.2" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.68" transform="translate(58 28) scale(1 0.8)"><circle r="3.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.82"/><circle r="1.11" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.68" transform="translate(146 22) scale(1 1.16)"><circle r="3.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.51"/><circle r="1.13" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.6" transform="translate(10 128) scale(1 0.9)"><circle r="3.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.68"/><circle r="1.29" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.6" transform="translate(192 134) scale(1 1.04)"><circle r="3.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.77"/><circle r="0.96" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.54" transform="translate(34 166) scale(1 0.88)"><circle r="2.8" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.45"/><circle r="0.91" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.54" transform="translate(168 170) scale(1 1.1)"><circle r="2.6" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.52"/><circle r="0.92" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.48" transform="translate(72 8) scale(1 0.95)"><circle r="2.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.58"/><circle r="0.91" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.48" transform="translate(128 6) scale(1 1.0)"><circle r="2.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.35"/><circle r="0.66" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.44" transform="translate(120 150) scale(1 0.9)"><circle r="2.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.4"/><circle r="0.65" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
-      <g opacity="0.44" transform="translate(80 158) scale(1 1.08)"><circle r="1.9" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.46"/><circle r="0.67" fill="var(--king-red, #8a2118)" opacity=".7"/></g>
+      <g opacity="0.95" transform="translate(100 20) scale(1 1.0)"><circle r="7.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.12"/><circle r="2.1" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.84" transform="translate(38 52) scale(1 0.86)"><circle r="5.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.04"/><circle r="1.7" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.82" transform="translate(164 46) scale(1 1.12)"><circle r="4.8" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="1.15"/><circle r="1.7" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.74" transform="translate(18 86) scale(1 0.92)"><circle r="4.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.67"/><circle r="1.6" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.74" transform="translate(184 92) scale(1 1.06)"><circle r="4.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.8"/><circle r="1.2" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.68" transform="translate(58 28) scale(1 0.8)"><circle r="3.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.82"/><circle r="1.11" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.68" transform="translate(146 22) scale(1 1.16)"><circle r="3.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.51"/><circle r="1.13" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.6" transform="translate(10 128) scale(1 0.9)"><circle r="3.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.68"/><circle r="1.29" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.6" transform="translate(192 134) scale(1 1.04)"><circle r="3.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.77"/><circle r="0.96" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.54" transform="translate(34 166) scale(1 0.88)"><circle r="2.8" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.45"/><circle r="0.91" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.54" transform="translate(168 170) scale(1 1.1)"><circle r="2.6" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.52"/><circle r="0.92" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.48" transform="translate(72 8) scale(1 0.95)"><circle r="2.4" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.58"/><circle r="0.91" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.48" transform="translate(128 6) scale(1 1.0)"><circle r="2.2" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.35"/><circle r="0.66" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.44" transform="translate(120 150) scale(1 0.9)"><circle r="2.0" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.4"/><circle r="0.65" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
+      <g opacity="0.44" transform="translate(80 158) scale(1 1.08)"><circle r="1.9" fill="none" stroke="var(--king-red, #8a2118)" stroke-width="0.46"/><circle r="0.67" fill="var(--king-red, #8a2118)" stroke="none" opacity=".7"/></g>
     </g>
   </symbol>
 
