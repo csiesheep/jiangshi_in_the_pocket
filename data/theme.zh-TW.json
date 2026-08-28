@@ -272,7 +272,6 @@
     "next-turn-sub": "六分鐘",
     "quiet-prompt": "房裡很安靜。",
     "creature-attack": "攻擊力 {n}",
-    "fight-prompt": "攻擊力{n}。",
     "fight-with": "用{item}打",
     "fight-bare": "空手迎上去",
     "fight-spend": "燒掉{items}",

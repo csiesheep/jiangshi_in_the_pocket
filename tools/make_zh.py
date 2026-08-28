@@ -242,7 +242,6 @@ o["ui"] = collections.OrderedDict([
     ("search", "搜索這個房間"),
     ("next-turn", "下一回合"), ("next-turn-sub", "六分鐘"),
     ("quiet-prompt", "房裡很安靜。"),
-    ("fight-prompt", "{n}隻。"),
     ("fight-with", "用{item}打"), ("fight-bare", "空手迎上去"),
     ("attack", "攻擊力 {n}"), ("attack-blood", "攻擊力 {n} · 其中{blood}是你自己的血"),
     ("escape-sub", "他們就找不到你了"),

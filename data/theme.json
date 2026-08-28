@@ -75,7 +75,6 @@
     "next-turn-sub": "six minutes",
     "quiet-prompt": "The room is quiet.",
     "creature-attack": "Attack {n}",
-    "fight-prompt": "Attack {n}.",
     "fight-with": "Fight with the {item}",
     "fight-bare": "Fight bare-handed",
     "fight-spend": "Burn the {items}",
