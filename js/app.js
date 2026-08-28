@@ -58,7 +58,7 @@ import {
   resetRevealHint,
   onPackUse,
   caption,
-  jumpScare,
+  announceFight,
   resolveBeat,
   damageCameFrom,
   breakInTelegraph,
@@ -381,11 +381,15 @@ export class Game {
   // DRAWN event rather than the resolved one — resolveEvent has not run yet,
   // and the stage is the moment before the arithmetic, not after it.
   //
-  // JIANGSHI is the deliberate hole. It goes on to fightBeat, which already
-  // stages the creature with jumpScare, and running a stage here would put two
-  // full-screen layers back to back. fightBeat cannot simply hand its scare
-  // over either: the breach and the refused villager both reach it without
-  // passing through an event beat.
+  // JIANGSHI is the deliberate hole, and #97 changed WHY rather than whether.
+  // It goes on to fightBeat, where creaturePanel stages it on the tile at size
+  // with its sentence and its attack, and leaves it there for the whole fight.
+  // A stage here would put a second picture of the same creature in front of
+  // the player before the one they can act against — which is exactly the
+  // doubling #97 removed from inside fightBeat.
+  //
+  // The hole cannot be filled from fightBeat's side either: the breach and the
+  // refused villager both reach it without passing through an event beat.
   eventStageFor(ev) {
     const kind =
       ev.t === "NOTHING" ? "nothing"
@@ -660,8 +664,8 @@ export class Game {
       clearChoices();
 
       // The room comes back when the window closes, and this is the ONE place
-      // that can promise it. jumpScare ducks the bed and the murmur on the way
-      // in; unduck() existed to put them back and was called from nowhere, so
+      // that can promise it. announceFight ducks the bed and the murmur on the
+      // way in; unduck() existed to put them back and was called from nowhere, so
       // after the first fight of any run the ambience stayed down for the rest
       // of the night. Every fight in the game since the fork has been followed
       // by permanent silence, which read as atmosphere and was a leak.
@@ -684,12 +688,17 @@ export class Game {
         resolve();
       };
 
-      jumpScare(n, { from: opts.from || null }).then(() => {
+      // The announcement is sound now (#97), so what the player sees next is
+      // the panel and nothing before it. The wait that remains is the room
+      // going quiet, not a picture holding the screen.
+      announceFight(n, { from: opts.from || null }).then(() => {
         if (this.state.status !== "playing") return close();
-        // What you are looking at while you choose. Raised HERE rather than in
-        // the event stage because every route into a fight funnels through this
-        // function — a jiangshi event, the breach, and both villager paths — so
-        // the two encounters are the same encounter by construction.
+        // What you are looking at while you choose, and since #97 the ONLY
+        // picture of the creature in the whole encounter. Raised HERE rather
+        // than in the event stage because every route into a fight funnels
+        // through this function — a jiangshi event, the breach, and both
+        // villager paths — so the two encounters are the same encounter by
+        // construction.
         creaturePanel(n, { turnedFrom: opts.turnedFrom, reduced: reducedMotion() });
         this.paintFight(n, opts, close);
       });
@@ -1398,7 +1407,8 @@ export class Game {
     kingArrives();
     duckForScare();
 
-    // His own scene, not jumpScare(1). One figure from the creature art read as
+    // His own scene, and never the generic announcement. One figure from the
+    // creature art read as
     // LESS than an ordinary doorway encounter, which is exactly backwards for
     // the one arrival the whole night walks toward.
     //

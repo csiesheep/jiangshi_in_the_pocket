@@ -377,9 +377,11 @@ test("modes: prefers-reduced-motion survived the retirement", async () => {
 });
 
 // ---- The four 僵屍 (#34) -------------------------------------------------------
-// The tiers ride jumpScare rather than the event stage, because a refused
-// villager becomes n=4/5/6 through fightBeat without ever passing an event beat,
-// and both entrances have to escalate the same way.
+// The tiers ride fightBeat rather than the event stage, because a refused
+// villager becomes n=4/5/6 through it without ever passing an event beat, and
+// both entrances have to escalate the same way. #97 removed the full-screen
+// scare from that path: the escalation now reads on the creature panel and in
+// the announcement's rhythm.
 
 const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
 const tierCss = css.slice(css.indexOf("---- The four"), css.indexOf("---- Article pages"));
@@ -635,16 +637,24 @@ test("king: nothing in his scene repeats a luminance change", () => {
 });
 
 test("king: he replaces the generic scare, and nothing short-circuits ahead of him", () => {
-  // Comments stripped, same reason: the code says out loud that it is NOT
-  // jumpScare(1) any more, and the guard was reading its own explanation.
+  // Comments stripped, same reason: the code says out loud that it is NOT the
+  // generic announcement, and the guard was reading its own explanation.
+  //
+  // NAMED FOR WHAT EXISTS NOW. This asserted !/jumpScare\(1/ until #97 renamed
+  // that function, at which point it would have passed because the spelling had
+  // gone from the whole file rather than because the King had kept his scene.
+  // A negative assertion about a name outlives the name.
   const beat = appSrc
     .slice(appSrc.indexOf("async midnightBeat()"), appSrc.indexOf("kitOptions()"))
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/^\s*\/\/.*$/gm, " ");
   assert(/await kingScene\(/.test(beat), "midnightBeat does not stage the King");
-  assert(!/jumpScare\(1/.test(beat),
-    "midnightBeat still uses the pack's one-face scare — which reads as LESS " +
-    "than an ordinary doorway encounter");
+  assert(/announceFight/.test(appSrc),
+    "announceFight is gone from app.js — this guard's next assertion would " +
+    "pass on a spelling that no longer exists anywhere");
+  assert(!/announceFight\(/.test(beat),
+    "midnightBeat uses the ordinary fight announcement — which reads as LESS " +
+    "than an ordinary doorway encounter, for the one arrival the night walks to");
   // 活水 used to return before he was ever staged — he would not cross it, so
   // there was no arrival to animate. #56 removed that rule, so the King is now
   // staged unconditionally and nothing may short-circuit ahead of him.

@@ -541,9 +541,12 @@ const VILLAGERS = ["villager-a", "villager-b", "villager-c"];
 
 const SCENES = {
   // 僵屍. Registered and reachable, but eventBeat does NOT run it: a drawn
-  // JIANGSHI goes on to fightBeat, which stages the pack with jumpScare and its
-  // four tiers. Restaged into the new language only as far as the ground it
-  // stands on — the figures themselves are #45.
+  // JIANGSHI goes on to fightBeat, where creaturePanel stages it on the tile.
+  // #97 took the full-screen scare out of that path, so a scene here would be
+  // the only full-screen 僵屍 picture the game has — which is the thing the
+  // user asked for the end of. It stays registered and stays unrun.
+  // Restaged into the new language only as far as the ground it stands on —
+  // the figures themselves are #45.
   pack(inner, ctx) {
     layer(inner, "ink");
     fog(inner, 2);

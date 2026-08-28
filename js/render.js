@@ -1511,21 +1511,52 @@ const SCARE_ENTRY = {
   W: [-38, 0],
 };
 
+// A FIGHT ANNOUNCES ITSELF IN SOUND, and then the creature is simply there.
+//
+// #97, the user's ruling: "for a zombie event, we don't need a full screen
+// zombie step." There used to be one here — the tier's figure at full size over
+// the whole window — immediately before creaturePanel put the SAME figure on
+// the tile with its sentence and its attack, where it stays for the whole
+// fight. The player met the creature twice and only the second one could be
+// acted against. This is the first meeting, and it is now sound alone.
+//
+// THE SOUND IS NOT A REMNANT OF THE PICTURE. hopThud carries the tier in its
+// rhythm and combatSting carries the DIRECTION, and both were written to work
+// with no picture at all: combatSting's own comment says it is the cue that has
+// to carry direction WHEN THE PICTURE CANNOT, because calm mode already dropped
+// the faces. So this is not a new burden on the audio — it is the case the
+// audio was already designed for, now the only case.
+//
+// duckForScare STAYS, and so does its wait. The room going quiet is the beat
+// the creature arrives in, and unduck() inside fightBeat's close() is the only
+// caller unduck has: stop ducking here and that becomes a restore of something
+// nobody took away.
+//
+// `from` is passed through rather than validated. Direction is audio's fact —
+// placed() maps it and falls back to centre for anything it does not know — and
+// the table that used to be checked here existed to aim the faces.
+//
 // `silent` went with calm mode (#72): it was the only thing that ever set it,
 // and the one caller has always passed false.
-export function jumpScare(count = 0, opts = {}) {
-  const from = SCARE_ENTRY[opts.from] ? opts.from : null;
+export function announceFight(count = 0, opts = {}) {
+  const from = opts.from || null;
   // The room goes quiet first. duckForScare returns how long to wait — and
   // returns 0 when there is nothing audible to take away, so a muted player
   // waits for nothing at all. A silence nobody can hear is just a delay.
   const quiet = duckForScare();
-  const fire = () => scareNow(count, from);
+  const fire = () => {
+    const tier = scareTier(count);
+    hopThud(count, from, tier.beats);
+    combatSting(count, from);
+    buzz([26, 50, 90]);
+  };
   if (quiet > 0) {
     return new Promise((resolve) => {
-      setTimeout(() => fire().then(resolve), quiet);
+      setTimeout(() => { fire(); resolve(); }, quiet);
     });
   }
-  return fire();
+  fire();
+  return Promise.resolve();
 }
 
 function scareNow(count, from = null) {
