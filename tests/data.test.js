@@ -3,7 +3,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "0deda78a");
+suite(import.meta.url, "fa9a9e10");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,
@@ -213,6 +213,56 @@ test("languages: §9 holds in both — the threshold is nowhere in the strings",
 // This is the half of the page a language sweep cannot see — it caught nothing
 // while 25 strings sat untranslated, because they were static nodes and the
 // sweep only looked at what the game draws.
+// Whitespace collapsed before comparing, because HTML collapses it before
+// SHOWING it: index.html's tagline is wrapped across two indented lines, so an
+// exact match would fail on formatting the reader never sees. Built with split
+// and join rather than a regex, following this file's own rule — an escape in a
+// guard here was once mangled into a literal backspace and the assertion passed
+// forever after.
+const WS = [10, 13, 9, 32].map((c) => String.fromCharCode(c));
+function norm(s) {
+  let out = String(s);
+  for (const w of WS) out = out.split(w).join(" ");
+  while (out.indexOf("  ") !== -1) out = out.split("  ").join(" ");
+  return out.trim();
+}
+
+// A dotted path, so a pair can point at a nested section. game.html's chrome all
+// lives under ui; index.html's tagline lives under landing, and one table that
+// can address both beats a second copy of this test that drifts from it.
+function themeAt(theme, path) {
+  return path.split(".").reduce((o, k) => (o == null ? o : o[k]), theme);
+}
+
+// One implementation, both pages. The alternative was a second test shaped like
+// this one for index.html, which is how two guards that agree today stop
+// agreeing later.
+async function chromeMatchesTheme(file, pairs) {
+  const html = await fetch("../" + file, NO_STORE).then((r) => r.text());
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  for (const [id, path] of pairs) {
+    const el = doc.getElementById(id);
+    assert(el, `${file} has no #${id} for the theme to write`);
+    const want = themeAt(themeEn, path);
+    assert(want !== undefined,
+      `${file} #${id} is paired with theme.${path}, which does not exist`);
+    eq(norm(el.textContent), norm(want), `${file} #${id} and theme.${path} disagree`);
+  }
+}
+
+// index.html's tagline is EXACTLY the kind of node this guard was written for.
+// It is hardcoded English in the markup and only overwritten from the theme
+// inside applyLanguage — so an English visitor never triggers the write and
+// reads whatever the HTML says, whatever the theme says. The language sweep
+// that missed 25 strings missed them for this reason: it looked at what the
+// game DRAWS, and a static node is not drawn.
+//
+// Not currently drifted. This is a gap rather than a defect, and it is being
+// closed while the two still agree, which is the only comfortable time to do it.
+test("chrome: index.html's static words match the theme's English", async () => {
+  await chromeMatchesTheme("index.html", [["tagline", "landing.tagline"]]);
+});
+
 test("chrome: game.html's static words match the theme's English", async () => {
   const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
   const doc = new DOMParser().parseFromString(html, "text/html");
