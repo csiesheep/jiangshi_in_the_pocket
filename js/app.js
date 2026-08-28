@@ -1432,7 +1432,14 @@ export class Game {
         cost: o.blood ? { hp: -o.blood } : null,
         onClick: () => { clearChoices(); resolve(o.use); },
       }));
-      renderActions(acts, this.ui("kit-prompt"), { pack: 1, health: this.state.health });
+      // THE PICTURE HAS TO AGREE WITH THE SENTENCE. kit-prompt reads "He is in
+      // the doorway. One strike — what do you show him?", and until now the
+      // figure under that line was whatever packRow happened to draw: a
+      // hard-coded tier 4 head for as long as this row has existed, and then
+      // tier 3 once the hard-coding was removed and the 1 got clamped. Both
+      // are the wrong creature standing in a doorway the prose has just said
+      // HE is standing in.
+      renderActions(acts, this.ui("kit-prompt"), { pack: "king", health: this.state.health });
     });
   }
 

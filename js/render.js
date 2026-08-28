@@ -3464,11 +3464,17 @@ function windowHead(pop, actionsEl) {
 // THE ROW ITSELF STAYS even though it now holds one thing, because .swingart
 // is absolutely positioned against .packrow: delete the row and the weapon
 // crossing it silently loses its containing block.
-function packRow(n) {
+function packRow(subject) {
   const row = document.createElement("div");
   row.className = "packrow";
-  row.setAttribute("aria-hidden", "true"); // the prompt already says the number
-  const fig = icon("scare", scareTier(n).cls, "packfig");
+  row.setAttribute("aria-hidden", "true"); // the prompt already says what it is
+  // THE SUBJECT IS PASSED, NOT INFERRED. A number is a strength and draws that
+  // tier; "king" draws the King. Inferring it from the number was how this row
+  // came to show the wrong creature at the threshold: the midnight prompt hands
+  // it a 1, and clamping 1 into the tier range answers a question nobody asked.
+  const fig = subject === "king"
+    ? icon("king", "figure", "packfig")
+    : icon("scare", scareTier(subject).cls, "packfig");
   if (fig) row.appendChild(fig);
   return row;
 }
