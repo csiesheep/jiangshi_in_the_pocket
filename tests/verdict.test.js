@@ -91,6 +91,47 @@ function endedHolding(weaponId) {
 // Behavioural, not a source check: it builds a real state through the real
 // engine and reads the real sentence. Reverting bestWeapon to heldIds turns
 // this red, which was confirmed by doing it rather than assumed.
+test("verdict: no player-visible text is hidden in css content: (#106)", async () => {
+  // FOUR ENGLISH STRINGS SHIPPED ON THE CHINESE CARDS, in css `content:` on
+  // .verdict-summary::before — "The tale they'll tell", "Here ends the errand",
+  // "You lay down at last", "The house keeps its own".
+  //
+  // They survived every defence this project has, because they are in the one
+  // form none of them can see. Not in either theme, so the parity guards had
+  // nothing to compare. NOT IN THE DOM, so an innerText sweep finds nothing —
+  // a scan of all five rendered cards for Latin text came back clean while the
+  // English was plainly visible on screen beside the result.
+  //
+  // So this asserts the POPULATION rather than those four strings. `content:`
+  // with any visible character in it is player-visible copy living in a
+  // stylesheet, which is untranslatable by construction. Empty content: "" is
+  // the decorative pseudo-element idiom and is what this must not flag.
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const found = css.match(/content:\s*"[^"]+"/g) || [];
+  assert(found.length === 0,
+    "player-visible text is in the stylesheet, where no theme can translate it " +
+    "and no DOM scan can see it: " + found.join(" | "));
+});
+
+test("verdict: the epitaph is real text, in both languages (#106)", async () => {
+  // The other half. The population guard above would still pass if the line had
+  // been deleted rather than moved, so this asserts it EXISTS, is keyed for
+  // every ending, and is translated — which is the thing the user actually saw
+  // was wrong.
+  const zh = await fetch("../data/theme.zh-TW.json", NO_STORE).then((r) => r.json());
+  const en = (theme.verdict || {}).epitaph || {};
+  const cn = (zh.verdict || {}).epitaph || {};
+  for (const k of ["won", "lost", "health", "midnight"]) {
+    assert(en[k], `verdict.epitaph.${k} is missing from the English theme`);
+    assert(cn[k], `verdict.epitaph.${k} is missing from the 繁體中文 theme`);
+    assert(cn[k] !== en[k],
+      `verdict.epitaph.${k} is the same string in both themes — it is the ` +
+      `English line still, and that is exactly what #106 was`);
+    assert(!/[A-Za-z]{3,}/.test(cn[k]),
+      `verdict.epitaph.${k} still contains a Latin word in the 繁體中文 theme: ` + cn[k]);
+  }
+});
+
 test("verdict: a run that ended armed says so", () => {
   const s = endedHolding("sevenstar-sword");
   const said = epilogue(stubGame(s));

@@ -262,15 +262,14 @@
     "golden-elixir": "Half of these were made by someone who knew what they were doing.",
     "protective-charm": "Sewn shut and worn against the skin. It takes the first of every blow."
   },
-
-    "creatures": {
-      "_note": "One line each, said on the creature panel while you choose. Each is the tier's identity from #92 stated as a FACT ABOUT THE THING rather than a description of it: 3 cannot be moved, 4 never lands, 5 crosses the room, 6 abolishes the distance. §9 binds — no threshold, no kit, and no numbers in the prose, because the number is on the panel beside them.",
-      "turned": "You did not give it the rice. It is not asking any more.",
+  "creatures": {
+    "_note": "One line each, said on the creature panel while you choose. Each is the tier's identity from #92 stated as a FACT ABOUT THE THING rather than a description of it: 3 cannot be moved, 4 never lands, 5 crosses the room, 6 abolishes the distance. §9 binds — no threshold, no kit, and no numbers in the prose, because the number is on the panel beside them.",
+    "turned": "You did not give it the rice. It is not asking any more.",
     "n3": "It is standing in the doorway. The doorway is its shape now.",
-      "n4": "She has not touched the ground tonight. She has never needed to.",
-      "n5": "He crossed the room before you finished deciding.",
-      "n6": "It has not moved. The distance closed anyway."
-    },
+    "n4": "She has not touched the ground tonight. She has never needed to.",
+    "n5": "He crossed the room before you finished deciding.",
+    "n6": "It has not moved. The distance closed anyway."
+  },
   "events": {
     "_note": "One line per event type per hour band, keyed the way events.json is: the `t` value, then 9 / 10 / 11. HP splits by the sign of `hp` — HP_LOSS is 損血, HP_GAIN is 回血 — because one line cannot serve both. The band is the register: nine o'clock is a house settling, eleven is a house with something in it.",
     "JIANGSHI": {
@@ -447,7 +446,14 @@
     "relic-carried": "The {relic} was on you, unburied",
     "relic-lost": "The {relic} was never found",
     "won-fallback": "You made it to dawn",
-    "lost-fallback": "You are one of them now"
+    "lost-fallback": "You are one of them now",
+    "epitaph": {
+      "_note": "The line over the summary rows, one per ending. It was FOUR HARDCODED ENGLISH STRINGS in css content: on .verdict-summary::before (#106), so it printed English on the Chinese cards and no guard could see it — not in either theme, so parity had nothing to compare, and not in the DOM, so a text sweep found nothing.",
+      "won": "The tale they'll tell",
+      "lost": "Here ends the errand",
+      "health": "You lay down at last",
+      "midnight": "The house keeps its own"
+    }
   },
   "room": {
     "_note": "The room read aloud, one clause per wall. Each is a complete fragment on purpose: a language that puts the direction after the noun rewrites the template rather than fighting the code.",
@@ -533,30 +539,52 @@
     "tagline": "It is nine at night. At the third watch he comes for you. Lay him to rest, or be standing when he arrives."
   },
   "tilesPage": {
-      "_note": "The tiles page's own prose (#80). It read the shared language preference and themed its tile NAMES from it while every sentence around them stayed English, so a Chinese reader got Chinese names under an English introduction. The counts are still derived from the real set at load — {n} rather than a written number — because the page exists to stop exactly that drift.",
-      "title": "The Tiles",
-      "intro": "{total} tiles: {inside} in the village, {outside} out on the hillside. You meet them one turn at a time, which is the whole idea — but here they all are, for when you want to know what you are hoping to turn over.",
-      "plans": "The plan beside each room shows which walls have a way through. Where a tile ends up pointing is the game's business: it turns each one as it lays it down.",
-      "indoor-title": "The village, and the corpse hostel at the end of it",
-      "indoor-note": "Beams overhead, a plastered wall, a stone floor running away from you, and one oil lamp off to the left.",
-      "outdoor-title": "The hillside",
-      "outdoor-note": "Sky, the same moon in the same corner, hills on the horizon, cold ground and a band of mist.",
-      "counting": "Counting the tile set…",
-      "loading": "Loading the tile set…",
-      "failed": "Could not load the tile set.",
-      "words": ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"],
-      "n-tiles": "{n} tiles",
-      "chip-weapon": "weapons",
-      "chip-magic": "talismans",
-      "chip-medicine": "medicine",
-      "chip-relic": "ritual",
-      "chip-heal": "+1 health",
-      "chip-no-events": "no events",
-      "chip-once": "once per night",
-      "chip-goal": "goal",
-      "chip-start": "start",
-      "chip-moon-gate": "moon gate",
-      "chip-seam": "seam",
-      "chip-transit": "transit"
-    }
+    "_note": "The tiles page's own prose (#80). It read the shared language preference and themed its tile NAMES from it while every sentence around them stayed English, so a Chinese reader got Chinese names under an English introduction. The counts are still derived from the real set at load — {n} rather than a written number — because the page exists to stop exactly that drift.",
+    "title": "The Tiles",
+    "intro": "{total} tiles: {inside} in the village, {outside} out on the hillside. You meet them one turn at a time, which is the whole idea — but here they all are, for when you want to know what you are hoping to turn over.",
+    "plans": "The plan beside each room shows which walls have a way through. Where a tile ends up pointing is the game's business: it turns each one as it lays it down.",
+    "indoor-title": "The village, and the corpse hostel at the end of it",
+    "indoor-note": "Beams overhead, a plastered wall, a stone floor running away from you, and one oil lamp off to the left.",
+    "outdoor-title": "The hillside",
+    "outdoor-note": "Sky, the same moon in the same corner, hills on the horizon, cold ground and a band of mist.",
+    "counting": "Counting the tile set…",
+    "loading": "Loading the tile set…",
+    "failed": "Could not load the tile set.",
+    "words": [
+      "zero",
+      "one",
+      "two",
+      "three",
+      "four",
+      "five",
+      "six",
+      "seven",
+      "eight",
+      "nine",
+      "ten",
+      "eleven",
+      "twelve",
+      "thirteen",
+      "fourteen",
+      "fifteen",
+      "sixteen",
+      "seventeen",
+      "eighteen",
+      "nineteen",
+      "twenty"
+    ],
+    "n-tiles": "{n} tiles",
+    "chip-weapon": "weapons",
+    "chip-magic": "talismans",
+    "chip-medicine": "medicine",
+    "chip-relic": "ritual",
+    "chip-heal": "+1 health",
+    "chip-no-events": "no events",
+    "chip-once": "once per night",
+    "chip-goal": "goal",
+    "chip-start": "start",
+    "chip-moon-gate": "moon gate",
+    "chip-seam": "seam",
+    "chip-transit": "transit"
   }
+}

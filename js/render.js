@@ -4339,6 +4339,18 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
 
   if (opts.summary && opts.summary.length) {
     const list = document.createElement("ul");
+    // REAL TEXT, NOT GENERATED CONTENT (#106). This line lived in css
+    // `content:` in four hardcoded English strings, which is the one form every
+    // defence here is blind to — a theme-parity guard has nothing to compare
+    // because it is in neither theme, and an innerText sweep sees nothing
+    // because generated content is not in the DOM. It is a <p> now, so both
+    // kinds of guard can reach it and it arrives translated.
+    if (opts.epitaph) {
+      const said = document.createElement("p");
+      said.className = "verdict-epitaph";
+      said.textContent = opts.epitaph;
+      card.appendChild(said);
+    }
     list.className = "verdict-summary";
     for (const line of opts.summary) {
       const li = document.createElement("li");

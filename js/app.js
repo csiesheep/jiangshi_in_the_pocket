@@ -1579,6 +1579,21 @@ export class Game {
 
     const opts = {
       tone: won ? "won" : this.state.status === "lost" ? "lost" : "over",
+      // The line over the summary rows, from the theme (#106). It was four
+      // hardcoded English strings in css `content:`, so it printed English on
+      // the Chinese cards — and nothing could see it: not in either theme, so
+      // the parity guards had nothing to compare, and not in the DOM, so a text
+      // sweep found nothing either. It comes down the same road `summary` and
+      // `epilogue` already take, which is the road that gets translated.
+      epitaph: (() => {
+        const t = (this.data.theme.verdict || {}).epitaph || {};
+        if (won) return t.won || "";
+        if (outcome === O.LOSS_KING) return t.midnight || "";
+        if (outcome === O.LOSS_HEALTH && this.state.lossReason !== "combat") {
+          return t.health || "";
+        }
+        return this.state.status === "lost" ? t.lost || "" : "";
+      })(),
       // THE OUTCOME, NOT ONLY THE TONE (#105). The card's artwork was chosen
       // from `tone`, so BOTH wins drew the same picture by construction — and
       // 鎮屍 is the hidden ending, so the player who found it got the common

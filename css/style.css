@@ -2104,6 +2104,21 @@ span.handart { cursor: default; }
 }
 
 
+/* THE LINE OVER THE ROWS (#106). It was four hardcoded ENGLISH strings in css
+   `content:` on .verdict-summary::before, so every Chinese card printed a line
+   of English — and it survived because it is in the one form the defences here
+   cannot see. Not in either theme, so the parity guards had nothing to compare;
+   not in the DOM, so an innerText sweep found nothing. A scan of all five cards
+   for Latin text came back clean with the English plainly visible on screen.
+   The strings live in theme.verdict.epitaph now and this only styles them.
+   There is a guard on the population of `content:` strings in verdict.test.js. */
+.verdict-epitaph {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: .92rem;
+  color: var(--muted);
+}
+
 .verdict-summary {
   list-style: none;
   margin: 0 0 22px;
@@ -2262,18 +2277,10 @@ span.handart { cursor: default; }
 }
 #overlay.overlay--won .overlay-card .btn--primary { border-color: #8d6a34; }
 #overlay.overlay--won .overlay-card .btn:hover { border-color: #8d6a34; }
-#overlay.overlay--won .verdict-summary::before {
-  content: "The tale they'll tell";
-  display: block;
-  font-family: var(--font-display);
-  /* Measured against the card's DARKEST stop, not its lightest: #7a5a24 came
-     out at 4.38 there, just under AA, and a gradient means the lightest stop is
-     the flattering measurement rather than the true one. */
-  color: #63481a;
-  font-size: .92rem;
-  letter-spacing: .06em;
-  margin-bottom: 6px;
-}
+/* Measured against the card's DARKEST stop, not its lightest: #7a5a24 came out
+   at 4.38 there, just under AA, and a gradient means the lightest stop is the
+   flattering measurement rather than the true one. */
+#overlay.overlay--won .verdict-epitaph { color: #63481a; letter-spacing: .06em; }
 /* The frame sits on the paper rather than on the dark, so it loses the rounded
    card look and gains a hairline the same colour as the card's own edge. */
 #overlay.overlay--won .verdict-scene {
@@ -2395,14 +2402,9 @@ span.handart { cursor: default; }
   42.5% { opacity: .75; }
   77% { opacity: .6; }
 }
-#overlay.overlay--lost .verdict-summary::before {
-  content: "Here ends the errand";
-  display: block;
-  font-family: var(--font-display);
+#overlay.overlay--lost .verdict-epitaph {
   font-style: italic;
   color: color-mix(in srgb, var(--danger) 70%, var(--muted));
-  font-size: .92rem;
-  margin-bottom: 6px;
 }
 
 /* ---- Each loss dies its own death -------------------------------------------
@@ -2436,7 +2438,7 @@ span.handart { cursor: default; }
 }
 #overlay.overlay--lost-health .overlay-card { border-top-color: #571512; }
 #overlay.overlay--lost-health .overlay-card h2 { animation: none; opacity: .92; }
-#overlay.overlay--lost-health .verdict-summary::before { content: "You lay down at last"; }
+
 
 /* Midnight — cold, bloodless, and rung. */
 #overlay.overlay--lost-midnight { --verdict: #aebbd6; }
@@ -2449,10 +2451,7 @@ span.handart { cursor: default; }
   box-shadow: 0 0 60px rgba(24, 34, 64, .35), 0 12px 40px rgba(0, 0, 0, .6);
 }
 #overlay.overlay--lost-midnight .overlay-card h2 { animation: none; }
-#overlay.overlay--lost-midnight .verdict-summary::before {
-  content: "The house keeps its own";
-  color: #8794b8;
-}
+#overlay.overlay--lost-midnight .verdict-epitaph { color: #8794b8; }
 #overlay.overlay--lost-midnight .verdict-summary {
   border-top-color: color-mix(in srgb, #4a5878 45%, var(--border));
 }
