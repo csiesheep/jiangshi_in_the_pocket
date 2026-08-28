@@ -2865,6 +2865,25 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
    The whole set plays inside the same 1100ms the placeholders had, so the 30x
    night tax is untouched. */
 :root {
+  /* THE EDGE OF AN EVENT PANEL OVER THE TILE. An alpha ramp, used as a MASK,
+     because that panel's darkness lives in its CHILD layers -- every scene's
+     first call paints a full-bleed ground, so the panel's own background could
+     not fade them however it was written.
+
+     THE REVEAL PANEL DOES NOT USE THIS, and the difference is real rather than
+     an oversight. The reveal has no child layers: it IS its ground, so its
+     fade is a colour wash it paints itself. This one paints nothing and only
+     decides what survives. A mask on the reveal would also fade its focus
+     ring, which is the one thing telling a keyboard user where they are.
+
+     So they are two declarations doing two jobs, and what must NOT drift is the
+     PROFILE -- both reach fully transparent at very nearly the same radius, so
+     a scene and a find dissolve into the room the same way. There is a guard on
+     that relationship, since a comment asking two numbers to agree is a comment
+     that will one day be wrong. */
+  --tile-edge: radial-gradient(circle at 50% 50%,
+    #000 0%, #000 44%, rgba(0, 0, 0, .62) 64%, transparent 80%);
+
   --film-ink:      #05060a;   /* the black that swallows */
   --film-tungsten: #c98a4b;   /* the lantern: the living's light */
   --film-moon:     #9fb2ab;   /* corpse-green white: the other light */
@@ -4442,7 +4461,9 @@ body.asleep .fog {
   /* NO BORDER, NO RADIUS, NO SHADOW. The wash is the panel: opaque enough at
      the centre to carry text over the room art, gone by 78% so the square's own
      edge is never drawn. A border-radius would round a boundary nobody can see.
-   */
+     The event panel reaches transparent at almost the same radius by a
+     different route; see --tile-edge for why the mechanisms differ and what is
+     guarded between them. */
   border: 0;
   background: radial-gradient(circle at 50% 48%,
     color-mix(in srgb, var(--bg) 94%, black) 0%,
@@ -4585,6 +4606,33 @@ body.asleep .fog {
   background: none;
   border: 0;
   border-radius: 0;
+  /* AND NO EDGE (#98). Removing the border in #95 was not enough and the user's
+     screenshot said so in four words: 我只看到一個黑框 -- I only see a black
+     box. The border was gone; the BOX was not. Every scene's first layer is a
+     full-bleed ground, so the panel drew a hard-edged rectangle whether or not
+     it had a border drawn round it.
+     A mask, because the darkness is in the CHILD layers -- this element's own
+     background is none, so fading that would fade nothing. -webkit- first for
+     Safari, which still wants the prefix. */
+  -webkit-mask-image: var(--tile-edge);
+  mask-image: var(--tile-edge);
+}
+
+/* THE GROUND, AT TILE SIZE, IS NOT THE GROUND AT FULL SIZE (#98).
+   .evs-ink reaches OPAQUE --film-ink at 78%. Across a letterboxed window that
+   is the room going dark and it is the right instinct. Over one tile it is a
+   filled black square, and the user's screenshot showed the consequence: the
+   room where the event was happening was DARKER than the 香堂 next door where
+   nothing was, which is backwards -- an event is the room doing something, not
+   the room being switched off.
+   So on a tile the ground is a WASH rather than a fill: enough to say the light
+   has changed, never enough to take the room away. The mask above then carries
+   the rim to nothing, so the two work together and neither is sufficient
+   alone. */
+.evstage--tile .evs-ink {
+  background: radial-gradient(120% 90% at 50% 55%,
+    color-mix(in srgb, var(--film-ink) 30%, transparent),
+    color-mix(in srgb, var(--film-ink) 66%, transparent) 78%);
 }
 
 /* ---- Choosing what to give up (#94) --------------------------------------------

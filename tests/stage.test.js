@@ -1115,7 +1115,15 @@ test("reveal: tile-sized, no frame, and the edges reach transparent (#97)", seri
   // rather than declarations read out of a string.
   const sheet = new CSSStyleSheet();
   sheet.replaceSync(css);
-  const adopted = document.adoptedStyleSheets;
+  // SNAPSHOT, not the live list. document.adoptedStyleSheets returns an
+  // OBSERVABLE ARRAY, so holding the reference and assigning it back does not
+  // restore anything -- by then it already contains the sheet this test added,
+  // and the game's stylesheet stays adopted for every test that follows. Eight
+  // copies had accumulated before anyone noticed, and what noticed was a
+  // FALSIFICATION: deleting the mask rule from a copy changed nothing, because
+  // a stale copy still supplied it. A guard that cannot be made to fail is not
+  // yet a guard.
+  const adopted = [...document.adoptedStyleSheets];
   const host = document.createElement("div");
   host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
   host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
@@ -1270,6 +1278,129 @@ test("rite: taking the 神主牌 waits for the player, and adds no timer of its 
     "the tablet panel is not titled from ui.relic-name — words.relic is the inline " +
     "noun for the middle of a sentence, and under the picture it reads as a " +
     "missing string rather than a name");
+}));
+
+test("stage: the tile panel has no edge, and is not darker than the room (#98)", serial(async () => {
+  // "我只看到一個黑框" -- I only see a black box. #95 removed the panel's
+  // BORDER, which was not the same thing as removing its EDGE: every scene's
+  // first call paints a full-bleed ground, so the panel drew a hard-edged
+  // rectangle regardless. Worse, that ground reaches OPAQUE --film-ink, so the
+  // room the event was happening in came out darker than the room next door
+  // where nothing was happening.
+  //
+  // Both halves are asserted because either alone leaves the box: a mask over
+  // an opaque fill is a black circle, and a lightened fill with a hard edge is
+  // still a rectangle.
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  // SNAPSHOT, not the live list. document.adoptedStyleSheets returns an
+  // OBSERVABLE ARRAY, so holding the reference and assigning it back does not
+  // restore anything -- by then it already contains the sheet this test added,
+  // and the game's stylesheet stays adopted for every test that follows. Eight
+  // copies had accumulated before anyone noticed, and what noticed was a
+  // FALSIFICATION: deleting the mask rule from a copy changed nothing, because
+  // a stale copy still supplied it. A guard that cannot be made to fail is not
+  // yet a guard.
+  const adopted = [...document.adoptedStyleSheets];
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div class="board"></div></div>';
+  document.body.appendChild(host);
+  try {
+    document.adoptedStyleSheets = [...adopted, sheet];
+    const pane = host.querySelector(".board-pane");
+
+    const el = document.createElement("div");
+    el.className = "evstage evstage--nothing evstage--tile";
+    const ink = document.createElement("div");
+    ink.className = "evs-ink";
+    el.appendChild(ink);
+    pane.appendChild(el);
+
+    const cs = getComputedStyle(el);
+    const mask = cs.maskImage && cs.maskImage !== "none" ? cs.maskImage : cs.webkitMaskImage;
+    assert(mask && mask !== "none",
+      "the tile-sized event panel has no mask, so its layers reach its square edge " +
+      "and it reads as a box laid over the board");
+    assert(/transparent|rgba\(0, 0, 0, 0\)/.test(mask),
+      "the panel's mask never reaches transparent, so the edge is still drawn");
+
+    // THE GROUND IS A WASH, NOT A FILL. A colour with no alpha at the far stop
+    // is an opaque rectangle, which is the half of this that a mask cannot save.
+    const bg = getComputedStyle(ink).backgroundImage;
+    const stops = bg.match(/(rgba?|color)\([^)]*\)/g) || [];
+    assert(stops.length > 0, "could not read the ground's colour stops from: " + bg);
+    const opaque = stops.filter((st) => !/[/,]\s*0?\.\d+\s*\)$/.test(st));
+    assert(opaque.length === 0,
+      "the event ground is opaque on a tile (" + opaque.join(" ") + ") — over one " +
+      "room that is a filled black square, and the room next door stays brighter " +
+      "than the one where something is happening");
+  } finally {
+    document.adoptedStyleSheets = adopted;
+    host.remove();
+  }
+}));
+
+test("stage: the full-screen stage keeps its ground (#98)", serial(async () => {
+  // The other direction, and the one a sweep would break. The King is the one
+  // stage that is NOT on a tile: across a letterboxed window an opaque ground IS
+  // the room going dark, and it is right there. Masking him, or lightening his
+  // ground, would take the set-piece apart to fix a problem he does not have.
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(css);
+  // SNAPSHOT, not the live list. document.adoptedStyleSheets returns an
+  // OBSERVABLE ARRAY, so holding the reference and assigning it back does not
+  // restore anything -- by then it already contains the sheet this test added,
+  // and the game's stylesheet stays adopted for every test that follows. Eight
+  // copies had accumulated before anyone noticed, and what noticed was a
+  // FALSIFICATION: deleting the mask rule from a copy changed nothing, because
+  // a stale copy still supplied it. A guard that cannot be made to fail is not
+  // yet a guard.
+  const adopted = [...document.adoptedStyleSheets];
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  document.body.appendChild(host);
+  try {
+    document.adoptedStyleSheets = [...adopted, sheet];
+    const el = document.createElement("div");
+    el.className = "evstage kingscene";
+    const ink = document.createElement("div");
+    ink.className = "evs-ink";
+    el.appendChild(ink);
+    host.appendChild(el);
+    const cs = getComputedStyle(el);
+    const mask = cs.maskImage && cs.maskImage !== "none" ? cs.maskImage : cs.webkitMaskImage;
+    assert(!mask || mask === "none",
+      "the full-screen stage has been masked — the tile treatment has leaked onto " +
+      "the one scene whose whole point is that it fills the window");
+    const bg = getComputedStyle(ink).backgroundImage;
+    assert(/rgb\(5, 6, 10\)|color\(srgb 0\.0196078 0\.0235294 0\.0392157\)/.test(bg),
+      "the full-screen ground is no longer opaque --film-ink: " + bg);
+  } finally {
+    document.adoptedStyleSheets = adopted;
+    host.remove();
+  }
+}));
+
+test("stage: both tile panels dissolve at the same radius (#98)", serial(async () => {
+  // The relationship the comment in style.css asks for. The two panels fade by
+  // DIFFERENT mechanisms on purpose — the reveal paints a colour wash, the
+  // event panel wears an alpha mask — so nothing in the cascade makes them agree
+  // and only this does. A comment asking two numbers to match is a comment that
+  // is one edit away from being false.
+  const pct = (decl, what) => {
+    const at = css.indexOf(decl);
+    assert(at >= 0, "style.css no longer contains " + decl);
+    const tail = css.slice(at, at + 400);
+    const m = tail.match(/transparent\s+(\d+)%/);
+    assert(m, "no transparent stop found for " + what + " in: " + tail.slice(0, 120));
+    return Number(m[1]);
+  };
+  const edge = pct("--tile-edge:", "the event panel's mask");
+  const reveal = pct("background: radial-gradient(circle at 50% 48%", "the reveal's wash");
+  assert(Math.abs(edge - reveal) <= 6,
+    `the two tile panels dissolve at different radii (mask ${edge}%, reveal ${reveal}%) — ` +
+    `a scene and a find should melt into the room the same way`);
 }));
 
 // ---- The sprite sheet itself (#65) ---------------------------------------------
