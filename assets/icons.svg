@@ -208,18 +208,22 @@
       <!-- The sleeve leaves the SHOULDER, inside the body, and crosses the
            robe's edge on the way down. An arm with a gap all the way to the
            armpit is not attached to anybody. -->
-      <path d="M37.2 30.4q-6 6.4 -6.6 15l5.2 .5q.6 -7.2 4.8 -12.9z"/>
-      <path d="M58.8 30.2q6.2 6.6 6.8 15.4l-5.2 .5q-.6 -7.4 -5 -13.3z"/>
-      <path d="M30.6 45.4q1 7.4 .4 15.2l4.8 .3q.6 -7.6 -.4 -15z"/>
-      <path d="M65.6 45.6q-1 7.4 -.4 15.4l-4.8 .3q-.6 -7.8 .4 -15.2z"/>
-      <path d="M30.8 60.4h5.2l.6 4.6q-3.2 1.4 -6.2 0z"/>
-      <path d="M65.2 60.6h5.2l-.4 4.6q-3 1.4 -6 0z"/>
-      <path d="M37.4 71.2h7.4l-.6 15.4h-7.2zM51.2 71.2h7.4l.4 15.4h-7.2z"/>
-      <path d="M36.2 74.4h8.4l.2 2.4h-8.6zM51.6 74.4h8.2l.2 2.4h-8.4z"/>
-      <path d="M35.4 86h9.6l1 5.2H34.2zM50.8 86h9.6l1.4 5.2H50z"/>
-      <ellipse cx="62.4" cy="55.6" rx="3.6" ry="4.8"/>
-      <path d="M60.9 50.4h3.2l.4 2.4h-3.8z"/>
-      <path d="M29.6 52.4h6.4l1 7.4h-8.2z"/>
+      <!-- ARMS SWUNG CLEAR, and the point is the BLACK BETWEEN them and the
+           ribs. At this value the gap is the only thing that survives: a
+           triangle of nothing under each arm is what makes him an A rather
+           than another dark barrel with legs. -->
+      <path d="M37.4 29.8q-9.4 7 -12.4 17.4l6 1.8q2.6 -8.6 10.2 -14.4z"/>
+      <path d="M58.6 29.6q9.6 7.2 12.6 17.8l-6 1.8q-2.6 -8.8 -10.4 -14.8z"/>
+      <path d="M25 47.2q-1.4 8.4 -.4 16.8l6.2 -.4q-.8 -7.4 .2 -14.6z"/>
+      <path d="M71.2 47.4q1.4 8.6 .4 17l-6.2 -.4q.8 -7.6 -.2 -14.8z"/>
+      <path d="M24.6 63.6h6.2l.6 5q-3.8 1.6 -7.2 0z"/>
+      <path d="M71.6 63.8h-6.2l-.6 5q3.8 1.6 7.2 0z"/>
+      <path d="M33.8 71.2h8l-.8 15.4h-7.8zM54.2 71.2h8l.8 15.4h-7.8z"/>
+      <path d="M32.6 74.4h9l.2 2.4h-9.2zM54.4 74.4h8.8l.4 2.4h-9z"/>
+      <path d="M31.4 86h10.2l1.2 5.2H30zM53.6 86h10.2l1.6 5.2H52.6z"/>
+      <ellipse cx="59.8" cy="57.4" rx="3.6" ry="4.8"/>
+      <path d="M58.3 52.2h3.2l.4 2.4h-3.8z"/>
+      <path d="M33.4 54h6.2l1 7.2h-8z"/>
     </g>
     <g stroke="none" fill="#c98a4b">
       <!-- THE SMALLEST POSSIBLE SMILE, and it is the only part of his face
@@ -227,11 +231,11 @@
            is comic; narrow and dim makes something you are not sure you saw. -->
       <path d="M44.6 19.4q3 1.8 6 0 -.6 2.4 -3 2.4t-3 -2.4z" opacity=".34"/>
       <path d="M45.4 19.9q2.2 1.1 4.4 0l-.2 .8q-2 .9 -4 0z" opacity=".55"/>
-      <path d="M58.8 30.2q6.2 6.6 6.8 15.4l-1.8 .2q-.6 -7.6 -5.8 -14.4z" opacity=".3"/>
-      <path d="M65.6 45.6q-1 7.4 -.4 15.4l-1.6 .1q-.6 -7.6 .4 -15.2z" opacity=".2"/>
+      <path d="M58.6 29.6q6.4 4.8 9.6 11.6l-1.6 .8q-3 -6.4 -9 -11z" opacity=".2"/>
+      <path d="M71.2 47.4q.9 5.4 .7 10.8l-1.6 -.1q.2 -5 -.7 -10.3z" opacity=".16"/>
       <path d="M53.8 25.2q3.6 1.6 6 4.2l-1.4 1.4q-2.4 -2.4 -5.2 -3.8z" opacity=".26"/>
       <path d="M52.4 9.6q1.8 2.6 1.8 6t-1.8 6l-1.2 -.6q1.6 -2.4 1.6 -5.4t-1.6 -5.4z" opacity=".2"/>
-      <path d="M58.6 71.2l.4 15.2h-1.8l-.4 -15z" opacity=".18"/>
+      <path d="M61.4 71.2l.8 15.2h-1.8l-.6 -15z" opacity=".18"/>
     </g>
     <g stroke="none" fill="#2a2f36" opacity=".3">
       <path d="M44.6 37q3.4 -2.4 6.8 0l1 9.6 .4 22.6q-4.6 1 -9.4 0l.4 -22.8z"/>
@@ -293,31 +297,36 @@
   <symbol id="scene-villager-c" viewBox="0 0 96 96">
     <g stroke="none" fill="#080a0e">
       <ellipse cx="48" cy="16.4" rx="6.2" ry="7"/>
-      <path d="M41.4 14.6q1 -7.4 6.6 -7.6q5.6 .2 6.6 7.6l.6 9.4q-1.4 -6 -7.2 -6t-7.2 6z"/>
+      <!-- Hair cut at the JAW. It was reading as long tails down her back. -->
+      <path d="M41.2 15q1 -7.6 6.8 -7.8q5.8 .2 6.8 7.8l.4 6.6q-1.6 -3.8 -7.2 -3.8t-7.2 3.8z"/>
       <path d="M45.8 23h4.4l.6 3.2h-5.6z"/>
-      <path d="M37.4 31.4q5.4 -5.2 10.6 -5.4q5.2 .2 10.6 5.4l1.8 16 .8 25.6H34.8l.8 -25.8z"/>
-      <path d="M36.6 32.2q7.6 -3.4 12 -3.4l-.2 3q-4.6 0 -10.6 3z"/>
-      <path d="M34.6 55.6h26.8l.4 4.2H34.4z"/>
-      <path d="M36.4 34.6q-3.6 6.6 -3 14.2l.6 6.4 5.4 -.4 -.6 -6.2q-.6 -6 2.2 -11.4z"/>
-      <path d="M59.4 34.4q3.6 6.6 3 14.4l-.6 6.2 -5.4 -.4 .6 -6.2q.6 -6 -2.2 -11.6z"/>
+      <!-- A COLUMN. No flare at the hem and nothing held away from the body:
+           where A is all gaps, she has none anywhere, which is the opposite
+           silhouette and therefore the only one that will not be mistaken for
+           his at a glance in the dark. -->
+      <path d="M39.8 31.6q4.4 -5.4 8.2 -5.6q3.8 .2 8.2 5.6l1.4 16 .4 25.4H38l.4 -25.6z"/>
+      <path d="M39.4 32.4q6.4 -3 9.2 -3l-.2 3q-3.6 0 -8 2.8z"/>
+      <path d="M37.6 55.6h20.8l.4 4.2H37.4z"/>
+      <path d="M39 34.8q-2.6 6.4 -2 13.8l.5 6.2 4.4 -.4 -.5 -6q-.5 -5.8 1.8 -11z"/>
+      <path d="M57 34.6q2.6 6.4 2 13.9l-.5 6.1 -4.4 -.4 .5 -6q.5 -5.9 -1.8 -11.2z"/>
       <!-- THE BUNDLE. Held high and close, and it BREAKS her front outline:
            a woman with her arms folded is closed, a woman with something in
            them is holding on. -->
-      <path d="M37.6 42.4q10.4 -4.2 20.8 0l1.4 9.6q-11.6 3.8 -23.4 0z"/>
-      <path d="M40.4 40q7.6 -3 15.2 0l1 3.6q-8.4 -3.2 -17 0z"/>
-      <path d="M35.6 73h8.4l-.4 14.4h-8.2zM52 73h8.4l.4 14.4h-8.2z"/>
-      <path d="M36 87.4h7.6l.6 4.4h-8.6zM52.4 87.4h7.6l.8 4.4h-8.6z"/>
+      <path d="M38.6 40q9.4 -4 18.8 0l1.2 9.4q-10.6 3.6 -21.2 0z"/>
+      <path d="M41 37.4q7 -2.8 14 0l.8 3.4q-7.8 -3 -15.6 0z"/>
+      <path d="M40.4 73h7l-.2 14.4h-7zM48.6 73h7l.4 14.4h-7z"/>
+      <path d="M40 87.4h7.4l.4 4.4h-8zM48.4 87.4h7.4l.6 4.4h-8z"/>
     </g>
     <g stroke="none" fill="#c98a4b">
-      <path d="M54.6 14.6q-1 -7.4 -6.6 -7.6l-.2 1.8q4.4 .2 5.4 6z" opacity=".26"/>
-      <path d="M59.4 34.4q3.6 6.6 3 14.4l-1.6 .1q.4 -7.2 -3 -13.4z" opacity=".3"/>
-      <path d="M58.4 42.4l1.4 9.6 -1.8 .6 -1.2 -9.6z" opacity=".3"/>
-      <path d="M53.4 40.6q2 .6 2.2 2.2l-1.6 .5q-.2 -1.2 -1.4 -1.7z" opacity=".24"/>
-      <path d="M60 60l.8 12.8h-1.8l-.8 -12.8z" opacity=".16"/>
-      <path d="M52.4 87.4h7.6l.4 2.2h-7.8z" opacity=".2"/>
+      <path d="M54.2 15q-1 -7.6 -6.2 -7.8l-.2 1.6q3.8 .2 4.8 6.2z" opacity=".18"/>
+      <path d="M57 34.6q2.6 6.4 2 13.9l-1.4 .1q.3 -7 -2.2 -13z" opacity=".26"/>
+      <path d="M57.4 40l1.2 9.4 -1.6 .6 -1 -9.4z" opacity=".28"/>
+      <path d="M52.8 38q1.8 .5 2 2l-1.5 .5q-.2 -1.1 -1.3 -1.6z" opacity=".22"/>
+      <path d="M58 60l.4 12.8h-1.6l-.4 -12.8z" opacity=".16"/>
+      <path d="M48.4 87.4h7.4l.4 2.2h-7.6z" opacity=".2"/>
     </g>
     <g stroke="none" fill="#2a2f36" opacity=".3">
-      <path d="M45 55q3.2 -2 6.6 0l1 7.4 .4 9.2q-4.6 1 -9.2 0l.2 -9.4z"/>
+      <path d="M45.2 55q3 -1.8 6.2 0l.8 7.2 .4 9.2q-4.4 1 -8.6 0l.2 -9.4z"/>
     </g>
   </symbol>
 
