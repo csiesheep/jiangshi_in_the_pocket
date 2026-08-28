@@ -32,7 +32,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "ab5ca996");
+suite(import.meta.url, "fff4e343");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -255,6 +255,27 @@ test("§13: the item restriction actually restricts", () => {
   assert(lesser < full,
     `dropping the best blade from the allowed set left the ceiling at ${lesser}, ` +
     "unchanged — `only` is not binding, so the refusal invariant below proves nothing");
+
+  // AND IT MUST HAVE REMOVED SOMETHING WITHOUT REMOVING EVERYTHING.
+  //
+  // `lesser < full` alone is satisfied by a total collapse: bar every item and
+  // the ceiling is START_ATTACK, 0, and 0 < 13 is true. A probe that meant to
+  // drop one blade but barred the lot would pass while proving nothing about
+  // the case anybody cares about.
+  //
+  // This is the -Infinity trap again in a milder and NASTIER form. -Infinity was
+  // dangerous because it was meaningless — it announced itself. 0 is dangerous
+  // because it is MEANINGFUL AND WRONG: bare-handed is a legitimate ceiling, so
+  // nothing about the value looks off, and the assertion above reads as green
+  // for an honest-looking reason.
+  //
+  // Not a guard against an impossible state. It is one edit away — invert what
+  // `only` means, or build the probe's set wrongly, and the collapse is what you
+  // get. Third time this file has been caught by a check that passed on a
+  // degenerate input.
+  assert(lesser > E.RULES.START_ATTACK,
+    `the restricted set collapsed to ${lesser} — the probe barred everything ` +
+    "rather than one blade, so \"the restriction binds\" is true and worthless");
 
   // ONE probe is enough BECAUSE there is one gate. It was not enough when there
   // were four: this test dropped a sword and exercised the sword filter alone,
