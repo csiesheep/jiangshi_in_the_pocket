@@ -61,6 +61,13 @@ function noComments(text) {
 // not strand the queue: the next test runs either way, and its own rejection is
 // what the harness reads.
 let queue = Promise.resolve();
+// EVERY STAGE TEST HAS TO END ITS OWN PANEL NOW (#91). The event stage waits
+// for a tap instead of a timer, so an unawaited eventStage() never resolves and
+// a test that merely awaits it hangs the whole suite behind the serial queue.
+function tap() {
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+}
+
 function serial(fn) {
   return () => {
     queue = queue.then(fn, fn);
@@ -109,7 +116,10 @@ test("stage: every kind resolves, mounts nothing permanent, and balances the sce
   {
     for (const kind of stageKinds()) {
       const staged = document.body.classList.contains("staged");
-      await eventStage(kind, { n: 3, hp: -1 });
+      const p = eventStage(kind, { n: 3, hp: -1 });
+      await new Promise((r) => setTimeout(r, 25));
+      tap();
+      await p;
       assert(!document.querySelector(".evstage"),
         `${kind}: the layer outlived its own stage`);
       eq(document.body.classList.contains("staged"), staged,
@@ -128,7 +138,7 @@ test("stage: an unknown kind still takes the beat rather than vanishing", serial
     `turn into a turn that reads as skipped`);
 }));
 
-test("stage: it is held to its deadline", serial(async () => {
+test("stage: it is NOT held to a deadline, and waits instead (#91)", serial(async () => {
   {
     const budget = stageBudgetMs();
     // Raced against a reference timer rather than measured against the wall
@@ -138,30 +148,41 @@ test("stage: it is held to its deadline", serial(async () => {
     // framework was behaving perfectly. Clamping hits both timers alike, so a
     // race between them still means what it is supposed to mean — the stage
     // must not outlive twice its own deadline.
+    // THIS USED TO ASSERT THE OPPOSITE, and the inversion is the ruling rather
+    // than a loosened test: the stage is dismissed by the player now, so a
+    // deadline would cut a panel somebody is still looking at. The budget is
+    // still computed and still passed; it is simply no longer armed for a
+    // tap-dismissed stage. A timer creeping back in would be invisible except
+    // that the panel stopped waiting, which is exactly what this watches.
     const winner = await Promise.race([
-      eventStage("nothing", {}).then(() => "stage"),
-      new Promise((r) => setTimeout(() => r("deadline"), budget * 2)),
+      eventStage("nothing", { label: "Tap to continue" }).then(() => "stage"),
+      new Promise((r) => setTimeout(() => r("waited"), budget * 2)),
     ]);
-    eq(winner, "stage",
-      `a stage budgeted at ${budget}ms was still up after ${budget * 2}ms`);
+    eq(winner, "waited",
+      `the stage ended itself within ${budget * 2}ms — it is supposed to wait for a tap`);
+    assert(document.querySelector(".evstage"), "the stage left on its own");
+    tap();
+    await new Promise((r) => setTimeout(r, 40));
+    assert(!document.querySelector(".evstage"),
+      "tapping did not dismiss the stage — with no timer behind it, the night cannot go on");
   }
 }));
 
 // ---- Skipping ------------------------------------------------------------------
 
-test("stage: a key ends it early and cleans up after itself", serial(async () => {
+test("stage: a key ends it and cleans up after itself", serial(async () => {
   {
-    const t0 = performance.now();
+    // NOT "early" any more. This was an optimisation over a timer; it is now
+    // one of the two ways out, and the timer that used to cover for it is gone.
+    // A key that stopped working would be an unfinishable night rather than a
+    // stage that felt slow, which is why the comparison against the budget went
+    // and an assertion that it actually leaves took its place.
     const p = eventStage("nothing", {});
-    // Let it mount, then dismiss it the way a player would.
     await new Promise((r) => setTimeout(r, 30));
     assert(document.querySelector(".evstage"), "the stage never mounted");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
     await p;
-    const took = performance.now() - t0;
-    assert(took < stageBudgetMs(),
-      `skipping took ${Math.round(took)}ms, which is not shorter than the budget`);
-    assert(!document.querySelector(".evstage"), "the skipped layer was left behind");
+    assert(!document.querySelector(".evstage"), "the dismissed layer was left behind");
   }
 }));
 
@@ -181,19 +202,33 @@ test("stage: modified keys are not a skip", serial(async () => {
   }
 }));
 
-test("stage: the layer is silent to a screen reader", serial(async () => {
+test("stage: the layer announces the action, not the scene (#91)", serial(async () => {
   {
-    const p = eventStage("poison", {});
+    const p = eventStage("poison", { label: "Tap to continue" });
     await new Promise((r) => setTimeout(r, 30));
     const el = document.querySelector(".evstage");
     assert(el, "the stage never mounted");
-    // The news is written to the log — a live region — before the stage is
-    // called. If this layer were announced too, a screen-reader player would
-    // hear the same sentence twice; and if it were ever the ONLY place
-    // something was said, the skip affordance would become a way to miss the
-    // game. Illustrate the line, never carry it.
-    eq(el.getAttribute("aria-hidden"), "true", "the stage announces itself");
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+
+    // THIS ALSO INVERTED, and for the reason #96 gave for the reveal. It was
+    // aria-hidden because the news is written to the log — a live region —
+    // before the stage is called, so announcing the layer too would be the same
+    // sentence twice. That held while the panel timed out. It does not hold now
+    // that the panel BLOCKS: a screen reader user facing a silent layer that
+    // will not leave until it is tapped has no way to learn a tap is owed, and
+    // there is no timer left to rescue them.
+    //
+    // The name is the ACTION, so the beat is still not narrated twice: a button
+    // announces its label and not its contents.
+    assert(el.getAttribute("aria-hidden") !== "true",
+      "the panel is hidden from a screen reader while blocking the turn — a player " +
+      "using one cannot discover that a tap is owed, and nothing will time out");
+    eq(el.getAttribute("role"), "button", "the blocking panel is not a control");
+    eq(el.getAttribute("aria-label"), "Tap to continue",
+      "the panel does not say what it wants");
+    // And still not the scene: the label is the only text it carries.
+    eq(el.textContent.replace(/\s+/g, ""), "",
+      "the panel draws text — the beat belongs in the log, and the hint was ruled away");
+    tap();
     await p;
   }
 }));
@@ -213,19 +248,28 @@ test("stage: never stacks", serial(async () => {
 
 // ---- The hint ------------------------------------------------------------------
 
-test("stage: the skip hint stops after the first couple of events", serial(async () => {
+test("stage: no visible hint, ever (#91)", serial(async () => {
+  // RULED: "don't show tap to continue", on both panels. The hint used to teach
+  // twice a run and then stop; now it never appears, and the panel is expected
+  // to teach itself by being large, over the room, and in the way.
+  //
+  // Asserted across four events rather than one, because the thing being
+  // removed was COUNTED: a budget that had run out would look identical to a
+  // hint that was never built, and the old behaviour showed it on the first two
+  // only. If any of these four draws one, the counter is back.
   resetStageHints();
   {
     const seen = [];
     for (let i = 0; i < 4; i++) {
-      const p = eventStage("nothing", { skipHint: "press anything" });
+      const p = eventStage("nothing", { label: "Tap to continue", skipHint: "press anything" });
       await new Promise((r) => setTimeout(r, 25));
-      seen.push(!!document.querySelector(".evstage-hint"));
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+      const el = document.querySelector(".evstage");
+      seen.push(!!(el && el.querySelector(".evstage-hint")));
+      tap();
       await p;
     }
-    eq(seen, [true, true, false, false],
-      "the hint should teach twice and then stop being furniture");
+    eq(seen, [false, false, false, false],
+      "a skip hint was drawn — the ruling is that neither panel shows one");
   }
   resetStageHints();
 }));
@@ -465,7 +509,12 @@ test("stage: the six scenes each build their own layers", serial(async () => {
     }
   });
   obs.observe(document.body, { childList: true });
-  for (const kind of S.stageKinds()) await S.eventStage(kind, { n: 4, hp: -1 });
+  for (const kind of S.stageKinds()) {
+    const p = S.eventStage(kind, { n: 4, hp: -1 });
+    await new Promise((r) => setTimeout(r, 25));
+    tap();
+    await p;
+  }
   obs.disconnect();
   for (const kind of S.stageKinds()) {
     assert(built[`evstage--${kind}`] > 0, `${kind} built no layers — it is still a placeholder`);
@@ -1471,7 +1520,10 @@ test("scenes: 中毒, -1 and +1 each have a subject, and it is their own (#90)",
         `${kind}'s subject is ${Math.round(aw)}px in a ${Math.round(pw)}px panel, outside ` +
         `the mask's ${opaquePct}% opaque radius — its edges are being faded away`);
 
+      // Removing the node does not resolve the promise: the stage waits for a
+      // tap now, and its listener is on the window rather than on the node.
       el.remove();
+      tap();
       await done;
     }
 
@@ -1520,6 +1572,7 @@ test("scenes: nothing stays a wash, and it is the control (#90)", serial(async (
     assert(el.querySelector(".evs-candle") && el.querySelector(".evs-watch"),
       "the nothing scene lost the candle or the watch, which are what it IS");
     el.remove();
+    tap();
     await done;
   } finally {
     host.remove();

@@ -121,10 +121,22 @@ export function eventStage(kind, opts = {}) {
     // The 殭屍王 does not take this branch. His is the one set-piece that is not
     // an event beat, it plays once a night, and full screen is the point of it.
     onTile: true,
+    // #91: IT WAITS FOR A TAP. The cost is not a millisecond figure and the
+    // arithmetic belongs next to it, because this file demands it for STAGE_MS
+    // and this is the same multiplication by another route: an event fires on
+    // very nearly every one of about thirty turns, so this is THIRTY MANDATORY
+    // TAPS A NIGHT in a game that runs about six minutes. The reveal costs a
+    // tap only when the player chose to search; this one is not chosen.
+    //
+    // That was put in front of the user as a number and ruled on. It is cheap
+    // to reverse: awaitTap goes false and the budget below starts being a
+    // deadline again.
+    awaitTap: true,
     build: (inner, ctx) => scene(inner, ctx),
     ctx: { ...opts, reduced },
     budget, reduced,
-    skipHint: opts.skipHint,
+    // The name it announces, not a line it draws. See runStage.
+    label: opts.label,
     // A scene that throws still owes the caller the beat it was pacing on.
     onBuildError: () => wait(BEAT_MS),
   });
@@ -172,6 +184,12 @@ export function kingScene() {
     build: buildKing,
     ctx: { reduced },
     budget, reduced,
+    // NOT TAP DISMISSED, and that is a decision rather than an oversight. The
+    // ruling was about the EVENT panel. He is the one set-piece that is not an
+    // event beat: he plays once a night rather than thirty times, so the
+    // arithmetic that justified making events wait does not reach him, and
+    // full screen for a fixed beat is the whole design of the moment. He keeps
+    // his budget and his skip. One flag if that is ever ruled otherwise.
     onBuildError: () => undefined,
   });
 }
@@ -203,7 +221,7 @@ function buildKing(inner, ctx) {
 // by the King. Extracted rather than copied: a second copy of the skip handling
 // is a second place for a listener to leak, and the whole reason skipping is
 // safe is a property of this function rather than of any scene.
-function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError, onTile }) {
+function runStage({ cls, build, ctx, budget, reduced, label, onBuildError, onTile, awaitTap }) {
   return new Promise((resolve) => {
     // Never stack. A fight can follow a rite in the same turn and each would
     // otherwise leave its own full-screen layer behind — the same rule the
@@ -223,10 +241,24 @@ function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError, on
 
     const el = document.createElement("div");
     el.className = `evstage ${cls}` + (host ? " evstage--tile" : "");
-    // The log already said what happened, in the live region, before this was
-    // called. This layer is the same sentence drawn in paint, so announcing it
-    // again would be the screen reader hearing the news twice.
-    el.setAttribute("aria-hidden", "true");
+    if (awaitTap) {
+      // A CONTROL, because it now holds the turn. While this timed out it was
+      // aria-hidden for a good reason: the log had already said what happened
+      // in the live region, and a layer that announced itself would be the same
+      // news twice. THAT REASONING DIES WHEN THE PANEL BLOCKS. A screen reader
+      // user facing a silent panel that will not go until it is tapped has no
+      // way to learn that a tap is owed, and no timer will rescue them.
+      //
+      // So it takes a name, and the name is the ACTION rather than the scene: a
+      // button announces its label and not its contents, so the beat is still
+      // not narrated twice. Same decision as the reveal panel in #96, reached
+      // the same way and for the same reason.
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", "0");
+      if (label) el.setAttribute("aria-label", label);
+    } else {
+      el.setAttribute("aria-hidden", "true");
+    }
     if (reduced) el.classList.add("evstage--still");
 
     const inner = document.createElement("div");
@@ -242,13 +274,11 @@ function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError, on
       return resolve(onBuildError ? onBuildError() : undefined);
     }
 
-    if (hintsLeft > 0 && skipHint) {
-      hintsLeft--;
-      const hint = document.createElement("p");
-      hint.className = "evstage-hint";
-      hint.textContent = skipHint;
-      el.appendChild(hint);
-    }
+    // NO VISIBLE HINT. Ruled: the panels teach themselves. Both are large, sit
+    // over the room and stop the game, and that is judged to be enough of a
+    // signal without a line of text saying so. hintsLeft and resetStageHints
+    // are left standing with nothing to decrement; they are reported as unused
+    // rather than deleted, because "unreachable today" is a fact about today.
 
     // The letterbox is a FULL-SCREEN device — bars across the top and bottom of
     // the window — so a panel that only covers the tile does not raise it. The
@@ -299,7 +329,23 @@ function runStage({ cls, build, ctx, budget, reduced, skipHint, onBuildError, on
     window.addEventListener("keydown", onKey, true);
     el.addEventListener("click", onClick);
 
-    timer = setTimeout(finish, budget);
+    // ---- The deadline, and what it is for now -----------------------------
+    // A TIMED stage is held to its budget: that is the whole pacing argument
+    // this file is built on, and it is what keeps thirty of them from adding a
+    // minute and a half to a six minute game.
+    //
+    // A TAP-DISMISSED stage cannot have one. The budget stopped being a safety
+    // net the moment the player became responsible for ending the panel, and
+    // became the opposite: a timer that would cut a panel somebody is still
+    // looking at. There is no version of that which is not worse than no timer.
+    //
+    // What replaced the safety net is what replaced it for the reveal in #96:
+    // TWO INDEPENDENT WAYS OUT. A click anywhere on the panel and any key, on
+    // separate listeners, so one failing to attach is not a dead game. That is
+    // the only thing standing between a broken listener and an unfinishable
+    // night, which is why neither of them may be quietly consolidated.
+    if (!awaitTap) timer = setTimeout(finish, budget);
+    else el.focus({ preventScroll: true });
   });
 }
 

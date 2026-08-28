@@ -391,7 +391,12 @@ export class Game {
       : ev.t === "HP" ? (ev.hp > 0 ? "mend" : "hurt")
       : null;
     if (!kind) return wait(EVENT_BEAT_MS);
-    return eventStage(kind, { n: ev.n, hp: ev.hp, skipHint: this.ui("stage-skip") });
+    // reveal-go, not stage-skip. The panel no longer offers to be SKIPPED, it
+    // has to be dismissed, and "press anything to go on" describes an
+    // affordance that stopped existing. Both panels now announce the same
+    // action because it is the same action, so it is one string. stage-skip is
+    // left in the theme unused.
+    return eventStage(kind, { n: ev.n, hp: ev.hp, label: this.ui("reveal-go") });
   }
 
   async eventBeat() {

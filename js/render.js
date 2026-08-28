@@ -2158,20 +2158,14 @@ export function revealPanel(game, opts, onDone) {
   window.addEventListener("keydown", onKey, true);
   el.addEventListener("click", onClick);
 
-  // The hint, on the stage's policy and for its reason: a player who does not
-  // yet know the panel waits for them reads it as a stall. After a couple of
-  // times it is furniture, and furniture in the middle of the board is worse
-  // than no hint at all.
-  if (revealHintsLeft > 0) {
-    revealHintsLeft--;
-    const hint = document.createElement("p");
-    hint.className = "revealhint";
-    hint.textContent = ui(game, "reveal-go");
-    // The panel's own accessible name already says this, so as text it is
-    // decoration and a screen reader should not hear it twice.
-    hint.setAttribute("aria-hidden", "true");
-    el.appendChild(hint);
-  }
+  // NO VISIBLE HINT (#91). It was shown for the first couple of reveals of a
+  // run on the stage's policy; ruled away. The panel is tile-sized, sits over
+  // the room and stops the game, and that is taken to be signal enough.
+  //
+  // THE ACCESSIBLE NAME STAYS. It is not decoration: it is the only thing that
+  // tells a screen reader user a tap is owed, and there is no timer behind this
+  // to rescue them if they never find out. revealHintsLeft and resetRevealHint
+  // now have nothing to do and are reported as unused rather than deleted.
 
   pane.appendChild(el);
   revealDone = done;
