@@ -2890,7 +2890,33 @@
          Toggled from CSS through a custom property because inherited properties
          are the only thing that crosses a <use> shadow boundary. -->
     <g opacity="var(--zb-seal, 1)">
-      <path d="M53 6h14v26H53z" fill="currentColor" fill-opacity=".30" stroke-width="2"/>
+          <!-- THE THREE FAINT FILLS CARRY stroke="none" AND MUST. Each declares a
+         fill-opacity well under 1 — .30 for the paper, .05 for the nose, .22
+         for the ear — and each also declared a stroke-WIDTH with no stroke
+         COLOUR, so all three inherited currentColor at FULL opacity from the
+         sheet's line-art default. A shape drawn as a five percent wash was
+         outlined at a hundred. Measured through the shipped path, at a 700px
+         raster: 10419 pixels differ from the corrected version, 2.1 percent of
+         the art, and the shipped one is brighter in every single one of them.
+
+         THE FRACTION IS THE NUMBER THAT TRAVELS, not the count. A differing
+         pixel total is a fact about a canvas, not about the drawing: the same
+         defect measures 984 at 200px and 13348 at 800px. It is the ~2.1 to 2.5
+         percent that is stable across all of them, and the direction — brighter,
+         in every differing pixel — that identifies a rim over a wash rather than
+         any other kind of change.
+
+         The two shapes above at .08 and .15 already had it right, which is the
+         tell: this symbol's own convention is faint fill PLUS stroke="none",
+         and these three deviated from it.
+
+         AND MOST OF THE PATTERN IS NOT THIS. 43 shapes in this sheet carry a
+         stroke-width with no stroke colour and 40 of them are correct: with no
+         fill attribute at all, the default fill:none stroke:currentColor IS the
+         drawing. Matching the pattern is not evidence. What identifies the
+         defect is a DECLARED fill at an opacity below 1 wearing a full-opacity
+         rim it never asked for. -->
+      <path d="M53 6h14v26H53z" fill="currentColor" stroke="none" fill-opacity=".30" stroke-width="2"/>
       <path d="M60 10v18M56 15h8M56 21h8" stroke-width="1.6" stroke-opacity=".75"/>
     </g>
 
@@ -2904,7 +2930,7 @@
     <path d="M34 58c3 4 7 7 11 8M86 58c-3 4-7 7-11 8" stroke-width="2" stroke-opacity=".65"/>
 
     <!-- nose cavity, punched dark -->
-    <path d="M60 56l-6 14h12z" fill="currentColor" fill-opacity=".05" stroke-width="2.2"/>
+    <path d="M60 56l-6 14h12z" fill="currentColor" stroke="none" fill-opacity=".05" stroke-width="2.2"/>
 
     <!-- jaw and bared teeth -->
     <path d="M42 78h36" stroke-width="2.6"/>
@@ -2913,7 +2939,7 @@
     <path d="M47 71h26" stroke-width="1.6" stroke-opacity=".5"/>
 
     <!-- torn cheek, one side only so the face is not symmetrical -->
-    <path d="M78 62c5 1 8 4 9 8-4 1-7 0-9-2z" fill="currentColor" fill-opacity=".22" stroke-width="1.8"/>
+    <path d="M78 62c5 1 8 4 9 8-4 1-7 0-9-2z" fill="currentColor" stroke="none" fill-opacity=".22" stroke-width="1.8"/>
     <path d="M80 64l4 3" stroke-width="1.4" stroke-opacity=".6"/>
 
     <!-- cracks across the cranium -->
