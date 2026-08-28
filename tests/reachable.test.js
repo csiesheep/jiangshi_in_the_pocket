@@ -32,7 +32,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "749089fb");
+suite(import.meta.url, "644ac51a");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -93,9 +93,10 @@ const BUFF_REACHABLE = reachable("buffSword");
 // produces, and only counts a loadout whose every piece was picked up
 // successfully — so the pack limit, the one-blade hand and the uniqueness rules
 // all constrain the answer instead of being assumed away.
-function assembledAttacks({ withBuff }) {
-  const swords = items.filter((i) => i.cat === "weapon");
-  const talismans = items.filter((i) => i.cat === "magic" && i.attack);
+function assembledAttacks({ withBuff, only = null }) {
+  const allowed = (id) => !only || only.has(id);
+  const swords = items.filter((i) => i.cat === "weapon" && allowed(i.id));
+  const talismans = items.filter((i) => i.cat === "magic" && i.attack && allowed(i.id));
   const out = [];
 
   for (const sword of swords) {
@@ -109,9 +110,15 @@ function assembledAttacks({ withBuff }) {
 
         if (!E.pickUpItem(s, sword.id).ok) continue;
         if (withBuff) {
+          // Gated by `only` like everything else. Both of these are in the
+          // search tables today, so the restriction changes nothing — which is
+          // exactly why they must be gated anyway: make either one a villager's
+          // gift tomorrow and this notices instead of quietly assuming it.
+          if (!allowed("truefire-talisman")) continue;
           if (!E.pickUpItem(s, "truefire-talisman").ok) continue;
           if (!E.buffSword(s, sword.id).ok) continue;
         }
+        if (banner && !allowed("soul-banner")) continue;
         if (banner && !E.pickUpItem(s, "soul-banner").ok) continue;
         if (tal && !E.held(s, tal.id) && !E.pickUpItem(s, tal.id).ok) continue;
 
@@ -154,6 +161,77 @@ test("§13: the best kit a player can carry can reach the King's bar", () => {
   assert(playerCeiling >= bare,
     `a player tops out at ${playerCeiling} and the bare bar is ${bare}, so the seal now ` +
     `REQUIRES the 神主牌 — that is option A's rule, and #56 ruled it out`);
+});
+
+// CAN A PLAYER WHO REFUSES EVERY VILLAGER STILL FINISH THE GAME?
+//
+// Three villagers appear, one per band at p:10 each, and refusing one leaves a
+// creature at attack 4, 5 or 6 in the room. Refusal is a live policy rather
+// than a corner: the shipped bots refuse between 48 and 69 percent of the
+// villagers they meet.
+//
+// A SWEEP CANNOT ANSWER THIS. A policy that never wins tells you the policy is
+// bad; it says nothing about whether a winning line exists. That gap is where
+// this project has been caught before — two guards correctly recorded that the
+// sword buff was unreachable and neither asked whether the game could still be
+// finished, and 鎮屍 was unwinnable by a human for a week. So this COMPUTES.
+//
+// The whole question reduces to one fact: which items can a player reach ONLY
+// by accepting a gift? Everything else is unaffected by refusing.
+function idsIn(node, into) {
+  if (Array.isArray(node)) { for (const v of node) idsIn(v, into); return into; }
+  if (node && typeof node === "object") {
+    for (const [k, v] of Object.entries(node)) {
+      if ((k === "id" || k === "item") && typeof v === "string") into.add(v);
+      else idsIn(v, into);
+    }
+  }
+  return into;
+}
+const SEARCHABLE = idsIn(search, new Set());
+const GIFTS = new Set();
+idsIn(events, new Set()); // walked for shape; gifts carry their own key
+(function collectGifts(node) {
+  if (Array.isArray(node)) return node.forEach(collectGifts);
+  if (node && typeof node === "object") {
+    if (node.t === "VILLAGER" && node.gift) GIFTS.add(node.gift);
+    Object.values(node).forEach(collectGifts);
+  }
+})(events);
+const VILLAGER_ONLY = [...GIFTS].filter((id) => !SEARCHABLE.has(id)).sort();
+
+test("§13: refusing every villager cannot put the King out of reach", () => {
+  // The load-bearing fact, derived rather than stated: of the three gifts, only
+  // 護身符 exists nowhere else. Both talismans are in the 符咒 table, so
+  // refusing costs a player nothing he cannot find by searching.
+  eq(VILLAGER_ONLY, ["protective-charm"],
+    "a villager now gives something unobtainable that the seal might need — " +
+    "the reachability argument below no longer holds and must be redone");
+
+  // And the one exclusive item CONTRIBUTES NO ATTACK. 護身符 is a charm: it
+  // takes a point off damage. It cannot move the number the King is met with,
+  // so the ceiling is identical whether you take the gifts or refuse them all.
+  const charm = items.find((i) => i.id === "protective-charm");
+  assert(charm, "護身符 has gone from items.json");
+  eq(charm.attack || 0, 0,
+    "護身符 now carries attack, so refusing villagers lowers the ceiling and " +
+    "this invariant has to be recomputed rather than reasoned");
+
+  // Computed over the restricted set, not argued from the two facts above.
+  const refuserCeiling = Math.max(
+    ...assembledAttacks({ withBuff: BUFF_REACHABLE, only: SEARCHABLE })
+  );
+  eq(refuserCeiling, playerCeiling,
+    "a player who refuses every villager tops out lower than one who accepts");
+  assert(refuserCeiling >= E.RULES.KING_THRESHOLD,
+    `refusing every villager caps a player at ${refuserCeiling} against a bare bar ` +
+    `of ${E.RULES.KING_THRESHOLD}: 鎮屍 is unreachable for that player`);
+
+  // 埋葬 needs no item at all — the 神主牌 is taken from the crypt and carried
+  // to the ground. Stated here because "winnable" has two answers and only one
+  // of them is about attack, and a reader checking this should not have to
+  // re-derive that the other is untouched.
+  assert(!GIFTS.has("tablet"), "the tablet is a villager gift now, which changes the burial too");
 });
 
 // The premise, kept next to its consequence rather than in another file. This
