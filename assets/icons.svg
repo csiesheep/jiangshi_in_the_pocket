@@ -2258,45 +2258,108 @@
 
 <!-- 飛殭. Frost in the hair, skin gone blue-white, the mouth open past what a
      jaw does, and eyes that give the light back. Fills the frame. -->
-<symbol id="scare-n6" viewBox="0 0 120 120">
-  <defs>
-    <linearGradient id="n6rim" x1=".12" y1="0" x2=".78" y2=".88">
-      <stop offset="0" stop-color="#ffffff"/><stop offset=".24" stop-color="#a8bcc6"/>
-      <stop offset=".56" stop-color="#28323a" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="n6lift" cx="32%" cy="16%" r="62%">
-      <stop offset="0" stop-color="#93a6b0" stop-opacity=".9"/>
-      <stop offset="1" stop-color="#93a6b0" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="n6shine" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#f4ffe8"/><stop offset=".4" stop-color="#c0dcae"/>
-      <stop offset="1" stop-color="#5f7a55" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="n6b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.4"/></filter>
-    <filter id="n6bb" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="8"/></filter>
-    <filter id="n6r" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.8"/></filter>
-  </defs>
-  <path d="M14 120c2-14 10-23 22-29l8-4 16-4 16 4 8 4c12 6 20 15 22 29z" fill="#080b0e"/>
-  <path d="M60 3c23 0 39 18 39 40 0 14-4 24-11 30l-3 12c-2 11-11 20-25 20s-23-9-25-20l-3-12c-7-6-11-16-11-30 0-22 16-40 39-40z" fill="#0a0e12"/>
-  <path d="M60 3c23 0 39 18 39 40 0 14-4 24-11 30l-3 12c-2 11-11 20-25 20s-23-9-25-20l-3-12c-7-6-11-16-11-30 0-22 16-40 39-40z" fill="url(#n6lift)" opacity=".55"/>
-  <path d="M60 3c-17 0-30 10-36 25 7-17 21-28 36-28 8 0 15 2 21 6-6-2-13-3-21-3z" fill="url(#n6rim)" filter="url(#n6b)"/>
-  <path d="M25 34c-2 3-4 6-4 9 0 14 4 24 11 30l3 12c2 7 6 13 13 17-10-3-16-10-18-17l-3-12c-7-6-11-16-11-30 0-3 4-6 9-9z" fill="url(#n6rim)" filter="url(#n6b)" opacity=".9"/>
-  <g fill="#e6f1f8" filter="url(#n6r)">
-    <path d="M30 30c3-5 5-3 6 1 1-4 4-6 6-2 2-4 5-3 5 2-4 2-13 3-17-1z" opacity=".55"/>
-    <path d="M50 20c2-6 5-4 6 0 2-5 5-4 6 1 1-5 4-5 6 0-4 3-14 3-18-1z" opacity=".65"/>
-    <path d="M70 22c3-5 6-3 6 1 2-4 5-3 6 1-3 3-10 2-12-2z" opacity=".5"/>
-    <path d="M84 34c2-4 5-3 5 1 2-3 4-1 4 2-3 2-8 1-9-3z" opacity=".45"/>
-  </g>
-  <ellipse cx="44" cy="51" rx="14" ry="10.5" fill="#020406" filter="url(#n6b)"/>
-  <ellipse cx="76" cy="51" rx="14" ry="10.5" fill="#020406" filter="url(#n6b)"/>
-  <ellipse cx="44" cy="51" rx="4.4" ry="3.4" fill="url(#n6shine)"/>
-  <ellipse cx="76" cy="51" rx="4.4" ry="3.4" fill="url(#n6shine)"/>
-  <ellipse cx="44" cy="50.6" rx="1.5" ry="1.2" fill="#fbfff5"/>
-  <ellipse cx="76" cy="50.6" rx="1.5" ry="1.2" fill="#fbfff5"/>
-  <path d="M36 84c9 15 39 15 48 0l-3 22c-2 9-10 14-21 14s-19-5-21-14z" fill="#010305"/>
-  <path d="M41 86l3.4 1.2-3 15M79 85.6l-3.4 1.2 3 15" stroke="#e8f3f9" stroke-width="2" fill="none" opacity=".5" filter="url(#n6b)"/>
-  <path d="M52 100c6 3 12 3 17 0" stroke="#cfe0ea" stroke-width="1.6" fill="none" opacity=".3" filter="url(#n6b)"/>
-</symbol>
+<symbol id="scare-n6" viewBox="0 0 200 260">
+    <defs>
+      <radialGradient id="t6glow">
+        <stop offset="0" stop-color="#ff9a55" stop-opacity=".9"/>
+        <stop offset="1" stop-color="#ff9a55" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="t6eye">
+        <stop offset="0" stop-color="#ff5c2e" stop-opacity=".9"/>
+        <stop offset="1" stop-color="#ff5c2e" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="t6lamp">
+        <stop offset="0" stop-color="#ffb46a" stop-opacity=".55"/>
+        <stop offset=".45" stop-color="#e07a34" stop-opacity=".22"/>
+        <stop offset="1" stop-color="#c8331a" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="t6socket">
+        <stop offset="0" stop-color="#fff0d0" stop-opacity="1"/>
+        <stop offset=".2" stop-color="#ffab52" stop-opacity=".95"/>
+        <stop offset=".55" stop-color="#e0521f" stop-opacity=".55"/>
+        <stop offset="1" stop-color="#c8331a" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="t6paper" x1=".2" y1="0" x2=".9" y2="1">
+        <stop offset="0" stop-color="#f2c078"/><stop offset=".55" stop-color="#c8813e"/>
+        <stop offset="1" stop-color="#6d3d1c"/>
+      </linearGradient>
+      <linearGradient id="t6robe" x1=".28" y1="0" x2=".72" y2="1">
+        <stop offset="0" stop-color="#1f242c"/><stop offset=".4" stop-color="#12161c"/>
+        <stop offset="1" stop-color="#05060a"/>
+      </linearGradient>
+      <linearGradient id="t6sleeve" x1=".1" y1="0" x2=".9" y2=".8">
+        <stop offset="0" stop-color="#1a1f26"/><stop offset="1" stop-color="#06070b"/>
+      </linearGradient>
+      <linearGradient id="t6mask" x1=".26" y1="0" x2=".78" y2="1">
+        <stop offset="0" stop-color="#ded6bd"/><stop offset=".45" stop-color="#a89d80"/>
+        <stop offset="1" stop-color="#4a4436"/>
+      </linearGradient>
+      <linearGradient id="t6horn" x1=".1" y1="1" x2=".9" y2="0">
+        <stop offset="0" stop-color="#2a2620"/><stop offset=".5" stop-color="#6b6250"/>
+        <stop offset="1" stop-color="#b8ad8e"/>
+      </linearGradient>
+      <filter id="t6soft" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="4"/></filter>
+    </defs>
+    <g stroke="none">
+    <!-- THE BLACK BEHIND HER, and what is in it. Eyes, not hands. -->
+    <circle cx="20.2" cy="62.0" r="7.6" fill="url(#t6eye)" opacity="0.35"/><circle cx="20.2" cy="62.0" r="1.8" fill="#ff8452" opacity="0.63"/><circle cx="27.8" cy="62.0" r="7.6" fill="url(#t6eye)" opacity="0.35"/><circle cx="27.8" cy="62.0" r="1.8" fill="#ff8452" opacity="0.63"/><circle cx="171.6" cy="74.0" r="7.6" fill="url(#t6eye)" opacity="0.38"/><circle cx="171.6" cy="74.0" r="1.8" fill="#ff8452" opacity="0.69"/><circle cx="180.4" cy="74.0" r="7.6" fill="url(#t6eye)" opacity="0.38"/><circle cx="180.4" cy="74.0" r="1.8" fill="#ff8452" opacity="0.69"/><circle cx="11.2" cy="128.0" r="6.4" fill="url(#t6eye)" opacity="0.38"/><circle cx="11.2" cy="128.0" r="1.5" fill="#ff8452" opacity="0.70"/><circle cx="16.8" cy="128.0" r="6.4" fill="url(#t6eye)" opacity="0.38"/><circle cx="16.8" cy="128.0" r="1.5" fill="#ff8452" opacity="0.70"/><circle cx="184.1" cy="140.0" r="8.4" fill="url(#t6eye)" opacity="0.19"/><circle cx="184.1" cy="140.0" r="2.0" fill="#ff8452" opacity="0.35"/><circle cx="191.9" cy="140.0" r="8.4" fill="url(#t6eye)" opacity="0.19"/><circle cx="191.9" cy="140.0" r="2.0" fill="#ff8452" opacity="0.35"/><circle cx="28.4" cy="196.0" r="5.3" fill="url(#t6eye)" opacity="0.29"/><circle cx="28.4" cy="196.0" r="1.3" fill="#ff8452" opacity="0.53"/><circle cx="35.6" cy="196.0" r="5.3" fill="url(#t6eye)" opacity="0.29"/><circle cx="35.6" cy="196.0" r="1.3" fill="#ff8452" opacity="0.53"/><circle cx="166.2" cy="206.0" r="4.3" fill="url(#t6eye)" opacity="0.22"/><circle cx="166.2" cy="206.0" r="1.0" fill="#ff8452" opacity="0.39"/><circle cx="173.8" cy="206.0" r="4.3" fill="url(#t6eye)" opacity="0.22"/><circle cx="173.8" cy="206.0" r="1.0" fill="#ff8452" opacity="0.39"/><circle cx="42.8" cy="40.0" r="8.4" fill="url(#t6eye)" opacity="0.34"/><circle cx="42.8" cy="40.0" r="2.0" fill="#ff8452" opacity="0.62"/><circle cx="49.2" cy="40.0" r="8.4" fill="url(#t6eye)" opacity="0.34"/><circle cx="49.2" cy="40.0" r="2.0" fill="#ff8452" opacity="0.62"/><circle cx="153.0" cy="34.0" r="7.9" fill="url(#t6eye)" opacity="0.20"/><circle cx="153.0" cy="34.0" r="1.9" fill="#ff8452" opacity="0.36"/><circle cx="159.0" cy="34.0" r="7.9" fill="url(#t6eye)" opacity="0.20"/><circle cx="159.0" cy="34.0" r="1.9" fill="#ff8452" opacity="0.36"/><circle cx="6.2" cy="96.0" r="4.8" fill="url(#t6eye)" opacity="0.17"/><circle cx="6.2" cy="96.0" r="1.1" fill="#ff8452" opacity="0.30"/><circle cx="13.8" cy="96.0" r="4.8" fill="url(#t6eye)" opacity="0.17"/><circle cx="13.8" cy="96.0" r="1.1" fill="#ff8452" opacity="0.30"/><circle cx="187.7" cy="104.0" r="5.2" fill="url(#t6eye)" opacity="0.21"/><circle cx="187.7" cy="104.0" r="1.2" fill="#ff8452" opacity="0.39"/><circle cx="196.3" cy="104.0" r="5.2" fill="url(#t6eye)" opacity="0.21"/><circle cx="196.3" cy="104.0" r="1.2" fill="#ff8452" opacity="0.39"/>
+
+    <!-- THE KIMONO. Long, dark, and straight edged: she is a column. -->
+    <path d="M100 58q18 0 24 10l10 40 8 128H58l8 -128 10 -40q6 -10 24 -10z" fill="url(#t6robe)"/>
+    <path d="M100 58q-14 0 -19 8l-9 38 -7 122h-7l8 -128 10 -40q6 -10 24 -10z" fill="#39414d" opacity=".3"/>
+    <path d="M62 200h76l1 36H61z" fill="#040508"/>
+    <path d="M97.5 139.0q-5.2 -2.9 -4.9 -5.8q1.9 -1.6 5.8 -8.2q3.2 4.5 3.0 8.2z" fill="#c8331a" opacity="0.21"/><path d="M127.1 102.2q-4.4 -4.2 -4.4 -8.4q1.6 -2.4 4.9 -12.0q2.7 6.6 2.8 12.0z" fill="#c8331a" opacity="0.18"/><path d="M113.8 149.0q-2.9 -4.7 -2.7 -9.5q1.1 -2.7 3.3 -13.5q1.8 7.4 1.6 13.5z" fill="#c8331a" opacity="0.12"/><path d="M100.4 208.4q-4.9 -4.3 -2.5 -8.6q1.8 -2.5 5.5 -12.3q3.0 6.8 0.7 12.3z" fill="#c8331a" opacity="0.26"/><path d="M72.9 128.7q-4.7 -4.6 -2.2 -9.1q1.8 -2.6 5.3 -13.1q3.0 7.2 0.5 13.1z" fill="#c8331a" opacity="0.12"/><path d="M84.1 118.4q-5.0 -3.3 -3.7 -6.7q1.9 -1.9 5.6 -9.5q3.1 5.2 1.8 9.5z" fill="#c8331a" opacity="0.30"/><path d="M125.8 98.9q-4.0 -3.6 -4.3 -7.3q1.5 -2.1 4.5 -10.4q2.5 5.7 2.9 10.4z" fill="#c8331a" opacity="0.19"/><path d="M127.6 106.1q-2.8 -4.3 -0.6 -8.7q1.0 -2.5 3.1 -12.4q1.7 6.8 -0.5 12.4z" fill="#c8331a" opacity="0.30"/><path d="M79.8 93.0q-4.1 -2.7 -4.4 -5.4q1.5 -1.6 4.6 -7.8q2.6 4.3 2.9 7.8z" fill="#c8331a" opacity="0.12"/><path d="M99.8 208.0q-3.7 -3.8 -0.5 -7.5q1.4 -2.2 4.1 -10.8q2.3 5.9 -0.8 10.8z" fill="#c8331a" opacity="0.12"/><path d="M105.4 113.7q-5.5 -4.4 -4.7 -8.7q2.0 -2.5 6.1 -12.5q3.4 6.9 2.7 12.5z" fill="#c8331a" opacity="0.22"/><path d="M107.2 110.8q-5.6 -3.3 0.9 -6.6q2.1 -1.9 6.3 -9.4q3.5 5.2 -3.0 9.4z" fill="#c8331a" opacity="0.13"/><path d="M114.0 211.8q-4.4 -3.2 -4.4 -6.4q1.6 -1.8 4.9 -9.1q2.7 5.0 2.7 9.1z" fill="#c8331a" opacity="0.18"/><path d="M111.8 166.4q-2.7 -4.9 -1.9 -9.8q1.0 -2.8 3.0 -14.0q1.7 7.7 0.9 14.0z" fill="#c8331a" opacity="0.29"/><path d="M105.7 148.9q-5.6 -3.7 -1.6 -7.4q2.1 -2.1 6.2 -10.6q3.5 5.8 -0.4 10.6z" fill="#c8331a" opacity="0.10"/><path d="M120.4 133.4q-3.1 -3.8 -1.5 -7.6q1.2 -2.2 3.5 -10.9q1.9 6.0 0.3 10.9z" fill="#c8331a" opacity="0.17"/><path d="M72.0 171.3q-4.9 -2.8 -4.7 -5.5q1.8 -1.6 5.5 -7.9q3.1 4.4 2.8 7.9z" fill="#c8331a" opacity="0.27"/><path d="M120.9 154.7q-3.2 -4.7 0.2 -9.4q1.2 -2.7 3.6 -13.4q2.0 7.4 -1.4 13.4z" fill="#c8331a" opacity="0.19"/><path d="M81.7 213.5q-3.6 -3.7 0.8 -7.4q1.3 -2.1 4.0 -10.6q2.2 5.8 -2.2 10.6z" fill="#c8331a" opacity="0.18"/><path d="M111.4 113.6q-3.2 -5.1 -3.9 -10.2q1.2 -2.9 3.6 -14.6q2.0 8.0 2.7 14.6z" fill="#c8331a" opacity="0.31"/><path d="M77.7 211.3q-4.3 -5.6 -4.6 -11.1q1.6 -3.2 4.9 -15.9q2.7 8.7 2.9 15.9z" fill="#c8331a" opacity="0.11"/><path d="M80.2 141.0q-5.5 -4.4 -2.9 -8.8q2.1 -2.5 6.2 -12.5q3.4 6.9 0.9 12.5z" fill="#c8331a" opacity="0.13"/>
+    <path d="M100 62v174" stroke="#040507" stroke-width="2.4" fill="none" opacity=".8"/>
+    <path d="M86 70h28l3 20H83z" fill="#0a0d12"/>
+
+    <!-- SLEEVES, hanging: she is not reaching for anything. -->
+    <path d="M76 68L44 92l-8 62 24 5 10 -58 14 -18z" fill="url(#t6sleeve)"/>
+    <path d="M124 68l32 24 8 62 -24 5 -10 -58 -14 -18z" fill="url(#t6sleeve)"/>
+    <path d="M76 68L44 92l-3 22 12 -26z" fill="#3b434f" opacity=".28"/>
+
+    <!-- THE LANTERNS. Objects a person made and a person lit, one at either
+         side, and the only thing in the set that lights its surroundings. -->
+    <circle cx="30.0" cy="128.0" r="33.8" fill="url(#t6lamp)" opacity=".8"/><path d="M30.0 102.7v12.3" stroke="#2b2721" stroke-width="1" fill="none"/><path d="M24.8 115.0h10.5v2.7h-10.5z" fill="#332e26"/><path d="M25.0 117.6q-5.5 12.3 0 24.7q5.5 -12.3 0 -24.7z" fill="url(#t6paper)"/><path d="M35.0 117.6q5.5 12.3 0 24.7q-5.5 -12.3 0 -24.7z" fill="url(#t6paper)"/><path d="M23.3 118.6h13.5" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M20.5 123.5h19.0" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M19.4 128.5h21.2" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M20.5 133.4h19.0" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M23.3 138.3h13.5" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M25.0 117.6q-5.0 12.3 0 24.7" stroke="#f6d9a4" stroke-width=".8" fill="none" opacity=".45"/><path d="M24.8 139.7h10.5v2.7h-10.5z" fill="#332e26"/>
+    <circle cx="170.0" cy="136.0" r="33.8" fill="url(#t6lamp)" opacity=".8"/><path d="M170.0 110.7v12.3" stroke="#2b2721" stroke-width="1" fill="none"/><path d="M164.8 123.0h10.5v2.7h-10.5z" fill="#332e26"/><path d="M165.0 125.6q-5.5 12.3 0 24.7q5.5 -12.3 0 -24.7z" fill="url(#t6paper)"/><path d="M175.0 125.6q5.5 12.3 0 24.7q-5.5 -12.3 0 -24.7z" fill="url(#t6paper)"/><path d="M163.3 126.6h13.5" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M160.5 131.5h19.0" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M159.4 136.5h21.2" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M160.5 141.4h19.0" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M163.3 146.3h13.5" stroke="#7d4520" stroke-width=".6" opacity=".55" fill="none"/><path d="M165.0 125.6q-5.0 12.3 0 24.7" stroke="#f6d9a4" stroke-width=".8" fill="none" opacity=".45"/><path d="M164.8 147.7h10.5v2.7h-10.5z" fill="#332e26"/>
+
+    <!-- THE MASK. Not a face: a pale plate with a wide grin and two big curved
+         horns. Everything about it is flat except the light coming out of it. -->
+    <!-- HORNS FIRST, so the mask sits over their roots. Thick at the skull,
+         tapering, and CURVED: thin lines sweeping up off a head are antennae. -->
+    <path d="M85 32q-10 -8 -14 -20 -3 -10 3 -14 1 9 6 16 5 7 11 14z" fill="url(#t6horn)"/>
+    <path d="M115 32q10 -8 14 -20 3 -10 -3 -14 -1 9 -6 16 -5 7 -11 14z" fill="url(#t6horn)"/>
+    <path d="M74 -2q5 3 7 10 -4 -6 -8 -8z" fill="#cdc2a2" opacity=".7"/>
+    <path d="M126 -2q-5 3 -7 10 4 -6 8 -8z" fill="#cdc2a2" opacity=".7"/>
+
+    <!-- THE MASK. Smaller than her shoulders and darker than it was: it was the
+         palest thing in the frame and the frame belonged to it. -->
+    <path d="M83 32q7 -8 17 -8t17 8q3 16 -3 27 -5 11 -14 11t-14 -11q-6 -11 -3 -27z"
+          fill="url(#t6mask)"/>
+    <path d="M83 32q7 -8 17 -8 -12 2 -14 9z" fill="#efe7d2" opacity=".38"/>
+
+    <!-- THE GRIN. Wide, and it goes almost to the edges of the mask. -->
+    <!-- THE GRIN. Wide FOR A MASK, but a mask this size, and cut straight
+         across rather than curved: an even arc of white teeth is a Cheshire
+         cat. Mostly dark, with the teeth as slots in the black. -->
+    <path d="M88 56q12 5 24 0l-2 10q-10 4 -20 0z" fill="#080707"/>
+    <path d="M89.5 58h21l-.6 3.2H90zM91 63.4h18l-.6 3H91.6z" fill="#cfc6a8" opacity=".85"/>
+    <path d="M94 58v3.2M99 58v3.2M104 58v3.2M96 63.4v3M101.5 63.4v3M106 63.4v3"
+          stroke="#080707" stroke-width=".9" fill="none"/>
+
+    <!-- THE EYES ARE LAMPS. They CAST: a hot core, a falloff, and light landing
+         on the mask around them. The King's are flat concentric rings that give
+         nothing back, and that is the whole separation between these two. -->
+    <ellipse cx="91" cy="43" rx="9" ry="7" fill="url(#t6socket)" opacity=".8"/>
+    <ellipse cx="109" cy="43" rx="9" ry="7" fill="url(#t6socket)" opacity=".8"/>
+    <ellipse cx="91" cy="43" rx="3.6" ry="2.6" fill="#ffe6bc"/>
+    <ellipse cx="109" cy="43" rx="3.6" ry="2.6" fill="#ffe6bc"/>
+    <ellipse cx="100" cy="45" rx="28" ry="18" fill="url(#t6glow)" opacity=".22"/>
+
+    <!-- EMBERS, suspended. They hang at rest rather than falling. -->
+    <circle cx="92.2" cy="138.6" r="6.9" fill="url(#t6glow)" opacity="0.28"/><circle cx="92.2" cy="138.6" r="1.3" fill="#ffb070" opacity="0.55"/><circle cx="114.3" cy="65.8" r="7.2" fill="url(#t6glow)" opacity="0.31"/><circle cx="114.3" cy="65.8" r="1.3" fill="#ffb070" opacity="0.63"/><circle cx="148.0" cy="48.3" r="5.6" fill="url(#t6glow)" opacity="0.15"/><circle cx="148.0" cy="48.3" r="1.0" fill="#ffb070" opacity="0.30"/><circle cx="150.8" cy="164.5" r="3.6" fill="url(#t6glow)" opacity="0.42"/><circle cx="150.8" cy="164.5" r="0.7" fill="#ffb070" opacity="0.84"/><circle cx="176.2" cy="156.9" r="8.0" fill="url(#t6glow)" opacity="0.17"/><circle cx="176.2" cy="156.9" r="1.5" fill="#ffb070" opacity="0.34"/><circle cx="20.5" cy="132.5" r="3.8" fill="url(#t6glow)" opacity="0.18"/><circle cx="20.5" cy="132.5" r="0.7" fill="#ffb070" opacity="0.36"/><circle cx="57.7" cy="35.8" r="6.9" fill="url(#t6glow)" opacity="0.26"/><circle cx="57.7" cy="35.8" r="1.2" fill="#ffb070" opacity="0.51"/><circle cx="156.2" cy="130.7" r="8.2" fill="url(#t6glow)" opacity="0.27"/><circle cx="156.2" cy="130.7" r="1.5" fill="#ffb070" opacity="0.55"/><circle cx="126.6" cy="118.7" r="5.4" fill="url(#t6glow)" opacity="0.42"/><circle cx="126.6" cy="118.7" r="1.0" fill="#ffb070" opacity="0.85"/><circle cx="181.3" cy="193.0" r="8.8" fill="url(#t6glow)" opacity="0.22"/><circle cx="181.3" cy="193.0" r="1.6" fill="#ffb070" opacity="0.44"/><circle cx="55.7" cy="86.1" r="3.8" fill="url(#t6glow)" opacity="0.35"/><circle cx="55.7" cy="86.1" r="0.7" fill="#ffb070" opacity="0.71"/><circle cx="175.1" cy="194.4" r="3.3" fill="url(#t6glow)" opacity="0.19"/><circle cx="175.1" cy="194.4" r="0.6" fill="#ffb070" opacity="0.38"/><circle cx="167.3" cy="121.2" r="10.8" fill="url(#t6glow)" opacity="0.24"/><circle cx="167.3" cy="121.2" r="2.0" fill="#ffb070" opacity="0.49"/><circle cx="30.0" cy="152.1" r="9.3" fill="url(#t6glow)" opacity="0.21"/><circle cx="30.0" cy="152.1" r="1.7" fill="#ffb070" opacity="0.41"/><circle cx="32.3" cy="94.5" r="10.7" fill="url(#t6glow)" opacity="0.35"/><circle cx="32.3" cy="94.5" r="1.9" fill="#ffb070" opacity="0.70"/><circle cx="37.4" cy="77.8" r="4.1" fill="url(#t6glow)" opacity="0.14"/><circle cx="37.4" cy="77.8" r="0.7" fill="#ffb070" opacity="0.29"/><circle cx="148.7" cy="64.5" r="7.6" fill="url(#t6glow)" opacity="0.26"/><circle cx="148.7" cy="64.5" r="1.4" fill="#ffb070" opacity="0.52"/><circle cx="49.3" cy="172.0" r="4.3" fill="url(#t6glow)" opacity="0.32"/><circle cx="49.3" cy="172.0" r="0.8" fill="#ffb070" opacity="0.64"/><circle cx="37.1" cy="111.6" r="4.9" fill="url(#t6glow)" opacity="0.21"/><circle cx="37.1" cy="111.6" r="0.9" fill="#ffb070" opacity="0.41"/>
+    </g>
+  </symbol>
 
 
 
