@@ -1,5 +1,51 @@
 # -*- coding: utf-8 -*-
-"""The 繁體中文 overlay, batch 1: the game and the landing page.
+"""RETIRED. THIS SCRIPT EXITS AT THE FIRST SECTION AND NOTHING BELOW THAT RUNS.
+
+Read this before reasoning about anything further down. strip_gloss() raises
+SystemExit unconditionally — it is the first statement in the body — and the
+loop immediately under it calls strip_gloss("tiles") at module level. Execution
+stops there every time.
+
+DO NOT TAKE THAT ON FAITH; IT IS ONE COMMAND:
+
+    python tools/make_zh.py ; echo $?
+
+Six lines of explanation and exit 1. Both theme files byte-identical after.
+The previous docstring said "NOT the source of truth any more", which is also
+true and helped nobody, because it is a claim a reader can only believe. This
+one is a claim a reader can RUN — and the difference is the whole reason the
+paragraph exists.
+
+Stated as the MECHANISM rather than as a line number or a count of dead lines,
+because either would be wrong the moment anybody edits this file — the first
+draft of this very paragraph said "line 68 of 475" and adding the paragraph
+made both numbers false. Grep for strip_gloss and the reachability is obvious;
+a number would have to be maintained to stay true.
+
+So nearly all of what follows is UNREACHABLE — the ui table, the coverage
+report and the write guard alike. It is kept as material for whoever rewrites
+this the other way round, which is what the exit message asks for, and it is
+not a description of anything that happens.
+
+Two people reasoned about this file's runtime behaviour on the same day and both
+were wrong in the same direction, because it READS as live. One of them (me)
+justified an edit by claiming a rerun would reintroduce a retired string; a
+rerun cannot reach that table. The other worked out that the write guard
+compares leaf sets and so would miss a drifted VALUE — a correct analysis of
+code that never executes.
+
+The paragraph below is part of how that happened, and is left as written with
+this correction attached rather than quietly fixed: it says "the write at the
+bottom refuses when that is true", which describes a protection that CANNOT
+FIRE. A docstring promising a runtime guarantee is the most convincing thing in
+a dead file.
+
+Also note BASE and OUT are absolute paths into ...jiangshi_in_the_pocket-fe,
+not this worktree, so even the first line reads somebody else's theme.
+
+--- what it was, when it ran ------------------------------------------------
+
+The 繁體中文 overlay, batch 1: the game and the landing page.
 
 Register follows the English, which is spare, concrete and grim, and never
 explains itself. So: short sentences, plain nouns, no 成語 reaching for weight
