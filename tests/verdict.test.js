@@ -12,6 +12,19 @@
 // the bots call the engine and read `outcome` and nobody ever rendered the
 // ending. Engine invariants cannot catch a counter that is printed but never
 // incremented. Only reading the screen can, so this reads the screen.
+//
+// AND THEN THIS SUITE FAILED THE SAME WAY (#95), which is the part worth
+// reading before adding to it. #92 moved the card from tally.putDown to
+// tally.fights and these tests did not notice: they went on asserting, by
+// hardcoded name, that putDown was incremented — true, and irrelevant, because
+// nothing printed putDown any more. One of them went further and REQUIRED the
+// dead accumulator to survive, with a message arguing for the headcount model
+// that #92 had just retired. Green the whole time. The live counter had no
+// guard at all.
+//
+// So nothing below names a counter. The name is read out of the card, and the
+// tests follow whatever it prints. A guard that hardcodes the thing it watches
+// is a guard that stops watching the day somebody moves it.
 
 import * as E from "../js/engine.js";
 import { createBoard } from "../js/board.js";
@@ -21,7 +34,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "7ddcd36f");
+suite(import.meta.url, "28cfa9f7");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -137,32 +150,61 @@ function countOf(hay, needle) {
   return hay.split(needle).length - 1;
 }
 
-// THE #66 DEFECT: this counter was initialised at one line, printed at another,
-// and incremented at no line anywhere in the repository. Every run that has
-// ever ended, won or lost, reported zero.
-test("verdict: putDown is actually incremented somewhere", () => {
-  assert(countOf(app, "putDown: 0") === 1, "expected the tally to be initialised once");
-  assert(countOf(app, "this.tally.putDown +=") >= 1,
-    "putDown is printed on the verdict card and incremented nowhere — the #66 bug");
+// WHICH COUNTER THE CARD PRINTS, READ OUT OF THE CARD (#95).
+//
+// This used to be the string "this.tally.putDown", written here by hand. #92
+// moved the card onto tally.fights — correctly, because n stopped being a
+// headcount and summing attack strengths would have made the line lie — and
+// this file did not notice. The guard stayed green while watching a variable
+// nothing printed any more, and the live one was guarded by nothing at all.
+//
+// That is the #66 defect one turn of the screw further out: #66 was a counter
+// printed and never incremented, and this was a GUARD pointed at a counter
+// nobody printed. So the name is derived from the card instead of declared
+// here. Move the card to a third counter tomorrow and these tests follow it.
+function cardCounter() {
+  const at = app.indexOf('verdictLine("put-down"');
+  assert(at !== -1, "the verdict card no longer prints a put-down line at all");
+  const args = app.slice(at, app.indexOf(")", at));
+  const n = args.indexOf("n:");
+  assert(n !== -1, "the put-down line takes no n — what is it printing?");
+  const expr = args.slice(n + 2).split(",")[0].trim();
+  assert(expr.indexOf("this.tally.") === 0,
+    "the card prints " + expr + ", which is not a tally counter this can guard");
+  return expr;
+}
+
+// THE #66 DEFECT: the counter on this line was initialised at one line, printed
+// at another, and incremented at no line anywhere in the repository. Every run
+// that had ever ended, won or lost, reported zero.
+test("verdict: the counter the card prints is actually incremented", () => {
+  const counter = cardCounter();
+  assert(countOf(app, counter + " +=") >= 1,
+    counter + " is printed on the verdict card and incremented nowhere — the #66 bug");
 });
 
 // The design ruling on #67: a fight you ran from is not a jiangshi put down.
 // True by construction — the increment lives in doFight, and doFlee and
 // doEscape do not reach it — so this pins the construction, which is the thing
 // that could quietly stop being true.
-test("verdict: only fighting counts, and it counts the whole pack", () => {
+//
+// It no longer pins HOW MUCH. It used to require "+= n" with the message "a
+// pack of four is four", which was right when n was a headcount and became a
+// demand that the retired model stay in the code: anyone deleting the dead
+// accumulator got a red test arguing for a pack. One fight is one creature at
+// a strength now, so the size of the step is the card's business, not this
+// test's. What must stay true is WHERE it happens.
+test("verdict: only fighting counts", () => {
+  const counter = cardCounter();
   const fight = app.indexOf("async doFight(");
   const flee = app.indexOf("async doFlee(");
   const escape = app.indexOf("async doEscape(");
   assert(fight !== -1 && flee !== -1 && escape !== -1, "all three routes must exist");
 
-  const inc = app.indexOf("this.tally.putDown +=");
+  const inc = app.indexOf(counter + " +=");
   assert(inc > fight, "the increment must live inside doFight");
   const nextFn = Math.min.apply(null, [flee, escape].filter((i) => i > fight));
   assert(inc < nextFn, "the increment escaped doFight into a route you ran away down");
-
-  assert(app.indexOf("this.tally.putDown += n") !== -1,
-    "a pack of four is four, not one");
 });
 
 // THE #66 DEFECT: found counted the tablet and the villager's gift and nothing

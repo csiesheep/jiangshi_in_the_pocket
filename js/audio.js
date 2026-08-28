@@ -428,8 +428,10 @@ export function tollBell() {
 
 // How much of the aggressive cues survives calm mode. Not silence: calm turns
 // off the assault — the faces, the blood, the buzzing — and keeps the
-// information, because a player who cannot see the pack still has to hear that
-// there is one. The same policy the scare sting has always followed.
+// information, because a player who cannot see what is coming still has to
+// hear that something is. The same policy the scare sting has always followed.
+// (Said "the pack" until #92: there is no pack now, one creature at one of four
+// strengths, so the cue announces a thing rather than a number of them.)
 
 function bite() {
   return 1;
