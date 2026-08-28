@@ -6,7 +6,7 @@
 // "it exists and it does not hang" — a test that pinned the placeholder art
 // would have to be deleted by the change it is supposed to be protecting.
 
-import { test, assert, eq, suite } from "./harness.js";
+import { test, assert, eq, skipUnless, suite } from "./harness.js";
 import {
   eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   resetStageHints,
@@ -17,7 +17,7 @@ import { Game } from "../js/app.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "cef2744e");
+suite(import.meta.url, "1263365f");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -1231,7 +1231,13 @@ test("reveal: tile-sized, no frame, and the edges reach transparent (#97)", seri
     probe.style.width = "var(--tile)";
     pane.appendChild(probe);
     const tile = parseFloat(getComputedStyle(probe).width);
-    assert(tile > 0, "--tile did not resolve, so this test cannot check the size");
+    // SKIP, NOT FAIL (#98). --tile is a clamp on 28vh, so it resolves to
+    // nothing in a pane with a zero-height window. This test then has no panel
+    // to measure against — it did not run, and a run that did not happen is
+    // neither a pass nor a failure.
+    skipUnless(tile > 0,
+      "--tile resolved to nothing: this window has zero height, so there is no " +
+      "panel to measure. Not a fault in the stage — run it in a real viewport.");
     const w = parseFloat(cs.width), h = parseFloat(cs.height);
     assert(Math.abs(w - tile) <= 1 && Math.abs(h - tile) <= 1,
       `the reveal is ${Math.round(w)}x${Math.round(h)} against a ${Math.round(tile)}px ` +
@@ -1554,7 +1560,12 @@ test("scenes: 中毒, -1 and +1 each have a subject, and it is their own (#90)",
       // which is why this reduces to a width against the opaque fraction.
       const pw = parseFloat(getComputedStyle(el).width);
       const aw = parseFloat(getComputedStyle(artNode).width);
-      assert(pw > 0 && aw > 0, kind + ": could not measure the subject against the panel");
+      // SKIP, NOT FAIL (#98). Same cause as the reveal test: with a zero-height
+      // window the panel and the subject both measure zero and there is nothing
+      // to compare.
+      skipUnless(pw > 0 && aw > 0,
+        kind + ": panel and subject both measure zero — this window has no size, " +
+        "so the comparison cannot run. Not a fault in the stage.");
       assert(aw <= pw * (opaquePct / 100),
         `${kind}'s subject is ${Math.round(aw)}px in a ${Math.round(pw)}px panel, outside ` +
         `the mask's ${opaquePct}% opaque radius — its edges are being faded away`);

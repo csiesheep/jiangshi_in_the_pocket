@@ -18,7 +18,7 @@
 // Stamped by tools/record_shell.py from harness.js's own blob hash, so nobody
 // has to remember to change it. Set by hand it still works — forgetting only
 // costs the protection, it cannot produce a wrong answer.
-export const HARNESS_ID = "29fc8a83";
+export const HARNESS_ID = "3a7a116b";
 
 // Pulled out so both directions can be tested without a network.
 // Anchored to the DECLARATION line, and that is load-bearing rather than tidy:
@@ -137,6 +137,8 @@ export function test(name, fn) {
       const entry = { name, ok: true };
       results.push(entry);
       settling.push(out.then(null, (err) => {
+        const why = asSkip(err);
+        if (why) { entry.skipped = why; return; }
         entry.ok = false;
         entry.err = err instanceof Error ? err : new Error(String(err));
       }));
@@ -144,8 +146,47 @@ export function test(name, fn) {
     }
     results.push({ name, ok: true });
   } catch (err) {
-    results.push({ name, ok: false, err });
+    const why = asSkip(err);
+    if (why) results.push({ name, ok: true, skipped: why });
+    else results.push({ name, ok: false, err });
   }
+}
+
+// A TEST THAT COULD NOT RUN IS NOT A TEST THAT PASSED (#98).
+//
+// Two stage tests measure a subject against a panel sized by var(--tile),
+// which is clamp(96px, 28vh, 285px). In a browser pane that never composites,
+// innerWidth and innerHeight are 0, --tile resolves to the empty string, and
+// those tests correctly refused to pass vacuously — so they FAILED. Green
+// therefore depended on the verifier's window: green for a reviewer with a
+// pane, red for one without, on identical bytes.
+//
+// Failing was the right instinct and the wrong state. The danger is not one
+// phantom chased; it is FAIL (2) becoming the expected reading, with a real
+// third failure hiding inside it. This project already has one standing red
+// everybody skims past — the shell digest — and two is where that becomes a
+// habit.
+//
+// So: skipped tests are counted, listed, and named in the title. They are NOT
+// added to the pass count, because "PASS (330)" must never include something
+// nobody checked. The reason is mandatory and should name the CAUSE — a
+// zero-width window — so the next person does not go debugging the stage.
+// Thrown, not pushed. A test body cannot register its own result — test() has
+// already decided to record one by the time the body runs — so the skip is a
+// marked throw that the runner converts. That also makes it work identically in
+// an async body, where the only channel out is a rejection.
+const SKIPPED = "__skipped__";
+
+export function skipUnless(cond, reason) {
+  if (cond) return;
+  if (!reason) throw new Error("skipUnless needs a reason naming the cause");
+  const e = new Error(reason);
+  e[SKIPPED] = true;
+  throw e;
+}
+
+function asSkip(err) {
+  return err && err[SKIPPED] ? String(err.message) : null;
 }
 
 export function assert(cond, msg = "assertion failed") {
@@ -206,10 +247,14 @@ export async function report(suites = []) {
   // Nothing is counted until every async body has settled.
   await Promise.all(settling);
 
-  const passed = results.filter((r) => r.ok).length;
-  const failed = results.length - passed;
+  // Skips are their own state. Counted out of `passed` deliberately: a run that
+  // says "PASS (330)" must not be including tests nobody executed.
+  const skipped = results.filter((r) => r.skipped).length;
+  const passed = results.filter((r) => r.ok && !r.skipped).length;
+  const failed = results.length - passed - skipped;
 
-  const summary = `TESTS: ${passed} passed, ${failed} failed`;
+  const summary = `TESTS: ${passed} passed, ${failed} failed` +
+    (skipped ? `, ${skipped} skipped` : "");
   console.log(summary);
 
   // Is this harness itself the one on disk? Asked first, because if it is not
@@ -272,7 +317,8 @@ export async function report(suites = []) {
     }
   }
   for (const r of results) {
-    if (r.ok) console.log(`  ok  ${r.name}`);
+    if (r.skipped) console.warn(`SKIP  ${r.name} — ${r.skipped}`);
+    else if (r.ok) console.log(`  ok  ${r.name}`);
     else console.error(`FAIL  ${r.name}\n      ${r.err.message}`);
   }
 
@@ -281,7 +327,7 @@ export async function report(suites = []) {
        : stale.kind === "suite" ? "STALE SUITE"
        : `STALE (${results.length}/${stale.expected})`)
     : failed === 0
-      ? `PASS (${passed})`
+      ? (skipped ? `PASS (${passed}) ${skipped} SKIPPED` : `PASS (${passed})`)
       : `FAIL (${failed})`;
 
   // The test page loads no stylesheet — it is deliberately standalone — so these
