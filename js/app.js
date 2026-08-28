@@ -391,12 +391,13 @@ export class Game {
       : ev.t === "HP" ? (ev.hp > 0 ? "mend" : "hurt")
       : null;
     if (!kind) return wait(EVENT_BEAT_MS);
-    // reveal-go, not stage-skip. The panel no longer offers to be SKIPPED, it
-    // has to be dismissed, and "press anything to go on" describes an
-    // affordance that stopped existing. Both panels now announce the same
-    // action because it is the same action, so it is one string. stage-skip is
-    // left in the theme unused.
-    return eventStage(kind, { n: ev.n, hp: ev.hp, label: this.ui("reveal-go") });
+    // The panel names itself and writes its own hint, both from reveal-go, so
+    // neither is passed from here. stage-skip's "press anything to go on"
+    // described SKIPPING, which stopped existing when the panel started
+    // waiting. It is left in the theme, unused: a guard asserts the key exists
+    // in both languages and that they differ, so renaming it to mark it dead
+    // would break a test in order to add a comment.
+    return eventStage(kind, { n: ev.n, hp: ev.hp });
   }
 
   async eventBeat() {

@@ -110,6 +110,17 @@ export function ghostIcon(kind, id, cls) {
 
 // Interface icons for anything outside the board — the sprite builder itself
 // stays private.
+// A UI string without being handed the game, for the same reason `drawing`
+// exists: a leaf that builds one attribute should not have the run threaded
+// down through six layers to reach it. The fallback is for a caller that runs
+// before any HUD has been drawn -- the suite, in practice -- and it is a last
+// resort rather than a translation: an accessible name in the wrong language is
+// bad, and no accessible name at all on a control that stops the game is worse.
+export function uiText(key, fallback) {
+  if (!drawing) return fallback != null ? fallback : key;
+  return ui(drawing, key);
+}
+
 export function uiIcon(name, cls) {
   return icon("ui", name, cls);
 }
@@ -2122,6 +2133,27 @@ export function revealPanel(game, opts, onDone) {
   nameEl.textContent = name;
   el.appendChild(nameEl);
 
+  // 武器顯示攻擊力 (#92). The number the decision is actually made on: a player
+  // holding a 1 and finding a 3 should not have to remember which is which, and
+  // the drop dialog already asks them to choose between pictures.
+  //
+  // Taken from the SAME PLACE the pack tooltip and the replace prompt take it,
+  // through itemEffect, rather than reading def.attack and formatting it here.
+  // That is what keeps 攻擊力 3 and "attack 3" the same fact rather than two
+  // strings that agree until one of them is edited. It follows the same split
+  // the rest of the game uses: a weapon IS its attack, a talisman fights AT
+  // one, and the theme keeps separate wording for each.
+  const def = id ? (game.state.itemsById || {})[id] : null;
+  if (def && def.attack != null) {
+    const stat = document.createElement("p");
+    stat.className = "revealstat";
+    stat.textContent = fill(
+      ((game.data.theme.effects || {})[def.cat === "weapon" ? "weapon-attack"
+                                                           : "talisman-attack"]) || "",
+      { n: def.attack });
+    if (stat.textContent) el.appendChild(stat);
+  }
+
   if (blurb) {
     const b = document.createElement("p");
     b.className = "revealblurb";
@@ -2158,14 +2190,28 @@ export function revealPanel(game, opts, onDone) {
   window.addEventListener("keydown", onKey, true);
   el.addEventListener("click", onClick);
 
-  // NO VISIBLE HINT (#91). It was shown for the first couple of reveals of a
-  // run on the stage's policy; ruled away. The panel is tile-sized, sits over
-  // the room and stops the game, and that is taken to be signal enough.
+  // THE HINT, BACK (#92), on the rule it always had: twice a run and then not
+  // again. It was removed for an hour by "don't show tap to continue" and
+  // restored by "好吧 加上 Tap to continue" -- the words were asked for back,
+  // the POLICY was never overturned, so the twice-per-run machinery is
+  // unretired rather than replaced by something permanent. Furniture in the
+  // middle of the board thirty times a night is still worse than a hint that
+  // teaches and stops.
   //
-  // THE ACCESSIBLE NAME STAYS. It is not decoration: it is the only thing that
-  // tells a screen reader user a tap is owed, and there is no timer behind this
-  // to rescue them if they never find out. revealHintsLeft and resetRevealHint
-  // now have nothing to do and are reported as unused rather than deleted.
+  // IT IS NOT THE ACCESSIBLE NAME, and the two must not be wired together
+  // however identical the words are. They were briefly the same string, and
+  // switching the visible one off took the name with it: a blocking button that
+  // announced nothing. The name is set above, unconditionally, from the same
+  // key and by its own line.
+  if (revealHintsLeft > 0) {
+    revealHintsLeft--;
+    const hint = document.createElement("p");
+    hint.className = "revealhint";
+    hint.textContent = ui(game, "reveal-go");
+    // Said once, not twice: the panel's own name already carries these words.
+    hint.setAttribute("aria-hidden", "true");
+    el.appendChild(hint);
+  }
 
   pane.appendChild(el);
   revealDone = done;

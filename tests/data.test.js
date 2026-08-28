@@ -543,9 +543,14 @@ test("rulebook: the English page is English everywhere except the Terms table", 
   const body = rulebookHtml.slice(rulebookHtml.indexOf("<main"), rulebookHtml.indexOf("</main>"));
   const cut = body.indexOf('id="terms"');
   assert(cut > 0, "the English page has no Terms table to make the exception for");
-  // Terms is the deliberate exception and the only one: the game's own English
-  // labels are bilingual pairs, so a bridge between the scripts lives in exactly
-  // one place rather than scattered through the prose.
+  // Terms is the deliberate exception and the only one. THE REASON CHANGED on
+  // 2026-08-27 and the exception did not: it used to be that the game's own
+  // English labels were bilingual pairs, so the page needed one bridge rather
+  // than a gloss in every sentence. "In English mode, remove all traditional
+  // Chinese" ended the pairs, and the user then ruled 保留表 — keep the table.
+  // So the table is no longer a bridge to something the player sees elsewhere;
+  // it is the only place these words exist in English mode at all, which is a
+  // better reason to keep it than the one it had.
   const han = hanRuns(visibleText(body.slice(0, cut)));
   eq(han, [], "Han characters in English prose: " + han.join(" "));
 });
@@ -586,8 +591,15 @@ test("rulebook: every item icon sits in the row it names", () => {
       assert(host, lang + ": icon " + id + " is loose in " +
         svg.parentElement.tagName + "." + svg.parentElement.className +
         " — beside the table rather than in it");
+      // THE ENGLISH NAME IS THE WHOLE LABEL NOW. This used to drop the first
+      // token, because every English name was "漢字 English" and the gloss was
+      // the half that mattered. That convention was reversed on 2026-08-27 --
+      // "In English mode, remove all traditional Chinese" -- so slicing the
+      // first word off "Cinnabar" left an empty string and this failed with
+      // "no themed name for cinnabar". The Chinese file was always Chinese
+      // only, so its side is unchanged.
       const label = theme.items[id] || "";
-      const name = english ? label.split(" ").slice(1).join(" ") : label.split(" ")[0];
+      const name = english ? label : label.split(" ")[0];
       assert(name, lang + ": no themed name for " + id);
       assert(host.textContent.includes(name),
         lang + ": icon " + id + " sits with " + host.textContent.trim().slice(0, 30) +
@@ -612,7 +624,11 @@ test("rulebook: pulling every icon out would lose no information", () => {
     for (const id of Object.keys(theme.items)) {
       if (id === "_note") continue;
       const label = theme.items[id];
-      const name = english ? label.split(" ").slice(1).join(" ") : label.split(" ")[0];
+      // Same inversion as the guard above: since 2026-08-27 the English name is
+      // the WHOLE label, because the Chinese half was ruled out of the English
+      // build. Two tests derived this the old way and only one of them was the
+      // one that went red first.
+      const name = english ? label : label.split(" ")[0];
       assert(text.includes(name), lang + ": " + name + " survives only as a picture");
     }
   }

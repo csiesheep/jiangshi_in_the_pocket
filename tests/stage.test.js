@@ -11,7 +11,7 @@ import {
   eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   resetStageHints,
 } from "../js/eventstage.js";
-import { ghostIcon, revealPanel } from "../js/render.js";
+import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET } from "../js/render.js";
 import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
@@ -204,7 +204,8 @@ test("stage: modified keys are not a skip", serial(async () => {
 
 test("stage: the layer announces the action, not the scene (#91)", serial(async () => {
   {
-    const p = eventStage("poison", { label: "Tap to continue" });
+    resetStageHints();
+    const p = eventStage("poison", {});
     await new Promise((r) => setTimeout(r, 30));
     const el = document.querySelector(".evstage");
     assert(el, "the stage never mounted");
@@ -225,12 +226,36 @@ test("stage: the layer announces the action, not the scene (#91)", serial(async 
     eq(el.getAttribute("role"), "button", "the blocking panel is not a control");
     eq(el.getAttribute("aria-label"), "Tap to continue",
       "the panel does not say what it wants");
-    // And still not the scene: the label is the only text it carries.
-    eq(el.textContent.replace(/\s+/g, ""), "",
-      "the panel draws text — the beat belongs in the log, and the hint was ruled away");
+
     tap();
     await p;
+
+    // THE NAME IS NOT THE HINT, and this is what would have caught the defect
+    // that shipped: for a few hours the name was a parameter, and a caller that
+    // did not pass it produced a blocking button announcing nothing.
+    //
+    // Proved by SPENDING the hint budget rather than by assuming it is spent —
+    // relying on an earlier test to have used it up would make this pass or
+    // fail on the order tests happen to run in. With no visible line left, the
+    // panel must still say what it wants.
+    for (let i = 0; i < HINT_BUDGET; i++) {
+      const q = eventStage("nothing", {});
+      await new Promise((r) => setTimeout(r, 25));
+      tap();
+      await q;
+    }
+    const bare = eventStage("nothing", {});
+    await new Promise((r) => setTimeout(r, 25));
+    const el2 = document.querySelector(".evstage");
+    assert(!el2.querySelector(".evstage-hint"),
+      "the hint budget did not run out, so this cannot show the name stands alone");
+    eq(el2.getAttribute("aria-label"), "Tap to continue",
+      "with the visible hint gone the panel announces nothing — the name is being " +
+      "derived from the hint again, which is exactly the defect this replaced");
+    tap();
+    await bare;
   }
+  resetStageHints();
 }));
 
 test("stage: never stacks", serial(async () => {
@@ -248,28 +273,34 @@ test("stage: never stacks", serial(async () => {
 
 // ---- The hint ------------------------------------------------------------------
 
-test("stage: no visible hint, ever (#91)", serial(async () => {
-  // RULED: "don't show tap to continue", on both panels. The hint used to teach
-  // twice a run and then stop; now it never appears, and the panel is expected
-  // to teach itself by being large, over the room, and in the way.
+test("stage: the hint teaches twice a run and then stops (#92)", serial(async () => {
+  // REMOVED FOR AN HOUR AND RULED BACK: "don't show tap to continue", then
+  // "好吧 加上 Tap to continue". What came back is the WORDS. The twice-per-run
+  // policy was never overturned by either ruling, so it is the old machinery
+  // unretired rather than something new that shows the line every time —
+  // furniture in the middle of the board thirty times a night is still worse
+  // than a hint that teaches and stops.
   //
-  // Asserted across four events rather than one, because the thing being
-  // removed was COUNTED: a budget that had run out would look identical to a
-  // hint that was never built, and the old behaviour showed it on the first two
-  // only. If any of these four draws one, the counter is back.
+  // Four events rather than two, because the thing being checked is COUNTED and
+  // the interesting half is that it STOPS.
   resetStageHints();
   {
     const seen = [];
     for (let i = 0; i < 4; i++) {
-      const p = eventStage("nothing", { label: "Tap to continue", skipHint: "press anything" });
+      const p = eventStage("nothing", {});
       await new Promise((r) => setTimeout(r, 25));
       const el = document.querySelector(".evstage");
-      seen.push(!!(el && el.querySelector(".evstage-hint")));
+      const hint = el && el.querySelector(".evstage-hint");
+      seen.push(!!hint);
+      // The hint is DECORATION: the panel's own name already says these words,
+      // so a screen reader must not hear them twice.
+      if (hint) eq(hint.getAttribute("aria-hidden"), "true",
+        "the hint is announced as well as the panel's name — the same words twice");
       tap();
       await p;
     }
-    eq(seen, [false, false, false, false],
-      "a skip hint was drawn — the ruling is that neither panel shows one");
+    eq(seen, [true, true, false, false],
+      "the hint should teach twice and then stop being furniture");
   }
   resetStageHints();
 }));

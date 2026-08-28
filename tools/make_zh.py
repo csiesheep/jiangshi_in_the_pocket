@@ -35,16 +35,34 @@ o["tagline"] = "夜裡九點。三更時分，他來找你。"
 o["words"] = {"monsters": "殭屍", "relic": "神主牌"}
 
 # ---- The nouns ---------------------------------------------------------------
-# Every name already carries its Chinese form followed by an English gloss; the
-# gloss exists so an English player gets the flavour. In Chinese it is the same
-# word twice, so it goes.
+# BROKEN ON PURPOSE, 2026-08-27, AND LEFT THAT WAY LOUDLY.
+#
+# This used to read: "Every name already carries its Chinese form followed by an
+# English gloss; the gloss exists so an English player gets the flavour. In
+# Chinese it is the same word twice, so it goes." That was true and it is not
+# true any more. The ruling "In English mode, remove all traditional Chinese"
+# took the Chinese OUT of the English theme, so there is no longer a Chinese
+# form in there to keep and an English gloss to drop.
+#
+# THE DIRECTION OF DERIVATION INVERTED. The English file was the source and the
+# Chinese names were struck from it; now the Chinese file is the only place
+# those names exist. Running this today would have taken "Cinnabar" and produced
+# "Cinnabar" as the Chinese name for 硃砂 -- not a crash, not an empty string,
+# just thirteen English item names quietly written into the Chinese theme.
+#
+# So it raises instead. The header already said this file is not the source of
+# truth and is 59 keys behind; this is the point at which that stopped being a
+# caveat and became a fact that will corrupt the file it writes.
 def strip_gloss(section):
-    out = collections.OrderedDict()
-    for k, v in en[section].items():
-        if k == "_note" or not isinstance(v, str):
-            continue
-        out[k] = v.split(" ")[0]
-    return out
+    NL = chr(10)
+    raise SystemExit(NL.join([
+        "make_zh.py cannot build " + section + " any more.",
+        "The English theme no longer carries Chinese names to strip a gloss from,",
+        "so this would copy English names into the Chinese file without failing.",
+        "The Chinese theme is now the SOURCE for names, not the derivative: edit",
+        "data/theme.zh-TW.json directly, and rewrite this script the other way",
+        "round if a generator is wanted again.",
+    ]))
 
 for section in ["tiles", "items", "categories", "eventNames", "actions", "setting"]:
     o[section] = strip_gloss(section)

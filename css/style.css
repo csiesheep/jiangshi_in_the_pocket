@@ -4550,6 +4550,18 @@ body.asleep .fog {
   line-height: 1.25;
   color: var(--text);
 }
+/* The attack value (#92). Set apart from the description rather than folded
+   into it: it is the number the choice is made on, and prose is the wrong
+   register for a number a player is comparing against the one in their hand. */
+.revealstat {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: max(11px, calc(var(--tile) * .062));
+  letter-spacing: .04em;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.reveal--relic .revealstat { color: var(--film-moon); }
 .revealblurb {
   margin: 0;
   max-width: 24ch;

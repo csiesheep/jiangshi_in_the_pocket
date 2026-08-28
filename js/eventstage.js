@@ -43,7 +43,7 @@
 // see the note on skipping.
 
 import { enterScene, leaveScene, icon, reducedMotion, grain,
-         clearRevealPanel, HINT_TIMES } from "./render.js";
+         clearRevealPanel, HINT_TIMES, uiText } from "./render.js";
 
 // The beat the stage is replacing. Kept here as its own name rather than
 // imported from app.js so the arithmetic in the header can be checked against
@@ -135,8 +135,6 @@ export function eventStage(kind, opts = {}) {
     build: (inner, ctx) => scene(inner, ctx),
     ctx: { ...opts, reduced },
     budget, reduced,
-    // The name it announces, not a line it draws. See runStage.
-    label: opts.label,
     // A scene that throws still owes the caller the beat it was pacing on.
     onBuildError: () => wait(BEAT_MS),
   });
@@ -221,7 +219,7 @@ function buildKing(inner, ctx) {
 // by the King. Extracted rather than copied: a second copy of the skip handling
 // is a second place for a listener to leak, and the whole reason skipping is
 // safe is a property of this function rather than of any scene.
-function runStage({ cls, build, ctx, budget, reduced, label, onBuildError, onTile, awaitTap }) {
+function runStage({ cls, build, ctx, budget, reduced, onBuildError, onTile, awaitTap }) {
   return new Promise((resolve) => {
     // Never stack. A fight can follow a rite in the same turn and each would
     // otherwise leave its own full-screen layer behind — the same rule the
@@ -255,7 +253,18 @@ function runStage({ cls, build, ctx, budget, reduced, label, onBuildError, onTil
       // the same way and for the same reason.
       el.setAttribute("role", "button");
       el.setAttribute("tabindex", "0");
-      if (label) el.setAttribute("aria-label", label);
+      // THE NAME IS NOT A PARAMETER, and that is the fix rather than a tidy-up.
+      // It arrived as one for a few hours, and a caller that did not pass it
+      // got a BLOCKING BUTTON ANNOUNCING NOTHING: a screen reader user tabs to
+      // it, hears "button", and has no way to learn the night has stopped until
+      // they press it. Worse than what it replaced, because the timed version
+      // at least carried on by itself.
+      //
+      // A VISIBLE HINT AND AN ACCESSIBLE NAME ARE DIFFERENT THINGS that happen
+      // to say the same words. Deriving one from the other is what produced
+      // that button: the hint was switched off and took the name with it. There
+      // is deliberately nothing here for a caller to forget.
+      el.setAttribute("aria-label", uiText("reveal-go", "Tap to continue"));
     } else {
       el.setAttribute("aria-hidden", "true");
     }
@@ -274,11 +283,25 @@ function runStage({ cls, build, ctx, budget, reduced, label, onBuildError, onTil
       return resolve(onBuildError ? onBuildError() : undefined);
     }
 
-    // NO VISIBLE HINT. Ruled: the panels teach themselves. Both are large, sit
-    // over the room and stop the game, and that is judged to be enough of a
-    // signal without a line of text saying so. hintsLeft and resetStageHints
-    // are left standing with nothing to decrement; they are reported as unused
-    // rather than deleted, because "unreachable today" is a fact about today.
+    // THE HINT, BACK (#92) and on the rule it always had: twice a run, then
+    // never again. The words were ruled back; the twice-per-run POLICY was
+    // never overturned, so this machinery is unretired rather than replaced.
+    //
+    // It reads the theme itself rather than taking a string from the caller.
+    // skipHint used to arrive from app.js and said "press anything to go on",
+    // which described SKIPPING -- an affordance that stopped existing when the
+    // panel started waiting. It says the same thing the panel is named now,
+    // from the same key, by its own line: two things that agree rather than one
+    // thing doing two jobs.
+    if (awaitTap && hintsLeft > 0) {
+      hintsLeft--;
+      const hint = document.createElement("p");
+      hint.className = "evstage-hint";
+      hint.textContent = uiText("reveal-go", "Tap to continue");
+      // Said once, not twice: the panel's own name already carries these words.
+      hint.setAttribute("aria-hidden", "true");
+      el.appendChild(hint);
+    }
 
     // The letterbox is a FULL-SCREEN device — bars across the top and bottom of
     // the window — so a panel that only covers the tile does not raise it. The
