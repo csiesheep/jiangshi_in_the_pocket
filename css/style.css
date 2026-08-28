@@ -5233,14 +5233,29 @@ body.asleep .fog {
   padding: 18px 18px 16px;
   border: 0;
   border-radius: 0;
-  /* No frame and no radius: the same wash the reveal and the creature panel
-     use, reaching transparent before the box's own edge, so there is no drawn
-     boundary to round. */
-  background: radial-gradient(120% 100% at 50% 40%,
-    color-mix(in srgb, var(--film-ink) 92%, transparent) 0%,
-    color-mix(in srgb, var(--film-ink) 88%, transparent) 52%,
-    color-mix(in srgb, var(--film-ink) 70%, transparent) 78%,
-    transparent 100%);
+  /* No frame, no radius, AND THE FADE HAS TO LAND INSIDE THE BOX. The first
+     version of this reached transparent at 100% of a gradient whose ending
+     shape was 120% of the width, so the left and right edges sat at 50/120 =
+     42% along it — still almost solid ink. Removing a border does not remove a
+     box; the fade has to finish before the edge or the rectangle is still
+     drawn, in ink instead of in cream.
+
+     NOT var(--tile-edge), and not a mask, for two reasons the codebase already
+     records. --tile-edge is a CIRCLE sized for a square tile and this panel is
+     wider than it is tall, so it would cut the sides while over-fading the top.
+     And the note beside it warns that masking an element fades its focus ring —
+     which matters more here than on the reveal, because this panel is full of
+     controls and the way out is a full-width button at the bottom edge.
+
+     So the ground fades and the element does not: an ellipse whose radii are
+     small enough that the mid-edges land past the last stop. 74% horizontal
+     puts the left edge at 50/74 = 68% along, inside the 60-76% falloff, and the
+     corners past it entirely. */
+  background: radial-gradient(ellipse 74% 82% at 50% 45%,
+    color-mix(in srgb, var(--film-ink) 94%, transparent) 0%,
+    color-mix(in srgb, var(--film-ink) 90%, transparent) 42%,
+    color-mix(in srgb, var(--film-ink) 66%, transparent) 60%,
+    transparent 76%);
   color: var(--text);
   font-family: var(--font-head);
 }

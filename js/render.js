@@ -2387,6 +2387,17 @@ export function showDropDialog(game, foundId, opts = {}) {
   detailEffect.className = "dropdetaileffect";
   detail.appendChild(detailName);
   detail.appendChild(detailEffect);
+  // IT OPENS SAYING WHAT YOU ARE DECIDING FOR. The storey is reserved either
+  // way, so an empty default spent a sixth of a panel the user had just asked
+  // to be smaller on nothing. The find is otherwise only a picture — the words
+  // naming it were what #98 cut as duplication of the reveal — so this is where
+  // they earn their place back: not restating the reveal, but standing as the
+  // other half of the comparison every cell is being weighed against.
+  const restoreFound = () => {
+    detailName.textContent = itemName(game, foundId);
+    detailEffect.textContent = itemEffect(game, foundId) || "";
+  };
+  restoreFound();
 
   // 點兩下 — 先顯示，再確認 (#98). WHICH CELL IS ARMED, held for the whole
   // dialog rather than per cell, because arming one has to disarm the others
@@ -2398,6 +2409,9 @@ export function showDropDialog(game, foundId, opts = {}) {
     const face = armed.querySelector(".cellface");
     if (face) face.setAttribute("aria-pressed", "false");
     armed = null;
+    // Back to the find, so the storey never goes blank and never keeps naming
+    // an item that is no longer the one under consideration.
+    restoreFound();
   };
 
   const list = document.createElement("div");
@@ -2469,35 +2483,50 @@ export function showDropDialog(game, foundId, opts = {}) {
       detailName.textContent = say;
       detailEffect.textContent = effect || "";
     };
+    // HOVER AND FOCUS REVEAL. THEY DO NOT ARM, and that distinction is the
+    // safety property rather than a detail of it.
+    //
+    // I built the other version first — hover arms, so on a pointer device the
+    // click finds the cell already armed and desktop keeps its single click. It
+    // measured correctly on every case I had written down and it was still
+    // wrong. HOVER IS NOT AN INTENTIONAL ACT: you hover things by moving the
+    // cursor across them on the way somewhere else, so a confirm satisfied by
+    // hovering is not a confirm. That design reproduced one-click destruction
+    // on desktop while looking like it had fixed it.
+    const arm = () => {
+      if (armed === cell) return;
+      disarm();
+      armed = cell;
+      cell.classList.add("dropcell--armed");
+      btn.setAttribute("aria-pressed", "true");
+      show();
+    };
     btn.addEventListener("mouseenter", show);
     btn.addEventListener("focus", show);
 
-    // 點兩下 — 先顯示，再確認. The user's ruling, and the reason is that this is
-    // irreversible: one tap used to give the item up, so a touch player had no
-    // way to read what something did before losing it. The sidebar has said for
-    // a long time that a tap must REVEAL rather than act; this dialog was the
-    // one place that acted.
+    // 點兩下 — 先顯示，再確認. The user's ruling, and the reason it holds on
+    // EVERY input device rather than only on touch is that this control
+    // DESTROYS SOMETHING THE PLAYER CANNOT GET BACK. An arm-then-confirm on an
+    // irreversible action is a safety property, not a touch affordance, and it
+    // is worth one extra click on any device. Touch is what made the gap
+    // visible — there is no hover on a phone, so a player had no way at all to
+    // read an item before losing it — but it was never the whole of it. The
+    // sidebar has said for a long time that a tap must REVEAL rather than act;
+    // this dialog was the one place that acted.
     //
     // A SECOND TAP ON THE SAME CELL COMMITS. A tap on a DIFFERENT cell moves
     // the arming rather than committing, so a mis-aim costs nothing — which is
     // the case worth being careful about and the reason this is compared
     // against the CELL rather than against a boolean.
     //
-    // This applies to the mouse too, and that is a deliberate reading of 點兩下
-    // rather than an oversight. Branching on pointerType would make one element
-    // behave two ways by device, which is a trap for whoever tests it next; and
-    // on a pointer device the 先顯示 half has already happened on hover, so the
-    // two clicks read as arm-then-confirm rather than as two reveals.
+    // NOT BRANCHED ON POINTER CAPABILITY, and the testing argument is the
+    // smaller half of why. A second flow taken only on hardware the suite is
+    // not running on is a branch no guard can reach. The larger half is that
+    // there is nothing about owning a mouse that makes destroying an item
+    // safer.
     btn.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      if (armed !== cell) {
-        disarm();
-        armed = cell;
-        cell.classList.add("dropcell--armed");
-        btn.setAttribute("aria-pressed", "true");
-        show();
-        return;
-      }
+      if (armed !== cell) { arm(); return; }
       done();
       // A stack shares one slot, so dropping one of three frees nothing. Put
       // the whole stack down, then take the find through the ordinary door.
