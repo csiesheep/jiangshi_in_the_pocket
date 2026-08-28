@@ -125,6 +125,14 @@
     "golden-elixir": "這種丹，有一半是懂行的人煉的。",
     "protective-charm": "縫死了貼身戴著。每一下都先由它挨。"
   },
+
+    "creatures": {
+      "turned": "你沒有給它糯米。它不再問了。",
+    "n3": "它站在門口。門口現在是它的形狀。",
+      "n4": "她今晚沒有碰過地。她從來不需要。",
+      "n5": "你還沒決定完，他已經走完整個房間。",
+      "n6": "它沒有動。距離自己不見了。"
+    },
   "events": {
     "JIANGSHI": {
       "9": "暗處有東西直起身子，跳了一下。",
@@ -263,6 +271,7 @@
     "next-turn": "下一回合",
     "next-turn-sub": "六分鐘",
     "quiet-prompt": "房裡很安靜。",
+    "creature-attack": "攻擊力 {n}",
     "fight-prompt": "攻擊力{n}。",
     "fight-with": "用{item}打",
     "fight-bare": "空手迎上去",

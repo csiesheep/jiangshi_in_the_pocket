@@ -30,6 +30,9 @@ import {
   renderHud,
   renderBoard,
   renderActions,
+  creaturePanel,
+  clearCreaturePanel,
+  reducedMotion,
   clearChoices,
   darkDoorBeat,
   settleDust,
@@ -672,12 +675,22 @@ export class Game {
       // fixing this: the King's room stays quiet on purpose, and it can only
       // mean something once every other room stops being quiet by accident.
       const close = () => {
+        // The creature panel goes here for the same reason unduck() does: there
+        // are six exits from this window and a teardown remembered at each one
+        // is a teardown missed at the next. Its lifecycle is "until the fight
+        // resolves", and this closure IS that moment.
+        clearCreaturePanel();
         unduck();
         resolve();
       };
 
       jumpScare(n, { from: opts.from || null }).then(() => {
         if (this.state.status !== "playing") return close();
+        // What you are looking at while you choose. Raised HERE rather than in
+        // the event stage because every route into a fight funnels through this
+        // function — a jiangshi event, the breach, and both villager paths — so
+        // the two encounters are the same encounter by construction.
+        creaturePanel(n, { turnedFrom: opts.turnedFrom, reduced: reducedMotion() });
         this.paintFight(n, opts, close);
       });
     });
@@ -818,7 +831,18 @@ export class Game {
     // `health` is what marks a card lethal, and it is read here rather than
     // baked in above: it can move mid-window, and a card that would kill you
     // has to say so at the moment you are looking at it.
-    renderActions(acts, this.ui("fight-prompt", { n }), { pack: n, health: s.health });
+    // NO PACK ROW ON A FIGHT ANY MORE (#94 part 2): the creature is the panel
+    // above, at full size, and drawing it again at 22px in the header is the
+    // caption doubling the user caught when the event line moved.
+    //
+    // THE ATTACK IS STILL IN THIS PROMPT AND ALSO ON THE PANEL, and that is a
+    // known interim rather than an oversight: fight-prompt's new wording is
+    // with the user, who ruled the current one hours before #94 existed.
+    // NO PROMPT AND NO PACK ROW (#94). The creature panel above carries both
+    // the picture and the one text — the story sentence with its attack — and
+    // renderActions positions a prompt in the window header, which is a second
+    // element in a second place. One sentence, once.
+    renderActions(acts, "", { health: s.health });
   }
 
   async doFight(n, o, opts, done) {
@@ -943,7 +967,11 @@ export class Game {
 
     this.tell(t.refused || "");
     await wait(RESULT_BEAT_MS);
-    return this.fightBeat(res.n);
+    // The turn goes through so the panel can OPEN AS THE VILLAGER and change.
+    // It is the same value #93 picks which villager is standing there with, so
+    // the man who transforms is the man they just saw — deterministic by the
+    // same route, and not a second source of truth.
+    return this.fightBeat(res.n, { turnedFrom: this.state.turn });
   }
 
   askVillager(ev, t) {

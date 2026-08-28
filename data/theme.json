@@ -74,6 +74,7 @@
     "next-turn": "Next turn",
     "next-turn-sub": "six minutes",
     "quiet-prompt": "The room is quiet.",
+    "creature-attack": "Attack {n}",
     "fight-prompt": "Attack {n}.",
     "fight-with": "Fight with the {item}",
     "fight-bare": "Fight bare-handed",
@@ -268,6 +269,15 @@
     "golden-elixir": "Half of these were made by someone who knew what they were doing.",
     "protective-charm": "Sewn shut and worn against the skin. It takes the first of every blow."
   },
+
+    "creatures": {
+      "_note": "One line each, said on the creature panel while you choose. Each is the tier's identity from #92 stated as a FACT ABOUT THE THING rather than a description of it: 3 cannot be moved, 4 never lands, 5 crosses the room, 6 abolishes the distance. §9 binds — no threshold, no kit, and no numbers in the prose, because the number is on the panel beside them.",
+      "turned": "You did not give it the rice. It is not asking any more.",
+    "n3": "It is standing in the doorway. The doorway is its shape now.",
+      "n4": "She has not touched the ground tonight. She has never needed to.",
+      "n5": "He crossed the room before you finished deciding.",
+      "n6": "It has not moved. The distance closed anyway."
+    },
   "events": {
     "_note": "One line per event type per hour band, keyed the way events.json is: the `t` value, then 9 / 10 / 11. HP splits by the sign of `hp` — HP_LOSS is 損血, HP_GAIN is 回血 — because one line cannot serve both. The band is the register: nine o'clock is a house settling, eleven is a house with something in it.",
     "JIANGSHI": {

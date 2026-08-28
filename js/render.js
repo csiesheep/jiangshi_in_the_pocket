@@ -1808,8 +1808,21 @@ const FLEE_BEAT_MS = 240;
 // the next render back long enough for the player to see why the number moved.
 export function resolveBeat(opts = {}) {
   return new Promise((resolve) => {
-    const row = document.querySelector(".packrow");
-    const figs = row ? [...row.querySelectorAll(".packfig")] : [];
+    // WHERE THE ENEMY IS, and after #94 that is two different places. The
+    // creature panel holds it during a fight; the header row still holds the
+    // King at the midnight threshold, which is a different window that does not
+    // come through fightBeat and therefore has no panel.
+    //
+    // This used to read .packfig only, and the figures were not just the target
+    // — they were the GATE. The early return below is on `!figs.length`, so
+    // emptying that row would have taken the whole resolve beat with it, swing
+    // included, rather than merely leaving the swing without a containing
+    // block. Worth saying because it is not what it looks like from the CSS.
+    const panel = document.querySelector(".creature");
+    const row = panel || document.querySelector(".packrow");
+    const figs = row
+      ? [...row.querySelectorAll(panel ? ".creature-art" : ".packfig")]
+      : [];
     // No art, no Web Animations, no motion budget — every one of these skips
     // straight to the outcome rather than stranding the turn.
     if (reducedMotion() || !figs.length || typeof figs[0].animate !== "function") {
@@ -3477,6 +3490,110 @@ function packRow(subject) {
     : icon("scare", scareTier(subject).cls, "packfig");
   if (fig) row.appendChild(fig);
   return row;
+}
+
+// ---- The creature panel (#94) -------------------------------------------------
+// WHAT YOU ARE LOOKING AT WHILE YOU CHOOSE. It is raised in fightBeat rather
+// than in the event stage, and that is the load-bearing decision: every route
+// into a fight funnels there — a jiangshi event, the breach, and both villager
+// paths — so the villager encounter and the jiangshi encounter are the SAME
+// encounter by construction rather than two implementations kept in step.
+//
+// ITS LIFECYCLE IS NEW. Every other panel here times out or waits for one tap
+// and goes; this one stays up until the fight resolves. Its teardown lives in
+// fightBeat's close(), beside unduck(), for the reason that closure already
+// exists: there are six exits and a fix remembered at each one is a fix missed
+// at the next.
+//
+// AND IT IS NOT A CONTROL. No handler, no tabindex, pointer-events none in the
+// stylesheet. After #96 taught every panel in this game to want a tap, this one
+// has to visibly not want one, because the taps belong to the cards under it.
+const CREATURE_TIERS = { 3: "n3", 4: "n4", 5: "n5", 6: "n6" };
+const VILLAGERS_FOR_PANEL = ["villager-a", "villager-b", "villager-c"];
+
+export function clearCreaturePanel() {
+  for (const n of document.querySelectorAll(".creature")) n.remove();
+}
+
+// `turnedFrom` is the turn the villager was drawn on, or null. When it is set
+// the panel OPENS AS THE VILLAGER and he becomes the creature as it arrives —
+// which is the transformation, and it costs no beat because the panel has an
+// entrance either way. On this one path the entrance has a different first
+// frame. The turn is the same value #93 picks the villager with, so the man who
+// changes is the man they just saw, with no second source of truth.
+export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
+  clearCreaturePanel();
+  const host = document.querySelector(".board-pane");
+  if (!host) return null;
+  const tier = CREATURE_TIERS[Math.max(3, Math.min(Number(n) || 3, 6))];
+
+  const el = document.createElement("div");
+  el.className = "creature";
+  // NOT aria-hidden, and that is a consequence rather than a preference. This
+  // panel used to be able to hide itself because ui.fight-prompt said the same
+  // thing in the actions header; with the prompt gone the caption below is the
+  // ONLY statement of what is standing there, so hiding it would leave a
+  // screen-reader player with a list of cards and no enemy. The ART stays
+  // hidden — a picture of it adds nothing that the sentence does not say.
+
+  const ink = document.createElement("span");
+  ink.className = "creature-ink";
+  el.appendChild(ink);
+
+  const art = icon("scare", tier, "creature-art");
+  if (art) art.setAttribute("aria-hidden", "true");
+
+  // ONE TEXT, ONCE. 寫一句僵屍的故事,加上攻擊力 — the story and the number are a
+  // single caption under the creature, and they are ALSO the prompt: the fight
+  // window is given none, because renderActions positions a prompt in the
+  // window header, which is a different element in a different place. Two
+  // separately positioned texts saying the same thing is the caption fault the
+  // user caught when the event line moved onto the event panel.
+  const cap = document.createElement("div");
+  cap.className = "creature-cap";
+  const said = document.createElement("p");
+  said.className = "creature-said";
+  said.textContent = turnedFrom != null ? creatureLine("turned") : creatureLine(tier);
+  const atk = document.createElement("p");
+  atk.className = "creature-atk";
+  atk.textContent = uiText("creature-attack", `Attack ${n}`).replace("{n}", String(n));
+  cap.appendChild(said);
+  cap.appendChild(atk);
+
+  if (turnedFrom != null) {
+    const who = VILLAGERS_FOR_PANEL[(Number(turnedFrom) || 0) % VILLAGERS_FOR_PANEL.length];
+    const was = icon("scene", who, "creature-art");
+    if (was && art) {
+      el.appendChild(was);
+      el.appendChild(art);
+      if (!reduced) {
+        // He is small and it fills the panel, so the size difference is the
+        // effect rather than a problem: the thing gets bigger because it is no
+        // longer a person.
+        was.animate([{ opacity: 1, transform: "translate(-50%, -50%) scale(.62)" },
+                     { opacity: 0, transform: "translate(-50%, -50%) scale(1.02)" }],
+                    { duration: 380, easing: "cubic-bezier(.5,0,.75,0)", fill: "both" });
+        art.animate([{ opacity: 0, transform: "translate(-50%, -50%) scale(.72)" },
+                     { opacity: 1, transform: "translate(-50%, -50%) scale(1)" }],
+                    { duration: 380, delay: 120, easing: "cubic-bezier(.2,.7,.3,1)", fill: "both" });
+      } else {
+        was.remove();
+      }
+    } else if (art) {
+      el.appendChild(art);
+    }
+  } else if (art) {
+    el.appendChild(art);
+  }
+
+  el.appendChild(cap);
+  host.appendChild(el);
+  return el;
+}
+
+function creatureLine(tier) {
+  const t = (drawing && drawing.data && drawing.data.theme && drawing.data.theme.creatures) || {};
+  return t[tier] || "";
 }
 
 // The first nine actions get a number-key shortcut. One delegated listener,

@@ -3254,6 +3254,105 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
      would make him the pack, which is the one thing he is not. */
   animation: king-step 2.4s cubic-bezier(.33,.02,.4,1) both;
 }
+/* ---- The creature panel (#94) --------------------------------------------------
+   WHAT YOU ARE LOOKING AT WHILE YOU CHOOSE. Every other panel in this game
+   either times out or waits for one tap and goes; this one STAYS UP until the
+   fight resolves, which is a lifecycle nothing else here has.
+
+   It reuses .evstage--tile's geometry and its mask rather than writing a second
+   one: tile-sized, centred by margin, and faded to nothing at 80 percent by
+   --tile-edge, because #98 established that removing a border does not remove a
+   BOX and the answer was a mask.
+
+   IT IS NOT A CONTROL. pointer-events: none throughout, no tabindex, no
+   handler. After #96 taught every panel in the game to want a tap, this one has
+   to visibly not want one — the taps belong to the cards underneath it. */
+.creature {
+  position: absolute;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: var(--tile);
+  height: var(--tile);
+  margin-left: calc(var(--tile) / -2);
+  margin-top: calc(var(--tile) / -2);
+  /* BELOW THE ACTIONS WINDOW, which is z-index 5. Measured: the panel is
+     tile-sized and centred on the board, the actions pop is anchored to the
+     bottom of the pane, and on a 359px tile they overlap by 359 by 37 pixels.
+     At z 7 the panel was drawing its dark ground and its caption OVER the top
+     row of cards. pointer-events none meant the cards were still clickable,
+     which is the trap: it would have looked like a z-order choice rather than
+     a defect, because nothing was broken to the touch. */
+  z-index: 4;
+  pointer-events: none;
+  -webkit-mask-image: var(--tile-edge);
+  mask-image: var(--tile-edge);
+}
+/* The dark ground, and it never goes opaque: the tile stays faintly readable
+   underneath, which is what keeps the panel a thing ON the board rather than a
+   hole cut in it. */
+.creature-ink {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 48%,
+    color-mix(in srgb, var(--film-ink) 62%, transparent),
+    color-mix(in srgb, var(--film-ink) 88%, transparent) 78%);
+}
+.creature-art {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: calc(var(--tile) * .62);
+  height: calc(var(--tile) * .62);
+  transform: translate(-50%, -50%);
+  display: block;
+}
+/* The sentence and the number. Bottom of the panel, inside the mask's soft
+   edge so the text fades with everything else rather than sitting on top of a
+   fade in a hard rectangle of its own. */
+/* ONE CAPTION, not two texts. The story sentence and the attack are a single
+   block under the creature and they are ALSO the prompt: the fight window is
+   given none, because renderActions positions a prompt in the window header and
+   two separately positioned texts saying the same thing is the caption fault
+   the user caught when the event line moved onto the event panel. */
+.creature-cap {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  /* HIGH ENOUGH TO CLEAR THE CARDS. The panel's lower edge is behind the
+     actions window whenever the two overlap, and how much they overlap depends
+     on the viewport, so a caption pinned to the bottom of the panel is legible
+     at some sizes and buried at others. Sitting it just under the figure puts
+     it inside the part of the panel nothing else ever covers. */
+  top: 68%;
+}
+.creature-said {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(.62rem, calc(var(--tile) * .052), .82rem);
+  line-height: 1.3;
+  color: var(--text);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .95);
+}
+.creature-atk {
+  margin: 3px 0 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(.6rem, calc(var(--tile) * .05), .8rem);
+  letter-spacing: .06em;
+  color: var(--gold);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .95);
+}
+/* THE SWING LIVES HERE NOW (#94). It used to be positioned against .packrow,
+   which held a row of thumbnails; the enemy is in this panel now, so the weapon
+   crosses the creature itself at full size at the moment you commit. That is
+   the change earning its keep rather than relocating. */
+.creature .swingart { top: 40%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .creature-art { animation: none; }
+}
+
 /* ---- 陰氣, and what is in it (#99) ---------------------------------------------
    ONE RED IN THE FRAME. The 佛珠 and the ring eyes are the only colour on him,
    and they are the SAME colour, defined once here. Three reds arriving from
