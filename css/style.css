@@ -1168,21 +1168,12 @@ span.handart { cursor: default; }
 /* The picture keeps the square; the control sits under it rather than over it,
    so nothing is ever covering the thing you are trying to recognise.
 
-   THE SQUARE IS A SIZE, NOT A RATIO (#131). aspect-ratio: 1 tied the height to
-   whatever width the track happened to have, so on a phone — where the row has
-   room to spare and the tracks open to 45.8px — the face became 45.8 tall
-   against the hand's 38, and the drawing inside it, centred, started 2.9px
-   lower than the drawings in the three worn places. The boxes were on one grid
-   row the whole time; it was their contents that were off the line, which is
-   the failure a guard measuring boxes cannot see.
-
-   It also keeps the empty place's ring CIRCULAR: border-radius: 50% on a
-   45.8x38 box draws an ellipse. */
-.cellface {
-  width: var(--handicon);
-  height: var(--handicon);
-  justify-self: center;
-}
+   THE SQUARE IS A SIZE, NOT A RATIO (#131), and the declarations that say so
+   are in the .cellface rule further down — the one that also sets display and
+   colour. They belong there rather than here because that rule sets width and
+   height too, at the same specificity and later in the file, so anything
+   written here loses to it silently. This comment is the pointer; the size is
+   set once, where it takes effect. */
 
 /* Use, visible at rest (#53). Bare-arrow discipline: no filled box competing
    with the board, just a quiet labelled control the width of its own cell. It
@@ -1219,8 +1210,18 @@ span.handart { cursor: default; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
+  /* A STATED SQUARE, CENTRED IN ITS PLACE (#131). This was width/height 100%
+     alongside an aspect-ratio: 1 further up, which made the face's height come
+     from whatever width its track had: on a phone the row has slack, the tracks
+     open to 45.9px, and the face went 45.9 tall against a hand's 38 — so the
+     drawing inside it, centred, started 2.9px lower than the three worn ones.
+     The boxes shared a grid row the whole time and their tops agreed; it was
+     their CONTENTS that were off the line.
+     It also keeps the empty place's ring circular: border-radius: 50% on a
+     45.9x38 box draws an ellipse. */
+  width: var(--handicon);
+  height: var(--handicon);
+  justify-self: center;
   padding: 0;
   border: 0;
   background: none;

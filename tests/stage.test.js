@@ -1708,6 +1708,13 @@ test("places: a picture is the same size whatever else you carry (#131)", serial
       worn: wide(host.querySelector(NOT_ROTATED + " .handicon")),
       places: [...host.querySelectorAll(".places .hand, .places .cell")]
         .map((p) => +p.getBoundingClientRect().width.toFixed(1)),
+      // An empty place's ring, which is drawn with border-radius: 50% — so it
+      // is a circle only while its box is square. Nothing else here would
+      // notice it becoming an ellipse.
+      rings: [...host.querySelectorAll(".cell--empty .cellface")].map((e) => {
+        const r = e.getBoundingClientRect();
+        return { w: +r.width.toFixed(1), h: +r.height.toFixed(1) };
+      }),
       labelled: [...host.querySelectorAll(".places .hand, .places .cell")]
         .map((p) => {
           const l = p.querySelector(".handlabel");
@@ -1768,6 +1775,21 @@ test("places: a picture is the same size whatever else you carry (#131)", serial
     eq(pw.length, 7, "the row is not seven places");
     assert(+(Math.max(...pw) - Math.min(...pw)).toFixed(1) <= 1,
       "the seven places are not the same width: " + JSON.stringify(pw));
+
+    // 4b. AN EMPTY PLACE IS A CIRCLE, NOT AN ELLIPSE. The ring is border-radius:
+    //     50% on the face, so it is round only while the face is square — and
+    //     the face's width and height come from two different places, which is
+    //     exactly the arrangement that drifts. Measured on the runs that still
+    //     have an empty cell, and asserted to have found one.
+    const withRings = runs.filter((r) => r.rings.length);
+    assert(withRings.length > 0,
+      "no run left an empty pack place, so this found nothing to measure");
+    for (const r of withRings)
+      for (const ring of r.rings)
+        assert(Math.abs(ring.w - ring.h) <= 1,
+          "an empty carried place is " + ring.w + "x" + ring.h + " — with a 50% " +
+          "radius on it that draws an ellipse, and the worn places next to it " +
+          "are drawing circles");
 
     // 5. THE DIVIDER IS GONE AND ITS JOB IS STILL DONE. The rule that used to
     //    draw it argued it was the only thing saying which three places are
