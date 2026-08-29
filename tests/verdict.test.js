@@ -34,7 +34,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "321ebfe1");
+suite(import.meta.url, "88c03039");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -104,10 +104,65 @@ test("verdict: no player-visible text is hidden in css content: (#106)", async (
   //
   // So this asserts the POPULATION rather than those four strings. `content:`
   // with any visible character in it is player-visible copy living in a
-  // stylesheet, which is untranslatable by construction. Empty content: "" is
-  // the decorative pseudo-element idiom and is what this must not flag.
+  // stylesheet, which is untranslatable by construction. Empty content — in
+  // EITHER quote — is the decorative pseudo-element idiom and must not flag.
+  //
+  // IT MATCHES BOTH QUOTE CHARACTERS, AND THE FIRST VERSION DID NOT. It read
+  // /content:\s*"[^"]+"/ and a single-quoted string walked straight past it:
+  //
+  //     .verdict-summary::after { content: 'Sabotage: single quotes'; }
+  //
+  // appended to the shipped sheet, suite run, and the only failure was the shell
+  // digest noticing style.css had changed. The guard passed cheerfully with
+  // untranslatable English in the stylesheet — the exact thing it exists to stop.
+  //
+  // HOW THE FALSIFICATION MISSED IT IS THE PART TO REMEMBER. Three shapes were
+  // tried and all three were caught: the original verbatim, minified with no
+  // spaces, and a single character. Every one of them varied the WHITESPACE or
+  // the LENGTH, and every one was DOUBLE QUOTED — so three falsifications that
+  // hold the same dimension constant are one falsification, and the dimension
+  // held constant was the one the pattern actually depended on. Falsifications
+  // generated from the code you just wrote inherit its blind spot; they have to
+  // come from the GRAMMAR the code is supposed to cover.
+  //
+  // The `i` flag is for CONTENT:, which is valid CSS. content: attr(...) is
+  // deliberately not chased: attr() reads a DOM attribute, so it is visible to
+  // exactly the sweeps this fault was invisible to.
+  //
+  // WHAT THE GUARDS HERE ACTUALLY COVER, because the tidy version of this story
+  // loses the part worth having. There are three risks and they are not the
+  // same risk:
+  //
+  //   LOCATION     is the copy somewhere a theme can reach?  <- this test
+  //   TRANSLATION  did somebody move it and not translate it? <- the next test
+  //   GRAMMAR      does the scan understand the language it is scanning?
+  //
+  // The third has NO GUARD. It is only technique, and it is where this test
+  // failed: the first version matched double quotes alone, and the three
+  // falsifications offered for it varied whitespace and length while all three
+  // stayed double-quoted, because they were generated from the pattern rather
+  // than from CSS's grammar.
+  //
+  // READING THE CSSOM INSTEAD WOULD REMOVE THAT RISK RATHER THAN GUARD IT — the
+  // browser has already implemented the grammar, and both quote characters, the
+  // uppercase property and the spaced colon all normalise to one form before any
+  // assertion runs. It is a better guard and it is not free: it introduces a
+  // FOURTH risk, whether the traversal actually traverses, which is quieter than
+  // all of them because a walk that visits nothing is indistinguishable from a
+  // clean sheet.
+  //
+  // That is not hypothetical. An attempt at it returned zero on a sheet with a
+  // probe rule freshly injected, because CSS Nesting gives every CSSStyleRule an
+  // EMPTY-BUT-TRUTHY .cssRules, so `if (r.cssRules) { recurse; continue; }` skips
+  // every rule that could carry content: 802 top-level rules, 1085 visited, 223
+  // ever reaching the .style branch. Branch on the rule TYPE, not on whether a
+  // collection is truthy — and falsify it by requiring an injected probe to be
+  // FOUND, never by the sheet coming back clean.
+  //
+  // Each fix here RELOCATED the risk rather than deleting it. Worth knowing
+  // before adding the next one.
   const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
-  const found = css.match(/content:\s*"[^"]+"/g) || [];
+  const found = css.match(/content\s*:\s*(?:"[^"]+"|'[^']+')/gi) || [];
   assert(found.length === 0,
     "player-visible text is in the stylesheet, where no theme can translate it " +
     "and no DOM scan can see it: " + found.join(" | "));
