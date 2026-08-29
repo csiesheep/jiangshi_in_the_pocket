@@ -386,7 +386,7 @@
     "dismiss": "Fold it away"
   },
   "epilogue": {
-    "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}. NOTE both wins share open.won / open.won-hurt word for word and differ only in the close clause: that is the §9 equal-register rule made structural rather than merely intended. The clauses are joined with `join` and closed with `end`, both themeable: the anticipated per-language ASSEMBLY turned out to be two punctuation marks, because open/hand/close reads the same way round in English and Chinese and `rooms` was already a per-number table, which is measure words already solved.",
+    "_note": "Fragments for the one composed sentence on the verdict card. Assembled from the run's own facts and nothing else — no dice, so the same run always ends with the same words. Placeholders: {hour} {weapon} {relic} {goal} {rooms}. NOTE both wins share open.won / open.won-hurt word for word and differ only in the close clause: that is the §9 equal-register rule made structural rather than merely intended. The clauses are joined with `join` and closed with `end`, both themeable: the anticipated per-language ASSEMBLY turned out to be two punctuation marks, because open/hand/close reads the same way round in English and Chinese and `rooms` was already a per-number table, which is measure words already solved.HOURS 21-23 ARE THE ONLY ONES THE CLOCK PRODUCES: hourForTurn clamps to FINAL_HOUR (23) and the King's ending writes 23 as well, so \"24\" is the FALLBACK arm of pick() and is never selected by key. It is kept because pick() needs somewhere to land if an hour ever arrives that this table does not name, and it now reads \"midnight\" rather than \"the third watch\" (#127): the third watch BEGINS at eleven, so it named a two-hour span in a column of clock times. Changing it moves nothing a player can see.",
     "open": {
       "won": "You walked out at first light",
       "won-hurt": "You walked out at first light on your last heart",
@@ -432,7 +432,7 @@
       "21": "nine",
       "22": "ten",
       "23": "eleven",
-      "24": "the third watch"
+      "24": "midnight"
     },
     "join": ", ",
     "end": "."
