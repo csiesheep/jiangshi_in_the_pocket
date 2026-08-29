@@ -113,12 +113,37 @@ body {
      opacity, and the low-health pulse reads (1 - --vignette) as its headroom. */
   --vignette-base: min(1, calc(.5 + .57 * var(--dusk)));
   --glow-base: calc(.45 - .225 * var(--dusk));
-  /* Floored at .26, the brightness the 11 PM peek already had. Below that the
-     maths runs out: a half-room's floor is effectively black, so at brightness
-     k the best contrast any text can reach is (k + .05) / .05 — 4.2:1 at .16,
-     under the 4.5 a room name needs even if it were pure white. So the peek
-     stops darkening at the old floor while the vignette, glow and flame carry
-     on to midnight. */
+  /* Floored at .26, the brightness the 11 PM peek already had.
+
+     THE DERIVATION THAT USED TO BE WRITTEN HERE WAS WRONG, and it is left
+     described rather than deleted because it read as authoritative and the
+     number it produced is still quoted. It said that at brightness k the best
+     contrast any text can reach is (k + .05) / .05, giving 4.2:1 at .16 and
+     6.2:1 at this floor. That shortcut treats brightness() as if it scaled
+     relative LUMINANCE. It does not — it multiplies sRGB channels, and
+     luminance is the ~2.4-power of those, so the shortcut is about three times
+     optimistic.
+
+     MEASURED by rendering white on --bg through the real filter and reading the
+     pixels back:
+
+       k     true    the old formula claimed
+       1.00  19.69   21
+       0.46   4.43   10.2
+       0.35   2.94    8
+       0.26   2.06    6.2
+       0.16   1.42    4.2
+
+     So this floor does not buy 6.2:1, it buys 2.06:1, and the argument that
+     picked it — that .16 fell under 4.5 — was comparing two wrong numbers.
+     Pure white text on a half-room needs k of about .47 to clear 4.5:1, which
+     is brighter than the peek has ever been at any hour.
+
+     THE FLOOR IS LEFT WHERE IT IS ON PURPOSE. Raising it to .47 would make the
+     dark neighbours substantially brighter at every hour, which is a change to
+     what the game looks like rather than a bug fix, and it is not this issue's
+     to make. What is fixed here is the record: the next person reading this
+     will not re-derive a contrast from a formula that cannot produce one. */
   --peek-base: max(.26, calc(.46 - .3 * var(--dusk)));
   --flame: color-mix(in srgb, var(--flame-late) calc(var(--dusk) * 100%), var(--flame-early));
 
