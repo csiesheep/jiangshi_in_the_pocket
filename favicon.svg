@@ -44,8 +44,20 @@
        is. Sized to survive: at 16px it is still several pixels wide. -->
   <path d="M9.9 7.9h6.2l.3 11.4-6.8.3z" fill="#d3c8a6"/>
   <path d="M9.9 18.6l6.5-.3-.1 1.3-6.4.3z" fill="#5f5741"/>
-  <!-- Its writing, in the source's red. Two rules and a stem: not letters at
-       this size, but unmistakably WRITING, which is the whole job. -->
+  <!-- Its writing, in the source's red. Two rules and a stem. MEASURED at both
+       sizes: at 32px it reads as writing, which is the job. At 16px only about
+       two pixels are unambiguously red and the rest is a tint on the paper —
+       the paper reads and the red registers, but "writing" is a 32px claim.
+
+       AND THE CROWN CANNOT BE FIXED BY GEOMETRY. Thickening the hair band was
+       tried and measured: hair #101116 against ground #0a0b0d is 1.03:1, so the
+       crown is invisible against the ground BY CONSTRUCTION and only ever reads
+       where it borders the face. Lowering the face top to widen that band made
+       the icon strictly worse — 32px crown pixels 17 -> 12, top-eight rows
+       0,0,0,0,2,2,0,0 -> all zero, and the pale face that carries the icon
+       shrank 59 -> 53 px at 16. What separates this head from the tab is the
+       FACE at 8.4:1, not the hair. Anyone tempted to "fix the hair" should
+       change its colour, not its shape, and measure before and after. -->
   <g stroke="#8e1c16" stroke-width="1.05" stroke-linecap="round" fill="none">
     <path d="M13 9.6v7.6"/>
     <path d="M11.3 11.6h3.5M11.3 14.2h3.5"/>
