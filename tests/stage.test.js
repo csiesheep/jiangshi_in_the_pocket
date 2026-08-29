@@ -1690,7 +1690,16 @@ test("places: a picture is the same size whatever else you carry (#131)", serial
 
   // And never the weapon place: its ghost is rotated 45deg, so its rect is the
   // 1.414x envelope of the box rather than the box.
-  const NOT_ROTATED = ".hand--charm, .hand--relic";
+  //
+  // WRITTEN OUT IN FULL, BECAUSE CONCATENATION CHANGED WHAT IT MEANT. This was
+  // `NOT_ROTATED + " .handicon"` with NOT_ROTATED as ".hand--charm,
+  // .hand--relic", which builds ".hand--charm, .hand--relic .handicon" — a list
+  // of TWO selectors, the first of which is the place itself. querySelector
+  // returned the charm PLACE and the guard has been measuring a track width
+  // where it says it measures a picture. It passed the whole time because the
+  // two differ by 0.6px inside a 1px tolerance; it only showed up when a
+  // sabotage widened the tracks and the number drifted to 1.4.
+  const WORN_ART = ".hand--charm .handicon, .hand--relic .handicon";
 
   const draw = (pack) => {
     host.textContent = "";
@@ -1705,7 +1714,7 @@ test("places: a picture is the same size whatever else you carry (#131)", serial
     return {
       filled: filled.length,
       carried: filled.map((c) => wide(c.querySelector(".cellicon"))),
-      worn: wide(host.querySelector(NOT_ROTATED + " .handicon")),
+      worn: wide(host.querySelector(WORN_ART)),
       places: [...host.querySelectorAll(".places .hand, .places .cell")]
         .map((p) => +p.getBoundingClientRect().width.toFixed(1)),
       // An empty place's ring, which is drawn with border-radius: 50% — so it
