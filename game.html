@@ -147,6 +147,11 @@
            full in css/style.css where the rule used to be. -->
       <div class="places">
         <div class="hands" id="hud-hands"></div>
+        <!-- The seam. NOT the divider coming back: it draws nothing at all.
+             It is here so that the empty grid column between the worn three and
+             the carried four is occupied by something, which is what keeps the
+             pack's own cells from auto-placing into it. See .places .seam. -->
+        <div class="seam" aria-hidden="true"></div>
         <div class="backpack" id="hud-items"></div>
       </div>
 

@@ -1715,6 +1715,21 @@ test("places: a picture is the same size whatever else you carry (#131)", serial
         const r = e.getBoundingClientRect();
         return { w: +r.width.toFixed(1), h: +r.height.toFixed(1) };
       }),
+      // The space between each adjacent pair of places, left to right. The
+      // seam between the worn three and the carried four is gaps[2].
+      gaps: (() => {
+        const rs = [...host.querySelectorAll(".places .hand, .places .cell")]
+          .map((p) => p.getBoundingClientRect());
+        return rs.slice(1).map((r, i) => +(r.left - rs[i].right).toFixed(1));
+      })(),
+      seamPaints: (() => {
+        const el = host.querySelector(".places .seam");
+        if (!el) return null;
+        const cs = getComputedStyle(el);
+        return cs.backgroundColor !== "rgba(0, 0, 0, 0)" ||
+               parseFloat(cs.borderLeftWidth) > 0 ||
+               parseFloat(cs.borderTopWidth) > 0;
+      })(),
       labelled: [...host.querySelectorAll(".places .hand, .places .cell")]
         .map((p) => {
           const l = p.querySelector(".handlabel");
@@ -1790,6 +1805,32 @@ test("places: a picture is the same size whatever else you carry (#131)", serial
           "an empty carried place is " + ring.w + "x" + ring.h + " — with a 50% " +
           "radius on it that draws an ellipse, and the worn places next to it " +
           "are drawing circles");
+
+    // 4c. THE SEAM IS WIDER THAN THE GAPS INSIDE EITHER GROUP.
+    //
+    //     THIS IS THE ASSERTION THAT WOULD HAVE CAUGHT THE MISTAKE. When the
+    //     divider was removed the note here said the captions carried the
+    //     worn/carried split, and where that is false — every phone, because
+    //     .handlabel is clipped to nothing under 600px — it claimed the gap
+    //     carried it instead. Nobody checked whether the gap was
+    //     distinguishable. It was not: all six measured 5.0px, uniform to a
+    //     tenth of a pixel, so there was nothing on screen saying which three
+    //     of the seven you are wearing. "Three captioned and four not" is true
+    //     and, at the width most people play at, invisible.
+    for (const r of runs.slice(-1)) {
+      eq(r.gaps.length, 6, "six gaps between seven places, not " + r.gaps.length);
+      const within = r.gaps.filter((_, i) => i !== 2);
+      assert(r.gaps[2] > Math.max(...within),
+        "the seam between the worn three and the carried four is " + r.gaps[2] +
+        "px against " + Math.max(...within) + "px inside the groups — it does " +
+        "not read as a boundary, and on a phone the captions are hidden so it " +
+        "is the only thing left that could");
+      // And it is a WIDTH, not a line. 「拿掉」 refused the rule; putting one
+      // back into this element would be the same object under another name.
+      eq(r.seamPaints, false,
+        "the seam is painting something — it is a space between two groups, " +
+        "and a line here is the divider again with a different class on it");
+    }
 
     // 5. THE DIVIDER IS GONE AND ITS JOB IS STILL DONE. The rule that used to
     //    draw it argued it was the only thing saying which three places are

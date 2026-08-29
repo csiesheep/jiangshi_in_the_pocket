@@ -795,7 +795,21 @@ body.app .board-pane > .board { min-height: 0; }
      made --place an upper bound that was almost never reached — 33.9 on the
      desktop column and, before #130 turned the pack into tracks at all, 24.5
      with three items and 15.4 with two. */
-  grid-template-columns: repeat(7, minmax(var(--handicon), 1fr));
+  /* THREE WORN, A SEAM, FOUR CARRIED. The seam is an empty track rather than a
+     line: 「拿掉，標籤已經夠了」 refused the rule, not the boundary.
+
+     IT COLLAPSES, AND THAT IS THE WHOLE POINT — a constant would have been
+     wrong here in exactly the way a constant label-reserve was wrong in #130,
+     and for the same reason: what it has to pay for is not constant. On a
+     phone the captions are visually hidden and the row has ~55px going spare,
+     so the seam opens to its full width where it is the only thing left saying
+     which three of the seven you are wearing. On the 300px desktop column the
+     captions are on screen and there are 6px spare, so it takes the 6 and stops
+     — no overflow, and nothing needed from it there anyway. */
+  grid-template-columns:
+    repeat(3, minmax(var(--handicon), 1fr))
+    minmax(0, var(--seam))
+    repeat(4, minmax(var(--handicon), 1fr));
   grid-template-rows: auto auto auto;   /* label - object - what is underneath */
   align-items: start;
   /* NO justify-items HERE. It was tried and it silently un-sized the places:
@@ -809,12 +823,16 @@ body.app .board-pane > .board { min-height: 0; }
      cells 4px under the picture; shared rows can only have one gutter, and
      since the row now reads as a single surface it should only have one. */
   row-gap: 3px;
-  /* THE GAP IS WHAT PAID FOR THE PICTURES. Seven places and six gaps have to
-     clear the narrowest column the row is ever given, which is the 300px
-     desktop sidebar: 7x38 + 6x5 = 296. At the old 8px gap the same seven
-     pictures only fit at 33.9, and the pack's were 90% of that again — 30.5px
-     objects on the screen where there is the most room for them. */
-  --place-gap: 5px;
+  /* THE GAP IS WHAT PAID FOR THE PICTURES, AND THEN FOR THE SEAM. Seven places
+     have to clear the narrowest column the row is ever given, the 300px desktop
+     sidebar, and the seam track adds a SEVENTH gap rather than just its own
+     width: 7x38 + 7x4 = 294, which leaves 6 for the seam and lands on 300.
+     At 5px gaps the row is 301 before the seam gets anything at all, so 4 is
+     not a preference — it is what the eighth track costs.
+     For scale: at the old 8px gap the same seven pictures only fit at 33.9px,
+     and the pack's were 90% of that again, so 30.5px. */
+  --place-gap: 4px;
+  --seam: 10px;
 }
 /* ONE NUMBER FOR HOW BIG A THING IN THIS ROW IS, worn or carried.
    It is on .places rather than .hands because the pack reads it now too; the
@@ -841,12 +859,18 @@ body.app .board-pane > .board { min-height: 0; }
    needed to say what the labels already say, and the owner asked for the line
    to go.
 
-   WHERE THIS BREAKS: on a narrow screen the labels are visually hidden (see the
-   .handlabel rule in the max-width: 600px block), and there the split is carried
-   only by the gap. If that becomes a real confusion the answer is to give the
-   two groups different column-gaps, not to put the rule back — a line asks to
-   be read as a boundary between two KINDS of thing, and after #121 these are
-   all one kind: things lying on the table.
+   AND ON A PHONE THE CAPTIONS ARE NOT THERE EITHER, which is why there is a
+   seam track above. An earlier version of this note said the labels carried the
+   job and that on a narrow screen "the split is carried only by the gap" — and
+   that was one measurement short of its own conclusion. The gap did not carry
+   it: at 390 the captions are clipped to nothing by the max-width: 600px rule
+   and all six gaps measured 5.0px, uniform to a tenth of a pixel. There was
+   nothing on screen at all saying which three of the seven are worn.
+
+   So the boundary is a widening of the space, not a rule through it: a line
+   asks to be read as a division between two KINDS of thing, and after #121
+   these are all one kind — things lying on a table. The seam is what the
+   option list called 「一段空白」, and it is what was ruled in.
 
    It also had a cost that was invisible until it was measured. The divider sat
    in an `auto` track, and an auto track absorbs the row's whole surplus: at 375
@@ -874,6 +898,20 @@ body.app .board-pane > .board { min-height: 0; }
      the object standing in it. */
   min-width: 0;
 }
+/* THE SEAM IS AN ELEMENT, AND IT HAD TO BE.
+   Pinning the first cell with grid-column: 5 instead looked equivalent and was
+   not: an explicitly placed item is placed FIRST, and the auto-placement that
+   follows then fills the empty track with the NEXT cell. Measured at 390 —
+   places overlapping by 60.9px and the row reading hand, hand, hand, cell2,
+   cell1, cell3, cell4. Placing them all explicitly would mean writing the pack
+   size into the stylesheet, and RULES.MAX_ITEMS has already been six; a grid
+   that disagrees with the engine about how much you can carry is a worse bug
+   than an ugly grid.
+   An empty element between the two groups auto-places into the seam track on
+   its own, and the pack size stays the engine's business. It paints nothing —
+   it is a width, not a line. */
+.places .seam { grid-row: 1 / -1; }
+
 /* Which part goes in which row, said once for all seven places. The pack cells
    put nothing in row 1 — they have no label — and that is exactly why their
    pictures now line up with the hands' instead of riding high. */
