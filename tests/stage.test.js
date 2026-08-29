@@ -1349,15 +1349,21 @@ test("surface: nothing in the sidebar renders as a card (#121)", serial(async ()
 
     // 1. THE REGION IS STYLED. Without this every assertion below is agreeing
     //    with an unstyled document, which is the failure #123 shipped twice.
-    //    The divider is the right probe: the stylesheet is the only thing that
-    //    can paint it, and it is load-bearing rather than decorative.
-    const sep = host.querySelector(".places .sep");
-    assert(sep, "no divider between the worn three and the carried four");
-    const sepBg = getComputedStyle(sep).backgroundColor;
-    assert(paints(sepBg),
-      "the divider paints nothing (" + sepBg + ") — the stylesheet did not " +
-      "apply, so everything this guard is about to assert is about a document " +
-      "with none of the code under test in it");
+    //
+    //    THE PROBE USED TO BE THE DIVIDER, which #131 removed — and this guard
+    //    went red for it, correctly, which is the whole reason a probe like
+    //    this is worth having. The empty carried place is the replacement: its
+    //    ring is painted only by the stylesheet, and like the divider it is
+    //    load-bearing rather than decorative — it is what says a place is a
+    //    place when there is nothing in it.
+    const ring = host.querySelector(".cell--empty .cellface");
+    assert(ring, "no empty carried place, so this guard has nothing to probe with");
+    const ringCs = getComputedStyle(ring);
+    assert(parseFloat(ringCs.borderTopWidth) > 0 && paints(ringCs.borderTopColor),
+      "an empty carried place draws no ring (" + ringCs.borderTopWidth + " " +
+      ringCs.borderTopColor + ") — the stylesheet did not apply, so everything " +
+      "this guard is about to assert is about a document with none of the code " +
+      "under test in it");
 
     // 2. AND SO IS THE SEPARATION IT REPLACED. A hairline under the banner is
     //    what Layout A puts there instead of a bar.
@@ -1551,13 +1557,165 @@ test("places: the seven objects share one line, in both languages (#130)", seria
         "fixture and the two-language check is proving nothing");
     }
 
-    // 5. The hairline survived becoming a grid item. It is the only thing on
-    //    the screen saying which three of the seven are worn and which four are
-    //    carried, and it silently measured 0px tall once during this very
-    //    change: the span put it across the three rows and align-items: start
-    //    then gave it no height.
-    assert(en.sepH > 0,
-      "the divider between the worn three and the carried four has no height");
+    // 5. THE DIVIDER IS GONE, AND ON PURPOSE (#131). This used to assert it had
+    //    height, because when this guard was written it was the only thing
+    //    saying which three of the seven are worn and which four are carried —
+    //    and it had just silently measured 0px tall, which is why the check
+    //    existed at all.
+    //
+    //    That job now belongs to the captions, and it is asserted in the #131
+    //    guard below rather than being dropped: three worn places captioned,
+    //    four carried places not. This assertion is inverted rather than
+    //    deleted so that re-adding the line is a decision somebody has to make
+    //    here, in front of the reasoning, instead of a change nothing notices.
+    eq(en.sepH, null,
+      "the divider is back between the worn three and the carried four — #131 " +
+      "removed it and moved its job to the captions; if it is wanted again, " +
+      "say why here and in css/style.css where the rule used to be");
+  } finally {
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+  }
+}));
+
+// A PLACE IS A SIZE, NOT A SHARE (#131). Reported as two complaints — 「items
+// are way too small」 and 「after using one item, other items are shrinked」 —
+// which were one defect: the cells divided whatever the pack box had left, so
+// the picture was a function of how much you were carrying. Spending an item
+// made the survivors smaller, which is the opposite of what a place is for.
+//
+// #130 fixed the varying half by making the places grid tracks; this pins BOTH
+// halves so neither can come back, and adds the part #130 did not address —
+// that a carried picture and a worn one are the same size.
+test("places: a picture is the same size whatever else you carry (#131)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const side = doc.querySelector(".sidebar");
+  const pane = doc.querySelector(".board-pane");
+  const host = document.createElement("div");
+  // The desktop sidebar column, which is the narrow case: seven places and six
+  // gaps have to clear 300px, and it is where the pictures were smallest.
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:300px";
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+
+  // Rects, not offsetWidth: these are SVG elements and SVGElement has no
+  // offsetWidth at all — reading it returns undefined, and `undefined ===
+  // undefined` is a comparison that passes on every layout there is. That
+  // exact vacuum was in the first draft of this guard.
+  const wide = (el) => (el ? +el.getBoundingClientRect().width.toFixed(1) : null);
+
+  // And never the weapon place: its ghost is rotated 45deg, so its rect is the
+  // 1.414x envelope of the box rather than the box.
+  const NOT_ROTATED = ".hand--charm, .hand--relic";
+
+  const draw = (pack) => {
+    host.textContent = "";
+    host.appendChild(document.importNode(pane, true));
+    host.appendChild(document.importNode(side, true));
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.state.items = pack;
+    game.state.hands = { weapon: "peachwood-sword", charm: "protective-charm" };
+    game.refresh();
+    const filled = [...host.querySelectorAll("#hud-items .cell:not(.cell--empty)")];
+    return {
+      filled: filled.length,
+      carried: filled.map((c) => wide(c.querySelector(".cellicon"))),
+      worn: wide(host.querySelector(NOT_ROTATED + " .handicon")),
+      places: [...host.querySelectorAll(".places .hand, .places .cell")]
+        .map((p) => +p.getBoundingClientRect().width.toFixed(1)),
+      labelled: [...host.querySelectorAll(".places .hand, .places .cell")]
+        .map((p) => {
+          const l = p.querySelector(".handlabel");
+          return !!(l && l.textContent.trim());
+        }),
+      sep: host.querySelectorAll(".places .sep").length,
+    };
+  };
+
+  try {
+    assert(side && pane, "game.html has no .sidebar / .board-pane");
+
+    const packs = [
+      { "sticky-rice": 1 },
+      { "sticky-rice": 1, "cinnabar": 1 },
+      { "sticky-rice": 1, "cinnabar": 1, "blood-talisman": 1 },
+      { "sticky-rice": 1, "cinnabar": 1, "blood-talisman": 1, "golden-elixir": 1 },
+    ];
+    const runs = packs.map(draw);
+
+    // 1. THE PACK ACTUALLY DREW SOMETHING, at every count. Without this, "all
+    //    the sizes agree" is a statement about an empty list, and every claim
+    //    below passes on a pack that rendered nothing at all.
+    runs.forEach((r, i) => {
+      eq(r.filled, i + 1,
+        "asked for " + (i + 1) + " items and the pack drew " + r.filled +
+        " — this guard is measuring a pack that is not there");
+      assert(r.carried.every((n) => n > 0),
+        "a carried picture has no width at " + (i + 1) + " items (" +
+        JSON.stringify(r.carried) + ") — the stylesheet did not apply");
+    });
+
+    // 2. ONE SIZE, WHATEVER YOU ARE CARRYING. This is the reported bug: at
+    //    1/2/3/4 items the picture used to be a different size each time,
+    //    because the cells divided the pack box's remainder.
+    const every = runs.flatMap((r) => r.carried);
+    const spread = +(Math.max(...every) - Math.min(...every)).toFixed(1);
+    assert(spread <= 1,
+      "a carried picture is " + spread + "px bigger with a full pack than an " +
+      "empty one — measured at 1, 2, 3, 4 items: " +
+      JSON.stringify(runs.map((r) => r.carried)) + ". Spending an item must " +
+      "not resize the ones you keep.");
+
+    // 3. A WORN PLACE AND A CARRIED PLACE HOLD THE SAME SIZE OF THING. Both
+    //    hands are filled above, so this compares a real picture with a real
+    //    picture rather than with the empty place's ghost, which correctly sits
+    //    inside the ring and is a placeholder rather than an object.
+    for (const [i, r] of runs.entries()) {
+      assert(r.worn > 0, "the worn place drew no picture at " + (i + 1) + " items");
+      assert(Math.abs(r.worn - r.carried[0]) <= 1,
+        "a worn picture is " + r.worn + "px and a carried one " + r.carried[0] +
+        "px — they are both things lying on the same table, and nothing states " +
+        "a reason for them to differ");
+    }
+
+    // 4. And the places themselves are one width.
+    const pw = runs[3].places;
+    eq(pw.length, 7, "the row is not seven places");
+    assert(+(Math.max(...pw) - Math.min(...pw)).toFixed(1) <= 1,
+      "the seven places are not the same width: " + JSON.stringify(pw));
+
+    // 5. THE DIVIDER IS GONE AND ITS JOB IS STILL DONE. The rule that used to
+    //    draw it argued it was the only thing saying which three places are
+    //    worn and which four are carried. That argument was right, so removing
+    //    the line means the captions have to carry it — and if someone later
+    //    takes the captions off the worn places too, the distinction is gone
+    //    with nothing left saying so. That is what this asserts.
+    eq(runs[3].sep, 0, "the divider is back in the row");
+    const marks = runs[3].labelled;
+    eq(marks.slice(0, 3).filter(Boolean).length, 3,
+      "the three worn places are not all captioned — with the divider gone " +
+      "(#131) the captions are the only thing left saying which three of the " +
+      "seven you are wearing and which four you are carrying");
+    eq(marks.slice(3).filter(Boolean).length, 0,
+      "a carried place has grown a caption, so the worn/carried asymmetry that " +
+      "replaced the divider no longer reads as an asymmetry");
   } finally {
     host.remove();
     spriteHost.remove();
@@ -2128,8 +2286,17 @@ function cssPx(needle) {
 // than recomputed here, because the user's ruling was that the slot picture is
 // at least as big as the pack's.
 const PX_FOUND = cssPx(".itemicon { width: ");
-const PX_SLOT = cssPx(".hands { --handicon: ");
-const PX_PACK = 54;
+// Moved from .hands to .places with #131: a carried picture is the same size as
+// a worn one now, so the token that says how big a thing in that row is belongs
+// to the row rather than to one half of it.
+const PX_SLOT = cssPx(".places { --handicon: ");
+// PX_PACK was the literal 54, and it had been wrong for a long time. It came
+// from a derivation on .cellicon that assumed a 300px sidebar with a bordered,
+// padded panel — the layout Layout A removed — and the pack was actually
+// rendering 30.5px under it. There is no third size now: the pack and the slot
+// read the same token, which is what #131 ruled, so the honest list is two
+// entries and the guard below still dedups them.
+const PX_PACK = PX_SLOT;
 
 
 test("icons: the four weapons stay apart at the size the choice is made", async () => {

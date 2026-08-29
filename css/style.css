@@ -788,47 +788,70 @@ body.app .board-pane > .board { min-height: 0; }
    stale that way, because the browser measures it every layout. */
 .places {
   display: grid;
-  /* Seven places, and the divider between the third and the fourth. */
-  grid-template-columns:
-    repeat(3, minmax(0, var(--place))) auto repeat(4, minmax(0, var(--place)));
+  /* SEVEN EQUAL PLACES, AND A PLACE IS A SIZE RATHER THAN A SHARE (#131).
+     minmax(art, 1fr) is the whole fix: the floor is the picture, so a place can
+     never be smaller than the thing standing in it, and the 1fr only spends
+     space the column has going spare. The old tracks were minmax(0, cap), which
+     made --place an upper bound that was almost never reached — 33.9 on the
+     desktop column and, before #130 turned the pack into tracks at all, 24.5
+     with three items and 15.4 with two. */
+  grid-template-columns: repeat(7, minmax(var(--handicon), 1fr));
   grid-template-rows: auto auto auto;   /* label - object - what is underneath */
   align-items: start;
+  /* NO justify-items HERE. It was tried and it silently un-sized the places:
+     a centred grid item is sized to its CONTENT rather than stretched to its
+     track, so the seven came out 38.6 / 38.6 / 38.6 / 38 / 39.7 / 38 / 38 —
+     the 39.7 being the one cell carrying a x3 badge. The places stretch to
+     their tracks; centring belongs to the picture inside a place, which is
+     what .hand's own justify-items and .cellface's flex centring already do. */
   column-gap: var(--place-gap);
   /* ONE RHYTHM DOWN THE WHOLE ROW. The hands used 3px under the label and the
      cells 4px under the picture; shared rows can only have one gutter, and
      since the row now reads as a single surface it should only have one. */
   row-gap: 3px;
-  /* ONE PLACE THAT SAYS HOW WIDE A PLACE IS, and everything else divides it.
-     Seven of these plus six gaps plus the divider have to clear the column, so
-     the number is derived rather than picked: at 375 the column is 351, the
-     divider and its margins are 9, and six gaps at 8 are 48 — which leaves 294
-     for seven, or 42 each. */
-  --place: 38px;
-  --place-gap: 8px;
+  /* THE GAP IS WHAT PAID FOR THE PICTURES. Seven places and six gaps have to
+     clear the narrowest column the row is ever given, which is the 300px
+     desktop sidebar: 7x38 + 6x5 = 296. At the old 8px gap the same seven
+     pictures only fit at 33.9, and the pack's were 90% of that again — 30.5px
+     objects on the screen where there is the most room for them. */
+  --place-gap: 5px;
 }
+/* ONE NUMBER FOR HOW BIG A THING IN THIS ROW IS, worn or carried.
+   It is on .places rather than .hands because the pack reads it now too; the
+   burnt-blade guard in tests/stage.test.js parses this exact line for the size
+   it rasterises at, so it stays a single literal on its own rule. */
+.places { --handicon: 38px; }
 /* NOT BOXES ANY MORE. The three worn places and the four carried ones have to
    be siblings in one grid for the rows to be shared, and display: contents
    lifts them out without touching the markup — which matters because the
    hairline between them is a sibling of these two and has to stay one.
    .hands keeps --handicon: a custom property inherits through contents. */
 .hands, .backpack { display: contents; }
-/* The divider is NOT --hair. That token is a seam between blocks of text at
-   1.21:1; this line is the only thing on the screen saying which three of the
-   seven are worn and which four are carried, and load-bearing work needs a
-   value you can see. */
-.places .sep {
-  /* Full height of the row, which is now three grid rows rather than a flex
-     line. BOTH HALVES ARE LOAD-BEARING: the span puts it across all three rows,
-     and the stretch gives it a height — .places sets align-items: start for the
-     places, and that applies to this too. Without the second line it measured
-     0px tall and vanished silently, taking with it the only thing on the screen
-     that says which three of the seven are worn and which four are carried. */
-  grid-row: 1 / -1;
-  align-self: stretch;
-  width: 1px;
-  margin: 0 3px;
-  background: #343a45;
-}
+/* THE DIVIDER IS GONE, AND ITS JOB WAS REASSIGNED RATHER THAN DROPPED (#131).
+
+   READ THIS BEFORE PUTTING A LINE BACK HERE. The rule that stood in this spot
+   argued, correctly, that something has to say which three of the seven places
+   are worn and which four are carried — and that the something was load-bearing
+   enough to deserve a value you can see rather than --hair. That argument is
+   still true. What changed is who carries it.
+
+   THE LABELS ALREADY DO. The three worn places are captioned 左手 / 身上 / 右手
+   and the four carried ones are captioned nothing at all, so the split is drawn
+   in words above the row before any line is drawn through it. A rule is not
+   needed to say what the labels already say, and the owner asked for the line
+   to go.
+
+   WHERE THIS BREAKS: on a narrow screen the labels are visually hidden (see the
+   .handlabel rule in the max-width: 600px block), and there the split is carried
+   only by the gap. If that becomes a real confusion the answer is to give the
+   two groups different column-gaps, not to put the rule back — a line asks to
+   be read as a boundary between two KINDS of thing, and after #121 these are
+   all one kind: things lying on the table.
+
+   It also had a cost that was invisible until it was measured. The divider sat
+   in an `auto` track, and an auto track absorbs the row's whole surplus: at 375
+   it swelled to 29.2px, so the row a phone showed had a 29px hole in the middle
+   and the desktop had 7px. The line was never the width it looked. */
 /* OBJECTS LYING ON THE TABLE, NOT THINGS IN CELLS (#121). The box, its ground
    and its rounded edge all go: what is left is the drawing and the space around
    it, and a shadow so it sits ON the surface rather than being printed into it. */
@@ -845,9 +868,10 @@ body.app .board-pane > .board { min-height: 0; }
   /* SHARES THE ROW RATHER THAN ASSERTING A WIDTH. A fixed 38px per place made
      the row 321px wide whatever the column was, which fits the 351 of a phone
      and overflows the 300 of the desktop sidebar by 9px — measured at 1024x768
-     and at 812x375, where the pack ran past the viewport. --place is the CAP on
-     the track now, not the size, so the row narrows into whatever column it is
-     given. */
+     and at 812x375, where the pack ran past the viewport. The track is
+     minmax(var(--handicon), 1fr) now (#131): the picture is the FLOOR and the
+     1fr spends only what the column has spare, so a place never shrinks below
+     the object standing in it. */
   min-width: 0;
 }
 /* Which part goes in which row, said once for all seven places. The pack cells
@@ -892,7 +916,8 @@ body.app .board-pane > .board { min-height: 0; }
    this says and fails if two of them stop being distinguishable — so shrinking
    the objects for the row is checked for legibility rather than eyeballed. It
    went 54 -> 38 with the seven-across change. */
-.hands { --handicon: 38px; }
+/* --handicon moved up to .places, because a carried picture is the same size as
+   a worn one now and both read it. */
 /* Reserved whether or not there is anything in it. It was originally for the
    NAMES — without it "empty" sat at three different heights — and the names are
    gone, so the reserve now keeps the three pictures on one line and the labels
@@ -938,8 +963,14 @@ span.handart { cursor: default; }
    Non-interactive by construction: the empty slot draws a span rather than a
    button, so there is nothing to focus and nothing to reveal. */
 .handghost {
-  width: var(--handicon);
-  height: var(--handicon);
+  /* FILLS ITS PLACE RATHER THAN ASSERTING A SIZE (#131). At a fixed
+     var(--handicon) this was the widest thing in an empty worn place, and a
+     grid item cannot shrink below its content: with the ring's 1px each side
+     the place measured 40px inside a 33.9px track and quietly overflowed. */
+  width: 100%;
+  height: 100%;
+  max-width: var(--handicon);
+  max-height: var(--handicon);
   opacity: .55;
   pointer-events: none;
 }
@@ -1124,7 +1155,7 @@ span.handart { cursor: default; }
      a narrow viewport: four cells across a phone is right, four cells across a
      1200px column would put the pack back where it started. */
   /* Was its own grid under a rule; it is four places in the shared row now, so
-     the width comes from --place like the other three. */
+     the width comes from the shared track like the other three. */
   max-width: none;
 }
 /* .cell's own flex column and width are gone: it is a subgrid in the shared
@@ -1190,18 +1221,28 @@ span.handart { cursor: default; }
   outline: 2px solid var(--way-new);
   outline-offset: 2px;
 }
-/* 90%, not the 62% this shipped with since #48. The icon size is DERIVED, and
-   the derivation is worth writing down because it was got wrong once: the grid
-   content is 270px (300px column, less 1px panel border and 14px padding each
-   side, border-box), so a cell is (270 - 8*(n-1))/n and the face is 2px inside
-   that. At four cells the face is 59.5px, and the fill percentage -- not the
-   cell count -- is what sets the picture. 62% gave 36.9px; 90% gives 53.6px.
+/* A CARRIED PICTURE IS THE SAME SIZE AS A WORN ONE (#131), and it is a SIZE
+   rather than a percentage of whatever the cell happened to get.
 
-   #88 needed a bigger picture for art that models with light and shadow, and
-   the option first put up was dropping to three cells, which yields 51.3px --
-   LESS than spending this padding, while also costing a pack slot. Four cells
-   at 90% was the cheaper buy and is what was ruled. */
-.cellicon { width: 90%; height: 90%; color: var(--gold); }
+   The derivation that stood here computed 53.6px from "270px of grid content,
+   four cells, a 59.5px face, 90% of it" — and every number in it described the
+   300px sidebar column with a bordered, padded panel that Layout A removed.
+   The percentage outlived the layout that justified it: the same 90% was
+   rendering 30.5px, roughly half what its own comment claimed, and the reader
+   had no way to tell. #48's 62% and #88's argument for a bigger picture are
+   both settled by this rule instead, at a size that is stated rather than
+   computed from a column width that can change again.
+
+   Same token as the hand places, so "a place is a place" is enforced by there
+   being one number rather than by two agreeing. If a pack picture should ever
+   differ from a worn one, that is a ruling and it needs saying out loud here. */
+.cellicon {
+  width: 100%;
+  height: 100%;
+  max-width: var(--handicon);
+  max-height: var(--handicon);
+  color: var(--gold);
+}
 
 /* The count. A stack is one cell however deep it is, so the number sits on the
    picture rather than beside it — and it has to be here at all because the name
