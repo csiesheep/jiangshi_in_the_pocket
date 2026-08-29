@@ -14,7 +14,8 @@ import {
 import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
          creaturePanel, clearCreaturePanel, resolveBeat,
          showDropDialog, onPackUse,
-         heartSweeps, heartsSettled, HEART_STEP, HEART_SWEEP } from "../js/render.js";
+         heartSweeps, heartsSettled, HEART_STEP, HEART_SWEEP,
+         renderActions } from "../js/render.js";
 import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
@@ -1029,6 +1030,174 @@ test("hearts: the hearts are solid, checked in the pixels (#118)", serial(async 
     for (const a of mid) a.currentTime = 30 * HEART_STEP;
     await heartsSettled();
   } finally {
+    if (hadTile) root.style.setProperty("--tile", hadTile);
+    else root.style.removeProperty("--tile");
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+  }
+}));
+
+// 應在tile的中心 (#120), and the guard varies THE THING THAT DRIVES THE FAULT.
+//
+// The creature sat low, and by an amount that grew with the number of options
+// the fight offered — `top: 50%` on a panel whose parent is the pane, and the
+// pane is the room plus the actions window. Measured before the fix at
+// 375x667: the art was 31.9px below the tile's centre with one option, 60.4
+// with a taller window, 138.0 with a taller one still.
+//
+// THE #94 MOVEMENT GUARD CANNOT SEE THIS, which is why it shipped. That one
+// compares two frames of the strike, so off-centre before equals off-centre
+// after and it passes clean on a creature that was never in the right place.
+// A guard that only checked "the art is centred" at one option count would
+// have the same blind spot from the other side.
+//
+// So this measures the offset, MAKES THE ACTIONS WINDOW TALLER, and measures
+// again. The offset must not move.
+test("fight: the creature is centred on the tile, whatever the actions window does (#120)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const pane = new DOMParser().parseFromString(html, "text/html")
+    .querySelector(".board-pane");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:1400px";
+  const root = document.documentElement;
+  const hadTile = root.style.getPropertyValue("--tile");
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+  try {
+    assert(pane, "game.html has no .board-pane");
+    host.appendChild(document.importNode(pane, true));
+    root.style.setProperty("--tile", "189px");
+
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.refresh();
+
+    const paneEl = host.querySelector(".board-pane");
+    const pop = host.querySelector(".actions-pop");
+    const cell = host.querySelector(".focus-centre");
+    assert(cell, "the board drew no centre tile, so there is no centre to be on");
+    assert(pop, "game.html carries no .actions-pop, so this guard cannot make " +
+      "the pane taller and is asserting nothing");
+
+    const panel = creaturePanel(4, { reduced: true });
+    assert(panel, "no creature panel mounted");
+    assert(paneEl.contains(panel),
+      "the creature is not a child of .board-pane — renderBoard() wipes #board, " +
+      "so a panel mounted in there is deleted by any mid-fight refresh (4276fe5)");
+    const art = panel.querySelector(".creature-breath");
+    assert(art, "the panel drew no creature, so there is nothing to centre");
+
+    // Layout, not rects: the entrance and the duck both use transforms, and a
+    // rect taken while either runs describes a box that has been moved.
+    const within = (el, ancestor) => {
+      let y = 0, n = el;
+      while (n && n !== ancestor) { y += n.offsetTop; n = n.offsetParent; }
+      return n === ancestor ? y : null;
+    };
+    const offset = () => {
+      const tileCentre = within(cell, paneEl) + cell.offsetHeight / 2;
+      const artCentre = within(art, paneEl) + art.offsetHeight / 2;
+      return +(artCentre - tileCentre).toFixed(1);
+    };
+    const paneH = () => Math.round(paneEl.getBoundingClientRect().height);
+
+    // THE FAULT ONLY EXISTS IN THE ONE-COLUMN LAYOUT, and the media query that
+    // makes it cannot fire here: it keys off the VIEWPORT, and the test page's
+    // is desktop-width however narrow this fixture is. At >800px .actions-pop
+    // is absolutely positioned, floats over the board, and adds nothing to the
+    // pane's height — so this guard failed its own precondition on its first
+    // run, correctly. The fixture reproduces that one rule from the
+    // max-width: 800px block, copied rather than invented.
+    pop.hidden = false;
+    pop.style.position = "static";
+    pop.style.transform = "none";
+    pop.style.width = "100%";
+
+    // AND THE PANE NEEDS SLACK, which is the part a first version of this guard
+    // missed. Once the placement is a pixel value the creature is immune to the
+    // pane merely getting taller — so a guard that only grows the pane passes a
+    // fix that never re-places at all. It was measured passing one.
+    //
+    // The case that actually needs re-placing is .board-pane's own
+    // justify-content: center: when the content is SHORTER than the pane, the
+    // board is centred in the leftover height, so a taller actions window
+    // pushes the board UP and the tile with it. min-height: 62vh gives the real
+    // page exactly that slack whenever the window is short.
+    paneEl.style.minHeight = "900px";
+    void document.body.offsetHeight;
+
+    // VARY WHAT ACTUALLY VARIES: the number of options the fight offers. That
+    // is the quantity the owner's report turned on — a screenshot with four
+    // options showing — and it goes through renderActions, the product's own
+    // path, rather than through a height this test invents.
+    const seen = [];
+    for (const n of [1, 3, 6]) {
+      const acts = [];
+      for (let i = 0; i < n; i++) {
+        acts.push({ label: "Strike with the peachwood sword " + (i + 1),
+                    onClick: () => {} });
+      }
+      renderActions(acts, "It is standing in the doorway.");
+      void document.body.offsetHeight;
+      // The TILE's position in the pane, which is what the creature has to
+      // track — not the pane's height. With slack the pane stays one size
+      // while the board slides inside it, and that is the case that needs
+      // re-placing at all.
+      seen.push({ options: n, pane: paneH(),
+                  tile: Math.round(within(cell, paneEl) + cell.offsetHeight / 2),
+                  off: offset() });
+    }
+
+    // 1. THE HARNESS ACTUALLY MOVES THE TILE. Without this the sameness below
+    //    passes for the wrong reason — identical rows are what a disconnected
+    //    knob looks like, and that has bitten this suite before.
+    //
+    //    THE TILE, NOT THE PANE. A first version asserted the pane's height
+    //    changed, which is wrong twice over: with slack the pane is pinned and
+    //    the board slides inside it, and a pane that merely grows moves nothing
+    //    once the placement is a pixel value.
+    const seats = new Set(seen.map((r) => r.tile));
+    assert(seats.size > 1,
+      "more options did not move the tile inside the pane (" + [...seats].join(", ") +
+      "), so this guard never exercised the fault: " + JSON.stringify(seen));
+
+    // 2. THE CREATURE IS ON THE TILE'S CENTRE.
+    assert(Math.abs(seen[0].off) <= 1.5,
+      "the creature sits " + seen[0].off + "px from the tile's centre");
+
+    // 3. AND IT STAYS THERE AS THE WINDOW GROWS. This is the assertion the
+    //    fault fails: the offset used to track the actions window at half a
+    //    pixel per pixel, so it was worse the more choices you were given.
+    const offs = seen.map((r) => r.off);
+    const spread = Math.max(...offs) - Math.min(...offs);
+    assert(spread <= 1.5,
+      "the creature moves as the actions window grows — " + JSON.stringify(seen));
+
+    // 4. Horizontal was exact before the fix and must stay exact.
+    const dx = Math.abs(
+      (panel.getBoundingClientRect().left + panel.getBoundingClientRect().right) / 2 -
+      (cell.getBoundingClientRect().left + cell.getBoundingClientRect().right) / 2);
+    assert(dx <= 1, "the creature is " + dx.toFixed(1) + "px off horizontally");
+
+    paneEl.style.minHeight = "";
+    clearCreaturePanel();
+  } finally {
+    clearCreaturePanel();
     if (hadTile) root.style.setProperty("--tile", hadTile);
     else root.style.removeProperty("--tile");
     host.remove();

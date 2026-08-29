@@ -2129,7 +2129,7 @@ export function watchBoardSize() {
     // growing, the layout switching columns — so observe it rather than resize.
     new ResizeObserver(() => fitBoard()).observe(pane);
   }
-  window.addEventListener("resize", fitBoard);
+  window.addEventListener("resize", () => { fitBoard(); recentreCreature(); });
 }
 
 // Take the choices away without taking the window with them. renderActions([])
@@ -3998,6 +3998,81 @@ const CREATURE_IDLE = "creature-idle";
 const CREATURE_TIERS = { 3: "n3", 4: "n4", 5: "n5", 6: "n6" };
 const VILLAGERS_FOR_PANEL = ["villager-a", "villager-b", "villager-c"];
 
+// 應在tile的中心 (#120). The panel is a child of .board-pane — it has to be,
+// because renderBoard() wipes #board and a panel mounted in there is deleted by
+// any mid-fight refresh (4276fe5). But `top: 50%` then resolves against the
+// PANE, and the pane is the room PLUS the actions window. So the creature sat
+// half the actions window low, and the error GREW WITH THE NUMBER OF OPTIONS
+// the fight offered: measured at 375x667, the art was 31.9px below the tile's
+// centre with one option showing, 60.4 with a taller window, 138.0 with a
+// taller one still. The tile's centre never moved: 227.5 in every case.
+//
+// The rule's own comment already claimed the property it did not have — "the
+// panel is tile-sized and centred on the board". It is centred on the pane. A
+// sentence with nothing enforcing it, which is the shape of 戰鬥中不能吃 before
+// #112 and of the wash warning before #115.
+//
+// TWO OFFSETS, NOT ONE, and that is what decides whether this comes back a
+// third time. .creature-breath sits at top: 40% of the panel, which lifts the
+// art a tenth of a tile ABOVE the panel's centre to leave room for the caption
+// — deliberate, and it partly cancels the bug. Centring the PANEL on the tile
+// would therefore leave the CREATURE 18.9px high. The ruling names the
+// creature, so the creature is what lands on the tile's centre.
+//
+// MEASURED FROM LAYOUT, NOT FROM RECTS. getBoundingClientRect would be simpler
+// and wrong: announceFight ducks the room and the entrance jolts the art, both
+// with transforms, so a rect taken while either is running describes a moved
+// box. offsetTop and offsetHeight ignore transforms.
+//
+// AND IT IS DERIVED, NOT RESTATED. The 40% is read out of the DOM rather than
+// written here a second time — the CSS comment on --creature-size makes the
+// same argument about stating a fact twice with nothing tying the two copies.
+function offsetWithin(el, ancestor) {
+  let y = 0;
+  let n = el;
+  while (n && n !== ancestor) {
+    y += n.offsetTop;
+    n = n.offsetParent;
+  }
+  return n === ancestor ? y : null;
+}
+
+function centreCreatureOnTile(panel) {
+  const pane = panel.parentElement;
+  if (!pane) return;
+  const cell = pane.querySelector(".focus-centre");
+  const art = panel.querySelector(".creature-breath")
+           || panel.querySelector(".creature-was");
+  if (!cell || !art) return;
+  const tileTop = offsetWithin(cell, pane);
+  if (tileTop == null || !(cell.offsetHeight > 0) || !(panel.offsetHeight > 0)) return;
+
+  const tileCentre = tileTop + cell.offsetHeight / 2;
+  // The art's centre inside the panel, wherever the stylesheet has put it.
+  const artCentre = art.offsetTop + art.offsetHeight / 2;
+  // `top` positions the panel's CENTRE, because margin-top pulls it back half a
+  // tile — margin centring, kept because resolveBeat's fell keyframes open with
+  // a bare translateY(0) rotate(0) and replace the whole transform property.
+  const want = tileCentre + panel.offsetHeight / 2 - artCentre;
+  const px = want.toFixed(2) + "px";
+  if (panel.style.top !== px) panel.style.top = px;
+}
+
+// Re-placed from the two things that actually move the board: the actions
+// window changing size, and the window resizing. Both call sites are below.
+//
+// NOT A ResizeObserver, and that is a measurement rather than a preference. One
+// was written first and could not be shown to work: in the browser pane this
+// project is driven from, `new ResizeObserver(cb).observe(pane)` never delivers
+// — not even the initial callback that fires on observe(). A mechanism whose
+// delivery cannot be demonstrated is worse than none, because it reads as cover.
+// The two explicit triggers are ordinary code and the guard drives one of them.
+export function recentreCreature() {
+  for (const panel of document.querySelectorAll(".creature")) {
+    centreCreatureOnTile(panel);
+  }
+}
+
 export function clearCreaturePanel() {
   for (const n of document.querySelectorAll(".creature")) n.remove();
 }
@@ -4190,6 +4265,8 @@ export function creaturePanel(n, { turnedFrom = null, reduced = false } = {}) {
 
   el.appendChild(cap);
   host.appendChild(el);
+  // After the caption, because the art has to be in the document to be measured.
+  centreCreatureOnTile(el);
   return el;
 }
 
@@ -4249,6 +4326,8 @@ function bindActionKeys() {
 // the run. Tab reaches the sidebar as normal; the number keys stay bound
 // globally.
 export function renderActions(actions, prompt = "", opts = {}) {
+  // Re-place the creature at the END of this, not here — the window has to have
+  // its new contents before its new height means anything. See the tail.
   const el = document.getElementById("actions");
   const pop = document.getElementById("actions-pop");
   // Keep the keyboard on the turn loop, but don't yank focus out of the
@@ -4412,6 +4491,16 @@ export function renderActions(actions, prompt = "", opts = {}) {
       el.querySelector(".action:not(:disabled)");
     if (first) first.focus();
   }
+
+  // #120. In the one-column layout this window is IN FLOW below the board, so
+  // its height is part of the pane's — and the creature panel is centred on the
+  // pane. Every pixel of window used to push the creature half a pixel down,
+  // which is why the fault was bigger the more options a fight offered: 31.9px
+  // low with one, 60.4 with a taller window, 138.0 with a taller one still.
+  //
+  // Here rather than at the top of the function because the window has to be
+  // holding its new contents before its new height means anything.
+  recentreCreature();
 }
 
 // `actions` = [{label, onClick, primary?} | {label, href, primary?}].
