@@ -770,8 +770,13 @@ body.app .board-pane > .board { min-height: 0; }
      is the row's gap now. */
   padding: 0;
   border: 0;
-  width: var(--place);
-  flex: 0 0 auto;
+  /* SHARES THE ROW RATHER THAN ASSERTING A WIDTH. A fixed 38px per place made
+     the row 321px wide whatever the column was, which fits the 351 of a phone
+     and overflows the 300 of the desktop sidebar by 9px — measured at 1024x768
+     and at 812x375, where .backpack ran past the viewport. --place is the CAP
+     now, not the size, so the row narrows into whatever column it is given. */
+  flex: 1 1 0;
+  max-width: var(--place);
   min-width: 0;
 }
 .hand .handicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
@@ -820,7 +825,11 @@ body.app .board-pane > .board { min-height: 0; }
 }
 .handart:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; border-radius: 6px; }
 span.handart { cursor: default; }
-.handicon { width: var(--handicon); height: var(--handicon); color: var(--gold); }
+/* Fills its place, capped at --handicon. The cap is what the burnt-blade guard
+   rasterises at — the biggest size these ever render, which is the one their
+   legibility has to be judged at. */
+.handicon { width: 100%; max-width: var(--handicon); height: auto;
+            aspect-ratio: 1; color: var(--gold); }
 
 /* The ghost in an empty slot (#91): the SHAPE of what belongs there, drawn as a
    faint outline. Same box as a real picture so the row keeps its alignment, and
@@ -1034,7 +1043,7 @@ span.handart { cursor: default; }
      the width comes from --place like the other three. */
   max-width: none;
 }
-.cell { width: var(--place); flex: 0 0 auto; }
+.cell { flex: 1 1 0; max-width: var(--place); min-width: 0; }
 
 .cell {
   position: relative;
@@ -5291,27 +5300,35 @@ html[lang^="en"] .notesheet h2 {
    sr-only and the poison mark moved beside the clock.
 
    RE-MEASURED AGAIN TO 339 AND SET TO 346 (#117). The clock and the hearts
-   left the sidebar for the board, so the panel now holds equipment and pack
-   and nothing else: 301 to 239, measured.
+   left the sidebar for the board, so the panel held equipment and pack alone:
+   301 to 239, measured.
 
-   THE CONSTANT DOES NOT MOVE BY ITSELF, and this is the third time that has
-   had to be said. Freeing 62px of sidebar changes nothing at all until this
-   number comes down by 62 — the tile is sized from the constant, not from the
-   sidebar, so a shorter panel with a stale constant just leaves dead space
-   under the board.
+   AND SET TO 360 FOR LAYOUT A (#121), which is the first time this constant has
+   gone UP. Every previous move freed column height and handed it to the tile;
+   this one buys something else with it. The owner ruled that the item row and
+   手記 may scroll below the fold, so the constant no longer decides whether the
+   page fits — it decides how much of the room and the choices sit above the
+   fold, and the answer has to hold at FOUR options.
 
-   Found by sweep, not by summing the parts, and swept in BOTH languages and
-   across five health-and-poison states at each value:
+   Swept at a true 375x667 through an iframe, four option rows, with the merged
+   consequence-and-price line in place:
 
-     繁體中文  339 fits, 338 overflows by 1     <- binds
-     English   337 fits, 336 overflows by 2
+     chrome 346  tile 188.8  choices bottom 676.2  -9.2
+     chrome 355  tile 183.5  choices bottom 667.2  -0.2   <- the boundary
+     chrome 360  tile 180.6  choices bottom 662.2  +4.8
+     chrome 375  tile 171.8  choices bottom 647.2  +19.8
 
-   THE LANGUAGE THAT BINDS IS NOT A CONSTANT EITHER. At #114 both languages
-   measured 301.3 and there was no split to speak of; the comment then said so.
-   Here the sidebars are 240 and 239 and 繁體中文 is the tighter one, so it is
-   the side this is set from. Which language binds is a property of the layout
-   in front of you, not a fact about the languages — re-measure both every time
-   rather than carrying an answer forward.
+   360 for the same reason 408 and 346 had slack: sitting on the edge makes any
+   future change to the nav or a label a silent one-pixel scroll.
+
+   THE TILE COSTS 8px, NOT 44. Without the merged row the fold needed about 420
+   and a tile of 145 — below the 152.5 #114 fought for. The row merge and three
+   letters off one English item name bought 35px of board back.
+
+   AND THE CONSTANT HAS A FLOOR OF RELEVANCE: below about 315 the tile is capped
+   at 200 by min(200px, ...) and this number does nothing at all. A sweep that
+   runs past it reports a flat line that means nothing, so the probe asserts the
+   tile actually moved between rows.
 
    The seven pixels are slack, for the reason the four and the seven before
    them were: tuning to the exact edge makes every future change to the nav or
@@ -5319,7 +5336,7 @@ html[lang^="en"] .notesheet h2 {
 
    What it buys: the focus goes 259 to 321, so the tile goes 152 to 189. */
 :root {
-  --phone-chrome: 346px;
+  --phone-chrome: 360px;
   --tile: max(96px, min(200px,
                         calc((100vw - 30px) / 1.7),
                         calc((100svh - var(--phone-chrome)) / 1.7)));
