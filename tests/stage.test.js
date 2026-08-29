@@ -1966,6 +1966,121 @@ test("letter: the interpolated values are marked, in both languages (#124)", ser
   }
 }));
 
+// LAYOUT A'S LIGHT (#122), SAMPLED MID-FLIGHT.
+//
+// A luminance check taken before or after the gutter passes whatever the code
+// does — the whole curve is 1100ms and the frame that matters is 52% of it,
+// where --gutter reaches .10. So this seeks the animation rather than watching
+// it, and proves the seek moved the dial before asserting anything about what
+// the dial does.
+//
+// WHAT IT IS PROTECTING. Layout A put the vignette over the whole surface
+// instead of inside the board's box, which is the point of #122 — and it put a
+// column of prose under a light that had been signed off for a few room names.
+// Measured at the bottom of the curve BEFORE the fix, the 手記's four greys
+// went from 15.36 / 10.33 / 7.48 / 5.17 to 7.57 / 5.28 / 4.02 / 2.99 at the
+// block's near corner and 2.24 / 1.85 / 1.62 / 1.42 at its far one. The ruling
+// is 手記不跟著暗, and the mechanism is that the narration sits above the
+// vignette rather than under it.
+test("light: the gutter reaches the room and not the narration (#122)", serial(async () => {
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:300px";
+  document.head.appendChild(styles);
+  document.body.appendChild(host);
+  const body = document.body;
+  try {
+    host.appendChild(document.importNode(doc.querySelector(".board-pane"), true));
+    host.appendChild(document.importNode(doc.querySelector(".sidebar"), true));
+    const pane = host.querySelector(".board-pane");
+    const account = host.querySelector(".account");
+    assert(pane && account, "game.html has no .board-pane / .account");
+
+    const vigOpacity = () => parseFloat(getComputedStyle(pane, "::after").opacity);
+    const gutterNow = () => getComputedStyle(body).getPropertyValue("--gutter").trim();
+
+    // 1. THE STYLESHEET APPLIED. --gutter is a registered property, so an
+    //    unstyled document answers "" here rather than a number.
+    assert(gutterNow() !== "",
+      "--gutter does not resolve, so the stylesheet did not apply and every " +
+      "reading below is about a document with none of the light model in it");
+    const restVig = vigOpacity();
+    assert(restVig > 0, "the vignette has no opacity at rest");
+
+    // 2. SEEK TO THE DARKEST FRAME, AND PROVE THE DIAL MOVED. Reading at rest
+    //    is the failure this guard exists to avoid, so if the seek does not
+    //    change --gutter there is nothing here worth asserting.
+    body.classList.add("guttering");
+    const anim = body.getAnimations().find((a) => a.animationName === "gutter");
+    assert(anim, "no gutter animation started, so nothing was sampled");
+    const dur = anim.effect.getTiming().duration;
+    eq(dur, 1100, "the gutter is no longer 1100ms, so 52% is no longer its floor");
+    anim.pause();
+    anim.currentTime = dur * 0.52;
+    const low = parseFloat(gutterNow());
+    assert(Math.abs(low - 0.10) < 0.005,
+      "seeking to 52% put --gutter at " + low + " rather than .10 — the frame " +
+      "this guard measures is not the bottom of the curve any more");
+
+    // 3. THE LIGHT REALLY SAGS THERE. Without this the rest is a claim about a
+    //    dial nothing reads.
+    const lowVig = vigOpacity();
+    assert(lowVig > restVig + 0.1,
+      "the vignette is " + lowVig + " at the bottom of the gutter against " +
+      restVig + " at rest — the candle failing is not reaching the light");
+
+    // 4. AND THE OBJECTS' SHADOWS SAG WITH IT. A shadow that holds still while
+    //    the flame fails is the tell that the light is a picture.
+    const shadowRule = css.slice(css.indexOf(".hand .handicon,"), css.indexOf(".hand .handicon,") + 260);
+    assert(shadowRule.indexOf("var(--gutter)") !== -1,
+      "the object shadows no longer read --gutter, so they hold still while " +
+      "everything else in the room dims");
+
+    // 5. THE NARRATION IS ABOVE THE VIGNETTE — the ruling, as a measurement.
+    //    BOTH HALVES ARE LOAD-BEARING: a z-index on a static element does
+    //    nothing at all, so the position is asserted with it. That is the
+    //    likely regression, because `position: relative` on a block that needs
+    //    no offset reads as removable.
+    const acc = getComputedStyle(account);
+    const vigZ = parseInt(getComputedStyle(pane, "::after").zIndex, 10);
+    assert(acc.position !== "static",
+      "the narration is position: static, so its z-index is inert and it falls " +
+      "back under the vignette — 手記不跟著暗 stops being true with no other sign");
+    assert(parseInt(acc.zIndex, 10) > vigZ,
+      "the narration is at z-index " + acc.zIndex + " against the vignette's " +
+      vigZ + ", so the candle takes the prose down with the room");
+
+    // 6. AND THE RAMP IT KEEPS IS LEGIBLE, read from the page's own tokens
+    //    rather than from hexes copied into this file.
+    const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    assert(bg, "--bg does not resolve");
+    const acct = host.querySelector(".acct");
+    for (let i = 0; i < 4; i++) {
+      const p = document.createElement("p");
+      p.textContent = "x";
+      acct.appendChild(p);
+    }
+    const ratios = [...acct.querySelectorAll("p")]
+      .map((p) => contrastOf(getComputedStyle(p).color, bg));
+    eq(ratios.length, 4, "the narration did not draw four lines to measure");
+    for (const [i, r] of ratios.entries())
+      assert(r >= 4.5,
+        "narration line " + (i + 1) + " is " + r + ":1 on --bg, under the 4.5 " +
+        "body text needs — the four-grey ramp was cut to 15.36 / 10.33 / 7.48 / " +
+        "5.17 for exactly this reason");
+  } finally {
+    body.classList.remove("guttering");
+    for (const a of body.getAnimations())
+      if (a.animationName === "gutter") a.cancel();
+    host.remove();
+    styles.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);

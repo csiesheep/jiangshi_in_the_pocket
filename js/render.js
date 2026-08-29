@@ -694,6 +694,14 @@ function renderHour(s) {
   const hour = Math.min(Math.max(s.hour - 12, 9), 11);
   for (const h of [9, 10, 11]) body.classList.toggle(`hour-${h}`, h === hour);
 
+  // 中毒 reaches the light (#122). Published here beside --dusk and --dread
+  // rather than anywhere nearer the hearts, because this is the one place that
+  // hands the state of the night to CSS — and the tint has to sag with the
+  // candle like everything else the light model drives.
+  // The hearts keep the greyscale-safe rim as the actual cue (#117); this is
+  // atmosphere over a signal that already works.
+  body.classList.toggle("poisoned", !!s.poisoned);
+
   const turned = lastHour != null && lastHour !== s.hour;
   lastHour = s.hour;
   if (turned) {

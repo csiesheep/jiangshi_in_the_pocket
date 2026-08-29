@@ -184,6 +184,47 @@ body.guttering .focus-centre .tilebox {
   body.guttering { animation-duration: 1800ms; }
 }
 
+/* 中毒 TINTS THE WHOLE SURFACE (#122). Before Layout A the poison wash had a
+   panel to sit in; there is no panel now, so the state colours the light
+   instead of a box — which is the truer version of it anyway, since being
+   poisoned is not a property of one corner of the screen.
+
+   IT RIDES THE SAME DIAL AS EVERYTHING ELSE. The tint is multiplied by
+   --gutter, so when the candle sags the green sags with it: a wash that held
+   steady while the room failed would read as a filter laid over the picture
+   rather than as something in the room. At --gutter 1 it is the full value.
+
+   DELIBERATELY NOT THE ONLY CUE, AND DELIBERATELY WEAK. #117 ruled that a
+   state carried by hue alone fails the commonest colour blindness, and the
+   answer there was the rim on the hearts — that rim is still the cue and this
+   does not replace it. This is atmosphere on top of a signal that already
+   works. It also cannot move the narration's contrast, and not because it is
+   weak — the narration sits at z-index 2 and this at 0, so the tint is not
+   between the prose and the eye at all. Measured with the tint on, the ramp is
+   the unlit 15.36 / 10.33 / 7.48 / 5.17 exactly.
+
+   WHY body::before AND NOT .board-pane::before, which is the obvious home for
+   it: that pseudo-element already carries the world's own light, and it is set
+   through the `background` SHORTHAND in .pane--indoor / .pane--outdoor further
+   down this file. A background-image rule of equal specificity written up here
+   loses to them on source order and paints nothing — silently, with no error
+   and no warning. body::before is unused and free.
+
+   Between the two existing page-wide layers: above the world light at -1 and
+   below the vignette at 1, so the room is tinted and the dark still closes over
+   it. Below the narration at 2 as well, which is right — 手記不跟著暗 covers the
+   green as much as the black. */
+body.poisoned::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center,
+    color-mix(in srgb, var(--poison) calc(9% * var(--gutter)), transparent) 0%,
+    color-mix(in srgb, var(--poison-rim) calc(22% * var(--gutter)), transparent) 100%);
+}
+
 /* Continuous dusk underneath, discrete class on top. The last hour is a change
    of register, not another notch of the same gradient: the firelight itself
    turns, which says something "slightly dimmer than 10:59" cannot. */
@@ -714,7 +755,15 @@ body.app .board-pane > .board { min-height: 0; }
    follows any change to the band structure. Tabulating three hours here would
    have been a second copy of the clock that lies the day the clock moves —
    the same argument that let the minute hand replace the pip row.
-   White at nine, 60% of --danger at the third watch. */
+   White at nine, and the FIRELIGHT at the third watch (#122) — not --danger.
+   --flame is itself mixed from --flame-early to --flame-late by --dusk, and
+   body.hour-11 moves its destination, so the reading now turns with the same
+   value that turns the room: the time is told by the colour of the light as
+   well as by the digits. --danger was a near neighbour of --flame-late doing
+   the same job by coincidence; this makes it the same fact.
+   Contrast holds, measured against --bg by driving --dusk to each end rather
+   than predicted: 19.69:1 at nine, 8.33:1 at the third watch and 7.46:1 in the
+   last hour, all far over the 4.5 a reading this size needs. */
 .clocknum {
   margin-left: 0;
   /* ITS OWN SIZE NOW, not a percentage of the panel's. #79 set this at +20% on
@@ -727,7 +776,7 @@ body.app .board-pane > .board { min-height: 0; }
      headline and is sized as one. */
   font-size: 1.85rem;
   line-height: 1;
-  color: color-mix(in srgb, var(--danger) calc(var(--dusk) * 60%), #fff);
+  color: color-mix(in srgb, var(--flame) calc(var(--dusk) * 60%), #fff);
   animation: clockshake 2.2s ease-in-out infinite;
 }
 
@@ -925,7 +974,19 @@ body.app .board-pane > .board { min-height: 0; }
   padding: 0;
   border: 0;
 }
-.hand .handicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
+/* THE SHADOWS FOLLOW THE FLAME (#122). A weak flame throws a short shadow, so
+   the offset and the blur are multiplied by --gutter along with the vignette,
+   the glow and the neighbour rooms. At --gutter 1 this reduces exactly to the
+   0 5px 10px it was before the dial reached it, which is the same contract the
+   three brightness dials already keep.
+   The objects lie on a surface now (#121), so their shadows are the thing that
+   says so — a shadow that stays put while the light fails is the tell that the
+   light is a picture rather than a light. */
+.hand .handicon,
+.cellface .cellicon {
+  filter: drop-shadow(0 calc(5px * var(--gutter)) calc(10px * var(--gutter))
+                      rgba(0, 0, 0, .6));
+}
 /* AN EMPTY PLACE IS A RING PRESSED INTO THE TABLE, never a dashed cell. The
    dashed outline was a cell that happened to be empty; this is a place that is
    waiting.
@@ -1266,7 +1327,8 @@ span.handart { cursor: default; }
   color: var(--gold);
   cursor: pointer;
 }
-.cellface .cellicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
+/* .cellface .cellicon is declared with .hand .handicon above: a carried thing
+   and a worn thing lie on the same table and take the same light. */
 /* An empty pack place is the same ring the empty hand places are — one
    vocabulary for "nothing here yet", not a dashed box on one side of the
    divider and a ring on the other. */
@@ -5750,7 +5812,40 @@ body.asleep .fog {
 
    NEWEST FIRST, which log() has always done — it prepends. So the ruling that
    took the longest to settle needed no code at all. */
-.account { margin-top: 14px; }
+/* 手記不跟著暗 — THE NARRATION DOES NOT DIM WITH THE ROOM (#122), and here is
+   the number that decides it rather than a preference.
+
+   Layout A puts the vignette over the whole surface instead of inside the
+   board's box, which is the unlock — the candle sags and the banner, the
+   objects and their shadows go with it. It also puts a COLUMN OF PROSE under a
+   light that was signed off for a few room names. css/style.css already
+   recorded that trade: a gutter is 800ms during which room names sit below the
+   contrast floor, which is why candleGutter() refuses to run while a decision
+   is pending.
+
+   MEASURED AT THE BOTTOM OF THE CURVE — --gutter .10, which is 52% of 1100ms,
+   sampled by seeking the animation rather than reading it at rest. The ramp is
+   15.36 / 10.33 / 7.48 / 5.17 unlit. Under the vignette at that frame:
+
+     1024x768   7.57 / 5.28 / 4.02 / 2.99   at the block's near corner
+                2.24 / 1.85 / 1.62 / 1.42   at its far corner
+     375x667    2.79 / 2.22 / 1.87 / 1.59   along its top edge
+
+   Every step is under the 4.5 body text needs across most of the block, and the
+   NEWEST line — the brightest thing in it — reaches 2.24. That is not a quiet
+   moment for prose, it is prose that cannot be read, twice a night, for a
+   second at a time.
+
+   So the narration sits above the vignette rather than under it. The other
+   option was to floor it the way .focus-centre .tilebox floors the lit tile at
+   brightness .35; that keeps it in the light model, which is tidier, but the
+   floor needed to hold 4.5:1 is high enough that the block stops reacting to
+   the candle in any visible way. Above the light is the honest version of the
+   same outcome, and it is what was ruled.
+
+   z-index 2 clears the vignette's 1. Everything that should still cover it —
+   the letter at 60, a tooltip at 30 — is far above both. */
+.account { margin-top: 14px; position: relative; z-index: 2; }
 .account .cap {
   font-size: 10px;
   letter-spacing: .16em;
