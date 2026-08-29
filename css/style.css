@@ -152,7 +152,7 @@ body.guttering { animation: gutter 1100ms linear 1; }
 /* The half-rooms read the same dial but reach it through a filter with a
    two-second transition on it — right for the light dying across an hour, far
    too slow for this. While the candle is failing they follow it directly. */
-body.guttering .halfroom { transition: none; }
+body.guttering .halfglimpse { transition: none; }
 
 /* And the room you are standing in, which is otherwise the one thing the light
    model does not dim — it is lit because you are in it. A candle failing has
@@ -1388,7 +1388,7 @@ span.handart { cursor: default; }
 .board--outdoor { --world-cast: #6fd3d0; --cast: 16%; }
 
 .board .tilebox,
-.board .halfroom {
+.board .halfglimpse {
   background-color: color-mix(in srgb, var(--world-cast) var(--cast), var(--room));
   border-color: color-mix(in srgb, var(--world-cast) var(--cast-wall), var(--wall));
   /* box-shadow belongs on this rule and not on .tilebox, for the same
@@ -1672,39 +1672,78 @@ span.handart { cursor: default; }
 
 /* A neighbour, seen through the doorway. The far edge fades out, so it reads as
    a glimpse rather than a room of its own. */
+/* ---- The half-room, and what the candle is allowed to reach (#123) ---------
+   THE ROOM DIMS. THE NAME DOES NOT. Everything that reads as an unlit room —
+   the wall, the floor colour, the shadow into the threshold, the glimpse of the
+   scene — lives in .halfglimpse and is dimmed by the peek. The name is a child
+   of .halfroom and OUTSIDE that element, so nothing dims it.
+
+   WHY IT IS A SEPARATE ELEMENT AND NOT A FLOOR ON THIS ONE. A filter applies to
+   its whole subtree; a descendant cannot opt out. And the floor that was the
+   obvious fix does not exist: measured on the shipped pair — #dfe3ea on its own
+   scrim through brightness(k) saturate(.45) — the label needs k = .545 to clear
+   4.5:1, and the peek's MAXIMUM is .46, which is --peek-base at dusk 0 with no
+   gutter. Pin it at its brightest, delete the dusk ramp entirely, and it still
+   reads 3.50:1. It was 1.79:1 at the darkest peek. The label was not dark
+   because the floor was too low; it was dark because the filter was over it.
+
+   (An inverse brightness on the label was measured too, and does not work:
+   brightness(1/.26) drives #dfe3ea to 255,255,255 and CLIPS before the ancestor
+   filter runs, landing at 2.01:1.) */
 .halfroom {
   position: relative;
-  background-color: var(--room);
-  border: var(--wall-w) solid var(--wall);
-  /* The same wall, seen from the unlit side. It gets the corner vignette and
-     its own shadow into the threshold, but no inner lip — the light that would
-     catch that face is in the room you are standing in, not this one. The
-     brightness filter below dims the lot again, so these are set a little
-     stronger than they finally read. */
-  box-shadow:
-    inset 0 0 22px 7px rgba(0, 0, 0, .42),
-    0 2px 12px rgba(0, 0, 0, .45);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
   text-align: center;
+}
+.halfglimpse {
+  position: absolute;
+  inset: 0;
+  background-color: var(--room);
+  border: var(--wall-w) solid var(--wall);
+  /* The same wall, seen from the unlit side. It gets the corner vignette and
+     its own shadow into the threshold, but no inner lip — the light that would
+     catch that face is in the room you are standing in, not this one. The
+     brightness filter below dims the lot again, so these are set a little
+     stronger than they finally read.
+
+     THAT LAST SENTENCE IS WHY THESE MOVED HERE TOGETHER (#123). The shadows are
+     tuned to be seen THROUGH the filter, so separating them from it would make
+     them abruptly wrong. Filter and the things it is compensating for stay on
+     the same element. */
+  box-shadow:
+    inset 0 0 22px 7px rgba(0, 0, 0, .42),
+    0 2px 12px rgba(0, 0, 0, .45);
   /* A glimpse into an unlit room, not a smaller room. Hovering lifts it back
-     so the name stays gettable. */
+     so the scene is gettable — the name never needed hover to be legible again
+     and no longer gets dark enough to want it. */
   filter: brightness(var(--peek-light)) saturate(.45);
   transition: filter 2s linear;
 }
-.halfroom:hover { filter: brightness(calc(var(--peek-light) + .55)) saturate(.9); }
+.halfroom:hover .halfglimpse { filter: brightness(calc(var(--peek-light) + .55)) saturate(.9); }
 /* Brighter than --muted, which the dimming filter was dragging to 2.8:1 even
    before dusk went continuous. The half-room is a glimpse, but the name in it
-   is information — 6.2:1 at the darkest peek, 10.2:1 at nine o'clock. */
+   is information — and now it is 13.4:1 at every hour, because it is outside
+   the filter rather than at the bottom of it. The two numbers that used to be
+   here, 6.2:1 and 10.2:1, were computed as (k + .05) / .05, which treats a
+   brightness factor as a multiplier on relative luminance. It is not one:
+   brightness() scales sRGB channels, which have to be linearised first. The
+   real figures were 1.79:1 and 3.50:1. See #123. */
 /* The scrim comes back: this used to sit over letterbox padding, and now sits
    over a room. */
 .halfroom .tilename {
   font-size: .6rem;
   color: #dfe3ea;
   background: color-mix(in srgb, var(--room) 72%, black);
+  /* ABOVE THE GLIMPSE, and this is load-bearing rather than tidy. .halfglimpse
+     is absolutely positioned, so it paints over static siblings — without this
+     the name would sit BEHIND the room it names and the fix would look like it
+     had deleted the label. */
+  position: relative;
+  z-index: 1;
 }
 .halfroom .roomscene { opacity: .5; }
 .halfroom--n, .halfroom--s { width: var(--tile); height: var(--peek); }
@@ -1752,14 +1791,19 @@ span.handart { cursor: default; }
    its bottom edge, so it fades upward, and so on round. Getting one of these
    backwards fades the room out exactly where it meets you and leaves its far
    edge bright, which looks like a lit strip pasted on the outside of the map. */
-.halfroom--n { border-radius: 0; border-bottom: 0;
-  -webkit-mask-image: var(--fade-n); mask-image: var(--fade-n); }
-.halfroom--s { border-radius: 0; border-top: 0;
-  -webkit-mask-image: var(--fade-s); mask-image: var(--fade-s); }
-.halfroom--w { border-radius: 0; border-right: 0;
-  -webkit-mask-image: var(--fade-w); mask-image: var(--fade-w); }
-.halfroom--e { border-radius: 0; border-left: 0;
-  -webkit-mask-image: var(--fade-e); mask-image: var(--fade-e); }
+/* THE MASK STAYS ON THE HALF-ROOM AND THE BORDERS MOVED (#123). Two different
+   jobs that used to be one declaration. The fade is what makes the far edge
+   dissolve, and it has to cover the whole strip INCLUDING the name — so it
+   belongs on .halfroom, above the split. The dropped edge is part of the wall,
+   which now lives on .halfglimpse, so it goes there. */
+.halfroom--n { -webkit-mask-image: var(--fade-n); mask-image: var(--fade-n); }
+.halfroom--s { -webkit-mask-image: var(--fade-s); mask-image: var(--fade-s); }
+.halfroom--w { -webkit-mask-image: var(--fade-w); mask-image: var(--fade-w); }
+.halfroom--e { -webkit-mask-image: var(--fade-e); mask-image: var(--fade-e); }
+.halfroom--n .halfglimpse { border-radius: 0; border-bottom: 0; }
+.halfroom--s .halfglimpse { border-radius: 0; border-top: 0; }
+.halfroom--w .halfglimpse { border-radius: 0; border-right: 0; }
+.halfroom--e .halfglimpse { border-radius: 0; border-left: 0; }
 .focus {
   --fade-n: linear-gradient(to top,    #000 0 34%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.16) 100%);
   --fade-s: linear-gradient(to bottom, #000 0 34%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.16) 100%);
@@ -1767,7 +1811,7 @@ span.handart { cursor: default; }
   --fade-e: linear-gradient(to right,  #000 0 34%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.16) 100%);
 }
 /* Across the seam — the other side of the house. */
-.board .halfroom--across { border-color: color-mix(in srgb, var(--gold) 55%, var(--wall)); }
+.board .halfroom--across .halfglimpse { border-color: color-mix(in srgb, var(--gold) 55%, var(--wall)); }
 /* A glimpse across the seam looks into the other world, so it takes the other
    cast — moonlight spilling in, or lamplight spilling out. */
 .board--indoor .halfroom--across {

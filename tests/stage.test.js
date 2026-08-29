@@ -3444,3 +3444,129 @@ test("the full-screen scare is unreachable, and the tier table is not", async ()
     "as dead as the pictures - if that is deliberate, the marker in style.css " +
     "needs rewriting, not this test relaxing");
 });
+
+// The room name in a half-room must not be inside the thing the candle dims
+// (#123). This is measured on a board the game rendered, not on a fixture: the
+// whole class of bug it guards is a real cascade doing something the source
+// does not show.
+//
+// WHY IT IS A STRUCTURAL CHECK AND NOT A THRESHOLD. There is no floor that
+// would have worked. Measured on the shipped pair, the label needs brightness
+// .545 to clear 4.5:1 and the peek's maximum is .46 — so "raise the floor" was
+// arithmetically unavailable, and the only fix is the label not being under the
+// filter at all. A guard on the floor VALUE would therefore be guarding a knob
+// that cannot reach the answer; this guards the arrangement instead.
+// SERIAL, and that is not caution. renderBoard() writes to
+// getElementById("board") — a document-wide lookup — and this suite's tests are
+// awaited together, so an unqueued board test races every other board test for
+// that id. Unqueued, this guard reported "the board rendered no way out": its
+// host was in the document and another test's #board was earlier in it.
+test("the half-room dims the room and not its name", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  // SNAPSHOT, not the live list: document.adoptedStyleSheets is an observable
+  // array, so keeping the reference and assigning it back restores nothing.
+  const adopted = [...document.adoptedStyleSheets];
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(await fetch("../css/style.css", NO_STORE).then((r) => r.text()));
+
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-items"></div><div id="actions-pop" hidden>' +
+                   '<div id="actions"></div></div>';
+  document.body.appendChild(host);
+  try {
+    // THE TEST PAGE LINKS NO STYLESHEET, so the game's CSS has to be adopted or
+    // every computed style here is the browser's default. That matters more for
+    // this guard than for most: its central assertion is that no ancestor
+    // carries a filter, and with no CSS loaded that is true of EVERYTHING. It
+    // passed vacuously until this was added.
+    document.adoptedStyleSheets = [...adopted, sheet];
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 9 });
+    game.refresh();
+
+    // A HALF-ROOM NEEDS A STEP TAKEN. A fresh board has four doorways and no
+    // placed neighbours, so nothing renders a peek until the player goes
+    // through one — checked across twelve seeds, none of them start with one.
+    // So the guard walks through a door, which is the path a player takes.
+    // (And it does NOT refresh afterwards: a re-render clears the peek again.)
+    const door = host.querySelector(".doorway");
+    assert(door, "the board rendered no way out, so this guard cannot reach a half-room");
+    door.click();
+    for (let i = 0; i < 40 && !host.querySelector(".halfroom"); i++) {
+      for (const a of document.getAnimations()) {
+        try {
+          const t = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+          if (!t || t.iterations === Infinity) continue;
+          a.finish();
+        } catch (e) { /* an infinite one refusing must not stop the rest */ }
+      }
+      await new Promise((r) => setTimeout(r, 40));
+    }
+
+    // PROVE THE REGION. Every assertion below is about a half-room's label, and
+    // all of them pass triumphantly on a board that rendered none.
+    const half = host.querySelector(".halfroom");
+    assert(half, "no half-room rendered after stepping through a door, so this " +
+      "guard measured nothing");
+    const label = half.querySelector(".tilename");
+    assert(label && label.textContent.trim(),
+      "the half-room has no name in it, so there is no contrast to check");
+
+    // THE ARRANGEMENT: nothing between the label and the board may carry a
+    // filter. Walking the ancestors is the check — a filter anywhere up the
+    // chain applies to the whole subtree, which is the fact the old code fell
+    // foul of.
+    for (let el = label; el && el !== host; el = el.parentElement) {
+      const f = getComputedStyle(el).filter;
+      assert(f === "none",
+        "a filter (" + f + ") sits on " + el.className + ", which is an ancestor " +
+        "of the room name - it will dim the name with the room, and no floor " +
+        "value can undo that");
+    }
+
+    // And the dimming still HAPPENS, on the part that is meant to have it. A
+    // fix that simply deleted the peek would pass everything above.
+    const glimpse = half.querySelector(".halfglimpse");
+    assert(glimpse, "the half-room has no .halfglimpse - the dimmed half is gone");
+    assert(/brightness/.test(getComputedStyle(glimpse).filter),
+      "the glimpse is no longer dimmed, so the neighbour room is not a glimpse " +
+      "any more - this guard must not be satisfied by deleting the effect");
+    assert(!glimpse.contains(label),
+      "the room name is inside .halfglimpse again");
+
+    // THE NUMBER, from the colours the page computed rather than from copies of
+    // the hex values - the tokens move with the world cast and the hour.
+    const cs = getComputedStyle(label);
+    const ratio = contrastOf(cs.color, cs.backgroundColor);
+    assert(ratio >= 4.5,
+      "the half-room's name reads at " + ratio + ":1 against its own scrim, under " +
+      "the 4.5 a name needs");
+  } finally {
+    host.remove();
+    document.adoptedStyleSheets = adopted;
+  }
+}));
+
+// WCAG contrast from two CSS colour strings, resolved by the browser rather
+// than parsed by hand: color-mix() and color(srgb ...) both turn up here and a
+// hand-written hex parser would quietly fail on them.
+function contrastOf(fg, bg) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 4;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  const px = (col) => {
+    x.fillStyle = "#000"; x.fillRect(0, 0, 4, 4);
+    x.fillStyle = col; x.fillRect(0, 0, 4, 4);
+    const d = x.getImageData(2, 2, 1, 1).data;
+    return [d[0], d[1], d[2]];
+  };
+  const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const L = (p) => 0.2126 * lin(p[0]) + 0.7152 * lin(p[1]) + 0.0722 * lin(p[2]);
+  const a = L(px(fg)), b = L(px(bg));
+  return Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100;
+}

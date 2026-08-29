@@ -3764,20 +3764,36 @@ function halfRoom(game, edge, dir) {
   if (edge.crossesWorld) half.classList.add("halfroom--across");
   half.setAttribute("aria-hidden", "true"); // already in the centre room's label
 
+  // THE DIMMED HALF, AND THE NAME IS NOT IN IT (#123). A filter applies to its
+  // whole subtree and a descendant cannot opt out, so the only way to stop the
+  // peek's brightness() from dragging the room name under the contrast floor is
+  // for the name not to be inside the filtered element. Everything that is
+  // meant to read as an unlit room goes in here; the label stays a child of the
+  // half-room itself and is painted at full strength.
+  //
+  // This is not a preference between two legible options. Measured on the
+  // shipped pair, the label needs brightness .545 to clear 4.5:1 and the peek's
+  // MAXIMUM is .46 — so no floor, at any value, could have fixed it.
+  const glimpse = document.createElement("div");
+  glimpse.className = "halfglimpse";
+
   const glimpseId = SCENE_ALIAS[edge.neighbour.id] || edge.neighbour.id;
   const scene = icon("scene", glimpseId, `roomscene${SCENE_RICH.has(glimpseId) ? " roomscene--rich" : ""}`);
-  if (scene) half.appendChild(scene);
+  if (scene) glimpse.appendChild(scene);
+
+  // Worth more here than on the room you are standing in: this is the board
+  // telling you the relic is through that door before you commit the turn.
+  // Pinned to the strip rather than to the scene, so the crop cannot eat it.
+  // Stays INSIDE the dimmed half deliberately: it is a picture, not a word, and
+  // dimming with the room is what makes it read as belonging to that room.
+  const badges = badgeRow(tileBadges(game, edge.neighbour));
+  if (badges) glimpse.appendChild(badges);
+  half.appendChild(glimpse);
 
   const name = document.createElement("span");
   name.className = "tilename";
   name.textContent = tileName(game, edge.neighbour.id);
   half.appendChild(name);
-
-  // Worth more here than on the room you are standing in: this is the board
-  // telling you the relic is through that door before you commit the turn.
-  // Pinned to the strip rather than to the scene, so the crop cannot eat it.
-  const badges = badgeRow(tileBadges(game, edge.neighbour));
-  if (badges) half.appendChild(badges);
   return half;
 }
 
