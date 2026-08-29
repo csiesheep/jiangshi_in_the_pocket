@@ -1,9 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Grave Errand: a headstone with the relic's mark, on the house near-black. -->
+  <!-- 三更：殭屍 — the jiangshi, neck up, on the house near-black (#109).
+
+       A REDRAW, NOT A CROP. scare-n4 is a painted illustration: 84 paths and
+       11 gradients in a 200x260 box. Rasterised into a tab it is a dark smudge,
+       because the marks that carry it are gradients a few pixels wide. This is
+       the same head rebuilt out of shapes that survive 16px, at the stroke
+       weight the old headstone was drawn at for exactly that reason.
+
+       NECK UP, AND TIGHT. The robe and hood are dark mass at icon sizes: they
+       cost area and say nothing. Cropping to the head hands those pixels to the
+       face and to the 符, which is the mark that identifies this creature at all
+       — #99 recorded tier 4 as the one that WEARS the paper as a field. Some
+       jaw and hair are kept deliberately: a face cropped to only its features
+       reads as a pale shape rather than as a head.
+
+       THE PALETTE IS THE SOURCE'S, not a new one. Face #b9bcae to #7b8073,
+       paper #ddd2b0 to #a89a76, its writing #8e1c16, hair #101116 — all lifted
+       from t4face, t4paper and t4hair in assets/icons.svg so the tab and the
+       creature panel are the same creature.
+
+       THE GROUND STAYS NEAR-BLACK with the same 6px radius. It is what makes
+       this legible in a light tab strip as well as a dark one: the icon brings
+       its own background rather than trusting the browser's. -->
   <rect width="32" height="32" rx="6" fill="#0a0b0d"/>
-  <g fill="none" stroke="#7fb539" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M9 26V14a7 7 0 0 1 14 0v12z"/>
-    <path d="M16 16v6M13 18.5h6"/>
+
+  <!-- FILL THE TILE. Drawn at the head's natural proportions and then scaled to
+       them: rasterised at 16px the first pass used 8 of 16 columns and 11 of 16
+       rows, so half the icon was margin. That is the same area the crop decision
+       was about — the robe was giving pixels away, and leaving them empty gives
+       them away just as completely. Scaled about the head's own centre so the
+       drawing is unchanged and only its size on the tile moves. -->
+  <g transform="translate(16 16) scale(1.28) translate(-16 -14.1)">
+
+  <!-- Hair, as a cap over the crown. Drawn first so the face sits into it. -->
+  <path d="M16 3.2c5 0 7.4 3.2 7.6 7.4.1 2-.2 3.2-.6 3.9-.3-3.9-1.2-6-2.6-7.2C19 6 17.6 5.6 16 5.6s-3 .4-4.4 1.7c-1.4 1.2-2.3 3.3-2.6 7.2-.4-.7-.7-1.9-.6-3.9C8.6 6.4 11 3.2 16 3.2z" fill="#101116"/>
+
+  <!-- The face. Kept wide and simple: at 16px this is about a dozen pixels
+       across, and any modelling inside it turns to noise. -->
+  <path d="M16 5.4c5.2 0 6.6 3.4 6.8 7.2.3 4.4-.4 7.6-1.6 9.6-1.2 2-3 3-5.2 3s-4-1-5.2-3c-1.2-2-1.9-5.2-1.6-9.6.2-3.8 1.6-7.2 6.8-7.2z" fill="#a7ab9e"/>
+
+  <!-- 符 — the paper. THE IDENTIFYING MARK, and the reason for the whole crop:
+       it hangs over the brow and is the one thing that says which creature this
+       is. Sized to survive: at 16px it is still several pixels wide. -->
+  <path d="M9.9 7.9h6.2l.3 11.4-6.8.3z" fill="#d3c8a6"/>
+  <path d="M9.9 18.6l6.5-.3-.1 1.3-6.4.3z" fill="#5f5741"/>
+  <!-- Its writing, in the source's red. Two rules and a stem: not letters at
+       this size, but unmistakably WRITING, which is the whole job. -->
+  <g stroke="#8e1c16" stroke-width="1.05" stroke-linecap="round" fill="none">
+    <path d="M13 9.6v7.6"/>
+    <path d="M11.3 11.6h3.5M11.3 14.2h3.5"/>
   </g>
-  <path d="M5 26h22" fill="none" stroke="#b5392f" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- The eye that the paper does not cover, and the mouth. Two dark marks are
+       all a face needs at this size, and one more would close the gap between
+       "a head" and "a smudge" in the wrong direction. -->
+  <path d="M19 14.2c1.1-.5 2.2-.5 3.1.1" stroke="#050608" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M18.6 19.4c1.6.3 2.9-.1 3.6-.5-.3 1.5-1.2 2.2-2.1 2.2-.9 0-1.4-.7-1.5-1.7z" fill="#0a0c0c"/>
+  </g>
 </svg>

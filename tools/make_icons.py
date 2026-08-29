@@ -10,6 +10,21 @@ Same source as the social card and the cold open: the `titlehouse` SVG in
 index.html, read through tools/silhouette.py. Three surfaces, one building, and
 no way for them to drift.
 
+THE TAB ICON IS NO LONGER ONE OF THEM, DELIBERATELY (#109). favicon.svg is a
+jiangshi's head now, hand-drawn, and nothing here generates it. Anyone finding a
+creature in the tab and a house on the home screen is looking at a ruling, not
+at drift.
+
+The reason is size, not taste. A favicon is read at 16px, where the face is
+about a quarter of the tile and the 符 survives as a handful of pixels; these
+PNGs start at 192 and go to 512, where the whole job is a silhouette. Sharing
+one drawing across that range made sense while both ends were the house. It
+stopped making sense the moment one end became a face — what reads at 16px is
+not a smaller version of what reads at 512.
+
+So this file still owns the three surfaces it names above. It does not own the
+tab, and it should not be "fixed" to cover it again.
+
 Two shapes, because Android asks for two:
   icon-NNN.png           the drawing edge to edge, cropped square
   icon-NNN-maskable.png  the same scene inset, so a launcher that clips it to a
