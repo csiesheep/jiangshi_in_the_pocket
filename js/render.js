@@ -2186,9 +2186,23 @@ export function watchBoardSize() {
   });
 }
 
-// Take the choices away without taking the window with them. renderActions([])
-// hides the whole pop, which would take the pack row down with it — and the
-// pack row is the stage the resolution beat plays on.
+// Take the choices away without taking the window with them — BUT ONLY WHEN
+// SOMETHING IS STILL IN IT. renderActions([]) hides the whole pop, which would
+// take the pack row down with it, and the pack row is the stage the resolution
+// beat plays on.
+//
+// That reason has since narrowed to one caller. After #94 the enemy of a FIGHT
+// lives in .creature over the board, and resolveBeat prefers that panel — the
+// pack row is now reached only at the midnight threshold, which is the sole
+// render passing opts.pack. Every other caller was clearing the head empty and
+// leaving a lit, bordered, 33px-tall box standing on the board with nothing
+// inside it: an empty panel after every attack.
+//
+// So the window stays for its stage and goes when it has none. Keyed on what is
+// actually in the head rather than on a list of callers, because the next
+// caller to pass a pack row should keep it without editing this function.
+// Hiding is free here: .actions-pop is absolutely positioned inside .board-pane,
+// so the board and the creature do not move when it goes (measured, 0px).
 export function clearChoices() {
   pushIn(false);
   const el = document.getElementById("actions");
@@ -2196,6 +2210,9 @@ export function clearChoices() {
   pendingMoves = [];
   movePrompt = "";
   clearDoorways();
+  const pop = document.getElementById("actions-pop");
+  const head = pop && pop.querySelector(".window-head");
+  if (pop && !(head && head.children.length)) pop.hidden = true;
 }
 
 const BEAT_MS = 600;

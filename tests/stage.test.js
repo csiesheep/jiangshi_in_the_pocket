@@ -13,7 +13,7 @@ import {
 } from "../js/eventstage.js";
 import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
          creaturePanel, clearCreaturePanel, resolveBeat,
-         showDropDialog, onPackUse,
+         showDropDialog, onPackUse, clearChoices,
          heartSweeps, heartsSettled, HEART_STEP, HEART_SWEEP,
          renderActions } from "../js/render.js";
 import { Game } from "../js/app.js";
@@ -21,7 +21,7 @@ import { Game } from "../js/app.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "32f9ea0b");
+suite(import.meta.url, "b3867d79");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -391,6 +391,91 @@ test("fight: the pack goes inert, and the buttons say so (#112)", serial(async (
     game.refresh();
     assert(uses().some((b) => !b.disabled),
       "the pack never recovers after a fight — the exit edge does not re-render");
+  } finally {
+    host.remove();
+  }
+}));
+
+test("fight: no empty window is left standing after the attack", serial(async () => {
+  // 「攻擊僵屍後，會出現一個空白的 panel」. Measured on the shipped build: after the
+  // attack, #actions-pop stood 417x33 with a lit border and a panel background,
+  // holding an empty .window-head and an empty #actions. Nothing in it.
+  //
+  // The cause is a rationale that outlived its reason. clearChoices() empties
+  // the list but deliberately does NOT hide the window, because the pack row is
+  // the stage the resolve beat plays on — true when it was written. #94 then
+  // moved the enemy of a fight into .creature over the board, and resolveBeat
+  // prefers that panel; opts.pack now has exactly one caller, the midnight kit.
+  // So for every fight the window was being held open for a stage that renders
+  // somewhere else.
+  //
+  // TWO HALVES, and the second is the point. Deleting the behaviour outright
+  // would pass the first half and silently take the King's stage down with it,
+  // so this guard also states the case that must KEEP its window.
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-items"></div><div id="hud-hands"></div>' +
+                   '<div id="actions-pop" hidden><div id="actions"></div></div>' +
+                   '<div class="sr-only" id="log"></div>';
+  document.body.appendChild(host);
+  const pop = host.querySelector("#actions-pop");
+  // What the player sees: the box is up, and there is nothing in it. Asserted
+  // on the rendered box rather than on a flag, because `hidden` being false is
+  // not by itself a complaint — a window with cards in it is also not hidden.
+  const emptyBoxShowing = () => {
+    if (pop.hidden) return false;
+    const head = pop.querySelector(".window-head");
+    return !pop.querySelector("#actions").children.length &&
+           !(head && head.children.length);
+  };
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 9 });
+    game.state.health = 6;
+    game.refresh();
+
+    game.fightBeat(3, {});
+    await new Promise((r) => setTimeout(r, 0));
+
+    // THE REGION. Without this every claim below is satisfied by no fight, no
+    // window and no buttons — the shape that has made three guards in this file
+    // pass on nothing.
+    assert(game.inFight === true, "fightBeat did not open a fight");
+    const btns = [...host.querySelectorAll("#actions button")];
+    assert(btns.length > 0,
+      "the fight rendered no buttons, so 'the window is empty afterwards' would " +
+      "be true before the attack and this guard would prove nothing");
+    assert(!emptyBoxShowing(),
+      "the window is already empty with the fight still on screen — the probe " +
+      "is measuring something other than the panel the player attacks from");
+
+    // THE ATTACK, pressed the way a player presses it.
+    btns[0].click();
+    await new Promise((r) => setTimeout(r, BEAT_MS + 400));
+
+    assert(!emptyBoxShowing(),
+      "an empty actions window is left standing after the attack: a lit, " +
+      "bordered box on the board with no prompt, no pack row and no cards in it");
+
+    // THE CASE THAT KEEPS ITS WINDOW. The midnight kit is the one render that
+    // still passes a pack row, and resolveBeat falls back to it because that
+    // window has no creature panel. Hiding on empty must not reach it.
+    renderActions([{ kind: "use", id: "sticky-rice", label: "Use it" }],
+                  "The drum has struck", { pack: "king" });
+    assert(!pop.hidden, "the midnight kit did not open its window at all");
+    assert(host.querySelector(".packrow"), "the kit rendered no pack row to protect");
+    clearChoices();
+    assert(!pop.hidden,
+      "clearChoices hid the King's window: the pack row is that beat's only " +
+      "stage, and resolveBeat gates on finding a figure in it, so this takes " +
+      "the whole midnight resolve down with it — swing included");
+    assert(host.querySelector(".packrow"),
+      "the King's pack row was cleared away with the choices");
   } finally {
     host.remove();
   }
