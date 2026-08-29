@@ -458,28 +458,46 @@ test("hud: the poison wash lands on the body, not the clock block (#113)", seria
   // clock block. It would still be red, still toggle with the flag, and every
   // number a test usually takes would stay green.
   //
-  // So this asserts CONTAINMENT rather than an id or a selector: whatever is
+  // THE FIXTURE IS game.html's OWN SIDEBAR, not a hand-written copy of it, and
+  // that is the whole point of this guard. Its first version built the nesting
+  // from a string right here, so closest() was asserted against markup the TEST
+  // wrote — and the failing-direction demo added the class to the FIXTURE,
+  // which is this guard's input rather than the product. Sabotaging game.html
+  // itself left the suite at 359 passed, 0 failed, with the wash sitting on an
+  // 84px clock block inside a 323px body panel.
+  //
+  // The shell digest DOES notice the raw edit, but it is a tamper detector and
+  // not a semantics one: commit, re-run tools/record_shell.py — exactly what a
+  // developer would do — and it goes green with the bug in.
+  //
+  // So this asserts CONTAINMENT against the product's real nesting: whatever is
   // washed must hold the hands and the pack, because that is what makes it the
-  // body. It checks the product's own nesting for the same reason the #108
-  // guard renders instead of reading the tables.
+  // body rather than a row inside it.
   const names = ["tiles", "items", "search", "events"];
-  const [tiles, items, search, events] = await Promise.all(
-    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
-  );
+  const [[tiles, items, search, events], html] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+  ]);
+  const sidebar = new DOMParser().parseFromString(html, "text/html")
+    .querySelector(".sidebar");
   const host = document.createElement("div");
   host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
-  host.innerHTML =
-    '<div class="board-pane"><div id="board" class="board"></div></div>' +
-    '<div class="panel">' +
-      '<div class="panel--status"><div class="clockrow">' +
-        '<div class="clockbox" id="hud-hour"></div>' +
-        '<div class="poisonmark" id="hud-poison" hidden></div>' +
-      '</div><div class="statgrid"></div></div>' +
-      '<div class="hands" id="hud-hands"></div>' +
-      '<div class="backpack" id="hud-items"></div>' +
-    '</div>';
+  // id="board" AND class="board": renderBoard() writes to getElementById("board")
+  // and throws on null. The sidebar is game.html's; only the board is ours.
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>';
   document.body.appendChild(host);
   try {
+    // Prove the region before believing anything about it — an absent or empty
+    // sidebar satisfies every containment check below by holding nothing.
+    assert(sidebar, "game.html has no .sidebar, so this guard is reading the wrong file");
+    host.appendChild(document.importNode(sidebar, true));
+    for (const [sel, what] of [["#hud-poison", "the poison mark"],
+                               [".hands", "the hands"],
+                               [".backpack", "the pack"]])
+      assert(host.querySelector(sel),
+        "game.html's sidebar has no " + sel + " (" + what + "), so this guard " +
+        "cannot tell a wash on the body from a wash on anything else");
     const game = new Game({ tiles, items, search, events, theme: themeEn,
                             baseTheme: themeEn, lang: "en" }, { seed: 5 });
     game.state.poisoned = true;
