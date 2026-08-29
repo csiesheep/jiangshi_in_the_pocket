@@ -696,14 +696,17 @@ test("hearts: the poison sweep is a sweep, not an assignment (#117)", serial(asy
   }
 }));
 
-// THE TILE IS OCCUPIED TERRITORY AND THE OVERLAY IS A GUEST ON IT (#117
-// addendum: 確保剛說的改動，都會實作在電腦和手機等不同解析度的螢幕上).
+// THE BOARD IS OCCUPIED TERRITORY AND THE OVERLAY IS A GUEST ON IT (#117
+// addendum: 確保剛說的改動，都會實作在電腦和手機等不同解析度的螢幕上; re-framed
+// by #119 to the MAP PANEL: 「Tile panel 我是指這個」「不是 tile 本身」).
 //
 // The doorways take a band --edge/2 deep at each side of the tile, centred; the
 // stay control takes an --edge square at the middle; the room-name chip takes
-// the bottom left. The reading is placed into the free bands between them, and
-// this checks it landed there at a definite tile size rather than at whatever
-// size the window happened to be.
+// the bottom left. What makes the corner and the top both usable is that the
+// north doorway is only 46px wide and centred — measured at 375x667 relative to
+// the pane, it is x 153-199 and the east door starts at y 145, so everything
+// right of 199 and above 145 is free. This checks the reading landed there at a
+// definite tile size rather than at whatever size the window happened to be.
 //
 // IT EXISTS BECAUSE OF A SILENT FAILURE, and the failure mode is the point.
 // --edge was declared on .focus, and the HUD is a SIBLING of the board rather
@@ -718,7 +721,7 @@ test("hearts: the poison sweep is a sweep, not an assignment (#117)", serial(asy
 // only checked the rectangles would have gone green the moment someone moved
 // --edge back down, because at some tile sizes the dropped placement happens
 // not to overlap anything.
-test("hearts: the reading is placed from --edge, and --edge reaches it (#117)", serial(async () => {
+test("hearts: the reading is a corner of the map panel, and it resolved (#119)", serial(async () => {
   const names = ["tiles", "items", "search", "events"];
   const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
     Promise.all(names.map((n) =>
@@ -764,14 +767,12 @@ test("hearts: the reading is placed from --edge, and --edge reaches it (#117)", 
     const row = host.querySelector("#hud-health");
     const clock = host.querySelector("#hud-hour");
     assert(hud && row && clock, "the pane carries no reading to place");
-    assert(!hud.classList.contains("tilehud--offtile"),
-      "at --tile 189 the reading should sit ON the tile; it went off-tile, so " +
-      "the rest of this guard would be measuring the fallback layout");
-
-    // 1. THE PLACEMENT RESOLVED. `auto` here means the declaration was dropped.
+    // 1. THE PLACEMENT RESOLVED. A dropped declaration leaves the initial
+    //    value, which is not an error and looks deliberate — see the header.
     const top = getComputedStyle(row).top;
-    const bottom = getComputedStyle(clock).bottom;
-    for (const [what, value] of [["the hearts' top", top], ["the clock's bottom", bottom]]) {
+    const clockTop = getComputedStyle(clock).top;
+    for (const [what, value] of [["the hearts' top", top],
+                                 ["the clock's top", clockTop]]) {
       assert(/^[\d.]+px$/.test(value) && parseFloat(value) > 0,
         what + " computed to " + JSON.stringify(value) + " — the declaration " +
         "was dropped, which is what happens when a custom property it reads is " +
@@ -779,7 +780,7 @@ test("hearts: the reading is placed from --edge, and --edge reaches it (#117)", 
         "deliberate.");
     }
 
-    // 2. AND IT LANDED CLEAR. Rectangles against the things already on the tile.
+    // 2. AND IT LANDED CLEAR. Rectangles against what is already on the board.
     const B = (e) => e.getBoundingClientRect();
     const hit = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) &&
                           Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top);
@@ -805,15 +806,45 @@ test("hearts: the reading is placed from --edge, and --edge reaches it (#117)", 
       "type and does NOT scale with the tile, so it is the taller obstacle on " +
       "a small tile while the doorway is on a large one");
 
-    // 3. And the reading stays on the tile it is meant to be reading.
-    const c = B(cell);
+    // 3. And the reading stays within the MAP PANEL — which is the anchor now
+    //    (#119: 「Tile panel 我是指這個」「或者叫 map panel」「不是 tile 本身」).
+    //    It was the centre tile before, and that is the one line of this guard
+    //    the frame correction actually changed.
+    const paneBox = B(host.querySelector(".board-pane"));
     for (const [label, el] of [["the hearts", row], ["the clock", clock]]) {
       const r = B(el);
-      assert(r.left >= c.left - 1 && r.right <= c.right + 1 &&
-             r.top >= c.top - 1 && r.bottom <= c.bottom + 1,
-        label + " sit outside the centre tile, so the reading is floating in " +
-        "the dark beside the board rather than on it");
+      assert(r.left >= paneBox.left - 1 && r.right <= paneBox.right + 1 &&
+             r.top >= paneBox.top - 1 && r.bottom <= paneBox.bottom + 1,
+        label + " sit outside the map panel, so the reading is floating in the " +
+        "dark beside the board rather than on it");
     }
+
+    // 4. TWO ROWS OF FIVE (#119), asserted as ROWS rather than as a width.
+    //    The first version of this compared the block against half the panel's
+    //    width and passed a single row of ten — because the fixture's host is
+    //    900px wide and a 180px band is trivially under half of that. The
+    //    threshold was relative to a number this test chose. Found by putting
+    //    the band back and watching the guard stay green.
+    //
+    //    The row count is the ruling itself and has no such freedom.
+    const hearts10 = [...host.querySelectorAll("#hud-health .heart")];
+    const bands = [...new Set(hearts10.map((h) => Math.round(B(h).top)))];
+    eq(bands.length, 2,
+      "the hearts are in " + bands.length + " row(s), not two — ten across is " +
+      "95% of the tile's width and reads as a band, which is what #119 exists " +
+      "to stop");
+    const perRow = hearts10.filter((h) => Math.round(B(h).top) === bands[0]).length;
+    eq(perRow, 5, "the top row holds " + perRow + " hearts, not five");
+
+    // And against the BOARD rather than the panel, because the panel can be
+    // arbitrarily wide and the board is what the corner is a corner of.
+    const focusBox = B(host.querySelector(".focus"));
+    const rowBox = B(row);
+    assert(rowBox.width < focusBox.width * 0.45,
+      "the hearts span " + Math.round(rowBox.width) + " of a " +
+      Math.round(focusBox.width) + "px board, which is a band and not a corner");
+    assert(paneBox.right - rowBox.right < paneBox.width * 0.2,
+      "the hearts are not against the panel's right edge");
   } finally {
     if (hadTile) root.style.setProperty("--tile", hadTile);
     else root.style.removeProperty("--tile");

@@ -25,10 +25,23 @@
      .heart--poisoned, which is the cue that survives a greyscale render. */
   --poison:    #5bbd77;
   --poison-rim: #0d2115;
-  /* A TOKEN BECAUSE TWO PLACES READ IT. The sweep in render.js interpolates
+  /* A TOKEN BECAUSE THREE PLACES READ IT. The sweep in render.js interpolates
      from this value to a full heart's, so a hex typed into .heart--empty alone
-     would leave the animation starting at one grey and landing on another. */
-  --heart-empty: #4a505c;
+     would leave the animation starting at one grey and landing on another —
+     and the low-health rule below had its own copy of the old value, which is
+     the same fault sitting still.
+
+     LIFTED FROM #4a505c (#119). The hearts moved to the map panel's corner,
+     which is the darkest part of the vignette, and the worry was that an
+     outline would vanish there the way #118's did. Measured, it is the
+     opposite: 2.43:1 against --bg in the corner versus 1.87:1 against --room
+     on the lit tile it came from. The move IMPROVED it.
+
+     But both fail the 3:1 that non-text contrast asks for, so it was failing
+     before and would have kept failing. This value is 4.13:1 in the corner and
+     3.17:1 on the tile — over the bar wherever the vignette puts it, and still
+     far enough below a full heart (6.18:1 on --bg) to read as absence. */
+  --heart-empty: #6b7382;
   --radius:    10px;
   --maxw:      960px;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1256,18 +1269,21 @@ span.handart { cursor: default; }
 
    A READING, NOT A CONTROL: pointer-events none all the way down. It lies
    across the tile, and the tile is the thing you tap. */
+/* THE MAP PANEL, NOT THE TILE (#119 frame correction: 「Tile panel 我是指這個」
+   「或者叫 map panel」「不是 tile 本身」). This used to be exactly --tile square
+   at the pane's centre; it is the pane now.
+
+   THE PANE IS BARELY TALLER THAN THE FOCUS — 8px of slack at 375x667, 11px on
+   desktop — so "the top of the map panel" is very nearly the top of the focus,
+   and that is where the north doorway lives. All the pane's slack is
+   horizontal. What makes both placements possible is not the pane's spare
+   room; it is that the NORTH DOORWAY IS ONLY 46px WIDE AND CENTRED. Measured
+   at 375x667, relative to the pane: the door is x 153-199 and the east door
+   starts at y 145, so everything right of 199 and above 145 is free — 152 x
+   145, not the 66 x 66 corner cell the focus grid would suggest. */
 .tilehud {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  /* The fallback is for a fixture with no board: --tile is written by fitBoard
-     inline on desktop and by the phone rule otherwise, so it is always set in
-     the game and never set in a bare test host. Without it the width is auto,
-     the row shrink-wraps, and anything measuring "does it fit" is measuring
-     the content against itself. */
-  width: var(--tile, 200px);
-  height: var(--tile, 200px);
-  transform: translate(-50%, -50%);
+  inset: 0;
   pointer-events: none;
   z-index: 3;
 }
@@ -1280,27 +1296,11 @@ span.handart { cursor: default; }
    the bottom left. The free full-width bands are between the north door and
    the side doors, and between the side doors and the south door.
    Both readings sit in those bands, so neither can crowd a way out. */
-/* OFF THE TILE, when the tile is too small to carry it — see TILE_HUD_MIN in
-   render.js, which measures .focus-centre and toggles this. At --tile 96 the
-   free band is 12px tall and the room name alone is 18px: there is no
-   arrangement that fits, and an overlay that "mostly" fits is one that covers
-   a doorway. So it moves to the top of the pane, where there is room, rather
-   than shrinking until it is unreadable or silently overlapping a control. */
-.tilehud--offtile {
-  left: 0;
-  right: 0;
-  top: 0;
-  width: auto;
-  height: auto;
-  transform: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 2px 8px;
-}
-.tilehud--offtile > * { position: static; transform: none; }
-.tilehud--offtile .hearts { --heart: 11px; }
+/* The off-tile fallback is gone with placeTileHud (#119) — see there. The
+   anchor is the pane now, so "the tile is too small" is not a state that can
+   happen, and at 812x375 the fallback was itself putting the reading on two
+   doorways. */
+.hearts { --heart: 11px; }
 /* Centred on the tile's own axis, and at the BOTTOM of it.
    MEASURED, not chosen: with both pinned to the top the clock and the hearts
    overlapped by 76px of a 152px tile — the clock is centred and 76px wide, the
@@ -1309,15 +1309,14 @@ span.handart { cursor: default; }
    health along the top is the ordinary reading order for a HUD, and it leaves
    the middle of the tile — which is the room, and the point — uncovered.
    "Centred" in the ruling is the horizontal centring the clock already had. */
+/* 時鐘在中間, at the TOP OF THE MAP PANEL. Horizontally centred as ruled, and
+   ABOVE the north doorway rather than beside it: the door's top is 55px down
+   from the pane at 375x667, so a 25px reading at the pane's own top edge
+   clears it outright. It does lie over the northern neighbour's glimpse, which
+   is art rather than a control and takes no taps. */
 .tilehud .clockbox {
   left: 50%;
-  /* Clear of TWO things, and they scale differently. The south doorway takes
-     --edge/2 up from the bottom edge and grows with the tile; the room-name
-     chip is a fixed 17.8px of type sitting 7px up, and does NOT — so on a small
-     tile it is the taller obstacle and on a large one the doorway is. Measured
-     at --tile 189: the chip's top is 24.8px above the bottom and --edge/2 is
-     only 20.9, which is exactly how the first version landed on it. */
-  bottom: max(calc(var(--edge) / 2 + 2px), 30px);
+  top: 4px;
   transform: translateX(-50%);
   margin: 0;
 }
@@ -1328,20 +1327,31 @@ span.handart { cursor: default; }
    330px sidebar column, for the number the whole run is racing. Scaling from
    the tile fixed the small end and quietly shrank the large one. */
 .tilehud .clocknum { font-size: clamp(.95rem, calc(var(--tile) * .13), 2.4rem); }
+/* TWO ROWS OF FIVE, IN THE CORNER (#119). Ten across was 180px on a 189px
+   tile — 95% of its width — so right-aligning it satisfied 右上 against the
+   geometry and read as a full-width band to the eye. A corner element has to
+   be shaped like a corner.
+
+   DOM ORDER IS READING ORDER, and that is what makes the sweep's ruling free:
+   five columns put hearts 0-4 on the top row and 5-9 on the bottom, so
+   ascending index IS top-row-left-to-right then bottom-row-left-to-right, and
+   descending index is its exact reverse. The sweep already walks the index in
+   both directions; it needed no change to obey 由左至右 across a wrap. */
 .hearts {
-  top: calc(var(--edge) / 2 + 2px);
-  right: 0;
-  display: flex;
+  top: 4px;
+  right: 6px;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  justify-items: center;
   align-items: center;
   gap: var(--heart-gap);
-  /* SIZED FROM THE TILE, WITH A FLOOR AND A CAP. Ten hearts and their nine
-     gaps come to 11.6 heart-widths, so this divisor is what makes the row fit
-     the tile BY CONSTRUCTION rather than because it happened to fit where it
-     was tested. The 16px is the inset that keeps it off the right edge.
+  /* SIZED FROM THE TILE, WITH A FLOOR AND A CAP, and the divisor is deliberately
+     UNCHANGED from the ten-across version. Five columns need only 5.7 heart-
+     widths, so this leaves the hearts the same size they were and simply
+     rewraps them — which keeps the sweep the same piece of motion and leaves
+     room on the same band for the clock beside them.
      The floor is legibility: below about 10px a filled heart stops being
-     countable, and the first version of this had them at 6px in landscape.
-     Where the floor would push the row wider than the tile, the reading comes
-     off the tile entirely — see .tilehud--offtile. */
+     countable, and an early version had them at 6px in landscape. */
   --heart: clamp(10px, calc((var(--tile) - 16px) / 11.6), 18px);
   --heart-gap: max(1px, calc(var(--heart) * .18));
 }
@@ -2796,7 +2806,7 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 @media (prefers-reduced-motion: reduce) {
   body.low-health #hud-health { animation: none; }
   body.low-health .board-pane::after { animation: none; }
-  body.low-health #hud-health .heart--empty { color: color-mix(in srgb, var(--danger) 45%, #4a505c); }
+  body.low-health #hud-health .heart--empty { color: color-mix(in srgb, var(--danger) 45%, var(--heart-empty)); }
 }
 
 /* The wash when you take a hit. Below the jump scare (50) so a fight that
