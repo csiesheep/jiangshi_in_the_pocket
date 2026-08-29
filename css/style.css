@@ -5033,31 +5033,39 @@ html[lang^="en"] .notesheet h2 {
    edge would make every future change to the nav or the sidebar a silent
    one-pixel scroll.
 
-   RE-MEASURED TO 401 AND SET TO 408, after #113 and #114 between them took
-   about 29px out of this column: the slot labels went sr-only and the poison
-   mark went beside the clock instead of onto a line of its own.
+   RE-MEASURED TO 401 AND SET TO 408 (#113/#114), after the slot labels went
+   sr-only and the poison mark moved beside the clock.
 
-   THE CONSTANT DOES NOT MOVE BY ITSELF. Freeing panel height changes nothing
-   at all until this number comes down by the same amount — the tile is sized
-   from the constant, not from the sidebar, so a shorter sidebar with a stale
-   constant just leaves dead space under the board.
+   RE-MEASURED AGAIN TO 339 AND SET TO 346 (#117). The clock and the hearts
+   left the sidebar for the board, so the panel now holds equipment and pack
+   and nothing else: 301 to 239, measured.
 
-   Found by sweep, not by summing the parts: 401 fits and 400 overflows by one
-   pixel, at 375x667, in BOTH languages and in BOTH the idle and the poisoned
-   state. The seven pixels are slack for the same reason the four were.
+   THE CONSTANT DOES NOT MOVE BY ITSELF, and this is the third time that has
+   had to be said. Freeing 62px of sidebar changes nothing at all until this
+   number comes down by 62 — the tile is sized from the constant, not from the
+   sidebar, so a shorter panel with a stale constant just leaves dead space
+   under the board.
 
-   NO LANGUAGE SPLIT, though this first went in claiming one. Two of my own
-   English readings were 302 and 301 for the same layout, and I wrote the
-   difference down as Chinese being a pixel shorter — a rounding of 301.3
-   reported as a fact about the language. A second measurement got 301.3 for
-   both. Both languages sit at the same boundary; the slack covers them the
-   same way, so the value is unchanged and only the reason for it was wrong.
+   Found by sweep, not by summing the parts, and swept in BOTH languages and
+   across five health-and-poison states at each value:
 
-   What it buys, which a green scrollHeight check would not have shown: the
-   focus goes 243 to 259, so the tile goes 143 to 152. That is the point of
-   the change — tile 太小了 (#114). */
+     繁體中文  339 fits, 338 overflows by 1     <- binds
+     English   337 fits, 336 overflows by 2
+
+   THE LANGUAGE THAT BINDS IS NOT A CONSTANT EITHER. At #114 both languages
+   measured 301.3 and there was no split to speak of; the comment then said so.
+   Here the sidebars are 240 and 239 and 繁體中文 is the tighter one, so it is
+   the side this is set from. Which language binds is a property of the layout
+   in front of you, not a fact about the languages — re-measure both every time
+   rather than carrying an answer forward.
+
+   The seven pixels are slack, for the reason the four and the seven before
+   them were: tuning to the exact edge makes every future change to the nav or
+   the panel a silent one-pixel scroll.
+
+   What it buys: the focus goes 259 to 321, so the tile goes 152 to 189. */
 :root {
-  --phone-chrome: 408px;
+  --phone-chrome: 346px;
   --tile: max(96px, min(200px,
                         calc((100vw - 30px) / 1.7),
                         calc((100svh - var(--phone-chrome)) / 1.7)));
