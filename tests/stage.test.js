@@ -450,6 +450,65 @@ test("hud: the poison strip is in the language it is read in (#108)", serial(asy
   }
 }));
 
+test("hud: the poison wash lands on the body, not the clock block (#113)", serial(async () => {
+  // 「整個身體的panel變紅色」. The renderer reaches the box by closest(".panel")
+  // from the mark, and that resolves correctly ONLY because .panel--status is
+  // named like a modifier without being a .panel. Add the panel class to it —
+  // a tidy that looks like a naming fix — and the wash silently shrinks to the
+  // clock block. It would still be red, still toggle with the flag, and every
+  // number a test usually takes would stay green.
+  //
+  // So this asserts CONTAINMENT rather than an id or a selector: whatever is
+  // washed must hold the hands and the pack, because that is what makes it the
+  // body. It checks the product's own nesting for the same reason the #108
+  // guard renders instead of reading the tables.
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML =
+    '<div class="board-pane"><div id="board" class="board"></div></div>' +
+    '<div class="panel">' +
+      '<div class="panel--status"><div class="clockrow">' +
+        '<div class="clockbox" id="hud-hour"></div>' +
+        '<div class="poisonmark" id="hud-poison" hidden></div>' +
+      '</div><div class="statgrid"></div></div>' +
+      '<div class="hands" id="hud-hands"></div>' +
+      '<div class="backpack" id="hud-items"></div>' +
+    '</div>';
+  document.body.appendChild(host);
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.state.poisoned = true;
+    game.refresh();
+
+    const washed = host.querySelector(".panel--poisoned");
+    assert(washed,
+      "nothing carries the wash while poisoned, so this guard is asserting " +
+      "nothing — an absent region satisfies every containment check");
+    const where = washed.className + " > " +
+      [...washed.children].map((c) => c.className || c.tagName).join(", ");
+    assert(washed.querySelector(".hands") && washed.querySelector(".backpack"),
+      "the poison wash landed on a box that does not contain the hands and " +
+      "the pack, so it is not 整個身體的panel: " + where);
+
+    // And it is the whole body rather than the board as well — washing an
+    // ancestor of everything would pass the check above for the wrong reason.
+    assert(!washed.querySelector("#board"),
+      "the wash reached an ancestor of the board: " + where);
+
+    game.state.poisoned = false;
+    game.refresh();
+    assert(!host.querySelector(".panel--poisoned"),
+      "the wash did not clear when the poison did");
+  } finally {
+    host.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);

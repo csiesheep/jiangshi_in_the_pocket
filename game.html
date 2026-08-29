@@ -109,15 +109,29 @@
              — left on the merged panel that rule would flex the equipment and
              the pack into a row beside the clock on every phone. -->
         <div class="panel--status">
-          <div class="clockbox" id="hud-hour"></div>
+          <div class="clockrow">
+            <div class="clockbox" id="hud-hour"></div>
+            <!-- 中毒 sits BESIDE THE CLOCK (#113) rather than in a band of its
+                 own below the row. It used to be a 39px block outside this
+                 panel that existed only while poisoned, so the no-scroll
+                 portrait fit held until you were poisoned and then broke by
+                 43px — measured, 667 to 710. Being poisoned is a common state,
+                 not an edge, and a layout that fits only in one state is not
+                 a fit.
+
+                 The pairing is .clockrow, NOT this whole status block: the
+                 stat grid is 270px against a 325px row, so making the status
+                 block itself a flex row just wrapped the grid to its own line
+                 and added a gap. Measured, 62 to 72. Beside the CLOCK the mark
+                 costs no height at all — the clock is 101px and leaves room.
+                 Absent entirely when clean; an empty slot reading "not
+                 poisoned" every turn is noise. -->
+            <div class="poisonmark" id="hud-poison" hidden></div>
+          </div>
           <div class="statgrid">
             <div class="stat"><span class="statlabel" id="stat-health">Health</span><span class="statval" id="hud-health"></span></div>
           </div>
         </div>
-        <!-- 中毒 is a state, not a quantity, so it is a band across the panel
-             rather than a fourth number in the grid. Absent entirely when clean:
-             an empty slot reading "not poisoned" every turn is noise. -->
-        <div class="poisonmark" id="hud-poison" hidden></div>
         <!-- What you are wearing and holding, above what you are carrying: the
              pack is luggage and this is the game. All three drawn rather than
              implied, because bare-handed is zero — and the 神主牌 is DRAWN here

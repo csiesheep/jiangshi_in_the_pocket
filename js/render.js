@@ -350,6 +350,19 @@ function renderPoison(s) {
   el.textContent = "";
   const on = !!s.poisoned && s.status === "playing";
   el.hidden = !on;
+  // 整個身體的panel變紅色 (#113). The panel carries the state, not just this
+  // strip — being poisoned is a condition of the body rather than a reading in
+  // a row, and the colour is what says so at a glance. Toggled from the same
+  // fact that draws the mark, so the two cannot disagree.
+  //
+  // This resolves to the sidebar's OUTER .panel — the box holding the clock,
+  // the health, the hands and the pack — because .panel--status is named like
+  // a modifier but is not a .panel. That is load-bearing and invisible: give
+  // .panel--status the panel class and the wash silently shrinks to the clock
+  // block, which is a smaller thing than the ruling asked for and would still
+  // look deliberate. Hence closest() from the mark rather than a query.
+  const panel = el.closest(".panel");
+  if (panel) panel.classList.toggle("panel--poisoned", on);
   if (!on) return;
   // ALL THREE OF THESE WERE HARDCODED (#108), and the reported one was the
   // least of them. The mark said 中毒 in every language, which is what the user

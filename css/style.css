@@ -1888,6 +1888,31 @@ span.handart { cursor: default; }
      a flat multiple would have started clipping on exactly the devices this
      rule exists for. The division is the focus span, so the board is sized to
      fit the screen by construction and 200px is just the ceiling. */
+  /* 手機上不顯示 (#114): the slot labels come off the phone, UNCONDITIONALLY.
+     The ruling asked for them hidden when a slot has something in it, and that
+     version was put back to the user because a conditional hide gives a VARIABLE
+     panel height against a single --phone-chrome constant: sized for the tall
+     case the tile never grows, sized for the short case the layout overflows
+     when slots empty, and sized for neither the board resizes as you pick things
+     up. The third is the worst and sounds the most reasonable — a board that
+     changes size when you find a sword is reported as "the screen jumps".
+
+     VISUALLY HIDDEN, NOT REMOVED. display:none would take 武器 / 身上 / 右手 away
+     from a screen reader too, and the slots would become three unlabelled
+     pictures in the one channel that cannot see which is which. This is the
+     .sr-only treatment applied to an element that is otherwise unchanged. */
+  .handlabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   /* THE NAME COMES OFF THE GAME SCREEN, and that is a decision rather than an
      accident (#111). .brand is 347px wide at 375 and the four controls are 309
      together, so they cannot share a row — the nav wraps to two and costs 85px,
@@ -4935,9 +4960,28 @@ html[lang^="en"] .notesheet h2 {
    failure to fit and not a rounding curiosity. The four pixels are slack, so
    that a sub-pixel somewhere cannot tip it back over; tuning this to the exact
    edge would make every future change to the nav or the sidebar a silent
-   one-pixel scroll. */
+   one-pixel scroll.
+
+   RE-MEASURED TO 401 AND SET TO 408, after #113 and #114 between them took
+   about 29px out of this column: the slot labels went sr-only and the poison
+   mark went beside the clock instead of onto a line of its own.
+
+   THE CONSTANT DOES NOT MOVE BY ITSELF. Freeing panel height changes nothing
+   at all until this number comes down by the same amount — the tile is sized
+   from the constant, not from the sidebar, so a shorter sidebar with a stale
+   constant just leaves dead space under the board.
+
+   Found by sweep, not by summing the parts: 401 fits and 400 overflows by one
+   pixel, at 375x667, in BOTH languages and in BOTH the idle and the poisoned
+   state. English binds — its sidebar is 302 against the Chinese 301, so the
+   Chinese boundary is a pixel lower and setting from English covers both.
+   The seven pixels are slack for the same reason the four were.
+
+   What it buys, which a green scrollHeight check would not have shown: the
+   focus goes 243 to 259, so the tile goes 143 to 152. That is the point of
+   the change — tile 太小了 (#114). */
 :root {
-  --phone-chrome: 424px;
+  --phone-chrome: 408px;
   --tile: max(96px, min(200px,
                         calc((100vw - 30px) / 1.7),
                         calc((100svh - var(--phone-chrome)) / 1.7)));
@@ -5087,18 +5131,52 @@ body.asleep .fog {
    and states do not have a value to show. Present only while it is true — an
    empty row reading "not poisoned" thirty times a night is noise wearing the
    costume of information. */
+/* 中毒顯示 (#113): beside the clock, and the PANEL carries the state.
+   It was a bordered band below the status row with its own margin and padding —
+   39px that existed only while poisoned, which broke the no-scroll portrait fit
+   the moment a player was poisoned (667 to 710, measured). In the row it costs
+   nothing: the row was 62px tall and had width to spare.
+   No border and no ground of its own any more, because the panel is now the
+   thing that has gone red and a second red box inside a red panel is two
+   statements of one fact. */
 .poisonmark {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
-  border-left: 3px solid var(--danger);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--danger) 9%, var(--panel));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+/* 整個身體的panel變紅色. The whole panel, not a strip in it: 中毒 is a condition
+   of the body rather than a reading. Kept as a WASH rather than a fill so the
+   numbers on top of it stay legible — a panel that shouts is one a player stops
+   reading, and the health figure is the thing they need most while poisoned. */
+/* 整個身體的panel變紅色 (#113) — the WHOLE panel, which is why this lands on
+   .panel and not on .panel--status: the status block is transparent by design,
+   and .panel is the box that holds the clock, the health, the hands AND the
+   pack. That is the body, so that is what changes colour.
+
+   SET FROM THE COMPOSITE, not from the alpha. 11% looked like a reasonable
+   wash written down and is not one on screen: over the --panel ground it moves
+   red by 23/255 and reads as warm rather than red, which is not what was
+   asked. 20% lands on rgb(69,44,43) — red 57% clear of the other two channels
+   — and panel text stays at 9.9:1, so nothing legible is spent on it. */
+.panel--poisoned {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+  background:
+    linear-gradient(color-mix(in srgb, var(--danger) 20%, transparent),
+                    color-mix(in srgb, var(--danger) 13%, transparent)),
+    var(--panel);
 }
 .poisonmark[hidden] { display: none; }
+/* JUST THE CLOCK AND THE MARK SHARE A LINE, not the whole status row.
+   Making .panel--status itself a flex row cost 10px and bought nothing: the
+   stat grid is 270px wide against a 325px row, so it wrapped to its own line
+   anyway and the row simply gained a gap. Measured, 62 to 72.
+   The mark goes beside the CLOCK, which is what was asked and what is free —
+   the clock is 101px and leaves room. The stat grid keeps the line it always
+   had underneath. */
+.clockrow { display: flex; align-items: center; gap: 10px; }
+.clockrow .poisonmark { flex: 1 1 auto; min-width: 0; }
 .poisonglyph {
   font-family: var(--font-cjk);
   font-size: 1rem;
