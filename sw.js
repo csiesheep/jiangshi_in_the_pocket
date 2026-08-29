@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-af08155c";
+const CACHE = "jiangshi-a0ebb4e6";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -51,22 +51,22 @@ const SHELL_DIGEST = {
   "./":                                     "827e33435d",
   "index.html":                             "827e33435d",
   "game.html":                              "3d8d028034",
-  "rulebook.html":                          "ec7a1b1b20",
+  "rulebook.html":                          "b53d7ae608",
   "tiles.html":                             "3fa8606460",
   "credits.html":                           "067a6ba293",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "c839cd7868",
-  "css/style.css":                          "3e0fedbe04",
+  "css/style.css":                          "90e8e261ff",
   "js/app.js":                              "0097ed3e41",
   "js/eventstage.js":                       "e909a4bdea",
   "js/engine.js":                           "436c6f5a3d",
   "js/board.js":                            "766fddc50b",
-  "js/render.js":                           "facc05693b",
+  "js/render.js":                           "9ebc4b254a",
   "js/icons.js":                            "36c76d4f67",
   "js/audio.js":                            "c498d53875",
   "js/menu.js":                             "e53fb78a06",
   "js/tiles.js":                            "c586e3d4e7",
-  "js/shell.js":                            "7febc65905",
+  "js/shell.js":                            "832ace2372",
   "js/tally.js":                            "b48bede2e4",
   "js/epilogue.js":                         "21104192de",
   "js/lang.js":                             "1e7b3f3b4a",
