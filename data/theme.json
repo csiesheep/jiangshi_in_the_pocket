@@ -377,13 +377,15 @@
     }
   },
   "note": {
-    "_note": "The first-run letter. Diegetic, in the same voice as the event lines, and it teaches the burial and nothing else: where the tablet is, where it has to go, the one way out of the village, and that the night is short. The King is named as a deadline, never as a second way to win — that ending is hidden and the letter is the last place it should leak.",
+    "_note": "The first-run letter. Diegetic, in the same voice as the event lines, and it teaches the burial and nothing else: where the tablet is, where it has to go, the one way out of the village, and that the night is short. The King is named as a deadline, never as a second way to win — that ending is hidden and the letter is the last place it should leak. START AND MIDNIGHT ARE THE LETTER'S OWN WORDS AND ARE NOT king.midnight (#124): that key reads \"三更 the third watch\" because the King's panel is teaching the term, and #104 took Han out of the English letter so that a player who cannot read it is never sent anywhere by a name they cannot use. Same hour, two registers. Merging them puts the Han back.",
     "title": "A note, folded and left on the gatehouse table",
     "lines": [
       "You know why you are here. At the end of the village a coffin has waited too long for anyone to come and claim it.",
       "His {relic} is in the {crypt}. Take it out through the moon gate in the {courtyard} — the only way out of the village — and put it back in the ground at the {grave}. Give the man his name and he can rest.",
-      "You have from nine until the third watch, and not one turn more. When the drum sounds he wakes, and he comes to whatever room you are in."
+      "You have from {start} until the {midnight}, and not one turn more. When the drum sounds he wakes, and he comes to whatever room you are in."
     ],
+    "start": "nine",
+    "midnight": "third watch",
     "dismiss": "Fold it away"
   },
   "epilogue": {

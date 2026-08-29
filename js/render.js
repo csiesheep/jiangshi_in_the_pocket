@@ -2401,7 +2401,82 @@ export function buryBeat(kind = "graveyard") {
 //
 // Real text in a real dialog, not a picture of a letter: a screen reader gets
 // exactly what everyone else gets.
-export function showNote(note, onClose) {
+// WHAT THE LETTER MARKS (#124), AS A MAP RATHER THAN A SEARCH.
+//
+// The letter already interpolates its rooms and the relic from tiles.* (#104),
+// so "the information the night actually runs on" and "the values being
+// interpolated" are very nearly the same set. Marking the INTERPOLATION POINT
+// rather than matching the rendered string is the whole design: rename a room
+// and its mark follows, for exactly the reason #104 interpolated it in the
+// first place. A mark placed by string-matching would come off in the same
+// silence.
+//
+// Three gestures, ONE INK, and no colour coding — a category carried by hue
+// alone is the #117 problem, and three highlighter colours on a folded letter
+// read as a UI rather than as somebody underlining what matters.
+export const NOTE_MARK = {
+  relic: "item",       // the one object you are hunting all night — two strokes
+  crypt: "room",
+  courtyard: "room",
+  grave: "room",
+  start: "hour",       // ringed, which is what a hand does to a time on a note
+  midnight: "hour",
+};
+
+// The letter's placeholders, filled from the same tables the board and the
+// panel read.
+//
+// START AND MIDNIGHT ARE THE LETTER'S OWN AND ARE DELIBERATELY NOT
+// king.midnight. That key reads "三更 the third watch" in English, because the
+// King's panel is teaching the term — and #104 took Han out of the ENGLISH
+// letter precisely so a player who cannot read it is never sent somewhere by a
+// name they cannot use. Same hour, two registers. The guard on this checks the
+// letter AS RENDERED, because the existing #104 guard reads the source strings
+// and a placeholder is how Han would get back in past it.
+export function noteValues(theme) {
+  const t = theme || {};
+  const tiles = t.tiles || {};
+  const words = t.words || {};
+  const note = t.note || {};
+  return {
+    relic: words.relic,
+    crypt: tiles["sealed-crypt"],
+    courtyard: tiles.courtyard,
+    grave: tiles["mass-grave"],
+    start: note.start,
+    midnight: note.midnight,
+  };
+}
+
+// Split a line at its {placeholders} into [{ text, mark }].
+//
+// NOT A TEMPLATE ENGINE, AND NEVER innerHTML. A theme string is DATA: the day
+// somebody writes a "<" into the letter it has to render as a "<", and a theme
+// file is exactly the kind of place a translator's stray angle bracket lives.
+// So every segment's text reaches the DOM through textContent and the only
+// markup is a wrapper this file creates, around a value it resolved itself.
+//
+// An unresolved placeholder is left STANDING rather than blanked, which is the
+// contract fill() already keeps: better a stranger sees "{crypt}" than a
+// confident sentence pointing at nowhere.
+export function noteSegments(line, values, marks) {
+  const table = marks || NOTE_MARK;
+  const text = String(line);
+  const out = [];
+  const re = /\{(\w+)\}/g;
+  let at = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    const filled = values ? values[m[1]] : undefined;
+    if (filled === undefined) continue; // left standing, and still plain text
+    if (m.index > at) out.push({ text: text.slice(at, m.index), mark: null });
+    out.push({ text: String(filled), mark: table[m[1]] || null });
+    at = m.index + m[0].length;
+  }
+  if (at < text.length) out.push({ text: text.slice(at), mark: null });
+  return out;
+}
+
+export function showNote(note, onClose, values) {
   const wrap = document.createElement("div");
   wrap.className = "notecard";
   wrap.setAttribute("role", "dialog");
@@ -2418,7 +2493,22 @@ export function showNote(note, onClose) {
 
   for (const line of note.lines) {
     const p = document.createElement("p");
-    p.textContent = line;
+    // One <p> per line either way, so a screen reader still gets one whole
+    // sentence — wrapping a run in a <span> does not break that. What it must
+    // never become is a mark drawn with a pseudo-element that CARRIES TEXT:
+    // #106 rules that no player-visible words hide in CSS `content:`. These
+    // marks are strokes, not words, which is why CSS is the right place for
+    // them and why that line is worth knowing about rather than crossing.
+    for (const seg of noteSegments(line, values)) {
+      if (!seg.mark) {
+        p.appendChild(document.createTextNode(seg.text));
+        continue;
+      }
+      const span = document.createElement("span");
+      span.className = "mark mark--" + seg.mark;
+      span.textContent = seg.text;
+      p.appendChild(span);
+    }
     sheet.appendChild(p);
   }
 
