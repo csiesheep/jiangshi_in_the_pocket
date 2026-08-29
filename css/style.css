@@ -42,12 +42,6 @@
      3.17:1 on the tile — over the bar wherever the vignette puts it, and still
      far enough below a full heart (6.18:1 on --bg) to read as absence. */
   --heart-empty: #6b7382;
-  /* ONE SURFACE, SEPARATED BY A LINE (#121, Layout A). Not --border: that is
-     the edge of a card, and Layout A has no cards. This is the line drawn ON
-     the table between two things lying on it, and it is deliberately quieter —
-     1.21:1, which is a seam rather than a frame. Anything load-bearing needs a
-     stronger value; this is for separating text blocks. */
-  --hair:      #1c2028;
   --radius:    10px;
   --maxw:      960px;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -234,22 +228,13 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
    why. With its own background it is a bar standing over the night the way the
    panels are cards standing on it, and the boundary it makes is the border it
    already had. */
-/* QUIET TEXT ON THE SURFACE, ONE HAIRLINE (#121, Layout A). It was a bar: its
-   own --panel ground and a --border edge, which is a card, and Layout A has no
-   cards.
-   THIS REOPENS WHAT #81 CLOSED and that is deliberate rather than forgotten.
-   The bar had its own background precisely so the night would not stop along a
-   transparent strip — a boundary with nothing drawn there to explain it. Layout
-   A's answer is different: nothing on this screen has a ground, so there is no
-   edge for the night to stop at. How the light behaves over it is #122's, and
-   this is the shape that issue is written against. */
 .topnav {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 14px 20px;
-  background: none;
-  border-bottom: 1px solid var(--hair);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
   position: relative;
   z-index: 2;
 }
@@ -726,68 +711,27 @@ body.app .board-pane > .board { min-height: 0; }
 /* Three equal columns (#75): 左手, 身上, 右手. Equal rather than
    weighted, because the three are the same KIND of thing — what you have on
    you — and the panel's job is to answer that at a glance. */
-/* ONE ROW OF SEVEN (#121), bottom-aligned so the objects stand on a common
-   line whatever they carry underneath — the blades have an attack numeral, the
-   pack has its Use. */
-.places {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--place-gap);
-  /* ONE PLACE THAT SAYS HOW WIDE A PLACE IS, and everything else divides it.
-     Seven of these plus six gaps plus the divider have to clear the column, so
-     the number is derived rather than picked: at 375 the column is 351, the
-     divider and its margins are 9, and six gaps at 8 are 48 — which leaves 294
-     for seven, or 42 each. */
-  --place: 38px;
-  --place-gap: 8px;
+.hands {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
+  gap: 6px;
 }
-.hands, .backpack {
-  display: flex;
-  gap: var(--place-gap);
-  align-items: flex-end;
-}
-/* The divider is NOT --hair. That token is a seam between blocks of text at
-   1.21:1; this line is the only thing on the screen saying which three of the
-   seven are worn and which four are carried, and load-bearing work needs a
-   value you can see. */
-.places .sep {
-  width: 1px;
-  align-self: stretch;
-  margin: 0 3px;
-  background: #343a45;
-  flex: 0 0 auto;
-}
-/* OBJECTS LYING ON THE TABLE, NOT THINGS IN CELLS (#121). The box, its ground
-   and its rounded edge all go: what is left is the drawing and the space around
-   it, and a shadow so it sits ON the surface rather than being printed into it. */
 .hand {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  /* No padding: the box it used to pad is gone, and the space between objects
-     is the row's gap now. */
-  padding: 0;
-  border: 0;
-  width: var(--place);
-  flex: 0 0 auto;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
   min-width: 0;
 }
-.hand .handicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
-/* AN EMPTY PLACE IS A RING PRESSED INTO THE TABLE, never a dashed cell. The
-   dashed outline was a cell that happened to be empty; this is a place that is
-   waiting.
-   THE GHOST STAYS INSIDE IT. #91 put the shape of what belongs there in every
-   empty slot because taking the names out removed the only thing teaching a new
-   player that 右手 is where the 神主牌 goes — and that tablet is the whole
-   errand. The ring says "a place"; the ghost says "for this". Layout A retires
-   the dashed BOX, not the teaching.
-   The rim borrows --heart-empty, already measured at 4.13:1 on this ground. */
-.hand--bare .handart {
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--heart-empty) 42%, transparent);
-  background: radial-gradient(closest-side, rgba(0, 0, 0, .45), rgba(0, 0, 0, 0));
+.hand--bare {
+  border-style: dashed;
+  background: transparent;
 }
 .handlabel {
   font-size: .6rem;
@@ -799,11 +743,7 @@ body.app .board-pane > .board { min-height: 0; }
    the burnt-blade guard in tests/stage.test.js all read from here — that guard
    says in as many words that it measures at the size .handicon renders, so a
    number typed in twice would make its comment a lie the next person trusts. */
-/* Read by the burnt-blade guard, which rasterises every weapon at whatever
-   this says and fails if two of them stop being distinguishable — so shrinking
-   the objects for the row is checked for legibility rather than eyeballed. It
-   went 54 -> 38 with the seven-across change. */
-.hands { --handicon: 38px; }
+.hands { --handicon: 54px; }
 /* Reserved whether or not there is anything in it. It was originally for the
    NAMES — without it "empty" sat at three different heights — and the names are
    gone, so the reserve now keeps the three pictures on one line and the labels
@@ -1017,11 +957,10 @@ span.handart { cursor: default; }
    put the distinction back without bringing back the words — the panel is one
    surface with two parts, which is what it always was. */
 .backpack {
-  /* The horizontal rule between wear and carry is gone: they are side by side
-     now and the vertical divider in .places does that job. */
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: grid;
   /* One row, MAX_ITEMS wide. Was a 2x2 田 and the cells came out 131px, which
      put a 75px picture in each — too big for a thing you glance at beside the
      board. Across the same panel the cells land near 65px and the pictures at
@@ -1030,11 +969,10 @@ span.handart { cursor: default; }
      Capped so the strip does not stretch when the sidebar becomes full width on
      a narrow viewport: four cells across a phone is right, four cells across a
      1200px column would put the pack back where it started. */
-  /* Was its own grid under a rule; it is four places in the shared row now, so
-     the width comes from --place like the other three. */
-  max-width: none;
+  grid-template-columns: repeat(var(--pack-cells, 4), minmax(0, 1fr));
+  gap: 8px;
+  max-width: 320px;
 }
-.cell { width: var(--place); flex: 0 0 auto; }
 
 .cell {
   position: relative;
@@ -1052,32 +990,21 @@ span.handart { cursor: default; }
    is present on every occupied cell and disabled with a reason on the ones the
    pack cannot spend — a missing button and a button that is not for this look
    identical otherwise. */
-/* STILL A CONTROL, AND #53 IS NOT OVERTURNED (#121). Layout A has no boxes, so
-   this stops being one — but a missing button and a button that is not for this
-   must still not look identical, which is the whole reason #53 put it here at
-   rest. It keeps its own line and its hairline above; only the box goes. */
 .cellact {
-  padding: 4px 0 2px;
-  border: 0;
-  border-top: 1px solid var(--hair);
-  border-radius: 0;
+  padding: 3px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   background: transparent;
   color: var(--text);
   font-size: .72rem;
   line-height: 1.35;
   cursor: pointer;
 }
-.cellact:hover:not(:disabled) { border-top-color: var(--way-known); color: var(--way-new); }
+.cellact:hover:not(:disabled) { border-color: var(--way-known); color: var(--way-new); }
 .cellact:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
 .cellact:disabled { color: var(--muted); border-style: dashed; cursor: default; opacity: .65; }
 .cell--empty .cellact { display: none; }
 
-/* THE PACK'S PICTURES LIE ON THE TABLE TOO (#121). This one was missed when the
-   hand places were de-boxed — the equipment side became objects on a surface
-   while the pack stayed four filled tiles with rounded corners, which is
-   exactly the "two unrelated grids" the seam was invented to explain. Found by
-   the surface guard rather than by looking, which is the whole reason that
-   guard asserts about PAINT and not about markup. */
 .cellface {
   display: flex;
   align-items: center;
@@ -1085,19 +1012,15 @@ span.handart { cursor: default; }
   width: 100%;
   height: 100%;
   padding: 0;
-  border: 0;
-  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
   color: var(--gold);
   cursor: pointer;
 }
-.cellface .cellicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
-/* An empty pack place is the same ring the empty hand places are — one
-   vocabulary for "nothing here yet", not a dashed box on one side of the
-   divider and a ring on the other. */
 .cell--empty .cellface {
-  border: 1px solid color-mix(in srgb, var(--heart-empty) 42%, transparent);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(0, 0, 0, .45), rgba(0, 0, 0, 0));
+  border-style: dashed;
+  background: transparent;
   cursor: default;
 }
 .cellface:focus-visible {
@@ -5457,69 +5380,6 @@ body.asleep .fog {
    The measurements those rules were set from are not lost, only superseded, and
    they are still the reason --phone-chrome is where it is. The sweep that found
    401 is written up at that constant. */
-
-/* ---- 手記, the account of the night (#121) --------------------------------
-   The narration has existed since the beginning and been shown to nobody: the
-   log panel was removed as repeating what the board and the hour already say,
-   and #log stayed behind as an sr-only live region. A sighted player has been
-   told nothing about what just happened while a screen-reader player was told
-   everything. This puts the same element on screen.
-
-   NEWEST FIRST, which log() has always done — it prepends. So the ruling that
-   took the longest to settle needed no code at all. */
-.account { margin-top: 14px; }
-.account .cap {
-  font-size: 10px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--muted);
-  opacity: .7;
-}
-.acct {
-  margin-top: 8px;
-  /* Capped and faded rather than scrolled: this is the corner of the eye, not
-     a document. The night's older lines going off the bottom is the point. */
-  max-height: 190px;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 38px), transparent 100%);
-  mask-image: linear-gradient(180deg, #000 calc(100% - 38px), transparent 100%);
-}
-.acct p {
-  font-family: var(--font-head);
-  font-size: .88rem;
-  line-height: 1.55;
-  margin: 0;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--hair);
-  text-wrap: pretty;
-}
-.acct p:last-child { border-bottom: 0; }
-
-/* FOUR GREYS, AND TWO OF THE REFERENCE'S FAIL AS TEXT. Measured on --bg, the
-   design's ramp was 15.36 / 5.17 / 3.27 / 2.40 — the third and fourth under the
-   4.5 that body text needs, and 2.40 is genuinely hard to read rather than
-   merely quiet. The RULING is that older lines recede through four greys; the
-   particular hexes were not ruled, so the ramp is re-cut to recede in four
-   legible steps instead: 15.36 / 10.33 / 7.48 / 5.17, each about 1.4x the next.
-   The middle step is --muted, which the rest of the game already uses.
-   Same call as --heart-empty in #119, and for the same reason.
-
-   Age is POSITION, not a class: log() prepends, so :first-child is the newest.
-   Nothing has to tag a line with how old it is. */
-.acct p             { color: #b7bcc6; }
-.acct p:first-child { color: var(--text); }
-.acct p:nth-child(2) { color: #b7bcc6; }
-.acct p:nth-child(3) { color: var(--muted); }
-.acct p:nth-child(n+4) { color: #7e838d; }
-/* Bad news keeps its colour at any age — it is the one thing you should be
-   able to find again after it has scrolled down. */
-.acct p.bad { color: var(--danger); }
-
-@media (min-width: 801px) {
-  .acct { max-height: 260px; font-size: .94rem; }
-  .acct { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 46px), transparent 100%);
-          mask-image: linear-gradient(180deg, #000 calc(100% - 46px), transparent 100%); }
-}
 
 /* ---- The comparison ----------------------------------------------------------
    🤫 Two numbers on the card of a player the King has just killed, and the only

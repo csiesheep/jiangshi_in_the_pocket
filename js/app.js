@@ -1927,11 +1927,6 @@ function paintChrome() {
     // already say. Their theme keys went with them in both languages — a key
     // that paints an element which does not exist is the quiet kind of rot.
     brand: "brand",
-    // The visible 手記 caption and the region's accessible name are ONE STRING
-    // (#121). ui.aria-log already names this in both languages, so nothing new
-    // was invented for it — and a caption that could drift from the name it
-    // labels is the kind of second copy this file keeps deleting.
-    "account-label": "aria-log",
   };
   for (const [id, key] of Object.entries(text)) {
     const el = document.getElementById(id);
