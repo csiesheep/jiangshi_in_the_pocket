@@ -13,7 +13,8 @@ import {
 } from "../js/eventstage.js";
 import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
          creaturePanel, clearCreaturePanel, resolveBeat,
-         showDropDialog, onPackUse } from "../js/render.js";
+         showDropDialog, onPackUse,
+         heartSweeps, heartsSettled, HEART_STEP, HEART_SWEEP } from "../js/render.js";
 import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
@@ -511,6 +512,189 @@ test("hud: game.html still nests #board inside the pane the panel mounts on", as
     "the pane and the board are the same element, so renderBoard()'s " +
     "innerHTML wipe would delete the creature panel mid-fight");
 });
+
+// The reading has to live OUTSIDE #board (#117). renderBoard() does
+// innerHTML = "" on #board and refresh() calls it several times a turn, so a
+// HUD mounted in there is deleted — mid-sweep, repeatedly — and it would come
+// back looking almost right, because the next render rebuilds it from state.
+// Same coupling the creature panel has, read from the page rather than
+// restated: a fixture that writes its own nesting cannot fail this.
+test("hearts: the reading is not inside the board that gets wiped (#117)", async () => {
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const board = doc.querySelector("#board");
+  assert(board, "game.html has no #board, so this guard cannot tell where the reading sits");
+  for (const sel of ["#hud-health", "#hud-hour"]) {
+    const el = doc.querySelector(sel);
+    assert(el, "game.html has no " + sel + " — the reading has no node at all");
+    assert(!board.contains(el),
+      sel + " is inside #board, which renderBoard() empties on every refresh, " +
+      "so the reading is deleted several times a turn");
+    assert(el.closest(".board-pane"),
+      sel + " is not on the .board-pane, so it is not on the tile at all");
+  }
+});
+
+// THE DECISION, WITHOUT A DOM. heartSweeps is pure and takes `reduced` as an
+// argument rather than asking the OS — the shape stageBudgetMs already uses in
+// this file, and what makes the reduced-motion rule checkable here at all.
+test("hearts: the sweep plan is ordered, directed, and refusable (#117)", () => {
+  const at = (health, poisoned) => ({ health, poisoned });
+
+  // 糯米 CURES AND HEALS IN ONE ACTION and is the case the ordering exists for:
+  // a green-to-red sweep and an empty-to-solid sweep land on the same row from
+  // a single state change. Colour first, count second — run together they
+  // fight over the same hearts.
+  const nuomi = heartSweeps(at(6, true), at(9, false));
+  eq(nuomi.length, 2, "糯米 should plan two sweeps, not one and not none");
+  eq(nuomi[0].kind, "colour", "the cure must sweep before the new hearts arrive");
+  eq(nuomi[1].kind, "gain", "the heal is the second sweep");
+  eq(nuomi[0].end, 6, "the cure covers the hearts you already had");
+  eq(nuomi[1].start, 6, "the heal starts where the old hearts ended");
+
+  // Directions are ruled: gained left to right, lost right to left.
+  eq(heartSweeps(at(3, false), at(7, false))[0].dir, "ltr", "a gain runs left to right");
+  eq(heartSweeps(at(7, false), at(3, false))[0].dir, "rtl", "a loss runs right to left");
+  eq(heartSweeps(at(10, false), at(10, true))[0].dir, "ltr", "poison runs left to right");
+
+  // The per-turn tick is ONE heart, which is why the slow rate is affordable.
+  const tick = heartSweeps(at(9, true), at(8, true));
+  eq(tick.length, 1, "a poison tick is a single sweep");
+  eq(tick[0].end - tick[0].start, 1, "a poison tick moves exactly one heart");
+
+  eq(heartSweeps(at(7, false), at(7, false)).length, 0, "an unchanged row sweeps");
+
+  // Reduced motion gets the END STATE and no sweep — not a faster sweep, which
+  // would still be the thing being refused. Each case also asserts it plans
+  // something WITH motion on, or the line above passes for the wrong reason.
+  for (const [from, to, what] of [
+    [at(10, false), at(10, true), "poison"],
+    [at(3, false), at(10, false), "a heal"],
+    [at(6, true), at(9, false), "糯米"],
+  ]) {
+    eq(heartSweeps(from, to, { reduced: true }).length, 0,
+      "reduced motion still sweeps for " + what);
+    assert(heartSweeps(from, to).length > 0,
+      what + " plans no sweep even with motion on, so the reduced check above " +
+      "passes for the wrong reason");
+  }
+});
+
+// SAMPLED MID-FLIGHT, which is the only way to tell a sweep from an assignment.
+// A check that reads the row afterwards passes an implementation that simply
+// sets the end state — and that exact bug was live during this build: the
+// empty-to-solid sweep animated fill-opacity on hearts whose fill was `none`,
+// so it ran its full duration and showed nothing. Every settled reading was
+// correct throughout.
+//
+// It SEEKS currentTime rather than waiting, because a pane that does not
+// composite advances animations in lurches or not at all.
+//
+// AND IT BRINGS THE REAL STYLESHEET AND THE REAL SPRITE. tests/index.html links
+// neither, and without them there is nothing here to measure: the colour tokens
+// resolve to empty strings and icon() returns null, so the row has no hearts and
+// the sweep never runs. A guard passing in that state asserts about an empty
+// region, so both are checked before anything else is believed.
+test("hearts: the poison sweep is a sweep, not an assignment (#117)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const pane = new DOMParser().parseFromString(html, "text/html")
+    .querySelector(".board-pane");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+  try {
+    assert(pane, "game.html has no .board-pane to take the reading from");
+    host.appendChild(document.importNode(pane, true));
+    const row = host.querySelector("#hud-health");
+    assert(row, "game.html's board pane carries no #hud-health");
+
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.state.health = 10;
+    game.state.poisoned = false;
+    game.refresh();
+    await heartsSettled();
+
+    const hearts = [...row.querySelectorAll(".heart")];
+    eq(hearts.length, 10,
+      "the row did not draw ten hearts, so the sprite never arrived and there " +
+      "is nothing here to sweep");
+    const red = getComputedStyle(hearts[0]).color;
+    assert(/rgb/.test(red),
+      "the hearts have no resolved colour (" + red + "), so the stylesheet did " +
+      "not apply and every colour comparison below is between two blanks");
+
+    game.state.poisoned = true;
+    game.refresh();
+    // The sweep is enqueued through a promise chain, so its animations exist a
+    // microtask later. Reading now finds none, which looks exactly like "no
+    // sweep" and is the false pass this whole guard is about.
+    await Promise.resolve();
+    await Promise.resolve();
+    const anims = document.getAnimations().filter((a) => a.id === HEART_SWEEP);
+    assert(anims.length >= 10,
+      "poisoning raised " + anims.length + " heart animations; a sweep of ten " +
+      "hearts needs one each, so this is an assignment wearing a sweep's name");
+
+    // Which hearts are STILL the old colour at a given instant.
+    const oldAt = (t) => {
+      for (const a of anims) a.currentTime = t;
+      void document.body.offsetHeight;
+      return hearts.map((h) => getComputedStyle(h).color === red);
+    };
+    const early = oldAt(2.5 * HEART_STEP);
+    const later = oldAt(6.5 * HEART_STEP);
+    const n = (a) => a.filter(Boolean).length;
+
+    // 1. At some instant the row is NOT all one colour. This is the assertion
+    //    "all green afterwards" cannot make.
+    assert(early.some(Boolean) && early.some((v) => !v),
+      "mid-sweep the row is all one colour (" + n(early) + "/10 still red), so " +
+      "nothing is sweeping — the change is instant");
+
+    // 2. The hearts still red are the TRAILING run. Contiguity alone is not
+    //    enough: a right-to-left sweep is perfectly contiguous and leaves the
+    //    unchanged hearts at the FRONT, which is a different bug and has to
+    //    read as one.
+    const trailing = (arr) => {
+      const first = arr.indexOf(true);
+      return first === -1 || arr.slice(first).every(Boolean);
+    };
+    const show = (arr) => arr.map((v) => (v ? "." : "#")).join("");
+    assert(trailing(early) && trailing(later),
+      "the hearts still unchanged are not the ones at the END of the row, so " +
+      "the sweep is not crossing it left to right (# changed, . not): " +
+      show(early) + " then " + show(later));
+
+    // 3. And it moves LEFT TO RIGHT: fewer old hearts later than earlier.
+    assert(n(later) < n(early),
+      "the boundary did not advance between " + (2.5 * HEART_STEP) + "ms and " +
+      (6.5 * HEART_STEP) + "ms (" + n(early) + " then " + n(later) + " still " +
+      "red), so the sweep is not running left to right");
+
+    for (const a of anims) a.currentTime = 30 * HEART_STEP;
+    await heartsSettled();
+  } finally {
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+  }
+}));
 
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {

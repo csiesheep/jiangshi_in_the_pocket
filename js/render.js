@@ -273,13 +273,17 @@ function heartRow(el) {
   heartSaid = srOnly("");
   el.appendChild(heartSaid);
   heartHost = el;
+  // A NEW ROW HAS NOTHING TO SWEEP FROM. Cleared here so the first paint into a
+  // fresh host is immediate rather than a sweep away from whatever the previous
+  // host was showing — which in a test fixture means animating detached nodes
+  // toward a state nobody asked for.
+  heartTarget = null;
   return heartNodes;
 }
 
-// What the row shows RIGHT NOW, which is not the same thing as the state: a
-// sweep walks the difference one heart at a time, so during it the two disagree
-// on purpose. Exported shape rather than a bare pair so the sweep can read it
-// back without re-deriving it from the DOM.
+// The row at rest. Classes carry the state between sweeps; during one the
+// animations carry it and these classes still say the old thing, which is why
+// this runs at the END of the chain and not at the start.
 export function paintHearts(nodes, health, poisoned) {
   nodes.forEach((h, i) => {
     const full = i < health;
@@ -293,14 +297,201 @@ export function paintHearts(nodes, health, poisoned) {
   });
 }
 
+// ---- The sweep (#117) --------------------------------------------------------
+// SLOW AND ONE AT A TIME, ruled by the repo owner over a faster option: the
+// hearts should read as being counted rather than as a wave passing. The thing
+// that repeats every turn is a SINGLE heart — the poison tick — so the slow
+// rate costs one step a turn, and only poisoning, curing and multi-heart
+// changes ever run the full ten.
+export const HEART_STEP = 135;
+export const HEART_SWEEP = "heart-sweep";
+
+// What the row is heading toward, which is not what it is showing: a sweep
+// walks the difference one heart at a time and the two disagree throughout, on
+// purpose. Queued against the TARGET rather than the visible state, so a change
+// arriving mid-sweep extends the queue instead of racing it.
+let heartTarget = null;
+let heartChain = Promise.resolve();
+
+function cssValue(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// The paint for one heart in one state, read from the stylesheet rather than
+// restated here. A hex typed into this file would be a second copy of a colour
+// the CSS already owns, and the sweep interpolates between them — so a drift
+// would show up as an animation that starts or ends on the wrong shade while
+// the at-rest row looked perfect.
+// EVERY STATE CARRIES A STROKE, because an empty heart is not an absence — it
+// is a grey OUTLINE, drawn by the sprite's own stroke rule. The first version
+// of this gave the empty state stroke-width 0, which meant a heart being lost
+// faded to nothing and then snapped back to an outline when the classes landed.
+function heartPaint(full, poisoned) {
+  const empty = cssValue("--heart-empty");
+  if (!full) {
+    return { color: empty, stroke: empty, strokeWidth: 1.5, fillOpacity: 0 };
+  }
+  if (poisoned) {
+    return { color: cssValue("--poison"), stroke: cssValue("--poison-rim"),
+             strokeWidth: 2.4, fillOpacity: 1 };
+  }
+  const danger = cssValue("--danger");
+  return { color: danger, stroke: danger, strokeWidth: 1.5, fillOpacity: 1 };
+}
+
+// ONE ANIMATION PER HEART, STAGGERED BY DELAY, rather than a timer that flips a
+// class every 135ms. Two reasons, and the second is the one that matters.
+//
+// The visible state is then a property the compositor interpolates, so it can
+// be SAMPLED MID-FLIGHT: seek every animation to the same currentTime and the
+// row is genuinely half-swept, which is the only way to check that the sweep
+// exists at all. A guard that reads the row afterwards passes an implementation
+// that just assigns the end state.
+//
+// And a hidden pane does not advance animations, so anything that waits for a
+// timer there waits forever. Seeking does not care.
+function runSweep(step) {
+  const order = step.dir === "rtl" ? [...step.items].reverse() : step.items;
+  const anims = [];
+  order.forEach((it, k) => {
+    if (!it.node || typeof it.node.animate !== "function") return;
+    const a = it.node.animate([{ ...it.from }, { ...it.to }], {
+      duration: HEART_STEP,
+      delay: k * HEART_STEP,
+      // fill both: before its delay a heart holds the OLD paint, after its step
+      // the new one. That is what makes the boundary a real edge rather than a
+      // fade across the whole row.
+      fill: "both",
+      easing: "ease-out",
+    });
+    a.id = HEART_SWEEP;
+    anims.push(a);
+  });
+  if (!anims.length) return Promise.resolve();
+  // BOUNDED, because the queue is a promise chain and a sweep that never
+  // settles would freeze the health reading for the rest of the run — not
+  // visibly broken, just permanently one state behind. `finished` does not
+  // resolve for an animation something else has paused, and this row is driven
+  // from a tool often enough for that to be a real state rather than a
+  // theoretical one; it is also how this bound got written.
+  //
+  // The healthy path always wins the race: the timeout is the whole sweep plus
+  // a margin, so it only ever fires when something has genuinely gone wrong.
+  const settles = Promise.all(anims.map((a) => a.finished.catch(() => {})));
+  const bound = (anims.length + 2) * HEART_STEP + 500;
+  return Promise.race([settles, new Promise((r) => setTimeout(r, bound))]);
+}
+
+const range = (a, b) => Array.from({ length: Math.max(0, b - a) }, (_, i) => a + i);
+
+// COLOUR FIRST, THEN COUNT, and 糯米 is the case that decides it: sticky rice
+// cures poison AND heals in one action, so a green-to-red sweep and an
+// empty-to-solid sweep land on the same ten hearts from one state change. Run
+// together they fight over the same nodes; run in this order the cure finishes
+// on the hearts you had and the new ones then arrive already red.
+//
+// PURE, AND TAKES `reduced` AS AN ARGUMENT rather than asking the OS, which is
+// the shape stageBudgetMs already uses in this file. It means the reduced-motion
+// behaviour is decidable in a test without emulating a media query — and what
+// reduced motion gets is NO sweep, not a faster one, because a faster sweep is
+// still the thing being refused.
+//
+// Index ranges rather than nodes, so the decision can be checked without a DOM.
+export function heartSweeps(from, to, { reduced = false } = {}) {
+  if (reduced) return [];
+  const steps = [];
+  const common = Math.min(from.health, to.health);
+  if (from.poisoned !== to.poisoned && common > 0) {
+    steps.push({ kind: "colour", dir: "ltr", start: 0, end: common });
+  }
+  if (to.health > from.health) {
+    // Gained, left to right.
+    steps.push({ kind: "gain", dir: "ltr", start: from.health, end: to.health });
+  } else if (to.health < from.health) {
+    // Lost, RIGHT TO LEFT — by ruling, and it is the readable direction: the
+    // hearts you are losing are the ones at the end of the row.
+    steps.push({ kind: "loss", dir: "rtl", start: to.health, end: from.health });
+  }
+  return steps;
+}
+
+function enqueueSweeps(nodes, from, to) {
+  const plan = heartSweeps(from, to);
+  const paintFor = (kind, side) => {
+    if (kind === "colour") return heartPaint(true, side === "from" ? from.poisoned : to.poisoned);
+    if (kind === "gain") return side === "from" ? heartPaint(false, false) : heartPaint(true, to.poisoned);
+    return side === "from" ? heartPaint(true, from.poisoned) : heartPaint(false, false);
+  };
+  const steps = plan.map((st) => ({
+    dir: st.dir,
+    items: range(st.start, st.end).map((i) => ({
+      node: nodes[i],
+      from: paintFor(st.kind, "from"),
+      to: paintFor(st.kind, "to"),
+    })),
+  }));
+
+  // A HEART BEING GAINED HAS fill: none UNDERNEATH IT, and fill-opacity on an
+  // unfilled shape animates nothing at all. The whole empty-to-solid sweep was
+  // invisible because of it — the row simply held still and then arrived, which
+  // is exactly the "no sweep" case #117 warns a settled-state check would pass.
+  // Found by sampling mid-flight; the end state was right the whole time.
+  //
+  // So while a sweep is running every heart is paintable and fill-opacity is
+  // what says full or empty. The classes take back over at rest.
+  const host = nodes[0] && nodes[0].parentElement;
+  if (host) host.classList.add("hearts--sweeping");
+  for (const step of steps) heartChain = heartChain.then(() => runSweep(step));
+  heartChain = heartChain.then(() => {
+    if (host) host.classList.remove("hearts--sweeping");
+    // Classes carry the state at rest; the animations only carried it in
+    // flight. Painted BEFORE the cancel, or there is a frame of the old row
+    // between the two.
+    paintHearts(nodes, to.health, to.poisoned);
+    for (const a of document.getAnimations()) {
+      if (a.id === HEART_SWEEP) a.cancel();
+    }
+  });
+  return heartChain;
+}
+
+// The tail of the queue, for anything that needs to know the row has caught up.
+//
+// POLLING document.getAnimations() DOES NOT WORK and the failure is a false
+// PASS, which is why this exists. enqueueSweeps schedules through the chain, so
+// the animations are created in a microtask — a check made immediately after
+// refresh() finds none and concludes the sweep is over, when in fact it has not
+// begun. That reads as "settled" and hands back the state from BEFORE the
+// change. Every sweep is bounded, so this always resolves.
+export function heartsSettled() {
+  return heartChain;
+}
+
 function renderHealth(s) {
   const el = document.getElementById("hud-health");
   if (!el) return;
   const nodes = heartRow(el);
   const poisoned = !!s.poisoned && s.status === "playing";
   const shown = Math.min(s.health, MAX_HEARTS);
+  const target = { health: shown, poisoned };
 
-  paintHearts(nodes, shown, poisoned);
+  // Ten hearts changing in sequence, several times a turn, is precisely what
+  // this setting exists for. Reduced motion gets the end state and no sweep —
+  // not a faster sweep, which would still be the thing being refused.
+  // heartSweeps() also refuses under reduced motion, so the flag is honoured
+  // whichever way the row gets here; this branch is what skips the queue
+  // entirely rather than queueing an empty plan.
+  const still = reducedMotion() || !nodes.length
+    || typeof nodes[0].animate !== "function";
+  if (!heartTarget || still) {
+    heartTarget = target;
+    paintHearts(nodes, target.health, target.poisoned);
+  } else if (target.health !== heartTarget.health
+             || target.poisoned !== heartTarget.poisoned) {
+    const from = heartTarget;
+    heartTarget = target;
+    enqueueSweeps(nodes, from, target);
+  }
 
   // Past ten there are no more hearts to light, so the surplus is a number.
   const over = el.querySelector(".heartcount");

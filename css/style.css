@@ -25,6 +25,10 @@
      .heart--poisoned, which is the cue that survives a greyscale render. */
   --poison:    #5bbd77;
   --poison-rim: #0d2115;
+  /* A TOKEN BECAUSE TWO PLACES READ IT. The sweep in render.js interpolates
+     from this value to a full heart's, so a hex typed into .heart--empty alone
+     would leave the animation starting at one grey and landing on another. */
+  --heart-empty: #4a505c;
   --radius:    10px;
   --maxw:      960px;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -557,7 +561,7 @@ body.app .board-pane > .board { min-height: 0; }
 /* One heart symbol, filled or hollow. */
 .heart { color: var(--danger); }
 .heart--full { fill: currentColor; }
-.heart--empty { color: #4a505c; fill: none; }
+.heart--empty { color: var(--heart-empty); fill: none; }
 
 /* 中毒 = the hearts go green (#117), and NOT ONLY GREEN. Green-versus-red is
    the commonest colour blindness, so a state told in those two hues alone is
@@ -570,8 +574,11 @@ body.app .board-pane > .board { min-height: 0; }
   color: var(--poison);
   stroke: var(--poison-rim);
   stroke-width: 2.4;
-  paint-order: stroke fill;
 }
+/* On every heart, not just the poisoned one, because the sweep animates
+   stroke-width up from 0 and the paint order must not change halfway. At width
+   0 it costs nothing. */
+.heart { paint-order: stroke fill; }
 
 .sword { color: var(--muted); }
 .sword--buffed { color: var(--gold); }
@@ -1245,6 +1252,12 @@ span.handart { cursor: default; }
   --heart-gap: max(1px, calc(var(--heart) * .18));
 }
 .hearts .staticon { width: var(--heart); height: var(--heart); }
+/* WHILE A SWEEP IS RUNNING every heart is paintable, and fill-opacity — which
+   the animation drives — is what says full or empty. Without this an empty
+   heart keeps fill: none, and animating the opacity of a fill that does not
+   exist produces no visible change at all: the gain sweep ran for its full
+   duration and showed nothing. The classes take over again at rest. */
+.hearts--sweeping .heart { fill: currentColor; }
 .heartcount { font-size: .8rem; margin-left: 4px; }
 
 /* ---- Two worlds, told apart by temperature ---------------------------------
