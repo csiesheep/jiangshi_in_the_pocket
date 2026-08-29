@@ -1888,7 +1888,23 @@ span.handart { cursor: default; }
      a flat multiple would have started clipping on exactly the devices this
      rule exists for. The division is the focus span, so the board is sized to
      fit the screen by construction and 200px is just the ceiling. */
-  :root { --tile: min(200px, calc((100vw - 30px) / 1.7)); }
+  /* THE NAME COMES OFF THE GAME SCREEN, and that is a decision rather than an
+     accident (#111). .brand is 347px wide at 375 and the four controls are 309
+     together, so they cannot share a row — the nav wraps to two and costs 85px,
+     which is an eighth of an iPhone's screen spent on a title.
+     
+     The controls alone fit one row with room to spare, so the nav becomes 46.
+     The game is still named on the menu, in the tab title and on the letter
+     that opens the night; this is the one screen where the player needs the
+     board and the controls and not the title. */
+  .topnav { padding: 8px 14px; }
+  .topnav .brand { display: none; }
+
+  /* Small, measured tightenings rather than a crush. Each 17px given back here
+     buys 10px of tile, which is the trade the whole rule is balancing. */
+  .sidebar .panel { padding: 10px 12px; }
+  .backpack { margin-top: 10px; padding-top: 10px; }
+
   /* Sidebar is full width here, so the stats read better two across. */
   .statgrid { grid-template-columns: 1fr 1fr; }
   .tilename { font-size: .72rem; }
@@ -4881,6 +4897,53 @@ html[lang^="en"] .notesheet h2 {
 }
 .notesheet .notedismiss:hover { background: #3a2f1f; }
 
+/* THE TILE ANSWERS TO HEIGHT WHEREVER THE LAYOUT FLOWS (#111), which is the
+   same pair of conditions the frame below is surrendered on. It was written
+   inside the max-width:600px rule and therefore did not apply in LANDSCAPE:
+   812x375 takes the flow layout by the height gate but kept a width-derived
+   tile of 195 on a screen 375 tall, and overflowed by 64. The gate and the
+   sizing have to agree about what a phone is. */
+@media (max-width: 800px), (max-height: 560px) {
+/* ---- THE WHOLE GAME ON ONE SCREEN (#111) ----------------------------------
+   讓 FE 設計 iPhone 排版. The board was sized by WIDTH alone, so at 375x667 the
+   page came to 810 against 667 — an overflow of 143 that no amount of width
+   had anything to do with. It now answers to height as well.
+
+   MEASURED, NOT GUESSED, and at five values rather than one because a ratio
+   taken from a single sample is a coincidence:
+
+     tile   120  140  160  180  200
+     focus  204  238  272  306  340     focus = tile x 1.7, exactly
+     page   674  708  742  776  810     page  = 470 + 1.7 x tile
+
+   1.7 is the focus span the rule below already names, so the page height is a
+   straight line in the tile and the fit is arithmetic rather than trial.
+
+   svh, NOT dvh, AND THIS IS THE PART THAT WOULD BITE SILENTLY. dvh is the
+   DYNAMIC viewport: it grows as Safari's chrome collapses on scroll. A layout
+   that fits only once the chrome has gone never fits on load — and a page that
+   does not scroll never gets the scroll that would collapse it. svh is the
+   viewport WITH the chrome showing, which is the state the player actually
+   arrives in.
+
+   The subtrahend is everything that is not the board: nav, the layout's own
+   padding, the board's padding, the gap, and the sidebar. It is one number in
+   one place so it can be corrected when any of them changes.
+
+   MEASURED AT 420 AND SET TO 424. The first value was arithmetic from the
+   parts and came out one pixel short — 668 against 667, which is a real
+   failure to fit and not a rounding curiosity. The four pixels are slack, so
+   that a sub-pixel somewhere cannot tip it back over; tuning this to the exact
+   edge would make every future change to the nav or the sidebar a silent
+   one-pixel scroll. */
+:root {
+  --phone-chrome: 424px;
+  --tile: max(96px, min(200px,
+                        calc((100vw - 30px) / 1.7),
+                        calc((100svh - var(--phone-chrome)) / 1.7)));
+}
+}
+
 /* ---- The frame is a desktop promise ------------------------------------------
    #39 said this and the implementation did not do it: "no-scroll is a desktop
    promise; on phones, keep flow layout ... ensure the board + actions fit the
@@ -4944,6 +5007,30 @@ html[lang^="en"] .notesheet h2 {
 .doorway.s::after { left: 50%; transform: translateX(-50%); bottom: 0; width: max(100%, 44px); height: 44px; }
 .doorway.w::after { top: 50%; transform: translateY(-50%); left: 0; height: max(100%, 44px); width: 44px; }
 .doorway.e::after { top: 50%; transform: translateY(-50%); right: 0; height: max(100%, 44px); width: 44px; }
+/* THE STAY CONTROL WAS LEFT OUT OF THIS FIX (#111). The four wall doors got
+   their 44px and .doorway--stay did not, so it shipped at 40x40 — under the
+   floor this block exists to enforce — and the phone tile shrink took it to
+   29x29. Probed with elementFromPoint rather than measured with
+   getBoundingClientRect, because a rect cannot see a pseudo-element's area and
+   reading the button's box is what made both of us think the wall doors were
+   shrinking too: they are not, they hold 44px at every tile size.
+
+     44px box, 7 probe points        tile 200      tile 143
+       N / E / W                     5 of 7        5 of 7    unchanged
+       stay                          3 of 7        2 of 7    the real loss
+
+   It grows SYMMETRICALLY, which the wall doors deliberately do not: they must
+   not grow outward because the glimpse sits above them in the #56 z-order and
+   swallows the tap. This one is in the middle of the room you are standing in,
+   and the probes come back with the tilebox — the room's own background, which
+   is not a control — in every direction. */
+.doorway--stay::after {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+}
 
 @media (pointer: coarse), (max-width: 800px) {
   .utilbtn { min-height: 44px; min-width: 44px; }

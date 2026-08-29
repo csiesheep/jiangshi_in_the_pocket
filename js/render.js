@@ -1816,7 +1816,17 @@ const TILE_MIN = 96;
 const TILE_MAX = 480;
 // Below this the layout is one column and the pane's height comes from its own
 // content — measuring it there would feed the tile back into its own budget.
-const TWO_COLUMN = "(min-width: 801px)";
+// THIS MUST SAY THE SAME THING AS THE CSS (#111). The stylesheet surrenders the
+// frame at "(max-width: 800px), (max-height: 560px)" — a phone in landscape is
+// 812x375, which is WIDE and SHORT, so it takes the flow layout by the height
+// gate. This gate was width-only, so fitBoard still believed it was a desktop
+// and wrote an INLINE --tile of 191 onto a screen 375 tall, which no stylesheet
+// rule can outrank. The layout had surrendered the frame and the sizing had not.
+//
+// The two conditions are inverses of each other on purpose: if one is edited the
+// other has to be, and a comment saying so is cheaper than the afternoon spent
+// finding out that a board was sized by the wrong branch.
+const TWO_COLUMN = "(min-width: 801px) and (min-height: 561px)";
 
 export function fitBoard() {
   const pane = document.querySelector(".board-pane");
