@@ -190,6 +190,8 @@ export function renderHud(game) {
   lastItems = nowHeld.slice();
   renderHands(game);
   renderBackpack(game);
+  // After both, because it measures the whole row.
+  anchorTips();
   // The sound goes with the pickup, not with the animation — reduced motion
   // skips the flare, and a player who turned sound on still hears the find.
   for (const id of arrived) itemPickup(id);
@@ -970,6 +972,52 @@ function slotRows(state) {
 // Empty cells are drawn as empty, for the same reason both hands are drawn empty
 // at nine o'clock: the limit is a rule, and a rule you can see costs nothing to
 // teach.
+// WHICH SIDE A TOOLTIP OPENS FROM, computed rather than written down (#121).
+//
+// This was four CSS rules naming positions — the weapon slot anchors left, the
+// tablet slot right, pack cells 1-2 left, 3-4 right. True of the old stacked
+// grids and false the moment the seven places became one row: the tablet slot
+// kept anchoring right while sitting third from the left and threw its tip 98px
+// off screen, and the pack cells kept anchoring left while sitting near the
+// right edge and threw theirs 76px off the other side. The rules still matched.
+// They described a layout that no longer existed, and nothing said so.
+//
+// So the side comes from the place's own position in its row. A rearrangement
+// changes the answer instead of invalidating it.
+export function anchorTips() {
+  const row = document.querySelector(".places");
+  if (!row) return;
+  const r = row.getBoundingClientRect();
+  if (!(r.width > 0)) return;
+  for (const place of row.querySelectorAll(".hand, .cell")) {
+    const tip = place.querySelector(".celltip");
+    if (!tip) continue;
+    const p = place.getBoundingClientRect();
+    const w = tip.getBoundingClientRect().width;
+    if (!(p.width > 0) || !(w > 0)) continue;
+
+    // CLAMPED INTO THE ROW, NOT ANCHORED TO AN EDGE, and the difference is a
+    // measurement rather than a preference. Anchoring to whichever side had
+    // room was the obvious fix and it is not sufficient: a place in the MIDDLE
+    // of the row can fit a 240px tip in neither direction — measured, the
+    // fourth of seven sat at x 165 in a row ending at 363 and had 198px to its
+    // right and 191 to its left, so both edges overflowed and the rule fell
+    // through to a coin toss. The midline rule before it was worse for the same
+    // reason: it never asked whether the chosen side had room at all.
+    //
+    // So: sit centred on the place where that fits, and slide only as far as
+    // the row's edge forces. The tip stays inside the column by construction
+    // at any width, and moves the least distance that achieves it — which is
+    // what keeps it next to the place it describes, since there is no arrow to
+    // carry that tie.
+    const want = p.left + p.width / 2 - w / 2;
+    const x = Math.max(r.left, Math.min(want, r.right - w));
+    tip.style.left = (x - p.left).toFixed(2) + "px";
+    tip.style.right = "auto";
+    tip.style.transform = "none";
+  }
+}
+
 function renderBackpack(game) {
   const s = game.state;
   const el = document.getElementById("hud-items");
@@ -2129,7 +2177,13 @@ export function watchBoardSize() {
     // growing, the layout switching columns — so observe it rather than resize.
     new ResizeObserver(() => fitBoard()).observe(pane);
   }
-  window.addEventListener("resize", () => { fitBoard(); recentreCreature(); });
+  window.addEventListener("resize", () => {
+    fitBoard();
+    recentreCreature();
+    // The row's midline moves with the column, so which side a tip opens from
+    // is a function of the viewport too.
+    anchorTips();
+  });
 }
 
 // Take the choices away without taking the window with them. renderActions([])
@@ -4461,18 +4515,40 @@ export function renderActions(actions, prompt = "", opts = {}) {
     name.className = "action-label";
     name.textContent = a.label;
     text.appendChild(name);
-    // The consequence used to be bolted onto the end of the label. It is its own
-    // field now, so it can be styled — and read out — as the separate thing it is.
+    // THE CONSEQUENCE AND THE PRICE SHARE A LINE (#121). They were two stacked
+    // fields, and stacking them made the option row the tallest block on the
+    // screen — 68.7px, three lines of type — which is what the whole
+    // above-the-fold argument turned on. Merged they are 53.3, and four options
+    // fit where three did.
+    //
+    // NOT a squeeze: the first proposal was to shrink the row to 56px, which
+    // was "delete a line" without saying so. This deletes the line honestly, by
+    // putting two short facts where they belong — beside each other, which is
+    // what the design showed all along.
+    //
+    // The consequence is still its own field rather than bolted onto the label,
+    // so it can be styled and read out as the separate thing it is.
+    const meta = document.createElement("span");
+    meta.className = "action-meta";
     if (a.sub) {
       const sub = document.createElement("span");
       sub.className = "action-sub";
       sub.textContent = a.sub;
-      text.appendChild(sub);
+      meta.appendChild(sub);
     }
     // The price, in hearts. Combat is fully deterministic, so there is nothing
     // to hide and no reason to make the player do the arithmetic.
     if (a.cost && typeof a.cost.hp === "number") {
-      text.appendChild(fatal ? lethalRow() : costRow(a.cost.hp));
+      if (meta.childElementCount) {
+        // Decorative: the spoken forms below are complete sentences and do not
+        // want a bullet read into the middle of them.
+        const dot = document.createElement("span");
+        dot.className = "action-dot";
+        dot.setAttribute("aria-hidden", "true");
+        dot.textContent = "·";
+        meta.appendChild(dot);
+      }
+      meta.appendChild(fatal ? lethalRow() : costRow(a.cost.hp));
       b.appendChild(
         srOnly(
           fatal
@@ -4481,6 +4557,7 @@ export function renderActions(actions, prompt = "", opts = {}) {
         )
       );
     }
+    if (meta.childElementCount) text.appendChild(meta);
     b.appendChild(text);
     if (a.kind) b.dataset.kind = a.kind;
     if (a.dir) b.dataset.dir = a.dir;

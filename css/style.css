@@ -1169,8 +1169,10 @@ span.handart { cursor: default; }
 /* Same edge problem the pack cells have, and the same answer: the outer slots
    anchor to their own edge instead of centring, or the tooltip leaves the panel
    at 375px. The middle slot centres. */
-.hand--weapon .celltip { left: 0; right: auto; transform: none; }
-.hand--relic .celltip { left: auto; right: 0; transform: none; }
+/* The two hardcoded hand rules that used to live here are gone — see
+   .tip--left / .tip--right below. They said "the weapon slot is at the left
+   and the tablet slot is at the right", which stopped being true the moment
+   the seven places became one row. */
 .tipname { margin: 0; font-size: .84rem; color: var(--text); }
 .tipeffect { margin: 3px 0 0; font-size: .74rem; color: var(--accent); }
 .tipblurb { margin: 4px 0 0; font-size: .72rem; color: var(--muted); line-height: 1.45; }
@@ -1181,8 +1183,22 @@ span.handart { cursor: default; }
 /* The panel is wider than a cell, so a tooltip centred on an end cell hangs off
    the side. The left half anchor left, the right half anchor right, and nothing
    ever pushes the sidebar sideways. */
-.cell:nth-child(-n+2) .celltip { left: 0; right: auto; transform: none; }
-.cell:nth-child(n+3) .celltip { left: auto; right: 0; transform: none; }
+/* ANCHORED FROM WHERE THE PLACE ACTUALLY SITS, not from its index (#121).
+   These were `.cell:nth-child(-n+2)` anchoring left and `(n+3)` anchoring
+   right, plus two more naming the weapon and tablet slots — four rules
+   encoding a geography: a full-width pack under a full-width set of hands.
+   The seven-across row inverted every one of them. The hands moved to the
+   LEFT of a single line, so the tablet slot went on anchoring its tip right
+   while sitting third from the left — 98px off the screen — and the pack cells
+   went on anchoring left while sitting near the right edge, 76px off the other
+   side. Nothing warned: the rules still matched, they just described a layout
+   that no longer existed.
+   anchorTips() measures each place against its row's midline and sets these,
+   so a rearrangement cannot silently invalidate them. */
+/* No side classes: anchorTips writes the tip's own left, so there is one
+   mechanism rather than a class the CSS then has to interpret. The centred
+   default above is what a tip does before that runs, and on any place that is
+   not in the row. */
 
 @media (prefers-reduced-motion: reduce) {
   .celltip { transition: none; }
@@ -2344,7 +2360,12 @@ span.handart { cursor: default; }
 .action-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; text-align: left; }
 .action-label { line-height: 1.25; }
 .action-sub { font-size: .72rem; color: var(--muted); }
-.action-cost { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; font-size: .74rem; }
+/* ONE LINE FOR THE CONSEQUENCE AND THE PRICE (#121). Two stacked fields made
+   this the tallest block on the screen; beside each other they cost one line
+   instead of two and the row goes 68.7 -> 53.3. */
+.action-meta { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.action-dot { color: var(--muted); font-size: .72rem; line-height: 1; }
+.action-cost { display: inline-flex; align-items: center; gap: 3px; font-size: .74rem; }
 .action-cost-num { font-variant-numeric: tabular-nums; }
 .costheart { width: 11px; height: 11px; flex: none; fill: currentColor; }
 .action-cost--cost { color: var(--danger); }
