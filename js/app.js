@@ -1897,6 +1897,23 @@ async function useLanguage(lang) {
   if (document.querySelector(".doorway")) game.renderMoves();
 }
 
+// game.html id -> theme.ui key, for the labels that are SPOKEN rather than
+// shown. Exported because the guard for it must read this list rather than
+// restate it: a second copy of this map in a test is the exact drift the
+// whole chrome family is about, and it would agree with this one right up
+// until someone edited one of them.
+//
+// The failure these labels have is silence, not error. paintChrome writes them
+// under `if (el)`, so a renamed or dropped id is not a crash — the node simply
+// keeps whatever static English game.html shipped with, in every language.
+// #116: id="board-pane" shares its line with class="board-pane", so renaming
+// the class (the tidy the board guard now catches) takes the id with it, and
+// a 繁體中文 reader gets three labels in Chinese and this one in English.
+export const ARIA_LABELS = [
+  ["board-pane", "aria-board-pane"], ["board", "aria-board"],
+  ["actions-pop", "aria-actions"], ["log", "aria-log"],
+];
+
 // The page's furniture: the nav, the panel headings, the utility buttons and
 // the aria-labels nobody sees. All static nodes in game.html, which is exactly
 // why they survived a sweep of what the game DRAWS — nothing redraws them, so
@@ -1920,11 +1937,7 @@ function paintChrome() {
 
   // Spoken, not shown. A screen reader in Chinese was getting the whole panel
   // in English, which is the half of the page a visual sweep cannot check.
-  const aria = [
-    ["board-pane", "aria-board-pane"], ["board", "aria-board"],
-    ["actions-pop", "aria-actions"], ["log", "aria-log"],
-  ];
-  for (const [id, key] of aria) {
+  for (const [id, key] of ARIA_LABELS) {
     const el = document.getElementById(id);
     if (el) el.setAttribute("aria-label", uiWord(key));
   }

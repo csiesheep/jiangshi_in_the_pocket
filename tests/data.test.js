@@ -290,6 +290,49 @@ test("chrome: game.html's static words match the theme's English", async () => {
   }
 });
 
+// The labels a sighted sweep cannot check. #116, and the third instance of one
+// family: game.html:87 carries class="board-pane" and id="board-pane" on the
+// SAME LINE, so renaming the class — the tidy the board-pane guard now catches
+// — takes the id with it. paintChrome writes these under `if (el)`, where a
+// missing id is not an error but SILENCE: the node keeps whatever static
+// English game.html shipped with.
+//
+// Measured in 繁體中文 with only the id renamed: #board 遊戲圖板, #actions-pop
+// 輪到你, #log 旁白, and the board pane still saying "Board". Three of four
+// localised, one silently not, and nothing in the suite complained about the
+// language.
+//
+// THE LIST COMES FROM app.js, not from a copy here. The PAIRS table above
+// states the principle this belongs to — a page node with no key never gets
+// translated, and a key with no node is dead weight — but it covers the
+// visible-text ids only, and a second copy of the aria map is the exact drift
+// this family is about.
+test("chrome: game.html's spoken labels have a node and both languages", async () => {
+  const { ARIA_LABELS } = await import("../js/app.js");
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  assert(ARIA_LABELS.length > 0,
+    "app.js exports an empty ARIA_LABELS, so this guard is asserting nothing");
+  for (const [id, key] of ARIA_LABELS) {
+    const el = doc.getElementById(id);
+    assert(el,
+      `game.html has no #${id}, so paintChrome's \`if (el)\` skips it in ` +
+      `silence and the node keeps its static English aria-label in every ` +
+      `language. Paired with ui.${key}`);
+    // Both languages, not just English. A reader getting a language nobody
+    // chose is #108, and English present with 繁體中文 missing fails exactly
+    // that way — uiWord falls back and the label is English again.
+    for (const [name, theme] of [["English", themeEn], ["繁體中文", themeZh]]) {
+      const want = (theme.ui || {})[key];
+      assert(typeof want === "string" && want.trim(),
+        `${name} has no ui.${key} for #${id}`);
+    }
+    assert(themeEn.ui[key] !== themeZh.ui[key],
+      `ui.${key} is identical in both languages — probably untranslated, ` +
+      `which for a spoken label means a 繁體中文 reader hears English`);
+  }
+});
+
 // ---- The rulebook against the engine -----------------------------------------
 // The page shipped saying "Attack 1, Health 6" while the engine gave 0 and 10 —
 // the fork's numbers, kept through a whole reskin because nothing compared them.
