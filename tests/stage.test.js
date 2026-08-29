@@ -13,13 +13,13 @@ import {
 } from "../js/eventstage.js";
 import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
          creaturePanel, clearCreaturePanel, resolveBeat,
-         showDropDialog } from "../js/render.js";
+         showDropDialog, onPackUse } from "../js/render.js";
 import { Game } from "../js/app.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "d32150d8");
+suite(import.meta.url, "283b5a7c");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -313,6 +313,86 @@ const [themeEn, themeZh] = await Promise.all([
   fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
   fetch("../data/theme.zh-TW.json", NO_STORE).then((r) => r.json()),
 ]);
+
+test("fight: the pack goes inert, and the buttons say so (#112)", serial(async () => {
+  // 戰鬥中不能吃. app.js:1241 asserted this in prose for a long time and nothing
+  // enforced it — measured, health 5 to 8 with the fight card still on screen.
+  // The gate that replaced the prose was hand-verified twice and the suite was
+  // EXACTLY as green with it as it had been with the bug. A flag nothing checks
+  // is a smaller version of the same shape the comment was.
+  //
+  // FOUR ASSERTIONS, IN THIS ORDER, and the order is the point:
+  //   1. prove a fight is actually open — an empty fight satisfies every
+  //      "cannot act" claim for free
+  //   2. the RULE: a direct call changes nothing
+  //   3. the APPEARANCE: every Use is disabled
+  //   4. the EXIT: both come back
+  //
+  // 3 exists because of a near miss. The first version of the gate set the flag
+  // and did not re-render, so the rule held and the buttons stayed ENABLED — a
+  // control that looks live and silently refuses, which reports as breakage
+  // rather than as a rule. A guard checking only 2 would have shipped it.
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-items"></div><div id="actions-pop" hidden>' +
+                   '<div id="actions"></div></div>';
+  document.body.appendChild(host);
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 9 });
+    game.state.items = { "sticky-rice": 2 };
+    game.state.health = 5;
+    // WIRED THE WAY THE APP WIRES IT, at app.js:1728. Without this every Use
+    // button renders disabled — `use.disabled = !canUse || typeof packUse !==
+    // "function"` — because onPackUse is called from the page bootstrap and not
+    // from the constructor. The precondition below caught exactly that on this
+    // guard's first run: the buttons were already dead, so the two assertions
+    // that matter would have passed without the gate existing at all.
+    onPackUse((id) => game.usePackItem(id));
+    game.refresh();
+
+    const uses = () => [...document.querySelectorAll("#hud-items .cellact")];
+    assert(uses().length > 0,
+      "no Use buttons rendered, so every assertion below would pass on nothing");
+    assert(uses().some((b) => !b.disabled),
+      "the Use buttons are already disabled before any fight — this guard would " +
+      "then pass without the gate doing anything");
+
+    game.fightBeat(3, {});
+    await new Promise((r) => setTimeout(r, 0));
+
+    // 1. THE REGION. Without this the rest is satisfied by no fight happening.
+    assert(game.inFight === true,
+      "fightBeat did not open a fight, so 'cannot act during a fight' is vacuous");
+
+    // 2. THE RULE.
+    const hp = game.state.health;
+    const rice = game.state.items["sticky-rice"];
+    game.usePackItem("sticky-rice");
+    eq(game.state.health, hp, "medicine was spent during a fight — the gate is not holding");
+    eq(game.state.items["sticky-rice"], rice, "the item count moved during a fight");
+
+    // 3. THE APPEARANCE.
+    const live = uses().filter((b) => !b.disabled);
+    eq(live.length, 0,
+      "a pack Use button is still enabled during a fight: it will look live and " +
+      "silently refuse, which reports as breakage rather than as a rule");
+
+    // 4. THE EXIT — the half that rots, because nothing complains about a pack
+    // that never comes back.
+    game.inFight = false;
+    game.refresh();
+    assert(uses().some((b) => !b.disabled),
+      "the pack never recovers after a fight — the exit edge does not re-render");
+  } finally {
+    host.remove();
+  }
+}));
 
 test("hud: the poison strip is in the language it is read in (#108)", serial(async () => {
   // 「in English mode，中毒 still shows traditional Chinese」. It was hardcoded in
