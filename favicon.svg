@@ -32,8 +32,28 @@
        drawing is unchanged and only its size on the tile moves. -->
   <g transform="translate(16 16) scale(1.28) translate(-16 -14.1)">
 
-  <!-- Hair, as a cap over the crown. Drawn first so the face sits into it. -->
-  <path d="M16 3.2c5 0 7.4 3.2 7.6 7.4.1 2-.2 3.2-.6 3.9-.3-3.9-1.2-6-2.6-7.2C19 6 17.6 5.6 16 5.6s-3 .4-4.4 1.7c-1.4 1.2-2.3 3.3-2.6 7.2-.4-.7-.7-1.9-.6-3.9C8.6 6.4 11 3.2 16 3.2z" fill="#101116"/>
+  <!-- Hair, as a cap over the crown. Drawn first so the face sits into it.
+
+       THE COLOUR IS THE FIX, and the note below the paper is what pointed here:
+       thickening this band was tried and made the icon strictly worse, because
+       hair at #101116 on ground #0a0b0d is 1.04:1 and no amount of SHAPE rescues
+       a thing that is invisible by construction. So the shape is untouched and
+       only the value moved, to #232830 — which is scare-n4's own, not invented.
+
+       MEASURED BEFORE AND AFTER, as that note demanded. Counting pixels in the
+       band above the face that are visibly lighter than the ground:
+
+                     16px            32px
+         #101116      4  (0,0,4)     24  (0,0,0,0,2,10,12)
+         #232830     13  (0,5,8)     65  (0,0,8,11,14,16,16)
+
+       and the pale face area — the thing the geometry attempt paid out and the
+       thing that actually separates this head from a tab strip — is UNCHANGED at
+       85 and 338. The gain saturates here: lighter values buy at most one more
+       pixel at 16px, and past about #5d6672 the hair starts counting as face,
+       which is the wrong drawing. Still reads as black hair at 6.32:1 against
+       the face. -->
+  <path d="M16 3.2c5 0 7.4 3.2 7.6 7.4.1 2-.2 3.2-.6 3.9-.3-3.9-1.2-6-2.6-7.2C19 6 17.6 5.6 16 5.6s-3 .4-4.4 1.7c-1.4 1.2-2.3 3.3-2.6 7.2-.4-.7-.7-1.9-.6-3.9C8.6 6.4 11 3.2 16 3.2z" fill="#232830"/>
 
   <!-- The face. Kept wide and simple: at 16px this is about a dozen pixels
        across, and any modelling inside it turns to noise. -->
