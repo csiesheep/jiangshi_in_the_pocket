@@ -3,7 +3,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "74ef123d");
+suite(import.meta.url, "626d766b");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,
@@ -486,12 +486,16 @@ test("equipment: the hands are in the page, in the one panel", async () => {
   assert(html.indexOf('id="backpack"') === -1,
     "the Backpack heading is back but its theme key is not");
 
-  // One panel, not three. Counted, because "merged" is otherwise a claim.
-  // Was 2 — the panel and the .panel--status block inside it. #117 moved the
-  // clock and the hearts onto the board and that inner block held nothing else,
-  // so it went with them and the count is the sidebar's one real panel.
+  // NO PANELS AT ALL, which is a stronger claim than the one this used to make.
+  // It counted 3 -> 2 -> 1 as the cards merged; Layout A (#121) has none —
+  // 一個平面,沒有盒子, separation by hairline and space. So the assertion stops
+  // being "how many cards" and becomes "there are no cards", which is the thing
+  // the direction actually rests on and the thing a future edit would break.
   const panels = html.split('class="panel').length - 1;
-  eq(panels, 1, "expected exactly one .panel in the sidebar; found " + panels);
+  eq(panels, 0,
+    "game.html carries " + panels + " .panel element(s). Layout A has no cards — " +
+    "separation is a hairline and space, and a box here reads as a thing " +
+    "standing on the table rather than part of it.");
 });
 
 test("rulebook: it no longer teaches a pack that holds swords", () => {

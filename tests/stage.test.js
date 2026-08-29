@@ -21,7 +21,7 @@ import { Game } from "../js/app.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "473d5926");
+suite(import.meta.url, "32f9ea0b");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -1200,6 +1200,119 @@ test("fight: the creature is centred on the tile, whatever the actions window do
     clearCreaturePanel();
     if (hadTile) root.style.setProperty("--tile", hadTile);
     else root.style.removeProperty("--tile");
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+  }
+}));
+
+// 一個平面,沒有盒子 — NOTHING ON THIS SCREEN HAS A GROUND (#121, Layout A).
+//
+// There is already a guard for this and it is not enough. That one reads
+// game.html as source text and counts class="panel", which is immune to the
+// unstyled-fixture trap — but its immunity IS its blind spot: it proves the
+// MARKUP carries no panel, not that nothing RENDERS as a card. A .sidebar rule
+// with a ground and a border would put the box straight back with no "panel"
+// string anywhere in the document, and the counting guard would stay green
+// through it. Layout A's claim is "nothing has a ground", not "no element is
+// called panel", so the claim has to be asserted about paint.
+//
+// WHICH MEANS THE SHEET HAS TO BE HERE. tests/index.html links no CSS, so a
+// guard reasoning about what things paint agrees with a document that has none
+// of the code under test in it — #123 passed cleanly for two runs on exactly
+// that. So: adopt the real stylesheet, PROVE the region is styled, and only
+// then assert anything about what it paints.
+test("surface: nothing in the sidebar renders as a card (#121)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const side = doc.querySelector(".sidebar");
+  const nav = doc.querySelector(".topnav");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:375px";
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+  try {
+    assert(side, "game.html has no .sidebar");
+    assert(nav, "game.html has no .topnav");
+    // renderBoard() writes to getElementById("board") and throws on null, which
+    // is how this fixture failed on its first run — loudly, which is the right
+    // way for a fixture to be wrong.
+    host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>';
+    host.appendChild(document.importNode(nav, true));
+    host.appendChild(document.importNode(side, true));
+
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.state.tablet = true;
+    game.refresh();
+
+    const paints = (c) => c && c !== "rgba(0, 0, 0, 0)" && c !== "transparent";
+
+    // 1. THE REGION IS STYLED. Without this every assertion below is agreeing
+    //    with an unstyled document, which is the failure #123 shipped twice.
+    //    The divider is the right probe: the stylesheet is the only thing that
+    //    can paint it, and it is load-bearing rather than decorative.
+    const sep = host.querySelector(".places .sep");
+    assert(sep, "no divider between the worn three and the carried four");
+    const sepBg = getComputedStyle(sep).backgroundColor;
+    assert(paints(sepBg),
+      "the divider paints nothing (" + sepBg + ") — the stylesheet did not " +
+      "apply, so everything this guard is about to assert is about a document " +
+      "with none of the code under test in it");
+
+    // 2. AND SO IS THE SEPARATION IT REPLACED. A hairline under the banner is
+    //    what Layout A puts there instead of a bar.
+    const navEl = host.querySelector(".topnav");
+    const navCs = getComputedStyle(navEl);
+    assert(paints(navCs.borderBottomColor) && parseFloat(navCs.borderBottomWidth) > 0,
+      "the banner has no hairline under it, so nothing separates it from the table");
+
+    // 3. NOTHING HAS A GROUND. Deliberately backgroundCOLOR: an empty place is
+    //    a ring whose fill is a radial-gradient, which is a background IMAGE —
+    //    it is pressed into the table rather than standing on it, and it must
+    //    keep passing.
+    // TWO EXCLUSIONS, BOTH WITH A REASON, because "has a background" is not
+    // quite "is a card" and a guard that cannot say the difference gets
+    // relaxed by the first person it inconveniences.
+    //
+    //   A LINE IS NOT A BOX. The divider between the worn three and the carried
+    //   four is a painted 1px rule — it is the separation Layout A asks FOR, so
+    //   flagging it would have this guard forbid its own mechanism.
+    //
+    //   A POPOVER IS NOT ON THE TABLE. .celltip floats above the surface to be
+    //   read over whatever is under it, and a transparent tooltip is not a
+    //   tooltip. It is not part of the one plane; it is held over it.
+    const isLine = (el) => {
+      const r = el.getBoundingClientRect();
+      return r.width <= 2 || r.height <= 2;
+    };
+    const painted = [navEl, ...host.querySelectorAll(".topnav *"),
+                     host.querySelector(".sidebar"),
+                     ...host.querySelectorAll(".sidebar *")]
+      .filter(Boolean)
+      .filter((el) => !el.closest(".celltip") && !isLine(el))
+      .filter((el) => paints(getComputedStyle(el).backgroundColor))
+      .map((el) => (el.className || el.tagName).toString().slice(0, 24) + " " +
+                   getComputedStyle(el).backgroundColor);
+    eq(painted.length, 0,
+      "these render as cards — Layout A gives nothing a ground, and a box here " +
+      "reads as a thing standing on the table rather than part of it: " +
+      painted.join(" | "));
+  } finally {
     host.remove();
     spriteHost.remove();
     styles.remove();

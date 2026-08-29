@@ -118,31 +118,52 @@
          same change — it and the numerals were two clocks saying one time, and
          the one that reads at a glance on a phone is the one with digits. -->
     <aside class="sidebar">
-      <div class="panel">
-        <!-- The clock and the hearts left this panel for the board (#117), and
-             the whole panel--status block went with them — it held nothing else.
-             The 中毒 mark and the red wash from #113 went too, by the same
-             ruling: 目前的中毒方式不好看. The sidebar is what you are wearing
-             and what you are carrying, and nothing else.
+      <!-- NO PANEL. The card is gone with Layout A (#121): 一個平面,沒有盒子 —
+           separation is a hairline and space, and the sidebar is a part of the
+           one surface rather than a thing standing on it.
 
-             ui.poison-said SURVIVED THAT DELETION ON PURPOSE. It used to be the
-             quiet third channel beside a glyph and a rate; with both of those
-             gone it is the ONLY non-colour account of the rule, so it moved to
-             the hearts rather than going with the strip it sat in. -->
-        <!-- What you are wearing and holding, above what you are carrying: the
-             pack is luggage and this is the game. All three drawn rather than
-             implied, because bare-handed is zero — and the 神主牌 is DRAWN here
-             while still living outside the pack, so it costs no slot. -->
+           It was already down to a single panel from three (#83), which is what
+           made this a deletion rather than a redesign: the merge had removed
+           everything the box was still separating. -->
+      <!-- SEVEN PLACES IN ONE ROW, AND THEY ARE TWO KINDS (#121). Three are
+           roles the engine names — 武器, 身上, 神主牌, the tablet slotless in
+           RULES but drawn here so it costs no pack space — and four are the
+           pack, RULES.MAX_ITEMS. They used to be two stacked grids with a rule
+           between them; Layout A lays them all on the table in one line.
+
+           THE HAIRLINE CARRIES THE WHOLE DISTINCTION. No labels on the objects
+           — #114 settled that and it stays settled — so this line is the only
+           thing saying which three are worn and which four are carried. It is
+           deliberately stronger than --hair, which is for separating text. -->
+      <div class="places">
         <div class="hands" id="hud-hands"></div>
+        <div class="sep" aria-hidden="true"></div>
         <div class="backpack" id="hud-items"></div>
+      </div>
+
+      <!-- 手記, ON SCREEN AND UNDER WHAT YOU ARE CARRYING (#121, Layout A).
+           This narration has existed all along and was shown to NOBODY: the log
+           panel was removed as repeating what the board and the hour already
+           say, and the element stayed behind as an sr-only live region. So the
+           game has been telling a sighted player nothing about what just
+           happened, while telling a screen-reader player everything.
+
+           NEWEST FIRST, and that needed no code: log() has always prepended.
+           The ruling that was hardest to settle — newest-last opens a void
+           under the label whenever the night is young — was already true.
+
+           It keeps role="log" and aria-live: it is the same element, now seen
+           as well as announced, rather than a visible copy of a hidden one. -->
+      <div class="account">
+        <!-- aria-hidden because the region below already carries this name; a
+             visible label and an aria-label saying the same words would be read
+             twice. -->
+        <div class="cap" id="account-label" aria-hidden="true">Game narration</div>
+        <div class="acct" id="log" role="log" aria-live="polite"
+             aria-label="Game narration"></div>
       </div>
     </aside>
   </main>
-
-  <!-- The log panel is gone (it repeated what the board, the hearts and the
-       clock already say), but it was also the only spoken narration of events.
-       This is where log() writes now: unseen, still announced. -->
-  <div class="sr-only" id="log" role="log" aria-live="polite" aria-label="Game narration"></div>
 
   <!-- Cinema bars for the set-pieces. Empty and inert until body.staged. -->
   <div class="letterbox letterbox--top" aria-hidden="true"></div>
