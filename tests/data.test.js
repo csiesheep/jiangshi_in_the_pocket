@@ -1028,3 +1028,62 @@ test("the letter: English has no Han, and both languages name places from the th
     "the English letter has grown back to " + rendered.length + " characters - it was " +
     "cut from 538 because it was the longest thing a new player is asked to read");
 });
+
+// Sound is ON for a new player (#107), and this guard exists because the
+// opposite failed SILENTLY for as long as it did — a game that makes no noise
+// looks like a game with no sound, not like a bug, and the user had to ask
+// directly before anybody checked.
+//
+// READ THE LIMIT BEFORE TRUSTING A GREEN TICK HERE: this asserts what the
+// default IS, not that anything is AUDIBLE. Nobody on this project has ever
+// confirmed a sound came out. An automated pane cannot produce the user
+// gesture a Web Audio context needs — after a real CDP click,
+// navigator.userActivation.hasBeenActive is still false — so the context never
+// leaves "suspended" and audibility needs a human with speakers. This test
+// passing means the switch is in the right position. It does not mean you can
+// hear anything.
+test("audio: a first-time player gets sound, and a stored choice still wins", async () => {
+  const raw = await fetch("../js/audio.js", NO_STORE).then((r) => r.text());
+
+  // COMMENTS OUT FIRST, and this file learned that the hard way one minute ago:
+  // the assertion below forbids "return true" in the catch arm, and the comment
+  // explaining WHY the branch was flipped says "This used to return true". The
+  // guard went red on the prose defending the very code it was guarding. Every
+  // negative assertion over source has this failure mode - stage.test.js has a
+  // note at the top saying the same thing after it happened three times there.
+  const src = raw
+    .split(String.fromCharCode(10))
+    .filter((l) => l.trim().indexOf("//") !== 0)
+    .join(String.fromCharCode(10));
+
+  // Prove the region: this guard reads one function, so it must exist.
+  const at = src.indexOf("function readMuted");
+  assert(at !== -1, "readMuted is gone from audio.js - this guard is reading nothing");
+  const body = src.slice(at, src.indexOf(String.fromCharCode(125) + String.fromCharCode(10), src.indexOf("catch")));
+
+  // NOTHING STORED means sound. The old default was the bug.
+  assert(/stored === null \? false/.test(body),
+    "audio.js is muting a player who has never chosen anything - sound is on by " +
+    "default since #107, and there is no button to turn it on with");
+
+  // STORAGE BLOCKED means the same thing, so private mode is not a different
+  // game. Asserted separately because it is a separate branch that was
+  // separately wrong.
+  const catchArm = body.slice(body.indexOf("catch"));
+  assert(/return false/.test(catchArm) && !/return true/.test(catchArm),
+    "the storage-blocked branch is muting again - a private-mode player would " +
+    "get a silent game with no stored preference explaining it");
+
+  // A DELIBERATE CHOICE STILL WINS. This is the half that separates it from the
+  // retired calm mode, which stopped consulting its key entirely.
+  assert(/stored === "1"/.test(body),
+    "a stored mute is no longer honoured - somebody who asked for silence is " +
+    "being overruled on every load; see the calm-mode note in audio.js for why " +
+    "that precedent does NOT apply here");
+
+  // And the only switch there is still exists, since the ruling kept it.
+  const app = await fetch("../js/app.js", NO_STORE).then((r) => r.text());
+  assert(/setMuted\(!isMuted\(\)\)/.test(app),
+    "the M key toggle is gone - it is the only sound control in the game, and " +
+    "the ruling that removed the button kept this deliberately");
+});

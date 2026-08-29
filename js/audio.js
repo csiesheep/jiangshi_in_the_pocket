@@ -32,12 +32,42 @@ let noiseBuffer = null;
 let bedNoise = null;
 let muted = readMuted();
 
+// SOUND IS ON BY DEFAULT (#107). It was off, and the user asked why they could
+// not hear anything - which is the report that found the real hole: the sound
+// button went with the whole utility panel in #73, leaving the M key as the only
+// switch in the game. There is no M key on a phone, so a phone player could
+// never turn sound on at all. A horror game that is silent unless you find an
+// undocumented keyboard shortcut is silent.
+//
+// NO CONTROL BUTTON, by ruling. M stays, and that matters: it is the only way a
+// desktop player can quiet this quickly, and the ruling was about a button.
+// Anyone on a phone who wants silence still has the browser's own tab mute,
+// which is the honest cost of the ruling and is written down rather than argued
+// with.
+//
+// A STORED "1" STILL MUTES, and that is deliberate rather than incidental. It
+// means somebody chose silence, and a choice outranks a default.
+//
+// WHY THE CALM-MODE PRECEDENT DIRECTLY BELOW DOES NOT APPLY HERE. #72 retired
+// calm mode by making the default AUTHORITATIVE and never reading the stored key
+// again. That is the opposite of what this does, and the two look identical
+// enough that copying it would seem like consistency. The difference is the way
+// out: calm mode had NONE - players sat in the de-fanged game for three days
+// with nothing left to switch it off, so the stored key had to be abandoned to
+// free them. Mute has M. Ignoring a stored "1" here would not free anybody; it
+// would override somebody who deliberately asked for quiet, every single load.
 function readMuted() {
   try {
     const stored = localStorage.getItem(KEY);
-    return stored === null ? true : stored === "1";
+    return stored === null ? false : stored === "1";
   } catch {
-    return true; // storage blocked (private mode, embedded) — stay quiet
+    // AND THE SAME ANSWER WHEN STORAGE IS BLOCKED. This used to return true, on
+    // the reasoning "private mode, embedded - stay quiet". The embedded case was
+    // considered and does not apply: this game is not embedded in anyone else's
+    // page, it is the whole page. What the old branch actually did was give a
+    // private-mode player a DIFFERENT GAME - silent, with no stored preference
+    // to explain it and no button to fix it.
+    return false;
   }
 }
 
