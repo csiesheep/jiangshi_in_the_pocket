@@ -136,13 +136,30 @@
         <div class="hands" id="hud-hands"></div>
         <div class="backpack" id="hud-items"></div>
       </div>
+
+      <!-- 手記, ON SCREEN AND UNDER WHAT YOU ARE CARRYING (#121, Layout A).
+           This narration has existed all along and was shown to NOBODY: the log
+           panel was removed as repeating what the board and the hour already
+           say, and the element stayed behind as an sr-only live region. So the
+           game has been telling a sighted player nothing about what just
+           happened, while telling a screen-reader player everything.
+
+           NEWEST FIRST, and that needed no code: log() has always prepended.
+           The ruling that was hardest to settle — newest-last opens a void
+           under the label whenever the night is young — was already true.
+
+           It keeps role="log" and aria-live: it is the same element, now seen
+           as well as announced, rather than a visible copy of a hidden one. -->
+      <div class="account">
+        <!-- aria-hidden because the region below already carries this name; a
+             visible label and an aria-label saying the same words would be read
+             twice. -->
+        <div class="cap" id="account-label" aria-hidden="true">Game narration</div>
+        <div class="acct" id="log" role="log" aria-live="polite"
+             aria-label="Game narration"></div>
+      </div>
     </aside>
   </main>
-
-  <!-- The log panel is gone (it repeated what the board, the hearts and the
-       clock already say), but it was also the only spoken narration of events.
-       This is where log() writes now: unseen, still announced. -->
-  <div class="sr-only" id="log" role="log" aria-live="polite" aria-label="Game narration"></div>
 
   <!-- Cinema bars for the set-pieces. Empty and inert until body.staged. -->
   <div class="letterbox letterbox--top" aria-hidden="true"></div>
