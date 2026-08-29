@@ -3,7 +3,7 @@ import { test, assert, eq, suite } from "./harness.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "b0facadc");
+suite(import.meta.url, "fef1a230");
 
 // Data is fetched no-store. A test that reads a cached copy of the file it is
 // asserting about is worse than no test: it passes on data that is not on disk,
