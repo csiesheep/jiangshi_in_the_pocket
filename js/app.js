@@ -23,7 +23,7 @@ import * as Bd from "./board.js";
 import { eventStage, kingScene, resetStageHints,
          BEAT_MS as STAGE_BEAT_MS } from "./eventstage.js";
 import { isMuted, setMuted, relicFound, seamCross, verdictSting,
-         startAmbience, stopAmbience, stopScore, itemPickup, tollBell,
+         stopScore, itemPickup, tollBell,
          watchDrum, paperFlutter, kingArrives, combatHit, duckForScare,
          unduck } from "./audio.js";
 import {
@@ -1568,9 +1568,6 @@ export class Game {
   gameOver() {
     this.refresh();
     renderActions([]);
-    // The house stops breathing when the run does, before the verdict sting,
-    // so the ending has the room to itself.
-    stopAmbience();
     keepAwake(false);
     // The verdicts carry their own stings; the score is never played over them.
     stopScore();
@@ -1717,9 +1714,6 @@ function startNewGame(seed) {
   // A run is in progress: the screen stays lit. Released at the verdict, so a
   // finished game is not quietly holding the phone awake.
   keepAwake(true);
-  // A new run gets the wind back, and never a second copy of it — startAmbience
-  // is idempotent, so restarting mid-run is safe.
-  startAmbience();
   game = new Game(data, seed != null ? { seed } : {});
   window.__game = game; // handy for debugging
   // The pack spends medicine on its own account, and refresh() rebuilds the

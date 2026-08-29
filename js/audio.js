@@ -107,7 +107,6 @@ export function setMuted(next) {
     audio();
     // Nothing is built while muted, so anything that was supposed to be
     // running has to be built now rather than waiting for the next event.
-    if (bedWanted) startAmbience();
     if (murmurWanted) startMurmur(murmurWanted);
     if (scoreWanted) { buildScore(); applyScore(); }
     if (poundWanted) startPounding(poundWanted);
@@ -115,7 +114,6 @@ export function setMuted(next) {
     // should already be in the right room.
     applySpace(0);
   } else {
-    tearDownBed();
     tearDownMurmur();
     tearDownScore();
     stopPounding();
@@ -1278,13 +1276,40 @@ export function doorwayTick() {
 // the nodes down but leaves the wanting intact, so switching sound back on
 // mid-run restores exactly what should be there.
 
-let bed = null; // { src, gain, filter, lfo }
-let bedWanted = false;
 let dread = 0; // 0 at nine o'clock, 1 at midnight
 
-// Wind, synthesised rather than sourced — and not for want of a file. Noise
-// through a moving filter loops seamlessly by construction, weighs nothing, and
-// can follow the clock: a recording is the same wind at nine as at midnight.
+// THE WIND IS GONE (#128), AND THIS IS WHERE THE REASON LIVES.
+//
+// It was a bed of filtered noise under the whole night, and it was removed on
+// the owner's judgement after they heard it AS DESIGNED for the first time.
+// That qualifier is the whole record: their first ruling — 感覺只是 noise — was
+// made on a build where the score was inaudible, so the bed was being heard
+// ALONE, which is the one way it was never meant to be heard. It was written to
+// sit UNDER something tonal. Once #126 made the score reach a phone they were
+// asked again, heard both layers together, and ruled 還是拿掉 anyway.
+//
+// So this is not "it read as noise on a broken build". It is a fair hearing of
+// the thing in its intended state, and it lost. Anyone tempted to bring the
+// wind back should know the obvious objection has already been tested.
+//
+// WHAT WENT: startAmbience, stopAmbience, tearDownBed, bedLevel, applyBedLevel,
+// the bed itself, and the bed's arms in duckForScare and unduck.
+//
+// WHAT DELIBERATELY STAYED, each for a reason that is not obvious from here:
+//
+//   setDread   NOT deleted, though the issue suggested it might write to
+//              nothing once the bed was gone. It does not. `dread` feeds
+//              weight() below, which sets the level and pacing of the door
+//              creak, the footsteps and the combat body — deleting the setter
+//              would freeze all of them at their calmest for the whole night.
+//              A silent flattening of four cues, to remove two lines.
+//
+//   weather    The bus SURVIVES, and not by default: the murmur connects
+//              through it too, so it is not left empty. An empty bus reads as
+//              intentional and lasts for months, so this was checked.
+//
+//   longNoise  Kept for the same reason — the murmur builds its buffer from it.
+
 // A recorded loop for a held sound, if the manifest named one. The beds build
 // their own buffer source rather than going through sample(), because they loop
 // and carry their own filter chain — so this hands back the buffer and lets the
@@ -1292,68 +1317,6 @@ let dread = 0; // 0 at nine o'clock, 1 at midnight
 function loopBuffer(name) {
   const takes = samples.get(name);
   return takes && takes.length ? takes[0] : null;
-}
-
-export function startAmbience() {
-  bedWanted = true;
-  const c = live();
-  if (!c || bed) return;
-
-  // A recording is a room; noise through a filter is a synthesizer pretending
-  // to be one. Take the recording when there is one, and keep the synth as the
-  // fallback for a failed load — that rule has not changed.
-  const recorded = loopBuffer("bed-wind");
-  const src = c.createBufferSource();
-  src.buffer = recorded || longNoise(c);
-  src.loop = true;
-
-  const filter = c.createBiquadFilter();
-  // Recorded room tone is already voiced; a bandpass on top would only take
-  // the body out of it. It still passes through a filter node so setDread can
-  // move the tone either way, just opened up.
-  filter.type = recorded ? "lowpass" : "bandpass";
-  filter.Q.value = recorded ? 0.4 : 0.7;
-  filter.frequency.value = recorded ? 6000 : 320;
-
-  const gain = c.createGain();
-  gain.gain.value = 0.0001;
-
-  // The wind breathes. Without this it is a hiss; with it, it is weather.
-  const lfo = c.createOscillator();
-  lfo.type = "sine";
-  lfo.frequency.value = 0.055;
-  const lfoDepth = c.createGain();
-  lfoDepth.gain.value = 150;
-  lfo.connect(lfoDepth).connect(filter.frequency);
-
-  src.connect(filter).connect(gain).connect(weather || master);
-  src.start();
-  lfo.start();
-  // Fade in. Sound arriving at full strength announces itself as a sound
-  // effect; weather is just suddenly noticed. Unless the room is currently
-  // being held quiet for a scare, in which case it stays down and unduck()
-  // brings it back with everything else.
-  if (!ducked) gain.gain.exponentialRampToValueAtTime(bedLevel(), c.currentTime + 3.5);
-
-  bed = { src, gain, filter, lfo };
-}
-
-function bedLevel() {
-  // Quiet, and quietest early: this has to sit under everything else or it
-  // stops being a bed and starts being a noise. Calm keeps the weather —
-  // silence would be its own kind of wrong — but takes it further down.
-  const base = 0.012 + dread * 0.03;
-  return base;
-}
-
-// Move a running bed to whatever the level should be now, without restarting
-// it. Used when dread moves and when calm is switched mid-run.
-function applyBedLevel() {
-  const c = live();
-  if (!c || !bed) return;
-  bed.gain.gain.cancelScheduledValues(c.currentTime);
-  bed.gain.gain.setValueAtTime(Math.max(bed.gain.gain.value, 0.0001), c.currentTime);
-  bed.gain.gain.exponentialRampToValueAtTime(bedLevel(), c.currentTime + 1.2);
 }
 
 // How much heavier a one-shot plays when the game is frightened. Deliberately
@@ -1365,46 +1328,10 @@ function weight(lo, hi) {
 
 // The tension director's number, from engine dread(). Everything atmospheric
 // reads this rather than inventing its own sense of intensity, which is what
-// keeps the wind, the dark and the cues agreeing about the same moment.
+// keeps the dark and the cues agreeing about the same moment. It no longer
+// moves a bed — see the note above — but it still feeds weight().
 export function setDread(x) {
   dread = Math.min(Math.max(Number(x) || 0, 0), 1);
-  if (!bed) return;
-  const c = live();
-  if (!c) return;
-  bed.gain.gain.linearRampToValueAtTime(bedLevel(), c.currentTime + 2);
-  bed.filter.frequency.linearRampToValueAtTime(320 + dread * 210, c.currentTime + 2);
-}
-
-function tearDownBed() {
-  if (!bed) return;
-  try {
-    bed.src.stop();
-    bed.lfo.stop();
-  } catch {
-    /* already stopped */
-  }
-  bed = null;
-}
-
-export function stopAmbience() {
-  bedWanted = false;
-  const c = live();
-  if (!c || !bed) return tearDownBed();
-  // Let it fall away rather than cutting: a hard stop on a held sound is a
-  // click, and the end of a run has enough going on.
-  const dying = bed;
-  bed = null;
-  dying.gain.gain.cancelScheduledValues(c.currentTime);
-  dying.gain.gain.setValueAtTime(dying.gain.gain.value, c.currentTime);
-  dying.gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 1.4);
-  setTimeout(() => {
-    try {
-      dying.src.stop();
-      dying.lfo.stop();
-    } catch {
-      /* fine */
-    }
-  }, 1700);
 }
 
 // ---- The room you are standing in --------------------------------------------
@@ -1611,12 +1538,12 @@ export function duckForScare() {
   const c = live();
   // Nothing audible means nothing to take away, and a silence nobody can hear
   // is just a delay.
-  if (!c || (!bed && !murmur)) return 0;
+  if (!c || !murmur) return 0;
 
   ducked = true;
   const t = c.currentTime;
   const fall = DUCK_MS / 1000;
-  for (const node of [bed, murmur]) {
+  for (const node of [murmur]) {
     if (!node) continue;
     const g = node.gain.gain;
     g.cancelScheduledValues(t);
@@ -1634,11 +1561,6 @@ export function unduck() {
   const c = live();
   if (!c) return;
   const t = c.currentTime;
-  if (bed) {
-    bed.gain.gain.cancelScheduledValues(t);
-    bed.gain.gain.setValueAtTime(Math.max(bed.gain.gain.value, 0.0001), t);
-    bed.gain.gain.exponentialRampToValueAtTime(bedLevel(), t + 1.6);
-  }
   if (murmur) {
     const weight = Math.min(Math.max((murmurWanted - 3) / 3, 0), 1);
     murmur.gain.gain.cancelScheduledValues(t);
