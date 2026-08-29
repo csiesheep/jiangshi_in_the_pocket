@@ -2034,11 +2034,32 @@ test("light: the gutter reaches the room and not the narration (#122)", serial(a
       restVig + " at rest — the candle failing is not reaching the light");
 
     // 4. AND THE OBJECTS' SHADOWS SAG WITH IT. A shadow that holds still while
-    //    the flame fails is the tell that the light is a picture.
-    const shadowRule = css.slice(css.indexOf(".hand .handicon,"), css.indexOf(".hand .handicon,") + 260);
-    assert(shadowRule.indexOf("var(--gutter)") !== -1,
-      "the object shadows no longer read --gutter, so they hold still while " +
-      "everything else in the room dims");
+    //    the flame fails is the tell that the light is a picture rather than a
+    //    light.
+    //
+    //    READ OFF A RENDERED ELEMENT, NOT OUT OF THE STYLESHEET TEXT. Grepping
+    //    for "var(--gutter)" proves the string is in the file, never that it
+    //    reaches the paint — a later rule of equal specificity setting `filter`
+    //    would silently win and the grep would stay happy. The element is built
+    //    here because the hands are drawn by the game; the RULE under test does
+    //    not care how its element arrived.
+    const probeHand = document.createElement("div");
+    probeHand.className = "hand";
+    const probeIcon = document.createElement("span");
+    probeIcon.className = "handicon";
+    probeHand.appendChild(probeIcon);
+    host.appendChild(probeHand);
+    const shadowLow = getComputedStyle(probeIcon).filter;
+    anim.currentTime = 0;
+    const shadowRest = getComputedStyle(probeIcon).filter;
+    anim.currentTime = dur * 0.52;
+    assert(shadowRest !== "none" && shadowRest.indexOf("drop-shadow") !== -1,
+      "the objects have no shadow at rest (" + shadowRest + "), so there is " +
+      "nothing here that could follow the flame");
+    assert(shadowRest !== shadowLow,
+      "the object shadow is " + shadowLow + " at the bottom of the gutter and " +
+      shadowRest + " at rest — identical, so it holds still while everything " +
+      "else in the room dims");
 
     // 5. THE NARRATION IS ABOVE THE VIGNETTE — the ruling, as a measurement.
     //    BOTH HALVES ARE LOAD-BEARING: a z-index on a static element does
