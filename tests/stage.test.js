@@ -1404,6 +1404,167 @@ test("surface: nothing in the sidebar renders as a card (#121)", serial(async ()
   }
 }));
 
+// 物品向上對齊 (#130): THE SEVEN OBJECTS SIT ON ONE LINE, IN BOTH LANGUAGES.
+//
+// The row was bottom-aligned, and the comment on it said that was how the
+// objects came to stand on a common line. They do not: a blade carries an
+// attack numeral, an occupied pack cell carries its Use, and the charm, the
+// tablet and an empty cell carry nothing — so pinning seven stacks of unequal
+// height by their feet put their middles at four heights. Measured at 1024x768
+// before the fix: 102.8 / 126.6 / 126.6 / 109.4 / 109.4 / 109.4 / 135.7, which
+// is a spread of 32.9px.
+//
+// WHY THIS RUNS TWICE, IN TWO LANGUAGES. The obvious repair is to reserve the
+// hand label's height above the pack cells — and that reserve is 30.7px in
+// English, where "Left hand" wraps to two lines, and 15.4px in 繁體中文, where
+// 左手 does not. A constant would align whichever language it was measured in
+// and drop the other by half an object: the same fault, moved. So the guard has
+// to see both, and step 4 asserts the two runs really did produce different
+// labels — otherwise it is one case run twice and the language half is
+// decoration.
+test("places: the seven objects share one line, in both languages (#130)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const side = doc.querySelector(".sidebar");
+  // The BOARD comes along, and it is the real one rather than a stub with the
+  // right id in it. refresh() renders the board before it renders the panel and
+  // walks straight into `el.innerHTML` on a missing #board, so something has to
+  // be here; a hand-written stand-in would be a second fixture to keep true.
+  const pane = doc.querySelector(".board-pane");
+  const host = document.createElement("div");
+  // The width the sidebar actually gets beside the board on a desktop, which is
+  // where this was reported and where the places are narrow enough that an
+  // English label wraps to the two lines that make the languages differ.
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:300px";
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+
+  const read = (lang, theme) => {
+    host.textContent = "";
+    host.appendChild(document.importNode(pane, true));
+    host.appendChild(document.importNode(side, true));
+    const game = new Game({ tiles, items, search, events, theme,
+                            baseTheme: theme, lang }, { seed: 5 });
+    game.refresh();
+    const row = host.querySelector(".places");
+    assert(row, "game.html has no .places, so there is no row to align");
+    const places = [...row.querySelectorAll(".hand, .cell")];
+    const arts = places.map((p) => p.querySelector(".handart, .cellface"));
+    const label = row.querySelector(".handlabel");
+    const lr = label && label.getBoundingClientRect();
+    const sep = row.querySelector(".sep");
+    // EVERY NUMBER IS TAKEN NOW, WHILE THIS RUN IS STILL MOUNTED, and nothing
+    // but plain data leaves this function. Holding the elements and measuring
+    // them after the second language has been read gives a rect full of zeros —
+    // the first run's nodes are detached by then, and a detached node reports no
+    // width rather than an error. Step 1 caught exactly that while this guard
+    // was being written.
+    return {
+      count: places.length,
+      missingArt: arts.map((a, i) => (a ? null : i)).filter((i) => i !== null),
+      widths: arts.map((a) => (a ? +a.getBoundingClientRect().width.toFixed(1) : 0)),
+      tops: arts.map((a) => (a ? +a.getBoundingClientRect().top.toFixed(1) : null)),
+      labelText: label ? label.textContent : null,
+      labelH: lr ? +lr.height.toFixed(1) : null,
+      // What sits UNDER each place — the numeral, the Use, or nothing at all.
+      // This inequality is what the fault is made of.
+      unders: places.map((p) =>
+        p.querySelector(".handattack") ? "numeral"
+        : p.querySelector(".cellact") ? "use" : "nothing"),
+      sepH: sep ? +sep.getBoundingClientRect().height.toFixed(1) : null,
+    };
+  };
+
+  try {
+    assert(side, "game.html has no .sidebar, so there is no row of places");
+    assert(pane, "game.html has no .board-pane — refresh() renders the board " +
+      "first and would throw before reaching the places");
+    const en = read("en", themeEn);
+    const zh = read("zh-TW", themeZh);
+
+    // 1. THE FIXTURE IS STYLED AND POPULATED. Every number below is a rect, and
+    //    rects agree with each other very happily in a document that has none
+    //    of the code under test in it.
+    eq(en.count, 7,
+      "the row drew " + en.count + " places rather than seven — either the " +
+      "markup changed or the game never rendered, and a spread measured over " +
+      "fewer than seven is not the thing this guard is about");
+    eq(en.missingArt.length, 0,
+      "places " + en.missingArt.join(", ") + " have no object box, so they have " +
+      "no top to compare");
+    assert(en.widths.every((w) => w > 0),
+      "the objects have no width (" + JSON.stringify(en.widths) + ") — the " +
+      "stylesheet did not apply, so every alignment assertion below would pass " +
+      "against an unstyled document");
+
+    // 2. THE INEQUALITY THAT CAUSES THE FAULT IS PRESENT. If every place
+    //    carried the same thing underneath, the seven would line up under the
+    //    old bottom-aligned rule as well, and this guard would pass on the bug.
+    const kinds = new Set(en.unders);
+    assert(kinds.size > 1,
+      "every place carries the same thing underneath (" + [...kinds].join(", ") +
+      ") — the stacks are equal, so a bottom-aligned row would satisfy this " +
+      "guard too. Under each place: " + JSON.stringify(en.unders));
+
+    // 3. THE SEVEN OBJECTS SHARE A LINE.
+    for (const [name, m] of [["English", en], ["繁體中文", zh]]) {
+      const spread = +(Math.max(...m.tops) - Math.min(...m.tops)).toFixed(1);
+      assert(spread <= 1,
+        "the seven objects sit at " + spread + "px of spread in " + name + ": " +
+        JSON.stringify(m.tops) + ". They are one row of things lying on a " +
+        "table, and a broken line is read before any of the objects are.");
+    }
+
+    // 4. AND THE TWO RUNS WERE ACTUALLY DIFFERENT. Without this, step 3 is one
+    //    case run twice — same label, same heights, same layout — and the
+    //    language-dependent repair it exists to rule out sails through.
+    //    Under 600px the labels are visually hidden ON PURPOSE, so that case is
+    //    named rather than skipped: a label that vanishes for any other reason
+    //    still fails here.
+    const hidden = window.matchMedia("(max-width: 600px)").matches;
+    if (hidden) {
+      eq(en.labelH, 0,
+        "the suite is running under 600px, where the slot labels are visually " +
+        "hidden by design, and yet a label still has height — the media query " +
+        "and the layout disagree about what is on screen");
+    } else {
+      assert(en.labelText !== zh.labelText,
+        "both runs rendered the same slot label (" + en.labelText + ") — the " +
+        "theme never reached the label, so this checked one language twice");
+      assert(en.labelH !== zh.labelH,
+        "the slot label is " + en.labelH + "px tall in both languages, so the " +
+        "difference that makes a fixed reserve wrong is not present in this " +
+        "fixture and the two-language check is proving nothing");
+    }
+
+    // 5. The hairline survived becoming a grid item. It is the only thing on
+    //    the screen saying which three of the seven are worn and which four are
+    //    carried, and it silently measured 0px tall once during this very
+    //    change: the span put it across the three rows and align-items: start
+    //    then gave it no height.
+    assert(en.sepH > 0,
+      "the divider between the worn three and the carried four has no height");
+  } finally {
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);

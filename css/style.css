@@ -758,13 +758,46 @@ body.app .board-pane > .board { min-height: 0; }
 /* Three equal columns (#75): 左手, 身上, 右手. Equal rather than
    weighted, because the three are the same KIND of thing — what you have on
    you — and the panel's job is to answer that at a glance. */
-/* ONE ROW OF SEVEN (#121), bottom-aligned so the objects stand on a common
-   line whatever they carry underneath — the blades have an attack numeral, the
-   pack has its Use. */
+/* ONE ROW OF SEVEN (#121), AND ONE GRID (#130).
+
+   BOTTOM-ALIGNED WAS THE BUG, and the note that used to sit here said the
+   opposite in as many words: "bottom-aligned so the objects stand on a common
+   line whatever they carry underneath". That is only true if the things
+   underneath are the same height, and they are not — the blade carries an
+   attack numeral, an occupied pack cell carries its Use, and the charm, the
+   tablet and an EMPTY pack cell carry nothing at all. Pinning seven stacks of
+   unequal height by their feet puts their middles at four different heights.
+   Measured at 1024x768 before this change, the seven objects sat at
+   102.8 / 126.6 / 126.6 / 109.4 / 109.4 / 109.4 / 135.7 — a spread of 32.9px.
+
+   TOP-ALIGNING ALONE MAKES IT WORSE, which is worth writing down because it is
+   the fix anybody would reach for first: align-items: flex-start took the
+   spread to 32.2 in the same measurement. The hands have a LABEL above the art
+   and the pack cells do not, so aligning the SLOTS is not aligning the OBJECTS.
+
+   SO THE ROW IS ONE GRID AND THE ROWS ARE SHARED: a label row, an object row,
+   and a row for whatever goes underneath. Every place spans all three and maps
+   its own parts onto them with `subgrid`, so the objects line up BY
+   CONSTRUCTION rather than by arithmetic.
+
+   AND THE ARITHMETIC IS WHAT HAD TO GO. The alternative was to reserve the
+   label's height on the pack cells — but that reserve is 30.7px in English,
+   where "Left hand" wraps to two lines, and 15.4px in 繁體中文, where 左手 does
+   not. A constant would have aligned the language it was measured in and
+   dropped the other by 15px: the same fault, moved. A shared grid row cannot go
+   stale that way, because the browser measures it every layout. */
 .places {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--place-gap);
+  display: grid;
+  /* Seven places, and the divider between the third and the fourth. */
+  grid-template-columns:
+    repeat(3, minmax(0, var(--place))) auto repeat(4, minmax(0, var(--place)));
+  grid-template-rows: auto auto auto;   /* label - object - what is underneath */
+  align-items: start;
+  column-gap: var(--place-gap);
+  /* ONE RHYTHM DOWN THE WHOLE ROW. The hands used 3px under the label and the
+     cells 4px under the picture; shared rows can only have one gutter, and
+     since the row now reads as a single surface it should only have one. */
+  row-gap: 3px;
   /* ONE PLACE THAT SAYS HOW WIDE A PLACE IS, and everything else divides it.
      Seven of these plus six gaps plus the divider have to clear the column, so
      the number is derived rather than picked: at 375 the column is 351, the
@@ -773,43 +806,62 @@ body.app .board-pane > .board { min-height: 0; }
   --place: 38px;
   --place-gap: 8px;
 }
-.hands, .backpack {
-  display: flex;
-  gap: var(--place-gap);
-  align-items: flex-end;
-}
+/* NOT BOXES ANY MORE. The three worn places and the four carried ones have to
+   be siblings in one grid for the rows to be shared, and display: contents
+   lifts them out without touching the markup — which matters because the
+   hairline between them is a sibling of these two and has to stay one.
+   .hands keeps --handicon: a custom property inherits through contents. */
+.hands, .backpack { display: contents; }
 /* The divider is NOT --hair. That token is a seam between blocks of text at
    1.21:1; this line is the only thing on the screen saying which three of the
    seven are worn and which four are carried, and load-bearing work needs a
    value you can see. */
 .places .sep {
-  width: 1px;
+  /* Full height of the row, which is now three grid rows rather than a flex
+     line. BOTH HALVES ARE LOAD-BEARING: the span puts it across all three rows,
+     and the stretch gives it a height — .places sets align-items: start for the
+     places, and that applies to this too. Without the second line it measured
+     0px tall and vanished silently, taking with it the only thing on the screen
+     that says which three of the seven are worn and which four are carried. */
+  grid-row: 1 / -1;
   align-self: stretch;
+  width: 1px;
   margin: 0 3px;
   background: #343a45;
-  flex: 0 0 auto;
 }
 /* OBJECTS LYING ON THE TABLE, NOT THINGS IN CELLS (#121). The box, its ground
    and its rounded edge all go: what is left is the drawing and the space around
    it, and a shadow so it sits ON the surface rather than being printed into it. */
-.hand {
+/* A PLACE IS A SUBGRID: it spans the row's three lines and hands its own parts
+   to them, so the label of one place and the label of another are the SAME grid
+   row rather than two independent boxes that happen to be the same height in
+   the language you were looking at.
+   position: relative stays — the tooltip is positioned against it. */
+.hand, .cell {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
+  grid-row: 1 / -1;
+  display: grid;
+  grid-template-rows: subgrid;
+  /* SHARES THE ROW RATHER THAN ASSERTING A WIDTH. A fixed 38px per place made
+     the row 321px wide whatever the column was, which fits the 351 of a phone
+     and overflows the 300 of the desktop sidebar by 9px — measured at 1024x768
+     and at 812x375, where the pack ran past the viewport. --place is the CAP on
+     the track now, not the size, so the row narrows into whatever column it is
+     given. */
+  min-width: 0;
+}
+/* Which part goes in which row, said once for all seven places. The pack cells
+   put nothing in row 1 — they have no label — and that is exactly why their
+   pictures now line up with the hands' instead of riding high. */
+.handlabel { grid-row: 1; }
+.handart, .cellface { grid-row: 2; }
+.handattack, .cellact { grid-row: 3; }
+.hand {
+  justify-items: center;
   /* No padding: the box it used to pad is gone, and the space between objects
      is the row's gap now. */
   padding: 0;
   border: 0;
-  /* SHARES THE ROW RATHER THAN ASSERTING A WIDTH. A fixed 38px per place made
-     the row 321px wide whatever the column was, which fits the 351 of a phone
-     and overflows the 300 of the desktop sidebar by 9px — measured at 1024x768
-     and at 812x375, where .backpack ran past the viewport. --place is the CAP
-     now, not the size, so the row narrows into whatever column it is given. */
-  flex: 1 1 0;
-  max-width: var(--place);
-  min-width: 0;
 }
 .hand .handicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
 /* AN EMPTY PLACE IS A RING PRESSED INTO THE TABLE, never a dashed cell. The
@@ -1075,15 +1127,8 @@ span.handart { cursor: default; }
      the width comes from --place like the other three. */
   max-width: none;
 }
-.cell { flex: 1 1 0; max-width: var(--place); min-width: 0; }
-
-.cell {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
+/* .cell's own flex column and width are gone: it is a subgrid in the shared
+   row now, declared with .hand above (#130). */
 /* The picture keeps the square; the control sits under it rather than over it,
    so nothing is ever covering the thing you are trying to recognise. */
 .cellface { aspect-ratio: 1; }
@@ -2300,7 +2345,10 @@ span.handart { cursor: default; }
   /* Small, measured tightenings rather than a crush. Each 17px given back here
      buys 10px of tile, which is the trade the whole rule is balancing. */
   .sidebar .panel { padding: 10px 12px; }
-  .backpack { margin-top: 10px; padding-top: 10px; }
+  /* .backpack's margin and padding went with the box: it is display: contents
+     now (#130) and has no box to pad. It was already inert — Layout A had
+     zeroed all three in the base rule — but left standing it reads as a live
+     tightening that somebody would try to tune. */
 
   .tilename { font-size: .72rem; }
   .halfroom .tilename { font-size: .6rem; }
