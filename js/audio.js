@@ -1689,12 +1689,27 @@ export function unduck() {
 // actually move. Octaves alone do not do this: 4f and 8f are consistent with a
 // fundamental an octave up, so they add brightness without restoring the note.
 //
-// The measurement agrees with the theory rather than just with the intent:
+// WHICH HARMONICS, AND WHY NOT THE FIRST SET I PICKED. The multipliers differ
+// per voice because what matters is the RESULTING FREQUENCY, not the harmonic
+// number: every partial has to clear the rolloff, so 55Hz needs its 14th and
+// 82.4Hz only its 10th. The first attempt used 8f/9f/10f for both, which put
+// two of the low voice's three partials at 440 and 495Hz — UNDER the bar it was
+// built to clear — and it measured well only because the instrument was wrong.
+// See the note at the foot of this block.
 //
-//   as shipped                3.4% above 500Hz    2.0% above 700Hz
-//   one more octave (4f)      3.6%                2.0%     (4x55 = 220, still under)
-//   4f + 8f                  14.0%                6.8%
-//   8f + 9f + 10f            22.9%               13.2%
+// Analytic power split, no filter involved, fundamentals included:
+//
+//   as shipped (octave up)          0.0% above 700Hz
+//   8f/9f/10f, first attempt        0.4%
+//   14,15,16 / 10,11,12            12.1%
+//
+// AND THE GAINS WERE RE-WEIGHED, which is not optional. 0.030 and 0.020 were
+// balanced by ear on a device that could hear the FUNDAMENTALS — a 1.5:1
+// relationship between the two voices. Raising the partials without re-weighing
+// delivered 0.127:1 to a phone: the same score, with the balance inverted, which
+// is audible and WRONG rather than audible and right. The second voice's
+// partials are scaled to put the delivered ratio back where it was set:
+// measured 1.499 above 700Hz against an intended 1.5.
 //
 // THE FUNDAMENTALS STAY. On headphones they are the note and they are why this
 // sounds like a room rather than a whistle; the harmonics are what carry it to
@@ -1706,10 +1721,22 @@ export function unduck() {
 // voice the score was designed around, and deleting it would lose the shape of
 // the thing; if the layering ever returns it is what returns. It costs two
 // oscillators at 0.0001 gain.
+//
+// HOW THE FIRST ATTEMPT AT THIS FOOLED ITSELF, because the next person measuring
+// audio here will reach for the same instrument. It rendered the score offline
+// and passed it through cascaded biquad highpasses, reporting 3.4% before and
+// 22.4% after. Both numbers were inflated: a biquad highpass has resonant gain
+// around its corner, so the filter FLATTERED components sitting just below the
+// cutoff — which is exactly where the failing partials were. The tell was the
+// wind measuring 111% of its own energy through a passive filter, which is
+// impossible. The split above is arithmetic on the known components instead:
+// a triangle's odd harmonics fall as 1/n^2, the added partials are single
+// sines, and power is amplitude squared. No instrument, nothing to be
+// generous.
 const SCORE_VOICES = [
-  { hz: 55, detune: -6, gain: 0.030, partials: [[2, 0.30], [8, 0.10], [9, 0.08], [10, 0.07]] },
-  { hz: 82.4, detune: 5, gain: 0.020, partials: [[2, 0.28], [8, 0.09], [9, 0.07], [10, 0.06]] },
-  { hz: 110, detune: -9, gain: 0.013, partials: [[8, 0.08], [9, 0.06], [10, 0.05]] },
+  { hz: 55, detune: -6, gain: 0.030, partials: [[2, 0.30], [14, 0.22], [15, 0.18], [16, 0.15]] },
+  { hz: 82.4, detune: 5, gain: 0.020, partials: [[2, 0.28], [10, 0.224], [11, 0.179], [12, 0.145]] },
+  { hz: 110, detune: -9, gain: 0.013, partials: [[8, 0.20], [9, 0.16], [10, 0.13]] },
 ];
 // Hour to voice count. The last hour is the empty one.
 const SCORE_LAYERS = { 21: 1, 22: 2, 23: 0 };
