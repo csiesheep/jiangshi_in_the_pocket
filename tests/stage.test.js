@@ -527,6 +527,41 @@ test("hud: the poison wash lands on the body, not the clock block (#113)", seria
   }
 }));
 
+test("hud: game.html still nests #board inside the pane the panel mounts on", async () => {
+  // THE SAME FAULT AS THE POISON WASH, found by looking for it after #115
+  // rather than by waiting for it. creaturePanel() mounts on
+  // el.closest(".board-pane") — deliberately the PARENT, because renderBoard()
+  // does innerHTML = "" on #board and a panel mounted inside would be deleted
+  // by any mid-fight refresh. render.js says so at length; nothing checked it.
+  //
+  // Every stage fixture in this suite hand-writes that nesting as
+  // '<div class="board-pane"><div id="board">', so the coupling was restated in
+  // the tests rather than read from the page. MEASURED: rename the class in
+  // game.html and the suite is 358 passed with only the shell digest fizzing —
+  // and that clears the moment you commit and re-run record_shell.py.
+  //
+  // Losing it is not subtle in play: closest() returns null, the creature never
+  // mounts, and eight document.querySelector(".board-pane") sites go quiet too.
+  // It is only subtle in the tests, which is exactly what earns a guard.
+  const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const board = doc.querySelector("#board");
+  assert(board,
+    "game.html has no #board at all, so this guard is asserting nothing about " +
+    "where the creature panel would mount");
+  const pane = board.closest(".board-pane");
+  assert(pane,
+    "game.html's #board has no .board-pane ancestor, so creaturePanel()'s " +
+    "closest(\".board-pane\") returns null and the creature never mounts. " +
+    "The wrapper is: " + (board.parentElement
+      ? board.parentElement.tagName.toLowerCase() + "." +
+        (board.parentElement.className || "(no class)")
+      : "(none — #board has no parent)"));
+  assert(pane !== board,
+    "the pane and the board are the same element, so renderBoard()'s " +
+    "innerHTML wipe would delete the creature panel mid-fight");
+});
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);
