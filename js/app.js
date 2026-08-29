@@ -1075,11 +1075,23 @@ export class Game {
     return choices;
   }
 
-  // The category as the theme names it, minus the English gloss — the action
-  // card is narrow and "武器 Weapon" reads better on it than the full string.
+  // The category, as the theme names it. WHOLE, and the split that used to be
+  // here is gone (#108).
+  //
+  // It stripped an English gloss off a "漢字 English" value — the old comment
+  // cited "武器 Weapon" — and no category is in that format any more. What it
+  // does now is chop at the first space, which means:
+  //
+  //   English   "Ritual implement"  ->  "Ritual"     a search card offering the
+  //                                                  神主牌 table said "Ritual"
+  //   Chinese   "武器" "符咒" "法器"  ->  unchanged     no value contains a space
+  //
+  // So it was not per-language behaviour applied to both — it was a no-op in
+  // one language and wrong in the other, which is why nothing caught it. The
+  // theme names these things; taking the name whole is the only rule that needs
+  // to exist.
   categoryName(table) {
-    const named = (this.data.theme.categories || {})[table] || table;
-    return String(named).split(" ")[0];
+    return (this.data.theme.categories || {})[table] || table;
   }
 
   // One draw, whatever comes of it. There is no re-roll anywhere in here: a run

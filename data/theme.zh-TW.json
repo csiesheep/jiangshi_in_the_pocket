@@ -366,7 +366,10 @@
     "buff-no-sword": "{item}——手上沒有可以燒進去的東西",
     "buff-no-sword-title": "你是空手的。先找一把劍",
     "buff-already": "{item}——{sword}已經燒了一張",
-    "buff-already-title": "一把劍只吃得下一張，不管你有幾張"
+    "buff-already-title": "一把劍只吃得下一張，不管你有幾張",
+    "poison-mark": "中毒",
+    "poison-rate": "每回合 −{n}",
+    "poison-said": "中毒：每回合開始時掉{n}點血，直到被吸出來為止"
   },
   "landing": {
     "tagline": "夜裡九點。三更時分，他來找你。讓他入土，或是等他來的時候還站著。"

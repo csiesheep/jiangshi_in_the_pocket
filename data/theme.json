@@ -175,7 +175,10 @@
     "buff-no-sword": "{item} — nothing in your hands to burn it into",
     "buff-no-sword-title": "You are bare-handed. Find a blade first",
     "buff-already": "{item} — the {sword} already carries one",
-    "buff-already-title": "A blade takes one only, however many you have"
+    "buff-already-title": "A blade takes one only, however many you have",
+    "poison-mark": "Poisoned",
+    "poison-rate": "−{n} each turn",
+    "poison-said": "Poisoned: losing {n} health at the start of every turn until it is drawn out"
   },
   "tiles": {
     "gatehouse": "Gatehouse",

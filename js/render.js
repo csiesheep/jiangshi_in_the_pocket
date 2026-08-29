@@ -351,17 +351,35 @@ function renderPoison(s) {
   const on = !!s.poisoned && s.status === "playing";
   el.hidden = !on;
   if (!on) return;
+  // ALL THREE OF THESE WERE HARDCODED (#108), and the reported one was the
+  // least of them. The mark said 中毒 in every language, which is what the user
+  // saw. The rate said "−1 each turn" in every language, which is the SAME BUG
+  // POINTING THE OTHER WAY and nobody had reported it. And the screen-reader
+  // line was hardcoded too, half Chinese and half English, so the one channel
+  // that cannot see the glyph got a sentence no language owns.
+  //
+  // The mark is aria-hidden and was meant as a MARK rather than a word, and
+  // that intent is defensible — but an English player still cannot read it, and
+  // a mark you cannot read is decoration. It comes from the theme now and each
+  // language says it its own way.
+  //
+  // NOT theme.poison.state, which is "中毒 Poisoned" in English. That is the
+  // 保留表 glossary, kept by ruling as a vocabulary table and read by nothing.
+  // Wiring the HUD to it would make a glossary load-bearing and put the gloss
+  // in a strip that has room for one word.
+  const n = RULES.POISON_PER_TURN;
   const mark = document.createElement("span");
   mark.className = "poisonglyph";
   mark.setAttribute("aria-hidden", "true");
-  mark.textContent = "中毒";
+  mark.textContent = uiText("poison-mark", "Poisoned");
   el.appendChild(mark);
   const rate = document.createElement("span");
   rate.className = "poisonrate";
   rate.setAttribute("aria-hidden", "true");
-  rate.textContent = `−${RULES.POISON_PER_TURN} each turn`;
+  rate.textContent = uiText("poison-rate", `−${n} each turn`).replace("{n}", String(n));
   el.appendChild(rate);
-  el.appendChild(srOnly(`中毒: losing ${RULES.POISON_PER_TURN} health at the start of every turn until it is drawn out`));
+  el.appendChild(srOnly(
+    uiText("poison-said", `Poisoned: losing ${n} health each turn`).replace("{n}", String(n))));
 }
 
 // THE CLOCK IS THE DIGITS. The analog face went with the panel merge: a dial

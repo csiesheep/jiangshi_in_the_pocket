@@ -314,6 +314,62 @@ const [themeEn, themeZh] = await Promise.all([
   fetch("../data/theme.zh-TW.json", NO_STORE).then((r) => r.json()),
 ]);
 
+test("hud: the poison strip is in the language it is read in (#108)", serial(async () => {
+  // 「in English mode，中毒 still shows traditional Chinese」. It was hardcoded in
+  // the renderer, so there was no language branch to reach and no theme key to
+  // compare — a parity guard has nothing to look at and a theme sweep cannot
+  // find what is not in a theme. THAT IS WHY THIS RENDERS AND READS THE SCREEN
+  // rather than checking the tables.
+  //
+  // Two of the three strings here were never reported. The mark said 中毒 in
+  // every language, which the user saw; the rate said "−1 each turn" in every
+  // language, which is the same bug pointing the other way; and the
+  // screen-reader line was hardcoded half in each. So this asserts the SCRIPT of
+  // what is drawn, in both directions, rather than the one string that got
+  // complained about.
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  // id="board" AND class="board": renderBoard() writes to getElementById("board")
+  // and throws on null, which is how the first version of this fixture failed —
+  // loudly, which is the right way for a fixture to be wrong.
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-poison"></div>';
+  document.body.appendChild(host);
+  try {
+    const HAN = /[㐀-鿿]/;
+    const LATIN = /[A-Za-z]{3,}/;
+    for (const [lang, theme, mustNot, why] of [
+      ["en", themeEn, HAN, "Han characters"],
+      ["zh-TW", themeZh, LATIN, "a Latin word"],
+    ]) {
+      const game = new Game({ tiles, items, search, events, theme, baseTheme: themeEn, lang },
+                            { seed: 5 });
+      game.state.poisoned = true;
+      game.refresh();
+      const strip = document.getElementById("hud-poison");
+      assert(strip && !strip.hidden,
+        `the poison strip did not render at all in ${lang}, so this guard is ` +
+        `asserting nothing — an empty region satisfies every "must not contain"`);
+      const shown = strip.textContent.trim();
+      assert(shown.length > 0, `the poison strip is empty in ${lang}`);
+      assert(!mustNot.test(shown),
+        `the ${lang} poison strip contains ${why}: ${JSON.stringify(shown)}`);
+
+      // The category name, whole. The split that used to be here turned
+      // "Ritual implement" into "Ritual" on any card offering the 神主牌 table.
+      const relic = game.categoryName("relic");
+      eq(relic, theme.categories.relic,
+        `categoryName truncated the ${lang} name for relic`);
+    }
+  } finally {
+    host.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);
