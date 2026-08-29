@@ -297,6 +297,41 @@ export function paintHearts(nodes, health, poisoned) {
   });
 }
 
+// THE TILE IS NOT ALWAYS BIG ENOUGH TO CARRY THE READING (#117 addendum:
+// 確保剛說的改動，都會實作在電腦和手機等不同解析度的螢幕上).
+//
+// --tile runs from 96 to TILE_MAX 480, a factor of five, and the tile is not
+// empty: the doorways sit ON its edges, protruding --edge/2 inwards and
+// centred on each side; the stay control owns an --edge square at the middle;
+// the room name owns the bottom left. What is free is the band between the
+// north door and the side doors, and that band is 12px tall at --tile 96 and
+// 195px tall at 480.
+//
+// At the 96 floor there is no room at all — measured, the clock lands on the
+// room name and the hearts land on the north doorway. So below the size where
+// the reading fits beside the controls, it comes OFF the tile and sits at the
+// top of the pane instead. Nothing is covered, nothing overflows, and no tap
+// target loses area, which is the rule #111 set and the one an overlay is
+// most likely to break quietly.
+//
+// Only one viewport in the matrix reaches that floor — 812x375, phone
+// landscape — and it is a layout already known to be tight for other reasons.
+//
+// MEASURED FROM .focus-centre, which IS the tile, rather than from the HUD's
+// own width: the HUD is sized from --tile, so asking it how wide it is and
+// then resizing it on the answer is a loop.
+const TILE_HUD_MIN = 132;
+
+function placeTileHud() {
+  const hud = document.getElementById("tilehud");
+  const cell = document.querySelector(".focus-centre");
+  if (!hud || !cell) return;
+  const tile = cell.getBoundingClientRect().width;
+  // A zero width means the board is not laid out yet; leave it where it is
+  // rather than deciding from a measurement that has not happened.
+  if (tile > 0) hud.classList.toggle("tilehud--offtile", tile < TILE_HUD_MIN);
+}
+
 // ---- The sweep (#117) --------------------------------------------------------
 // SLOW AND ONE AT A TIME, ruled by the repo owner over a faster option: the
 // hearts should read as being counted rather than as a wave passing. The thing
@@ -1455,6 +1490,7 @@ export function renderBoard(game) {
   view.appendChild(centre);
 
   el.appendChild(view);
+  placeTileHud();
 
   // renderBoard rebuilds .focus from scratch, so hotspots cannot be attached
   // once and kept — they are re-applied from the pending list every rebuild.
@@ -2087,13 +2123,17 @@ export function fitBoard() {
 
 export function watchBoardSize() {
   fitBoard();
+  // The HUD's placement follows the tile's SIZE, and the tile changes size for
+  // reasons no render happens for — a window drag, the sidebar growing. The
+  // observer below re-fits the board; the reading has to be re-placed with it.
+  placeTileHud();
   const pane = document.querySelector(".board-pane");
   if (pane && typeof ResizeObserver === "function") {
     // The pane changes size for reasons the window does not see — the sidebar
     // growing, the layout switching columns — so observe it rather than resize.
-    new ResizeObserver(() => fitBoard()).observe(pane);
+    new ResizeObserver(() => { fitBoard(); placeTileHud(); }).observe(pane);
   }
-  window.addEventListener("resize", fitBoard);
+  window.addEventListener("resize", () => { fitBoard(); placeTileHud(); });
 }
 
 // Take the choices away without taking the window with them. renderActions([])

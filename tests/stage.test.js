@@ -696,6 +696,133 @@ test("hearts: the poison sweep is a sweep, not an assignment (#117)", serial(asy
   }
 }));
 
+// THE TILE IS OCCUPIED TERRITORY AND THE OVERLAY IS A GUEST ON IT (#117
+// addendum: 確保剛說的改動，都會實作在電腦和手機等不同解析度的螢幕上).
+//
+// The doorways take a band --edge/2 deep at each side of the tile, centred; the
+// stay control takes an --edge square at the middle; the room-name chip takes
+// the bottom left. The reading is placed into the free bands between them, and
+// this checks it landed there at a definite tile size rather than at whatever
+// size the window happened to be.
+//
+// IT EXISTS BECAUSE OF A SILENT FAILURE, and the failure mode is the point.
+// --edge was declared on .focus, and the HUD is a SIBLING of the board rather
+// than a descendant of it — so `bottom: calc(var(--edge) / 2 + 2px)` referred to
+// a property that did not exist there. An undefined custom property does not
+// warn and does not fall back: the whole declaration is dropped, the element
+// keeps its initial value, and the result looks deliberate. Both placements
+// landed on something — the clock on the room name, the hearts on the north
+// doorway — and every other number about them was correct.
+//
+// So the first assertion is that the placement RESOLVED AT ALL. A guard that
+// only checked the rectangles would have gone green the moment someone moved
+// --edge back down, because at some tile sizes the dropped placement happens
+// not to overlap anything.
+test("hearts: the reading is placed from --edge, and --edge reaches it (#117)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const pane = new DOMParser().parseFromString(html, "text/html")
+    .querySelector(".board-pane");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:900px";
+  const root = document.documentElement;
+  const hadTile = root.style.getPropertyValue("--tile");
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+  try {
+    assert(pane, "game.html has no .board-pane to take the reading from");
+    host.appendChild(document.importNode(pane, true));
+    // ON THE ROOT, not on the host. --edge is declared at :root and substitutes
+    // :root's --tile, so a --tile set on a subtree would size the tile without
+    // moving --edge — the two would disagree and this guard would be measuring
+    // a state the game never has.
+    root.style.setProperty("--tile", "189px");
+
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.refresh();
+    // The ways out are drawn by renderMoves(), not by refresh() — and without
+    // them the collision checks below have an empty set to look at, which is
+    // how this guard failed the first time it ran. Correctly: an empty set
+    // never overlaps anything.
+    game.renderMoves();
+
+    const hud = host.querySelector("#tilehud");
+    const row = host.querySelector("#hud-health");
+    const clock = host.querySelector("#hud-hour");
+    assert(hud && row && clock, "the pane carries no reading to place");
+    assert(!hud.classList.contains("tilehud--offtile"),
+      "at --tile 189 the reading should sit ON the tile; it went off-tile, so " +
+      "the rest of this guard would be measuring the fallback layout");
+
+    // 1. THE PLACEMENT RESOLVED. `auto` here means the declaration was dropped.
+    const top = getComputedStyle(row).top;
+    const bottom = getComputedStyle(clock).bottom;
+    for (const [what, value] of [["the hearts' top", top], ["the clock's bottom", bottom]]) {
+      assert(/^[\d.]+px$/.test(value) && parseFloat(value) > 0,
+        what + " computed to " + JSON.stringify(value) + " — the declaration " +
+        "was dropped, which is what happens when a custom property it reads is " +
+        "not defined in this element's scope. It does not warn and it looks " +
+        "deliberate.");
+    }
+
+    // 2. AND IT LANDED CLEAR. Rectangles against the things already on the tile.
+    const B = (e) => e.getBoundingClientRect();
+    const hit = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) &&
+                          Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top);
+    const cell = host.querySelector(".focus-centre");
+    assert(cell, "the board did not render a centre tile to place against");
+    const doors = [...host.querySelectorAll(".doorway")];
+    assert(doors.length > 0,
+      "no doorways rendered, so the collision checks below are asserting " +
+      "nothing — an empty set never overlaps");
+    const name = host.querySelector(".tilename");
+    assert(name, "no room-name chip rendered, so the clock has nothing to clear");
+
+    for (const [label, el] of [["the hearts", row], ["the clock", clock]]) {
+      const r = B(el);
+      const clash = doors.filter((d) => hit(r, B(d)))
+        .map((d) => d.className.toString().slice(0, 14));
+      eq(clash.length, 0,
+        label + " overlap a way out (" + clash.join(", ") + "), and #111 set " +
+        "the rule that nothing may take area from a tap target");
+    }
+    assert(!hit(B(clock), B(name)),
+      "the clock overlaps the room-name chip. The chip is a fixed 17.8px of " +
+      "type and does NOT scale with the tile, so it is the taller obstacle on " +
+      "a small tile while the doorway is on a large one");
+
+    // 3. And the reading stays on the tile it is meant to be reading.
+    const c = B(cell);
+    for (const [label, el] of [["the hearts", row], ["the clock", clock]]) {
+      const r = B(el);
+      assert(r.left >= c.left - 1 && r.right <= c.right + 1 &&
+             r.top >= c.top - 1 && r.bottom <= c.bottom + 1,
+        label + " sit outside the centre tile, so the reading is floating in " +
+        "the dark beside the board rather than on it");
+    }
+  } finally {
+    if (hadTile) root.style.setProperty("--tile", hadTile);
+    else root.style.removeProperty("--tile");
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);

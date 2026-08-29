@@ -1220,13 +1220,47 @@ span.handart { cursor: default; }
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--tile);
-  height: var(--tile);
+  /* The fallback is for a fixture with no board: --tile is written by fitBoard
+     inline on desktop and by the phone rule otherwise, so it is always set in
+     the game and never set in a bare test host. Without it the width is auto,
+     the row shrink-wraps, and anything measuring "does it fit" is measuring
+     the content against itself. */
+  width: var(--tile, 200px);
+  height: var(--tile, 200px);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 3;
 }
 .tilehud > * { position: absolute; pointer-events: none; }
+
+/* THE TILE IS OCCUPIED TERRITORY, so the reading is placed against the same
+   --edge the doorways are sized from rather than against the tile's corners.
+   Inside the tile the doors take a band --edge/2 deep at each side, centred;
+   the stay control takes an --edge square at the middle; the room name takes
+   the bottom left. The free full-width bands are between the north door and
+   the side doors, and between the side doors and the south door.
+   Both readings sit in those bands, so neither can crowd a way out. */
+/* OFF THE TILE, when the tile is too small to carry it — see TILE_HUD_MIN in
+   render.js, which measures .focus-centre and toggles this. At --tile 96 the
+   free band is 12px tall and the room name alone is 18px: there is no
+   arrangement that fits, and an overlay that "mostly" fits is one that covers
+   a doorway. So it moves to the top of the pane, where there is room, rather
+   than shrinking until it is unreadable or silently overlapping a control. */
+.tilehud--offtile {
+  left: 0;
+  right: 0;
+  top: 0;
+  width: auto;
+  height: auto;
+  transform: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 2px 8px;
+}
+.tilehud--offtile > * { position: static; transform: none; }
+.tilehud--offtile .hearts { --heart: 11px; }
 /* Centred on the tile's own axis, and at the BOTTOM of it.
    MEASURED, not chosen: with both pinned to the top the clock and the hearts
    overlapped by 76px of a 152px tile — the clock is centred and 76px wide, the
@@ -1235,20 +1269,40 @@ span.handart { cursor: default; }
    health along the top is the ordinary reading order for a HUD, and it leaves
    the middle of the tile — which is the room, and the point — uncovered.
    "Centred" in the ruling is the horizontal centring the clock already had. */
-.tilehud .clockbox { left: 50%; bottom: 0; transform: translateX(-50%); margin: 0; }
+.tilehud .clockbox {
+  left: 50%;
+  /* Clear of TWO things, and they scale differently. The south doorway takes
+     --edge/2 up from the bottom edge and grows with the tile; the room-name
+     chip is a fixed 17.8px of type sitting 7px up, and does NOT — so on a small
+     tile it is the taller obstacle and on a large one the doorway is. Measured
+     at --tile 189: the chip's top is 24.8px above the bottom and --edge/2 is
+     only 20.9, which is exactly how the first version landed on it. */
+  bottom: max(calc(var(--edge) / 2 + 2px), 30px);
+  transform: translateX(-50%);
+  margin: 0;
+}
 /* Sized off the tile like everything else on this layer, so the reading holds
    its proportion from a 152px phone tile to a 200px desktop one. */
-.tilehud .clocknum { font-size: clamp(.95rem, calc(var(--tile) * .13), 1.6rem); }
+/* THE CAP IS 2.4rem AND THAT IS NOT AN AESTHETIC PREFERENCE. At 1.6rem the
+   clock measured 25.6px on a 480px tile — SMALLER than the 29.6px it had in a
+   330px sidebar column, for the number the whole run is racing. Scaling from
+   the tile fixed the small end and quietly shrank the large one. */
+.tilehud .clocknum { font-size: clamp(.95rem, calc(var(--tile) * .13), 2.4rem); }
 .hearts {
-  top: 0;
+  top: calc(var(--edge) / 2 + 2px);
   right: 0;
   display: flex;
   align-items: center;
   gap: var(--heart-gap);
-  /* Ten hearts have to fit across a tile that is 152px on a phone, so the size
-     comes off the tile rather than off a fixed 17px. Capped so it does not grow
-     absurd on a desktop tile. */
-  --heart: min(15px, calc((var(--tile) - 24px) / 12));
+  /* SIZED FROM THE TILE, WITH A FLOOR AND A CAP. Ten hearts and their nine
+     gaps come to 11.6 heart-widths, so this divisor is what makes the row fit
+     the tile BY CONSTRUCTION rather than because it happened to fit where it
+     was tested. The 16px is the inset that keeps it off the right edge.
+     The floor is legibility: below about 10px a filled heart stops being
+     countable, and the first version of this had them at 6px in landscape.
+     Where the floor would push the row wider than the tile, the reading comes
+     off the tile entirely — see .tilehud--offtile. */
+  --heart: clamp(10px, calc((var(--tile) - 16px) / 11.6), 18px);
   --heart-gap: max(1px, calc(var(--heart) * .18));
 }
 .hearts .staticon { width: var(--heart); height: var(--heart); }
@@ -1331,7 +1385,16 @@ span.handart { cursor: default; }
    nothing safe to measure and fitBoard hands the size back to CSS. Scaled by
    the same 1.5 as TILE_MAX so a narrow window gets the larger rooms too and the
    two layouts do not disagree about how big a room is. */
-:root { --tile: clamp(96px, 28vh, 285px); --wall: #000000; --wall-w: 7px; --room: #23262d;
+:root {
+  /* ON :root, NOT ON .focus. The doorways are sized from this and the tile
+     HUD is positioned from it, and the HUD is a SIBLING of the board rather
+     than a descendant of .focus — so defined down there it was simply
+     undefined for half its readers. An undefined custom property does not
+     warn: the whole declaration is dropped and the element falls back to
+     something that looks deliberate. Both the placements it drove landed on
+     a doorway and on the room name. */
+  --edge: clamp(26px, calc(var(--tile) * .2), 44px);
+  --tile: clamp(96px, 28vh, 285px); --wall: #000000; --wall-w: 7px; --room: #23262d;
         --hedge: #3d5540; }
 .focus {
   /* Was .42. Dropped so the room itself can reach the 1.5x cap inside a board
@@ -1356,7 +1419,6 @@ span.handart { cursor: default; }
      right outcome and not a regression to work around: a door in a shared wall
      belongs to both rooms, so it straddles the line deliberately now. The
      layering below is what makes that safe. */
-  --edge: clamp(26px, calc(var(--tile) * .2), 44px);
 }
 
 .focus {
