@@ -726,11 +726,36 @@ body.app .board-pane > .board { min-height: 0; }
 /* Three equal columns (#75): 左手, 身上, 右手. Equal rather than
    weighted, because the three are the same KIND of thing — what you have on
    you — and the panel's job is to answer that at a glance. */
-.hands {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-items: stretch;
-  gap: 6px;
+/* ONE ROW OF SEVEN (#121), bottom-aligned so the objects stand on a common
+   line whatever they carry underneath — the blades have an attack numeral, the
+   pack has its Use. */
+.places {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--place-gap);
+  /* ONE PLACE THAT SAYS HOW WIDE A PLACE IS, and everything else divides it.
+     Seven of these plus six gaps plus the divider have to clear the column, so
+     the number is derived rather than picked: at 375 the column is 351, the
+     divider and its margins are 9, and six gaps at 8 are 48 — which leaves 294
+     for seven, or 42 each. */
+  --place: 38px;
+  --place-gap: 8px;
+}
+.hands, .backpack {
+  display: flex;
+  gap: var(--place-gap);
+  align-items: flex-end;
+}
+/* The divider is NOT --hair. That token is a seam between blocks of text at
+   1.21:1; this line is the only thing on the screen saying which three of the
+   seven are worn and which four are carried, and load-bearing work needs a
+   value you can see. */
+.places .sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 3px;
+  background: #343a45;
+  flex: 0 0 auto;
 }
 /* OBJECTS LYING ON THE TABLE, NOT THINGS IN CELLS (#121). The box, its ground
    and its rounded edge all go: what is left is the drawing and the space around
@@ -741,8 +766,12 @@ body.app .board-pane > .board { min-height: 0; }
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 8px 6px;
-  border: 1px solid transparent;
+  /* No padding: the box it used to pad is gone, and the space between objects
+     is the row's gap now. */
+  padding: 0;
+  border: 0;
+  width: var(--place);
+  flex: 0 0 auto;
   min-width: 0;
 }
 .hand .handicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
@@ -770,7 +799,11 @@ body.app .board-pane > .board { min-height: 0; }
    the burnt-blade guard in tests/stage.test.js all read from here — that guard
    says in as many words that it measures at the size .handicon renders, so a
    number typed in twice would make its comment a lie the next person trusts. */
-.hands { --handicon: 54px; }
+/* Read by the burnt-blade guard, which rasterises every weapon at whatever
+   this says and fails if two of them stop being distinguishable — so shrinking
+   the objects for the row is checked for legibility rather than eyeballed. It
+   went 54 -> 38 with the seven-across change. */
+.hands { --handicon: 38px; }
 /* Reserved whether or not there is anything in it. It was originally for the
    NAMES — without it "empty" sat at three different heights — and the names are
    gone, so the reserve now keeps the three pictures on one line and the labels
@@ -984,13 +1017,11 @@ span.handart { cursor: default; }
    put the distinction back without bringing back the words — the panel is one
    surface with two parts, which is what it always was. */
 .backpack {
-  margin-top: 14px;
-  padding-top: 14px;
-  /* A SEAM, NOT AN EDGE (#121). --border is the rim of a card; this line lies
-     on the table between two things resting on it, and it carries the whole
-     hand-versus-pack distinction now that neither side has a box. */
-  border-top: 1px solid var(--hair);
-  display: grid;
+  /* The horizontal rule between wear and carry is gone: they are side by side
+     now and the vertical divider in .places does that job. */
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
   /* One row, MAX_ITEMS wide. Was a 2x2 田 and the cells came out 131px, which
      put a 75px picture in each — too big for a thing you glance at beside the
      board. Across the same panel the cells land near 65px and the pictures at
@@ -999,10 +1030,11 @@ span.handart { cursor: default; }
      Capped so the strip does not stretch when the sidebar becomes full width on
      a narrow viewport: four cells across a phone is right, four cells across a
      1200px column would put the pack back where it started. */
-  grid-template-columns: repeat(var(--pack-cells, 4), minmax(0, 1fr));
-  gap: 8px;
-  max-width: 320px;
+  /* Was its own grid under a rule; it is four places in the shared row now, so
+     the width comes from --place like the other three. */
+  max-width: none;
 }
+.cell { width: var(--place); flex: 0 0 auto; }
 
 .cell {
   position: relative;
@@ -1040,6 +1072,12 @@ span.handart { cursor: default; }
 .cellact:disabled { color: var(--muted); border-style: dashed; cursor: default; opacity: .65; }
 .cell--empty .cellact { display: none; }
 
+/* THE PACK'S PICTURES LIE ON THE TABLE TOO (#121). This one was missed when the
+   hand places were de-boxed — the equipment side became objects on a surface
+   while the pack stayed four filled tiles with rounded corners, which is
+   exactly the "two unrelated grids" the seam was invented to explain. Found by
+   the surface guard rather than by looking, which is the whole reason that
+   guard asserts about PAINT and not about markup. */
 .cellface {
   display: flex;
   align-items: center;
@@ -1047,15 +1085,19 @@ span.handart { cursor: default; }
   width: 100%;
   height: 100%;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-2);
+  border: 0;
+  background: none;
   color: var(--gold);
   cursor: pointer;
 }
+.cellface .cellicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
+/* An empty pack place is the same ring the empty hand places are — one
+   vocabulary for "nothing here yet", not a dashed box on one side of the
+   divider and a ring on the other. */
 .cell--empty .cellface {
-  border-style: dashed;
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--heart-empty) 42%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, .45), rgba(0, 0, 0, 0));
   cursor: default;
 }
 .cellface:focus-visible {

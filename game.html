@@ -125,8 +125,21 @@
            It was already down to a single panel from three (#83), which is what
            made this a deletion rather than a redesign: the merge had removed
            everything the box was still separating. -->
+      <!-- SEVEN PLACES IN ONE ROW, AND THEY ARE TWO KINDS (#121). Three are
+           roles the engine names — 武器, 身上, 神主牌, the tablet slotless in
+           RULES but drawn here so it costs no pack space — and four are the
+           pack, RULES.MAX_ITEMS. They used to be two stacked grids with a rule
+           between them; Layout A lays them all on the table in one line.
+
+           THE HAIRLINE CARRIES THE WHOLE DISTINCTION. No labels on the objects
+           — #114 settled that and it stays settled — so this line is the only
+           thing saying which three are worn and which four are carried. It is
+           deliberately stronger than --hair, which is for separating text. -->
+      <div class="places">
         <div class="hands" id="hud-hands"></div>
+        <div class="sep" aria-hidden="true"></div>
         <div class="backpack" id="hud-items"></div>
+      </div>
 
       <!-- 手記, ON SCREEN AND UNDER WHAT YOU ARE CARRYING (#121, Layout A).
            This narration has existed all along and was shown to NOBODY: the log
