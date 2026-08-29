@@ -42,6 +42,7 @@ import {
   clearStage,
   mountFilmStock,
   showNote,
+  noteValues,
   log,
   clearLog,
   showOverlay,
@@ -1785,26 +1786,25 @@ function markSeen() {
 // 義莊 is the one that had NO tile key, because it is not a room you can stand
 // in. The sentence was rewritten to not need it rather than a name invented for
 // it — which also served the shortening the same issue asked for.
-function noteValues() {
-  const t = (data && data.theme) || {};
-  const tiles = t.tiles || {};
-  const words = t.words || {};
-  return {
-    relic: words.relic,
-    crypt: tiles["sealed-crypt"],
-    courtyard: tiles.courtyard,
-    grave: tiles["mass-grave"],
-  };
-}
+// The table itself now lives in render.js next to NOTE_MARK, because the two
+// have to agree: every value the letter interpolates is a value the letter
+// marks, and a list of names in one file and a list of names in another is
+// exactly the drift #104 was about. It takes the theme as an argument rather
+// than reaching for `data`, so a guard can call it.
 
 function openNote() {
   const note = data && data.theme && data.theme.note;
   if (!note) return;
-  const values = noteValues();
   // A missing name would leave "{crypt}" sitting in the letter, which is the
   // visible failure fill() is built for — better a stranger sees a broken
   // placeholder than a confident sentence pointing at nowhere.
-  showNote({ ...note, lines: (note.lines || []).map((l) => fill(l, values)) }, markSeen);
+  //
+  // THE LINES GO IN UNFILLED NOW (#124). They used to be flattened here and
+  // handed over as finished strings, which threw away the one thing the marks
+  // need: WHERE the interpolated values are. showNote does the filling so it
+  // can wrap each value as it places it — and it wraps only values it resolved
+  // itself, never anything parsed out of the theme text.
+  showNote(note, markSeen, noteValues(data && data.theme));
 }
 
 

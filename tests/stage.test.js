@@ -15,6 +15,7 @@ import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
          creaturePanel, clearCreaturePanel, resolveBeat,
          showDropDialog, onPackUse, clearChoices,
          heartSweeps, heartsSettled, HEART_STEP, HEART_SWEEP,
+         showNote, noteValues, noteSegments, NOTE_MARK,
          renderActions } from "../js/render.js";
 import { Game } from "../js/app.js";
 
@@ -1860,6 +1861,108 @@ test("places: a picture is the same size whatever else you carry (#131)", serial
     host.remove();
     spriteHost.remove();
     styles.remove();
+  }
+}));
+
+// 字條上的記號 (#124): THE LETTER MARKS WHAT THE NIGHT RUNS ON, AND THE MARKS
+// ARE STROKES RATHER THAN WORDS.
+//
+// Checked at the paint, not at the class. The marks are backgrounds and a
+// pseudo-element border, and every one of them is a declaration that can be
+// dropped whole by an undefined custom property without anything saying so —
+// --ink-mark is scoped to .notesheet, and var() out of scope takes the entire
+// declaration with it. A guard that read className would pass on a letter with
+// no marks drawn on it at all.
+test("letter: the interpolated values are marked, in both languages (#124)", serial(async () => {
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  document.head.appendChild(styles);
+  const gestures = { item: 2, room: 1 };   // strokes under the word
+  try {
+    for (const [name, theme] of [["English", themeEn], ["繁體中文", themeZh]]) {
+      const note = theme.note || {};
+      const values = noteValues(theme);
+      const close = showNote(note, null, values);
+      try {
+        const sheet = document.querySelector(".notesheet");
+        assert(sheet, name + ": showNote drew no letter");
+
+        // 1. THE SHEET IS STYLED. Everything below is a computed style, and
+        //    computed styles answer just as confidently in a document that has
+        //    none of the code under test in it.
+        const ink = getComputedStyle(sheet).getPropertyValue("--ink-mark").trim();
+        assert(ink, name + ": .notesheet does not define --ink-mark, so every " +
+          "mark below resolves var(--ink-mark) to nothing and CSS drops the " +
+          "whole declaration — the marks would simply not be drawn");
+
+        // 2. ONE MARK PER INTERPOLATED VALUE, and the gesture is the one
+        //    NOTE_MARK asks for. Derived from the map, so a fifth value added
+        //    to the letter is checked here without editing this test.
+        const marks = [...sheet.querySelectorAll(".mark")];
+        const want = Object.keys(NOTE_MARK).filter((k) => values[k] !== undefined);
+        eq(marks.length, want.length,
+          name + ": the letter drew " + marks.length + " marks for " +
+          want.length + " interpolated values");
+        for (const key of want) {
+          const kind = NOTE_MARK[key];
+          const hit = marks.find((m) => m.textContent === String(values[key]));
+          assert(hit, name + ": " + values[key] + " (" + key + ") is not marked");
+          assert(hit.classList.contains("mark--" + kind),
+            name + ": " + values[key] + " is marked as " +
+            hit.className + " rather than " + kind);
+
+          // 3. AND THE GESTURE IS ACTUALLY DRAWN.
+          const cs = getComputedStyle(hit);
+          if (kind === "hour") {
+            const ring = getComputedStyle(hit, "::before");
+            assert(parseFloat(ring.borderTopWidth) > 0,
+              name + ": the hour " + values[key] + " has no ring drawn round it");
+            assert(ring.borderTopLeftRadius !== ring.borderBottomRightRadius,
+              name + ": the ring round " + values[key] + " has an even radius — " +
+              "it is a rounded box, and a circle drawn by hand is never round");
+          } else {
+            const n = (cs.backgroundImage.match(/linear-gradient/g) || []).length;
+            eq(n, gestures[kind],
+              name + ": " + values[key] + " is drawn with " + n + " stroke(s), " +
+              "and a " + kind + " takes " + gestures[kind] + " — the item is " +
+              "underlined twice because it is the one thing you are hunting");
+          }
+        }
+
+        // 4. THE SENTENCE IS STILL ONE SENTENCE. Wrapping runs in spans must not
+        //    change a single character of what is read aloud or on the page.
+        const paras = [...sheet.querySelectorAll("p")].map((p) => p.textContent);
+        const expect = (note.lines || []).map((l) =>
+          noteSegments(l, values).map((seg) => seg.text).join(""));
+        eq(paras.join("\n"), expect.join("\n"),
+          name + ": the marked letter does not read the same as the filled one");
+      } finally {
+        if (close) close();
+      }
+    }
+
+    // 5. A THEME STRING IS DATA, NOT A TEMPLATE. The whole reason showNote emits
+    //    segments rather than assigning innerHTML: the day a translator writes
+    //    an angle bracket into the letter it has to arrive as an angle bracket.
+    //    Fed through the real function, not asserted about the source.
+    const note = { title: "t", dismiss: "x",
+                   lines: ["A <b>bold</b> {relic} & co"] };
+    const close = showNote(note, null, { relic: "<i>tablet</i>" });
+    try {
+      const sheet = document.querySelector(".notesheet");
+      eq(sheet.querySelectorAll("b, i").length, 0,
+        "the letter built markup out of a theme string — showNote is treating " +
+        "data as a template, which is how a stray < in a translation becomes " +
+        "an element and how anything worse would get in");
+      eq(sheet.querySelector("p").textContent, "A <b>bold</b> <i>tablet</i> & co",
+        "the letter did not render its angle brackets as text");
+    } finally {
+      if (close) close();
+    }
+  } finally {
+    styles.remove();
+    for (const el of document.querySelectorAll(".notecard")) el.remove();
   }
 }));
 

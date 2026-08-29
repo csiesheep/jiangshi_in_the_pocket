@@ -5436,6 +5436,63 @@ html[lang^="en"] .notesheet h2 {
 }
 .notesheet .notedismiss:hover { background: #3a2f1f; }
 
+/* ---- 字條上的記號: the letter marks what the night runs on (#124) ----------
+   ONE INK, THREE GESTURES, AND DELIBERATELY NO COLOUR CODING. Three highlighter
+   colours on a folded letter read as a UI rather than as somebody underlining
+   what matters — and a category carried by hue alone is the #117 problem over
+   again. All three of these survive a greyscale print, which is the test:
+   the item is underlined twice, a room once, and the hour is ringed.
+
+   WHAT GETS A MARK IS DECIDED IN js/render.js (NOTE_MARK), not here, and it is
+   keyed on the letter's INTERPOLATION POINTS rather than on matched strings. So
+   renaming a room carries its mark along, for the same reason #104 interpolated
+   the rooms in the first place.
+
+   The ink is scoped to the sheet because it means nothing anywhere else, and it
+   is a brown a hand would have had rather than a tint of the body ink — a mark
+   made afterwards, by someone who had already written the letter. */
+.notesheet { --ink-mark: #6b3a1e; }
+.mark { position: relative; white-space: nowrap; }
+
+/* Underlines drawn as backgrounds rather than with text-decoration, so the
+   stroke can sit where a pen would put it instead of on the font's own
+   underline metric, and so the second stroke can be a different length. */
+.mark--room, .mark--item {
+  background-repeat: no-repeat;
+  background-image: linear-gradient(var(--ink-mark), var(--ink-mark));
+  background-size: 100% 1.6px;
+  background-position: 0 calc(100% - 1px);
+  padding-bottom: 1px;
+}
+/* 物品 — TWO STROKES, because it is the one object you are hunting all night.
+   The second sits a little lower and a little shorter: a hand doing it twice
+   never lands on the same line. */
+.mark--item {
+  background-image: linear-gradient(var(--ink-mark), var(--ink-mark)),
+                    linear-gradient(var(--ink-mark), var(--ink-mark));
+  background-size: 100% 1.7px, 94% 1.3px;
+  background-position: 0 calc(100% - 1px), 3% calc(100% + 3px);
+  padding-bottom: 5px;
+}
+/* 時間 — RINGED, which is what a person actually does to a time on a note.
+   The ring is deliberately NOT a rounded rectangle: a circle drawn by hand
+   closes badly and is never round, so the radius is four different pairs.
+
+   The mark is a STROKE, not a word. That is what keeps it out of #106's way —
+   no player-visible text may hide in CSS `content:`, and this content is the
+   empty string doing what a pseudo-element is for. If anybody ever wants the
+   marks NAMED to a screen reader, it has to be a real element, not this. */
+.mark--hour { padding: .06em .34em .1em; }
+.mark--hour::before {
+  content: "";
+  position: absolute;
+  inset: -.16em -.1em -.2em;
+  border: 1.6px solid var(--ink-mark);
+  border-radius: 52% 48% 50% 50% / 58% 56% 44% 42%;
+  transform: rotate(-1.6deg);
+  opacity: .85;
+}
+
 /* THE TILE ANSWERS TO HEIGHT WHEREVER THE LAYOUT FLOWS (#111), which is the
    same pair of conditions the frame below is surrendered on. It was written
    inside the max-width:600px rule and therefore did not apply in LANDSCAPE:

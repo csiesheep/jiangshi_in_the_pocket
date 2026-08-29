@@ -1,4 +1,9 @@
 import { test, assert, eq, suite } from "./harness.js";
+// The letter's interpolation map and its mark table, taken from the product
+// rather than restated here (#124). A list of four names in this file is a
+// copy that goes stale the day a fifth is added, which is the same failure
+// #104 was about one level down.
+import { NOTE_MARK, noteValues } from "../js/render.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
@@ -1043,43 +1048,85 @@ test("the letter: English has no Han, and both languages name places from the th
   // The names are not spelled in either letter: they are taken from the theme,
   // so renaming a tile follows into the letter instead of leaving it pointing at
   // a place that no longer exists.
-  const need = ["{relic}", "{crypt}", "{courtyard}", "{grave}"];
-  for (const [name, theme] of [["English", en], ["繁體中文", zh]]) {
-    const body = ((theme.note || {}).lines || []).join(" ");
-    for (const token of need) {
-      assert(body.indexOf(token) !== -1,
-        "the " + name + " letter no longer uses " + token + " - if a place name was " +
-        "written out by hand again, it will drift the next time that tile is renamed");
+  //
+  // DERIVED FROM THE PRODUCT, NOT LISTED HERE (#124). This used to be four
+  // names typed into this file, which stops being the truth the moment a fifth
+  // is interpolated — and the fifth and sixth arrived with the hour. So the set
+  // comes from the letters themselves and is checked against NOTE_MARK both
+  // ways: nothing interpolated may go unmarked, and no mark may name something
+  // the letter does not interpolate.
+  const placeholders = (theme) => {
+    const found = new Set();
+    const re = /\{(\w+)\}/g;
+    let m;
+    while ((m = re.exec(((theme.note || {}).lines || []).join(" "))) !== null) found.add(m[1]);
+    return found;
+  };
+  const enTokens = placeholders(en);
+  const zhTokens = placeholders(zh);
+
+  // Prove the set is not empty before asserting anything about every member of
+  // it: a letter that stopped interpolating passes every "for each" below.
+  assert(enTokens.size >= 4,
+    "the English letter interpolates " + enTokens.size + " values - it named its " +
+    "places and its hour by hand again, and every check that follows is vacuous");
+
+  for (const [name, tokens] of [["English", enTokens], ["繁體中文", zhTokens]]) {
+    for (const t of tokens) {
+      assert(NOTE_MARK[t],
+        "the " + name + " letter interpolates {" + t + "} and NOTE_MARK does not " +
+        "say how to mark it, so it renders as ordinary text - #124 marks the " +
+        "interpolation points, which means adding one is adding a mark");
     }
+  }
+  for (const key of Object.keys(NOTE_MARK)) {
+    assert(enTokens.has(key) && zhTokens.has(key),
+      "NOTE_MARK carries " + key + " but " +
+      (enTokens.has(key) ? "the 繁體中文" : "the English") + " letter does not " +
+      "interpolate it - a mark for something that is never placed is dead, and " +
+      "the two languages must interpolate the same set or one is unmarked");
   }
 
   // And every placeholder must have something to resolve to, in BOTH languages -
-  // otherwise the letter renders a literal "{crypt}" at a stranger.
-  for (const [name, theme] of [["English", en], ["繁體中文", zh]]) {
-    const tiles = theme.tiles || {};
-    const words = theme.words || {};
-    const table = {
-      "{relic}": words.relic,
-      "{crypt}": tiles["sealed-crypt"],
-      "{courtyard}": tiles.courtyard,
-      "{grave}": tiles["mass-grave"],
-    };
-    for (const token of need) {
-      assert(table[token],
-        "the " + name + " letter fills " + token + " from a theme key that is missing, " +
-        "so the letter would show the placeholder itself");
+  // otherwise the letter renders a literal "{crypt}" at a stranger. Filled by
+  // the product's own noteValues(), so a key that moves is caught here rather
+  // than by this file quietly describing where it used to be.
+  for (const [name, theme, tokens] of [["English", en, enTokens], ["繁體中文", zh, zhTokens]]) {
+    const values = noteValues(theme);
+    for (const t of tokens) {
+      assert(values[t],
+        "the " + name + " letter fills {" + t + "} from a theme key that is " +
+        "missing, so the letter would show the placeholder itself");
     }
   }
+
+  // THE RENDERED ENGLISH LETTER HAS NO HAN EITHER, and this is a different
+  // assertion from the one above. That one reads the letter's SOURCE, where
+  // "{midnight}" is seven harmless Latin characters; a placeholder is precisely
+  // how Han gets back into the English letter past it. king.midnight is right
+  // there and reads "三更 the third watch", because the King's panel is teaching
+  // the term - hanging {midnight} on it would put the Han back and the source
+  // check would stay green through it.
+  const renderedEn = (enNote.lines || [])
+    .map((l) => l.replace(/\{(\w+)\}/g, (whole, k) => {
+      const v = noteValues(en)[k];
+      return v === undefined ? whole : v;
+    })).join(" ");
+  const renderedHan = [];
+  for (const ch of renderedEn) {
+    const c = ch.codePointAt(0);
+    if (c >= 0x3400 && c <= 0x9fff) renderedHan.push(ch);
+  }
+  assert(renderedHan.length === 0,
+    "the English letter RENDERS Han characters (" + renderedHan.join("") + ") - " +
+    "one of its placeholders is filled from a key that carries them, so the " +
+    "source reads clean and the player still gets sent somewhere by a name they " +
+    "cannot read");
 
   // SHORTER, and pinned at the length it was cut to rather than at a mood. The
   // ceiling is the rendered length - placeholders expanded - because that is
   // what a player actually reads.
-  const tiles = en.tiles || {}, words = en.words || {};
-  const rendered = (enNote.lines || []).join(" ")
-    .split("{relic}").join(words.relic || "")
-    .split("{crypt}").join(tiles["sealed-crypt"] || "")
-    .split("{courtyard}").join(tiles.courtyard || "")
-    .split("{grave}").join(tiles["mass-grave"] || "");
+  const rendered = renderedEn;
   assert(rendered.length < 520,
     "the English letter has grown back to " + rendered.length + " characters - it was " +
     "cut from 538 because it was the longest thing a new player is asked to read");
