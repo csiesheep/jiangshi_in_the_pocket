@@ -823,6 +823,189 @@ test("hearts: the reading is placed from --edge, and --edge reaches it (#117)", 
   }
 }));
 
+// 改成實心愛心, CHECKED IN THE PIXELS (#118).
+//
+// The hearts shipped as RINGS while the class said heart--full, the stylesheet
+// said fill: currentColor, and getComputedStyle on the <svg> agreed: fill
+// rgb(239,100,73), and 364 tests were green. Nothing was lying. Everything was
+// reading the HOST, and the paint was not happening there.
+//
+// icon() builds <use href="#stat-heart">, which clones into a SHADOW TREE, and
+// assets/icons.svg carries its own stylesheet whose first rule is
+// `symbol { fill: none; stroke: currentColor; stroke-width: 1.5 }`.
+// #stat-heart's path has no fill of its own, so it inherits `none` from the
+// symbol — a specified value inside the shadow tree, which beats a host fill
+// that only arrives by inheritance.
+//
+// TWO ASSERTIONS, AND THE ORDER MATTERS. First that the drawable geometry is
+// reachable at all: through <use> there is no path in the light DOM and no
+// computed style anywhere that describes what is drawn. Then the pixels,
+// because no style assertion can tell a ring from a solid — that is the whole
+// finding, and a guard that only read styles would have passed the bug.
+test("hearts: the hearts are solid, checked in the pixels (#118)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const pane = new DOMParser().parseFromString(html, "text/html")
+    .querySelector(".board-pane");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:900px";
+  const root = document.documentElement;
+  const hadTile = root.style.getPropertyValue("--tile");
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+
+  // Draw one heart on its own and read it back. The resolved paint is copied
+  // from the PATH, which is where painting happens — copying it from the <svg>
+  // would reproduce the very mistake this guard exists for. paint-order comes
+  // too: without it the stroke lands ON the fill instead of behind it, and the
+  // rim measures three times its real size.
+  const raster = async (node, px) => {
+    const clone = node.cloneNode(true);
+    const src = node.querySelector("path"), dst = clone.querySelector("path");
+    const cs = getComputedStyle(src);
+    for (const p of ["fill", "stroke", "stroke-width", "fill-opacity",
+                     "stroke-opacity", "paint-order"])
+      dst.setAttribute(p, cs.getPropertyValue(p));
+    clone.setAttribute("width", px);
+    clone.setAttribute("height", px);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const img = new Image();
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = () => rej(new Error("the heart would not rasterise"));
+      img.src = "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(new XMLSerializer().serializeToString(clone));
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = px;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, px, px);
+    const d = ctx.getImageData(0, 0, px, px).data;
+    const at = (x, y) => { const i = (y * px + x) * 4;
+      return { r: d[i], g: d[i + 1], b: d[i + 2], a: d[i + 3] }; };
+    let painted = 0, rim = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 40) continue;
+      painted++;
+      // The poisoned rim, --poison-rim #0d2115.
+      if (Math.abs(d[i] - 13) + Math.abs(d[i + 1] - 33) + Math.abs(d[i + 2] - 21) < 60) rim++;
+    }
+    // Inside the lobe rather than the dead centre: a heart's middle at the very
+    // centre of its box is close to the cleft between the lobes.
+    return { centre: at(px >> 1, Math.round(px * 0.42)), painted, rim };
+  };
+
+  try {
+    assert(pane, "game.html has no .board-pane");
+    host.appendChild(document.importNode(pane, true));
+    root.style.setProperty("--tile", "200px");
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.state.health = 4;
+    game.state.poisoned = false;
+    game.refresh();
+    await heartsSettled();
+
+    const hearts = [...host.querySelectorAll("#hud-health .heart")];
+    eq(hearts.length, 10, "the row did not draw ten hearts, so the sprite never arrived");
+
+    // 1. THE PAINT HAS TO BE REACHABLE. Through <use> the shape lives in a
+    //    shadow tree: there is no path here and nothing in this document
+    //    describes what is actually drawn.
+    for (const [i, h] of hearts.entries()) {
+      assert(h.querySelector("path"),
+        "heart " + i + " has no path in the light DOM — it is a <use> clone, " +
+        "so the sprite's own `symbol { fill: none }` decides how it is painted " +
+        "and no rule or computed style in this document can say otherwise");
+    }
+
+    // 2. A FULL HEART IS SOLID IN THE PIXELS.
+    const full = await raster(hearts[0], 64);
+    assert(full.centre.a > 200,
+      "the middle of a full heart is transparent (alpha " + full.centre.a +
+      ") — it is drawn as a ring, which is what 改成實心愛心 asked to stop");
+    assert(Math.abs(full.centre.r - 239) + Math.abs(full.centre.g - 100) +
+           Math.abs(full.centre.b - 73) < 60,
+      "a full heart's middle is not --danger: " + JSON.stringify(full.centre));
+
+    // 3. AN EMPTY HEART IS AN OUTLINE, AND IS DRAWN AT ALL. Its own bug: with
+    //    the sprite's stroke gone and none put back, an empty heart is neither
+    //    filled nor outlined, which is not faint — it is absent, and the row
+    //    then reads "4" instead of "4 of 10".
+    const empty = await raster(hearts[9], 64);
+    assert(empty.centre.a < 60,
+      "the middle of an empty heart is painted, so it is not reading as empty");
+    assert(empty.painted > 64 * 64 * 0.05,
+      "an empty heart draws almost nothing (" + empty.painted + " px) — it has " +
+      "no fill and no stroke, so the row cannot be counted against ten");
+
+    // 4. THE COLOUR-BLIND CUE RENDERS. It is not enough for the rule to exist:
+    //    the first version set a stroke the sprite discarded, so poisoned and
+    //    healthy differed in hue alone — the exact thing the rim was added to
+    //    prevent.
+    game.state.health = 10;
+    game.state.poisoned = true;
+    game.refresh();
+    await heartsSettled();
+    const sick = await raster(host.querySelectorAll("#hud-health .heart")[0], 64);
+    game.state.poisoned = false;
+    game.refresh();
+    await heartsSettled();
+    const well = await raster(host.querySelectorAll("#hud-health .heart")[0], 64);
+    assert(sick.rim > sick.painted * 0.1,
+      "a poisoned heart carries " + sick.rim + " rim pixels of " + sick.painted +
+      " painted — the second cue is not rendering, so poison and health differ " +
+      "in HUE ALONE, which is the commonest colour blindness");
+    eq(well.rim, 0, "a healthy heart is drawing the poisoned rim");
+
+    // 5. AND AN EMPTY HEART STAYS EMPTY WHILE A SWEEP IS RUNNING. .hearts--
+    //    sweeping makes every heart paintable so fill-opacity can drive the
+    //    animation, and that override also removes the `fill: none` that was
+    //    the ONLY thing telling empty from full — so every empty heart filled
+    //    in solid grey for the length of any sweep. At rest it looked perfect.
+    game.state.health = 4;
+    game.state.poisoned = false;
+    game.refresh();
+    await heartsSettled();
+    game.state.poisoned = true;
+    game.refresh();
+    await Promise.resolve();
+    await Promise.resolve();
+    const mid = document.getAnimations().filter((a) => a.id === HEART_SWEEP);
+    for (const a of mid) a.currentTime = 2.5 * HEART_STEP;
+    void document.body.offsetHeight;
+    const midRow = [...host.querySelectorAll("#hud-health .heart")];
+    for (let i = 4; i < midRow.length; i++) {
+      const cs = getComputedStyle(midRow[i].querySelector("path"));
+      assert(cs.fill === "none" || parseFloat(cs.fillOpacity) < 0.5,
+        "heart " + i + " is beyond a health of 4 and is filled mid-sweep " +
+        "(fill " + cs.fill + ", fill-opacity " + cs.fillOpacity + "), so the " +
+        "row reads as fuller than it is for as long as the sweep runs");
+    }
+    for (const a of mid) a.currentTime = 30 * HEART_STEP;
+    await heartsSettled();
+  } finally {
+    if (hadTile) root.style.setProperty("--tile", hadTile);
+    else root.style.removeProperty("--tile");
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);

@@ -257,8 +257,30 @@ function heartRow(el) {
   el.textContent = "";
   heartNodes = [];
   for (let i = 0; i < MAX_HEARTS; i++) {
-    const h = icon("stat", "heart", "staticon heart");
-    // A failed sprite is not an error here: icon() returns null and the row is
+    // ghostIcon, NOT icon (#118). 改成實心愛心 was written, the class was
+    // applied, and the hearts drew as RINGS anyway.
+    //
+    // icon() builds <use href="#stat-heart">, which clones the symbol into a
+    // SHADOW TREE — and assets/icons.svg carries its own stylesheet whose first
+    // rule is the line-art default, `symbol { fill: none; stroke: currentColor;
+    // stroke-width: 1.5 }`. #stat-heart's path has no fill of its own, so it
+    // inherits `none` from the symbol. That is a SPECIFIED value inside the
+    // shadow tree and it beats the host's fill, which only arrives by
+    // inheritance. The item-* symbols look right because they carry their own
+    // fills in the markup.
+    //
+    // EVERY INSTRUMENT AGREED WITH THE CODE AND ALL OF THEM WERE READING THE
+    // HOST. getComputedStyle on the <svg> said fill rgb(239,100,73); the pixels
+    // drew a ring. 364 tests were green. The paint does not happen where any of
+    // them were looking.
+    //
+    // ghostIcon copies the symbol's children into the light DOM instead, so
+    // there is no shadow tree, the sprite's `symbol` selector cannot match, and
+    // every rule below means what it says. The sprite's stylesheet has exactly
+    // two selectors and both require a `symbol` ancestor, so nothing else in it
+    // reaches an inlined path.
+    const h = ghostIcon("stat", "heart", "staticon heart");
+    // A failed sprite is not an error here: it returns null and the row is
     // empty, so the reading falls back to the count below. Icons are
     // decorative everywhere else in this file and they are decorative here —
     // the spoken line carries the number either way.
@@ -364,14 +386,14 @@ function cssValue(name) {
 function heartPaint(full, poisoned) {
   const empty = cssValue("--heart-empty");
   if (!full) {
-    return { color: empty, stroke: empty, strokeWidth: 1.5, fillOpacity: 0 };
+    return { color: empty, stroke: empty, strokeWidth: 1.8, fillOpacity: 0 };
   }
   if (poisoned) {
     return { color: cssValue("--poison"), stroke: cssValue("--poison-rim"),
-             strokeWidth: 2.4, fillOpacity: 1 };
+             strokeWidth: 3.2, fillOpacity: 1 };
   }
   const danger = cssValue("--danger");
-  return { color: danger, stroke: danger, strokeWidth: 1.5, fillOpacity: 1 };
+  return { color: danger, stroke: danger, strokeWidth: 1.6, fillOpacity: 1 };
 }
 
 // ONE ANIMATION PER HEART, STAGGERED BY DELAY, rather than a timer that flips a

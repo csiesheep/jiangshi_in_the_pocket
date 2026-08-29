@@ -558,10 +558,45 @@ body.app .board-pane > .board { min-height: 0; }
 
 .staticon { width: 17px; height: 17px; flex: none; }
 
-/* One heart symbol, filled or hollow. */
+/* One heart symbol, filled or hollow.
+
+   THE HOST IS AUTHORITATIVE NOW AND IT WAS NOT BEFORE (#118). The row is built
+   with ghostIcon, which copies the symbol's path into the light DOM, so these
+   rules reach the shape. Through <use> they did not: the sprite's own
+   `symbol { fill: none; stroke: currentColor; stroke-width: 1.5 }` was a
+   specified value inside the shadow tree and the host's fill only arrived by
+   inheritance, so 實心愛心 drew as a ring and every computed style agreed it
+   was solid.
+
+   That also means the stroke is OURS to supply. The sprite used to hand every
+   icon a 1.5-unit outline; an inlined path has no stroke at all unless it is
+   asked for, and an empty heart with neither fill nor stroke is not a faint
+   heart, it is nothing on the screen.
+
+   Widths are in the 24-unit viewBox, so at a 15px heart one unit is .625px. */
 .heart { color: var(--danger); }
-.heart--full { fill: currentColor; }
-.heart--empty { color: var(--heart-empty); fill: none; }
+.heart--full {
+  fill: currentColor;
+  /* EXPLICIT, because .hearts--sweeping makes every heart paintable and
+     fill-opacity is then the only thing saying full from empty. Left to the
+     default these two states were told apart by `fill: none` alone, which that
+     override removes — so every empty heart filled in solid grey for the whole
+     length of any sweep. Found by reading the PATH: the host said what it
+     always says. */
+  fill-opacity: 1;
+  /* Same colour as the fill rather than none: the sweep animates stroke-width
+     between states, and a stroke that is merely invisible interpolates, while
+     `none` does not. */
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.heart--empty {
+  color: var(--heart-empty);
+  fill: none;
+  fill-opacity: 0;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
 
 /* 中毒 = the hearts go green (#117), and NOT ONLY GREEN. Green-versus-red is
    the commonest colour blindness, so a state told in those two hues alone is
@@ -572,8 +607,13 @@ body.app .board-pane > .board { min-height: 0; }
    silhouette instead of eating it. */
 .heart--poisoned {
   color: var(--poison);
+  fill: currentColor;
   stroke: var(--poison-rim);
-  stroke-width: 2.4;
+  /* 3.2 units is 2px on a 15px heart. It was 2.4 when it was decorative and
+     never drew at all; now that it renders it has to be a rim you can SEE,
+     because it is carrying the whole state for a viewer who cannot separate
+     this green from the red. */
+  stroke-width: 3.2;
 }
 /* On every heart, not just the poisoned one, because the sweep animates
    stroke-width up from 0 and the paint order must not change halfway. At width
