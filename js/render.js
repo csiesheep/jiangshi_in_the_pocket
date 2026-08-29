@@ -175,13 +175,11 @@ export function renderHud(game) {
     health > 0 && health <= LOW_HEALTH && game.state.status === "playing"
   );
 
-  for (const id of ["stat-health"]) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = ui(game, id);
-  }
+  // #stat-health was the visible label beside the old stat row and went with it
+  // (#117). ui.stat-health did NOT go: the hearts left the row that named them,
+  // so they need a name of their own, and renderHealth speaks it.
   renderHealth(game.state);
   renderAttack(game);
-  renderPoison(game.state);
   renderHour(game.state);
 
   // Which slots are new has to be worked out before the panel is rebuilt.
@@ -241,27 +239,87 @@ function statBox(id) {
   return el;
 }
 
-function renderHealth(s) {
-  const el = statBox("hud-health");
-  if (!el) return;
+// THE HEARTS ARE THE POISON READING NOW (#117). 目前的中毒方式不好看 retired
+// the red panel wash and the 中毒 mark that #113 landed this morning; green
+// hearts say it instead.
+//
+// BUILT ONCE AND KEPT, which is the change underneath the change. This used to
+// clear its box and rebuild the row on every refresh — fine for a static row,
+// fatal for an animated one, because a sweep in flight is deleted by the next
+// state change and there are several per turn. The nodes are stable now and
+// only their classes move.
+let heartHost = null;
+let heartNodes = [];
+let heartSaid = null;
 
-  if (s.health > MAX_HEARTS) {
-    const heart = icon("stat", "heart", "staticon heart heart--full");
-    if (heart) el.appendChild(heart);
-    const n = document.createElement("span");
-    n.className = "statnum";
-    n.textContent = `×${s.health}`;
-    n.setAttribute("aria-hidden", "true");
-    el.appendChild(n);
-  } else {
-    const slots = Math.max(s.health, HEART_BASELINE);
-    for (let i = 0; i < slots; i++) {
-      const full = i < s.health;
-      const heart = icon("stat", "heart", `staticon heart heart--${full ? "full" : "empty"}`);
-      if (heart) el.appendChild(heart);
-    }
+function heartRow(el) {
+  if (heartHost === el && heartNodes.length) return heartNodes;
+  el.textContent = "";
+  heartNodes = [];
+  for (let i = 0; i < MAX_HEARTS; i++) {
+    const h = icon("stat", "heart", "staticon heart");
+    // A failed sprite is not an error here: icon() returns null and the row is
+    // empty, so the reading falls back to the count below. Icons are
+    // decorative everywhere else in this file and they are decorative here —
+    // the spoken line carries the number either way.
+    if (!h) break;
+    heartNodes.push(h);
+    el.appendChild(h);
   }
-  el.appendChild(srOnly(String(s.health)));
+  const over = document.createElement("span");
+  over.className = "statnum heartcount";
+  over.setAttribute("aria-hidden", "true");
+  el.appendChild(over);
+  heartSaid = srOnly("");
+  el.appendChild(heartSaid);
+  heartHost = el;
+  return heartNodes;
+}
+
+// What the row shows RIGHT NOW, which is not the same thing as the state: a
+// sweep walks the difference one heart at a time, so during it the two disagree
+// on purpose. Exported shape rather than a bare pair so the sweep can read it
+// back without re-deriving it from the DOM.
+export function paintHearts(nodes, health, poisoned) {
+  nodes.forEach((h, i) => {
+    const full = i < health;
+    h.classList.toggle("heart--full", full);
+    h.classList.toggle("heart--empty", !full);
+    // Green AND a dark rim. Green-versus-red is the commonest colour blindness,
+    // so the state is not left in hue alone — the rim is a shape difference at
+    // 17px and survives a greyscale render. #117 asked for the second cue as an
+    // addition to the ruling, and this is it.
+    h.classList.toggle("heart--poisoned", full && poisoned);
+  });
+}
+
+function renderHealth(s) {
+  const el = document.getElementById("hud-health");
+  if (!el) return;
+  const nodes = heartRow(el);
+  const poisoned = !!s.poisoned && s.status === "playing";
+  const shown = Math.min(s.health, MAX_HEARTS);
+
+  paintHearts(nodes, shown, poisoned);
+
+  // Past ten there are no more hearts to light, so the surplus is a number.
+  const over = el.querySelector(".heartcount");
+  if (over) over.textContent = s.health > MAX_HEARTS ? `×${s.health}` : "";
+
+  // ONE SPOKEN LINE, and it is now the only non-colour channel for poison.
+  // ui.poison-said used to be the third of three — a glyph, a rate and this —
+  // and #117 deleted the other two. Losing it with them would have left the
+  // whole rule encoded in the colour of ten small shapes, so it moved here
+  // rather than going with the strip it lived in.
+  if (heartSaid) {
+    const n = RULES.POISON_PER_TURN;
+    const label = uiText("stat-health", "Health");
+    heartSaid.textContent = poisoned
+      ? `${label} ${s.health}. ` + uiText(
+          "poison-said", `Poisoned: losing ${n} health each turn`
+        ).replace("{n}", String(n))
+      : `${label} ${s.health}`;
+  }
 }
 
 // The best you could reach without spending anything you do not hold, and what
@@ -341,60 +399,15 @@ function renderAttack(game) {
 }
 
 
-// 中毒: shown only while it is true. The tick itself is announced by the turn
-// loop — this is the standing reminder that it has not stopped, which is the
-// part a number in a log cannot do.
-function renderPoison(s) {
-  const el = document.getElementById("hud-poison");
-  if (!el) return;
-  el.textContent = "";
-  const on = !!s.poisoned && s.status === "playing";
-  el.hidden = !on;
-  // 整個身體的panel變紅色 (#113). The panel carries the state, not just this
-  // strip — being poisoned is a condition of the body rather than a reading in
-  // a row, and the colour is what says so at a glance. Toggled from the same
-  // fact that draws the mark, so the two cannot disagree.
-  //
-  // This resolves to the sidebar's OUTER .panel — the box holding the clock,
-  // the health, the hands and the pack — because .panel--status is named like
-  // a modifier but is not a .panel. That is load-bearing and invisible: give
-  // .panel--status the panel class and the wash silently shrinks to the clock
-  // block, which is a smaller thing than the ruling asked for and would still
-  // look deliberate. Hence closest() from the mark rather than a query.
-  const panel = el.closest(".panel");
-  if (panel) panel.classList.toggle("panel--poisoned", on);
-  if (!on) return;
-  // ALL THREE OF THESE WERE HARDCODED (#108), and the reported one was the
-  // least of them. The mark said 中毒 in every language, which is what the user
-  // saw. The rate said "−1 each turn" in every language, which is the SAME BUG
-  // POINTING THE OTHER WAY and nobody had reported it. And the screen-reader
-  // line was hardcoded too, half Chinese and half English, so the one channel
-  // that cannot see the glyph got a sentence no language owns.
-  //
-  // The mark is aria-hidden and was meant as a MARK rather than a word, and
-  // that intent is defensible — but an English player still cannot read it, and
-  // a mark you cannot read is decoration. It comes from the theme now and each
-  // language says it its own way.
-  //
-  // NOT theme.poison.state, which is "中毒 Poisoned" in English. That is the
-  // 保留表 glossary, kept by ruling as a vocabulary table and read by nothing.
-  // Wiring the HUD to it would make a glossary load-bearing and put the gloss
-  // in a strip that has room for one word.
-  const n = RULES.POISON_PER_TURN;
-  const mark = document.createElement("span");
-  mark.className = "poisonglyph";
-  mark.setAttribute("aria-hidden", "true");
-  mark.textContent = uiText("poison-mark", "Poisoned");
-  el.appendChild(mark);
-  const rate = document.createElement("span");
-  rate.className = "poisonrate";
-  rate.setAttribute("aria-hidden", "true");
-  rate.textContent = uiText("poison-rate", `−${n} each turn`).replace("{n}", String(n));
-  el.appendChild(rate);
-  el.appendChild(srOnly(
-    uiText("poison-said", `Poisoned: losing ${n} health each turn`).replace("{n}", String(n))));
-}
-
+// renderPoison is GONE (#117). It drew the 中毒 mark, the −1 rate line and the
+// red panel wash, and 目前的中毒方式不好看 retired all three the same day they
+// landed. The one thing it carried that outlived it is ui.poison-said, which
+// renderHealth now speaks beside the count — see there for why that survival
+// was deliberate rather than incidental.
+//
+// theme keys poison-mark and poison-rate went with it in BOTH languages. A key
+// that paints an element which does not exist is the quiet kind of rot, and
+// this file has been bitten by leaving one behind before.
 // THE CLOCK IS THE DIGITS. The analog face went with the panel merge: a dial
 // and a numeral beside it were two clocks saying one time, and on a phone the
 // one that reads at a glance is the one with digits. The hand sweep and the

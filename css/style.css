@@ -17,6 +17,14 @@
      card, 3.60:1 on the indoor floor and 3.31:1 on the outdoor one. */
   --danger:    #ef6449;
   --gold:      #c9a24b;
+  /* 中毒 (#117). Both hues read well against the tile — 7.15:1 for this one,
+     5.24:1 for --danger — but AGAINST EACH OTHER THEY ARE 1.36:1, which is the
+     whole problem: to a viewer who cannot separate red from green these two are
+     very nearly the same grey. Picking a "far apart" green does not fix that,
+     it only moves it, so the state does not rest on hue at all — see the rim on
+     .heart--poisoned, which is the cue that survives a greyscale render. */
+  --poison:    #5bbd77;
+  --poison-rim: #0d2115;
   --radius:    10px;
   --maxw:      960px;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -536,15 +544,12 @@ body.app .board-pane > .board { min-height: 0; }
    three sizes — .68 label, 1.05 value, 1.35 clock — which made the clock tower
    over its own panel; collapsing them and then giving the reading its 20% back
    keeps the hierarchy without the shout. */
-.panel--status { --panel-type: .86rem; }
-.statgrid { display: grid; gap: 10px 12px; grid-template-columns: 1fr; }
-.stat { display: flex; align-items: baseline; gap: 10px; }
-.statlabel {
-  font-size: var(--panel-type, .68rem); text-transform: uppercase; letter-spacing: .08em;
-  color: var(--muted); width: 4.6em; flex: none;
-}
-.statval { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; min-height: 22px; }
-.statnum { font-family: var(--font-display); font-size: var(--panel-type, 1.05rem); color: var(--text); margin-left: 3px; }
+/* .panel--status, .statgrid, .stat, .statlabel and .statval are all GONE with
+   the block they styled (#117) — the clock and the hearts moved to the board
+   and nothing else lived in that row. --panel-type was defined on
+   .panel--status, so anything that read it now takes its own size rather than
+   silently falling back to a default meant for a different panel. */
+.statnum { font-family: var(--font-display); font-size: 1.05rem; color: var(--text); margin-left: 3px; }
 .statnum--buffed { color: var(--gold); }
 
 .staticon { width: 17px; height: 17px; flex: none; }
@@ -553,6 +558,20 @@ body.app .board-pane > .board { min-height: 0; }
 .heart { color: var(--danger); }
 .heart--full { fill: currentColor; }
 .heart--empty { color: #4a505c; fill: none; }
+
+/* 中毒 = the hearts go green (#117), and NOT ONLY GREEN. Green-versus-red is
+   the commonest colour blindness, so a state told in those two hues alone is
+   told to some players not at all. The rim is the second cue: a dark ring
+   around a filled shape is a difference in FORM, it survives a greyscale
+   render, and at heart size it reads without being decorative.
+   paint-order puts the stroke behind the fill so the ring sits outside the
+   silhouette instead of eating it. */
+.heart--poisoned {
+  color: var(--poison);
+  stroke: var(--poison-rim);
+  stroke-width: 2.4;
+  paint-order: stroke fill;
+}
 
 .sword { color: var(--muted); }
 .sword--buffed { color: var(--gold); }
@@ -1177,6 +1196,56 @@ span.handart { cursor: default; }
 }
 
 .board { position: relative; display: block; padding: 8px 0; }
+
+/* ---- The reading, on the board (#117) ---------------------------------------
+   The clock centred and the hearts at the top right, laid over the tile the
+   player is standing on rather than listed down the side.
+
+   OVER THE CENTRE TILE, not over the pane. The pane is taller and wider than
+   the tile, so "top right" measured against it would float the hearts off in
+   the dark. .focus is centred in the pane and its middle cell is exactly
+   --tile square, so a --tile box at the pane's centre lands on the tile — the
+   same number the grid is built from, not a second guess at it.
+
+   A READING, NOT A CONTROL: pointer-events none all the way down. It lies
+   across the tile, and the tile is the thing you tap. */
+.tilehud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--tile);
+  height: var(--tile);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+}
+.tilehud > * { position: absolute; pointer-events: none; }
+/* Centred on the tile's own axis, and at the BOTTOM of it.
+   MEASURED, not chosen: with both pinned to the top the clock and the hearts
+   overlapped by 76px of a 152px tile — the clock is centred and 76px wide, the
+   hearts run 130px in from the right, and on a tile that size there is no
+   arrangement of one line that holds both. Time along the bottom edge and
+   health along the top is the ordinary reading order for a HUD, and it leaves
+   the middle of the tile — which is the room, and the point — uncovered.
+   "Centred" in the ruling is the horizontal centring the clock already had. */
+.tilehud .clockbox { left: 50%; bottom: 0; transform: translateX(-50%); margin: 0; }
+/* Sized off the tile like everything else on this layer, so the reading holds
+   its proportion from a 152px phone tile to a 200px desktop one. */
+.tilehud .clocknum { font-size: clamp(.95rem, calc(var(--tile) * .13), 1.6rem); }
+.hearts {
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--heart-gap);
+  /* Ten hearts have to fit across a tile that is 152px on a phone, so the size
+     comes off the tile rather than off a fixed 17px. Capped so it does not grow
+     absurd on a desktop tile. */
+  --heart: min(15px, calc((var(--tile) - 24px) / 12));
+  --heart-gap: max(1px, calc(var(--heart) * .18));
+}
+.hearts .staticon { width: var(--heart); height: var(--heart); }
+.heartcount { font-size: .8rem; margin-left: 4px; }
 
 /* ---- Two worlds, told apart by temperature ---------------------------------
    Indoors is lamplit and warm; outdoors is moonlit and cool. One cast colour,
@@ -1930,8 +1999,6 @@ span.handart { cursor: default; }
   .sidebar .panel { padding: 10px 12px; }
   .backpack { margin-top: 10px; padding-top: 10px; }
 
-  /* Sidebar is full width here, so the stats read better two across. */
-  .statgrid { grid-template-columns: 1fr 1fr; }
   .tilename { font-size: .72rem; }
   .halfroom .tilename { font-size: .6rem; }
 }
@@ -2614,7 +2681,6 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 @media (prefers-reduced-motion: reduce) {
   body.low-health #hud-health { animation: none; }
   body.low-health .board-pane::after { animation: none; }
-  body.low-health .statlabel { color: var(--danger); }
   body.low-health #hud-health .heart--empty { color: color-mix(in srgb, var(--danger) 45%, #4a505c); }
 }
 
@@ -3957,14 +4023,6 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
    So the stats read beside the clock rather than beneath it, which buys back
    more height than shrinking the face would and keeps the numerals legible. */
 @media (max-width: 600px) {
-  /* This used to make the status block a ROW — stats beside the dial, to buy
-     back the height a round face cost. With the face gone there is no height to
-     buy back and the brief is explicit: the reading is the first line and the
-     hearts are the second. So it stays stacked at every width, and only the
-     grid is held to one column. */
-  .panel--status .clockbox { margin-bottom: 8px; }
-  /* Two classes, so this beats the 1fr 1fr set in the earlier 600px block. */
-  .panel--status .statgrid { grid-template-columns: 1fr; min-width: 0; gap: 7px 12px; }
 }
 
 /* ---- The tile gallery -------------------------------------------------------
@@ -5136,59 +5194,15 @@ body.asleep .fog {
    and states do not have a value to show. Present only while it is true — an
    empty row reading "not poisoned" thirty times a night is noise wearing the
    costume of information. */
-/* 中毒顯示 (#113): beside the clock, and the PANEL carries the state.
-   It was a bordered band below the status row with its own margin and padding —
-   39px that existed only while poisoned, which broke the no-scroll portrait fit
-   the moment a player was poisoned (667 to 710, measured). In the row it costs
-   nothing: the row was 62px tall and had width to spare.
-   No border and no ground of its own any more, because the panel is now the
-   thing that has gone red and a second red box inside a red panel is two
-   statements of one fact. */
-.poisonmark {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-}
-/* 整個身體的panel變紅色. The whole panel, not a strip in it: 中毒 is a condition
-   of the body rather than a reading. Kept as a WASH rather than a fill so the
-   numbers on top of it stay legible — a panel that shouts is one a player stops
-   reading, and the health figure is the thing they need most while poisoned. */
-/* 整個身體的panel變紅色 (#113) — the WHOLE panel, which is why this lands on
-   .panel and not on .panel--status: the status block is transparent by design,
-   and .panel is the box that holds the clock, the health, the hands AND the
-   pack. That is the body, so that is what changes colour.
+/* THE WHOLE #113 POISON TREATMENT IS GONE (#117), by ruling on the day it
+   landed: 目前的中毒方式不好看. The red panel wash, the 中毒 glyph, the −1 rate
+   line and the .clockrow that paired the mark with the clock all went together
+   — they were one design and half of it would have been worse than either.
+   Poison is told by the hearts going green now; see .heart--poisoned.
 
-   SET FROM THE COMPOSITE, not from the alpha. 11% looked like a reasonable
-   wash written down and is not one on screen: over the --panel ground it moves
-   red by 23/255 and reads as warm rather than red, which is not what was
-   asked. 20% lands on rgb(69,44,43) — red 57% clear of the other two channels
-   — and panel text stays at 9.9:1, so nothing legible is spent on it. */
-.panel--poisoned {
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
-  background:
-    linear-gradient(color-mix(in srgb, var(--danger) 20%, transparent),
-                    color-mix(in srgb, var(--danger) 13%, transparent)),
-    var(--panel);
-}
-.poisonmark[hidden] { display: none; }
-/* JUST THE CLOCK AND THE MARK SHARE A LINE, not the whole status row.
-   Making .panel--status itself a flex row cost 10px and bought nothing: the
-   stat grid is 270px wide against a 325px row, so it wrapped to its own line
-   anyway and the row simply gained a gap. Measured, 62 to 72.
-   The mark goes beside the CLOCK, which is what was asked and what is free —
-   the clock is 101px and leaves room. The stat grid keeps the line it always
-   had underneath. */
-.clockrow { display: flex; align-items: center; gap: 10px; }
-.clockrow .poisonmark { flex: 1 1 auto; min-width: 0; }
-.poisonglyph {
-  font-family: var(--font-cjk);
-  font-size: 1rem;
-  letter-spacing: .08em;
-  color: color-mix(in srgb, var(--danger) 72%, var(--text));
-}
-.poisonrate { font-family: var(--font-body); font-size: .76rem; color: var(--muted); }
+   The measurements those rules were set from are not lost, only superseded, and
+   they are still the reason --phone-chrome is where it is. The sweep that found
+   401 is written up at that constant. */
 
 /* ---- The comparison ----------------------------------------------------------
    🤫 Two numbers on the card of a player the King has just killed, and the only

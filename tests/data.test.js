@@ -487,8 +487,11 @@ test("equipment: the hands are in the page, in the one panel", async () => {
     "the Backpack heading is back but its theme key is not");
 
   // One panel, not three. Counted, because "merged" is otherwise a claim.
+  // Was 2 — the panel and the .panel--status block inside it. #117 moved the
+  // clock and the hearts onto the board and that inner block held nothing else,
+  // so it went with them and the count is the sidebar's one real panel.
   const panels = html.split('class="panel').length - 1;
-  eq(panels, 2, "expected one .panel wrapping one .panel--status; found " + panels);
+  eq(panels, 1, "expected exactly one .panel in the sidebar; found " + panels);
 });
 
 test("rulebook: it no longer teaches a pack that holds swords", () => {

@@ -86,6 +86,22 @@
     <h1 class="sr-only" id="page-title">The Third Watch: The Jiangshi — play in your browser</h1>
     <section class="board-pane" id="board-pane" aria-label="Board">
       <div class="board" id="board" role="group" aria-label="Game board"></div>
+      <!-- THE READING SITS ON THE BOARD (#117). 目前的中毒方式不好看 moved the
+           whole health reading out of the sidebar: the clock centred over the
+           tile, the hearts at its top right, and poison told by the hearts
+           going green rather than by a red panel and a word.
+
+           OUTSIDE #board AND NOT INSIDE IT, which is the same rule the creature
+           panel follows: renderBoard() does innerHTML = "" on #board on every
+           refresh, so anything mounted in there is deleted mid-animation. The
+           pane is #board's parent, so the wipe passes underneath.
+
+           pointer-events: none in the stylesheet — it is a reading, not a
+           control, and it lies across the tile the player taps. -->
+      <div class="tilehud" id="tilehud">
+        <div class="clockbox" id="hud-hour"></div>
+        <div class="hearts" id="hud-health"></div>
+      </div>
       <div class="actions-pop" id="actions-pop" role="group" aria-label="Your move" hidden>
         <div id="actions"></div>
       </div>
@@ -103,35 +119,16 @@
          the one that reads at a glance on a phone is the one with digits. -->
     <aside class="sidebar">
       <div class="panel">
-        <!-- panel--status stays, on the CLOCK AND HEALTH BLOCK rather than on
-             the whole panel. It carries --panel-type, which .statlabel,
-             .statnum and .clocknum read, and it is what the 600px rule targets
-             — left on the merged panel that rule would flex the equipment and
-             the pack into a row beside the clock on every phone. -->
-        <div class="panel--status">
-          <div class="clockrow">
-            <div class="clockbox" id="hud-hour"></div>
-            <!-- 中毒 sits BESIDE THE CLOCK (#113) rather than in a band of its
-                 own below the row. It used to be a 39px block outside this
-                 panel that existed only while poisoned, so the no-scroll
-                 portrait fit held until you were poisoned and then broke by
-                 43px — measured, 667 to 710. Being poisoned is a common state,
-                 not an edge, and a layout that fits only in one state is not
-                 a fit.
+        <!-- The clock and the hearts left this panel for the board (#117), and
+             the whole panel--status block went with them — it held nothing else.
+             The 中毒 mark and the red wash from #113 went too, by the same
+             ruling: 目前的中毒方式不好看. The sidebar is what you are wearing
+             and what you are carrying, and nothing else.
 
-                 The pairing is .clockrow, NOT this whole status block: the
-                 stat grid is 270px against a 325px row, so making the status
-                 block itself a flex row just wrapped the grid to its own line
-                 and added a gap. Measured, 62 to 72. Beside the CLOCK the mark
-                 costs no height at all — the clock is 101px and leaves room.
-                 Absent entirely when clean; an empty slot reading "not
-                 poisoned" every turn is noise. -->
-            <div class="poisonmark" id="hud-poison" hidden></div>
-          </div>
-          <div class="statgrid">
-            <div class="stat"><span class="statlabel" id="stat-health">Health</span><span class="statval" id="hud-health"></span></div>
-          </div>
-        </div>
+             ui.poison-said SURVIVED THAT DELETION ON PURPOSE. It used to be the
+             quiet third channel beside a glyph and a rate; with both of those
+             gone it is the ONLY non-colour account of the rule, so it moved to
+             the hearts rather than going with the strip it sat in. -->
         <!-- What you are wearing and holding, above what you are carrying: the
              pack is luggage and this is the game. All three drawn rather than
              implied, because bare-handed is zero — and the 神主牌 is DRAWN here

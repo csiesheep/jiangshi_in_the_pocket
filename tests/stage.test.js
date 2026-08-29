@@ -394,7 +394,7 @@ test("fight: the pack goes inert, and the buttons say so (#112)", serial(async (
   }
 }));
 
-test("hud: the poison strip is in the language it is read in (#108)", serial(async () => {
+test("hud: the poison sentence is in the language it is read in (#108)", serial(async () => {
   // 「in English mode，中毒 still shows traditional Chinese」. It was hardcoded in
   // the renderer, so there was no language branch to reach and no theme key to
   // compare — a parity guard has nothing to look at and a theme sweep cannot
@@ -407,6 +407,13 @@ test("hud: the poison strip is in the language it is read in (#108)", serial(asy
   // screen-reader line was hardcoded half in each. So this asserts the SCRIPT of
   // what is drawn, in both directions, rather than the one string that got
   // complained about.
+  //
+  // REPOINTED, NOT RETIRED (#117). The mark and the rate are gone and the strip
+  // with them, so two of those three strings no longer exist — but the third
+  // one does, and deleting the other two is exactly what made it matter. It is
+  // the ONLY non-colour account of the poison rule now, and it is spoken, so it
+  // is the one channel no visual check will ever look at. It moved into the
+  // hearts' own line and this guard moved with it.
   const names = ["tiles", "items", "search", "events"];
   const [tiles, items, search, events] = await Promise.all(
     names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
@@ -417,7 +424,7 @@ test("hud: the poison strip is in the language it is read in (#108)", serial(asy
   // and throws on null, which is how the first version of this fixture failed —
   // loudly, which is the right way for a fixture to be wrong.
   host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
-                   '<div id="hud-poison"></div>';
+                   '<div class="hearts" id="hud-health"></div>';
   document.body.appendChild(host);
   try {
     const HAN = /[㐀-鿿]/;
@@ -430,14 +437,20 @@ test("hud: the poison strip is in the language it is read in (#108)", serial(asy
                             { seed: 5 });
       game.state.poisoned = true;
       game.refresh();
-      const strip = document.getElementById("hud-poison");
-      assert(strip && !strip.hidden,
-        `the poison strip did not render at all in ${lang}, so this guard is ` +
-        `asserting nothing — an empty region satisfies every "must not contain"`);
-      const shown = strip.textContent.trim();
-      assert(shown.length > 0, `the poison strip is empty in ${lang}`);
+      // The SPOKEN line specifically, not the whole box: the hearts are
+      // pictures and carry no script of their own, so reading the box would
+      // pass on an empty sentence. Prove the region, then read it.
+      const said = document.querySelector("#hud-health .sr-only");
+      assert(said, `nothing spoken rendered under the hearts in ${lang}, so ` +
+        `this guard is asserting nothing — an empty region satisfies every ` +
+        `"must not contain"`);
+      const shown = said.textContent.trim();
+      assert(shown.length > 0, `the spoken health line is empty in ${lang}`);
+      assert(/\d/.test(shown),
+        `the spoken line in ${lang} carries no number, so it is not the ` +
+        `health reading: ${JSON.stringify(shown)}`);
       assert(!mustNot.test(shown),
-        `the ${lang} poison strip contains ${why}: ${JSON.stringify(shown)}`);
+        `the ${lang} spoken health line contains ${why}: ${JSON.stringify(shown)}`);
 
       // The category name, whole. The split that used to be here turned
       // "Ritual implement" into "Ritual" on any card offering the 神主牌 table.
@@ -450,83 +463,20 @@ test("hud: the poison strip is in the language it is read in (#108)", serial(asy
   }
 }));
 
-test("hud: the poison wash lands on the body, not the clock block (#113)", serial(async () => {
-  // 「整個身體的panel變紅色」. The renderer reaches the box by closest(".panel")
-  // from the mark, and that resolves correctly ONLY because .panel--status is
-  // named like a modifier without being a .panel. Add the panel class to it —
-  // a tidy that looks like a naming fix — and the wash silently shrinks to the
-  // clock block. It would still be red, still toggle with the flag, and every
-  // number a test usually takes would stay green.
-  //
-  // THE FIXTURE IS game.html's OWN SIDEBAR, not a hand-written copy of it, and
-  // that is the whole point of this guard. Its first version built the nesting
-  // from a string right here, so closest() was asserted against markup the TEST
-  // wrote — and the failing-direction demo added the class to the FIXTURE,
-  // which is this guard's input rather than the product. Sabotaging game.html
-  // itself left the suite at 359 passed, 0 failed, with the wash sitting on an
-  // 84px clock block inside a 323px body panel.
-  //
-  // The shell digest DOES notice the raw edit, but it is a tamper detector and
-  // not a semantics one: commit, re-run tools/record_shell.py — exactly what a
-  // developer would do — and it goes green with the bug in.
-  //
-  // So this asserts CONTAINMENT against the product's real nesting: whatever is
-  // washed must hold the hands and the pack, because that is what makes it the
-  // body rather than a row inside it.
-  const names = ["tiles", "items", "search", "events"];
-  const [[tiles, items, search, events], html] = await Promise.all([
-    Promise.all(names.map((n) =>
-      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
-    fetch("../game.html", NO_STORE).then((r) => r.text()),
-  ]);
-  const sidebar = new DOMParser().parseFromString(html, "text/html")
-    .querySelector(".sidebar");
-  const host = document.createElement("div");
-  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
-  // id="board" AND class="board": renderBoard() writes to getElementById("board")
-  // and throws on null. The sidebar is game.html's; only the board is ours.
-  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>';
-  document.body.appendChild(host);
-  try {
-    // Prove the region before believing anything about it — an absent or empty
-    // sidebar satisfies every containment check below by holding nothing.
-    assert(sidebar, "game.html has no .sidebar, so this guard is reading the wrong file");
-    host.appendChild(document.importNode(sidebar, true));
-    for (const [sel, what] of [["#hud-poison", "the poison mark"],
-                               [".hands", "the hands"],
-                               [".backpack", "the pack"]])
-      assert(host.querySelector(sel),
-        "game.html's sidebar has no " + sel + " (" + what + "), so this guard " +
-        "cannot tell a wash on the body from a wash on anything else");
-    const game = new Game({ tiles, items, search, events, theme: themeEn,
-                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
-    game.state.poisoned = true;
-    game.refresh();
-
-    const washed = host.querySelector(".panel--poisoned");
-    assert(washed,
-      "nothing carries the wash while poisoned, so this guard is asserting " +
-      "nothing — an absent region satisfies every containment check");
-    const where = washed.className + " > " +
-      [...washed.children].map((c) => c.className || c.tagName).join(", ");
-    assert(washed.querySelector(".hands") && washed.querySelector(".backpack"),
-      "the poison wash landed on a box that does not contain the hands and " +
-      "the pack, so it is not 整個身體的panel: " + where);
-
-    // And it is the whole body rather than the board as well — washing an
-    // ancestor of everything would pass the check above for the wrong reason.
-    assert(!washed.querySelector("#board"),
-      "the wash reached an ancestor of the board: " + where);
-
-    game.state.poisoned = false;
-    game.refresh();
-    assert(!host.querySelector(".panel--poisoned"),
-      "the wash did not clear when the poison did");
-  } finally {
-    host.remove();
-  }
-}));
-
+// THE POISON WASH GUARD IS RETIRED HERE, ON PURPOSE (#117).
+//
+// It asserted that something carried .panel--poisoned while poisoned, and its
+// first assertion refused to pass on an empty region — so when 目前的中毒方式
+// 不好看 deleted the wash, it went red rather than quietly passing on a page
+// with nothing to find. That is the guard working, not failing, and it is the
+// reason this deletion is a decision someone had to make instead of a silence
+// nobody noticed.
+//
+// What it was really protecting is not gone: the closest()-reaches-the-right-
+// ancestor family is covered by the .board-pane guard below, which is the same
+// coupling with worse consequences. The wash itself has no successor because
+// there is no wash.
+//
 test("hud: game.html still nests #board inside the pane the panel mounts on", async () => {
   // THE SAME FAULT AS THE POISON WASH, found by looking for it after #115
   // rather than by waiting for it. creaturePanel() mounts on
