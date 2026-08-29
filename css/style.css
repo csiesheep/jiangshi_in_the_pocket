@@ -234,13 +234,22 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
    why. With its own background it is a bar standing over the night the way the
    panels are cards standing on it, and the boundary it makes is the border it
    already had. */
+/* QUIET TEXT ON THE SURFACE, ONE HAIRLINE (#121, Layout A). It was a bar: its
+   own --panel ground and a --border edge, which is a card, and Layout A has no
+   cards.
+   THIS REOPENS WHAT #81 CLOSED and that is deliberate rather than forgotten.
+   The bar had its own background precisely so the night would not stop along a
+   transparent strip — a boundary with nothing drawn there to explain it. Layout
+   A's answer is different: nothing on this screen has a ground, so there is no
+   edge for the night to stop at. How the light behaves over it is #122's, and
+   this is the shape that issue is written against. */
 .topnav {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 14px 20px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: none;
+  border-bottom: 1px solid var(--hair);
   position: relative;
   z-index: 2;
 }
@@ -723,6 +732,9 @@ body.app .board-pane > .board { min-height: 0; }
   align-items: stretch;
   gap: 6px;
 }
+/* OBJECTS LYING ON THE TABLE, NOT THINGS IN CELLS (#121). The box, its ground
+   and its rounded edge all go: what is left is the drawing and the space around
+   it, and a shadow so it sits ON the surface rather than being printed into it. */
 .hand {
   position: relative;
   display: flex;
@@ -730,14 +742,23 @@ body.app .board-pane > .board { min-height: 0; }
   align-items: center;
   gap: 3px;
   padding: 8px 6px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-2);
+  border: 1px solid transparent;
   min-width: 0;
 }
-.hand--bare {
-  border-style: dashed;
-  background: transparent;
+.hand .handicon { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .6)); }
+/* AN EMPTY PLACE IS A RING PRESSED INTO THE TABLE, never a dashed cell. The
+   dashed outline was a cell that happened to be empty; this is a place that is
+   waiting.
+   THE GHOST STAYS INSIDE IT. #91 put the shape of what belongs there in every
+   empty slot because taking the names out removed the only thing teaching a new
+   player that 右手 is where the 神主牌 goes — and that tablet is the whole
+   errand. The ring says "a place"; the ghost says "for this". Layout A retires
+   the dashed BOX, not the teaching.
+   The rim borrows --heart-empty, already measured at 4.13:1 on this ground. */
+.hand--bare .handart {
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--heart-empty) 42%, transparent);
+  background: radial-gradient(closest-side, rgba(0, 0, 0, .45), rgba(0, 0, 0, 0));
 }
 .handlabel {
   font-size: .6rem;
@@ -965,7 +986,10 @@ span.handart { cursor: default; }
 .backpack {
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  /* A SEAM, NOT AN EDGE (#121). --border is the rim of a card; this line lies
+     on the table between two things resting on it, and it carries the whole
+     hand-versus-pack distinction now that neither side has a box. */
+  border-top: 1px solid var(--hair);
   display: grid;
   /* One row, MAX_ITEMS wide. Was a 2x2 田 and the cells came out 131px, which
      put a 75px picture in each — too big for a thing you glance at beside the
@@ -996,17 +1020,22 @@ span.handart { cursor: default; }
    is present on every occupied cell and disabled with a reason on the ones the
    pack cannot spend — a missing button and a button that is not for this look
    identical otherwise. */
+/* STILL A CONTROL, AND #53 IS NOT OVERTURNED (#121). Layout A has no boxes, so
+   this stops being one — but a missing button and a button that is not for this
+   must still not look identical, which is the whole reason #53 put it here at
+   rest. It keeps its own line and its hairline above; only the box goes. */
 .cellact {
-  padding: 3px 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 4px 0 2px;
+  border: 0;
+  border-top: 1px solid var(--hair);
+  border-radius: 0;
   background: transparent;
   color: var(--text);
   font-size: .72rem;
   line-height: 1.35;
   cursor: pointer;
 }
-.cellact:hover:not(:disabled) { border-color: var(--way-known); color: var(--way-new); }
+.cellact:hover:not(:disabled) { border-top-color: var(--way-known); color: var(--way-new); }
 .cellact:focus-visible { outline: 2px solid var(--way-new); outline-offset: 2px; }
 .cellact:disabled { color: var(--muted); border-style: dashed; cursor: default; opacity: .65; }
 .cell--empty .cellact { display: none; }
