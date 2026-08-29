@@ -190,6 +190,16 @@ def stamp_build(paths):
     changed = rewrite(path, lambda s: pattern.sub(
         'export const BUILD_ID = "%s";' % want, s))
     print("  js/shell.js BUILD_ID -> %s%s" % (want, "" if changed else " (already current)"))
+    if changed:
+        # TWO PASSES, AND SAYING SO BEATS LETTING THE SUITE SAY IT. The digest
+        # above is computed from COMMITTED blobs, and this stamp has just
+        # changed a file that is itself in SHELL — so the digest now describes
+        # the pre-stamp js/shell.js and the shell guard will go red naming it.
+        # Commit and run again; the second pass settles and the third is a
+        # no-op. Discovered by walking into it.
+        print("  NOTE: js/shell.js is in SHELL and just changed, so the digest")
+        print("        above is already stale. Commit, then run this again —")
+        print("        it converges on the second pass.")
 
 
 def main():
