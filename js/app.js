@@ -191,6 +191,11 @@ export class Game {
     this.board = Bd.createBoard(data, { seed });
     // Kept for the end-of-run verdict; the engine has no use for them.
     this.tally = { fights: 0, found: 0 };
+    // 戰鬥中不能吃 (#112). Declared here so it is never undefined: the gate in
+    // usePackItem and the disabled state in renderBackpack both read it, and a
+    // flag that only exists once a fight has happened would leave them
+    // disagreeing for the first one.
+    this.inFight = false;
     // One search per turn, and turn 1 has not had its yet.
     this.searched = false;
   }
@@ -657,6 +662,23 @@ export class Game {
   // whole preview/commit split exists to protect.
   fightBeat(n, opts = {}) {
     return new Promise((resolve) => {
+      // 戰鬥中不能吃 (#112). THE FACT, SET IN THE ONE PLACE EVERY FIGHT PASSES
+      // THROUGH. #97 established that: a jiangshi event, the breach and both
+      // villager paths all funnel here, which is why the creature panel is
+      // raised here too.
+      //
+      // app.js:1241 asserted this rule for a long time on its own authority and
+      // nothing enforced it — measured, health 5 to 8 with the fight card still
+      // on screen. A comment is not a gate. This is a flag the rule reads.
+      this.inFight = true;
+      // THE FLAG IS NOT THE WHOLE JOB. Setting it makes the rule true and leaves
+      // the pack LOOKING live: renderBackpack reads inFight, but nothing had
+      // re-rendered it, so the Use buttons stayed enabled and refused when
+      // pressed. Measured — rule held, buttons lied. A control that looks live
+      // and does nothing is worse than one that says it cannot, and it is the
+      // same disagreement between appearance and rule that #112 was filed for,
+      // pointing the other way.
+      this.refresh();
       damageCameFrom(opts.from || null);
       // The scare deposits them and the window is what it leaves behind.
       // Choices are cleared first so a key mashed during it finds nothing —
@@ -683,6 +705,16 @@ export class Game {
         // are six exits from this window and a teardown remembered at each one
         // is a teardown missed at the next. Its lifecycle is "until the fight
         // resolves", and this closure IS that moment.
+        //
+        // The fight flag is cleared here for exactly that reason, and nowhere
+        // else. Six exits — died-paying, the swing, escape, flight and two
+        // status checks — and a flag left set on any one of them would make the
+        // pack permanently dead for the rest of the run.
+        this.inFight = false;
+        // And back again, for the same reason: every exit from here has to give
+        // the pack its buttons back, not only the ones that happen to refresh
+        // afterwards.
+        this.refresh();
         clearCreaturePanel();
         unduck();
         resolve();
@@ -1239,8 +1271,30 @@ export class Game {
   }
 
   // Medicine is the one thing the pack spends on its own account, outside a
-  // fight and outside the turn's action.
+  // fight and outside the turn's action — and as of #112 that sentence is
+  // ENFORCED rather than asserted. 戰鬥中不能吃.
+  //
+  // WHAT THIS GATE IS AND WHAT IT IS NOT. It is a UI-flow gate on the Game, not
+  // an engine rule. The engine has no concept of a fight — no state for it, and
+  // useMedicine gates on not-held alone — so anything calling E.useMedicine
+  // directly is unaffected, and tools/bots.js is one such caller. That is the
+  // honest limit: this closes the path a PLAYER has, which is the path the
+  // ruling is about, and leaves the engine as silent as it was.
+  //
+  // The whole pack goes inert, not only medicine, and nothing legitimate is
+  // lost by that: the fight cards already offer every held talisman with its
+  // damage shown (see fightOptions), 黑狗血's fight use is the escape action
+  // rather than a pack press, and 硃砂 targets an item rather than a fight.
+  // 真火符 buffing a blade mid-swing was a free permanent upgrade outside the
+  // card system — a second, unpriced path to something the cards already do.
+  //
+  // AND IT KEEPS THE PUBLISHED NUMBERS TRUE. tools/bots.js heals AFTER
+  // resolveCombat, so with this gate a human plays the line the sweeps
+  // measured and tools/bots-report.md goes on describing the shipped game. The
+  // other ruling would have needed a re-sweep before those tables could be
+  // quoted again.
   usePackItem(id) {
+    if (this.inFight) return;
     // 硃砂 is the one pack item that needs a target, so it asks before it acts.
     if (id === "cinnabar") return this.useCinnabar();
     // 真火符 is the one pack item that acts on your HANDS rather than on you.

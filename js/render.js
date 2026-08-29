@@ -823,7 +823,12 @@ function packCell(game, id, index) {
   // use-elsewhere already says and what #53 established for talismans.
   const spendsHere = spendsFromPack(def);
   const spendable = isCinnabar || isTruefire || spendsHere;
-  const canUse = isCinnabar ? cinnabarTargets(game).length > 0
+  // 戰鬥中不能吃 (#112). The SAME FACT the rule in usePackItem reads, so the
+  // button and the rule cannot disagree — a control that looks live and refuses
+  // is worse than one that says so, and a control that looks dead while the
+  // action still works is how this got here in the first place.
+  const canUse = game.inFight ? false
+    : isCinnabar ? cinnabarTargets(game).length > 0
     : isTruefire ? buff.ok
     : spendsHere;
   const use = document.createElement("button");
