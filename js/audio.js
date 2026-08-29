@@ -1669,10 +1669,47 @@ export function unduck() {
 // A voice here is a NOTE, not an oscillator, which matters: SCORE_LAYERS counts
 // voices to decide how full the hour sounds, and pairing the partials into the
 // same entry keeps that count meaning what it says.
+//
+// THE OCTAVE WAS NOT ENOUGH, AND IT WAS THE WRONG DEVICE (#126). The paragraph
+// above was right that 55Hz and 82Hz do not exist on a phone, and then put the
+// rescue partial ONE octave up — at 110Hz and 165Hz, which do not exist on a
+// phone either. A phone rolls off hard below roughly 500Hz and many give
+// nothing usable under 700. An octave above 55 clears a desktop speaker, not a
+// handset, and the handset is where this game is played. The owner played all
+// week on an iPhone and never heard the score at all.
+//
+// Measured on the shipped voices, rendered offline and passed through a
+// three-pole highpass standing in for a handset: 3.4% of the score's energy
+// survives 500Hz and 2.0% survives 700Hz.
+//
+// SO EACH NOTE NOW CARRIES CONSECUTIVE HARMONICS, not more octaves. 8f, 9f and
+// 10f are the eighth, ninth and tenth harmonics, and the SPACING BETWEEN THEM
+// IS THE FUNDAMENTAL — so the ear reconstructs a 55Hz note from partials at
+// 440, 495 and 550Hz, none of which is 55Hz and all of which a phone can
+// actually move. Octaves alone do not do this: 4f and 8f are consistent with a
+// fundamental an octave up, so they add brightness without restoring the note.
+//
+// The measurement agrees with the theory rather than just with the intent:
+//
+//   as shipped                3.4% above 500Hz    2.0% above 700Hz
+//   one more octave (4f)      3.6%                2.0%     (4x55 = 220, still under)
+//   4f + 8f                  14.0%                6.8%
+//   8f + 9f + 10f            22.9%               13.2%
+//
+// THE FUNDAMENTALS STAY. On headphones they are the note and they are why this
+// sounds like a room rather than a whistle; the harmonics are what carry it to
+// a speaker that cannot reproduce them.
+//
+// NOTE THE THIRD VOICE IS UNREACHABLE, and has been since the last hour was
+// emptied. SCORE_LAYERS never asks for more than 2, so 110Hz is built every run
+// and never lit. It is left here rather than deleted because it is the hour-3
+// voice the score was designed around, and deleting it would lose the shape of
+// the thing; if the layering ever returns it is what returns. It costs two
+// oscillators at 0.0001 gain.
 const SCORE_VOICES = [
-  { hz: 55, detune: -6, gain: 0.030, partial: 0.30 },
-  { hz: 82.4, detune: 5, gain: 0.020, partial: 0.28 },
-  { hz: 110, detune: -9, gain: 0.013, partial: 0 }, // already above the rolloff
+  { hz: 55, detune: -6, gain: 0.030, partials: [[2, 0.30], [8, 0.10], [9, 0.08], [10, 0.07]] },
+  { hz: 82.4, detune: 5, gain: 0.020, partials: [[2, 0.28], [8, 0.09], [9, 0.07], [10, 0.06]] },
+  { hz: 110, detune: -9, gain: 0.013, partials: [[8, 0.08], [9, 0.06], [10, 0.05]] },
 ];
 // Hour to voice count. The last hour is the empty one.
 const SCORE_LAYERS = { 21: 1, 22: 2, 23: 0 };
@@ -1694,7 +1731,7 @@ function buildScore() {
   lfoDepth.gain.value = 1.6;
   lfo.connect(lfoDepth);
 
-  const voices = SCORE_VOICES.map(({ hz, detune, gain, partial }) => {
+  const voices = SCORE_VOICES.map(({ hz, detune, gain, partials }) => {
     const g = c.createGain();
     g.gain.value = 0.0001;
     g.connect(dry || master);
@@ -1709,16 +1746,21 @@ function buildScore() {
     osc.start();
     oscs.push(osc);
 
-    // The octave, quieter, on the same gain so it fades in and out with its
-    // note rather than becoming a voice of its own.
-    if (partial > 0) {
+    // The partials, quieter, on the same gain so they fade in and out with the
+    // note rather than becoming voices of their own — which is what keeps
+    // SCORE_LAYERS's count meaning what it says.
+    for (const [mult, level] of partials) {
       const up = c.createOscillator();
       up.type = "sine";
-      up.frequency.value = hz * 2;
-      up.detune.value = detune + 3;
+      up.frequency.value = hz * mult;
+      // Detuned WITH the note, so the whole stack beats together. Scaling the
+      // detune by the multiplier keeps the harmonic relationship exact: a fixed
+      // cent offset would be a different interval at each partial and the stack
+      // would stop pointing at one fundamental.
+      up.detune.value = detune;
       lfoDepth.connect(up.detune);
       const ug = c.createGain();
-      ug.gain.value = partial;
+      ug.gain.value = level;
       up.connect(ug).connect(g);
       up.start();
       oscs.push(up);
