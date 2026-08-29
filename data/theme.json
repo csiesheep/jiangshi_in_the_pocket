@@ -137,6 +137,7 @@
     "aria-board-pane": "Board",
     "aria-board": "Game board",
     "aria-actions": "Your move",
+    "account-label": "The night so far",
     "aria-log": "Game narration",
     "clock-said": "{time}, {phrase}",
     "turns-left-one": "1 turn until the hour turns",

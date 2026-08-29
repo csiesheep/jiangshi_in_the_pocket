@@ -272,6 +272,12 @@ test("chrome: game.html's static words match the theme's English", async () => {
   const PAIRS = [
     ["brand", "brand"], ["nav-rulebook", "nav-rulebook"], ["nav-menu", "nav-menu"],
     ["page-title", "page-title"],
+    // The 手記 caption (#121). It is a static node written once on load and
+    // again on every switch, which is exactly the shape this list exists for —
+    // and it deliberately does NOT share ui.aria-log, so both directions matter:
+    // a caption with no key never gets translated, and the key with no node
+    // would be dead weight.
+    ["account-label", "account-label"],
     // copy-replay went with the HUD button (#55), and the seed line, the sound
     // button and the note button went with the whole utility panel (#73). The
     // seed can still be copied from the verdict card, which is where a seed is

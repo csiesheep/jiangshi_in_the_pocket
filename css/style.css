@@ -256,6 +256,38 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 .topnav a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
 .topnav a:hover { color: var(--text); }
 .topnav .brand { font-family: var(--font-display); color: var(--text); font-weight: 700; }
+
+/* ALL FIVE THE SAME, and I would rather argue this than split it (#121).
+   Layout A's banner is "quiet text on the surface with one hairline — not a bar
+   of buttons", and two of them were still pills: New game and the language
+   switch. That is a fact about MARKUP — those two are <button> and the others
+   are <a> — rather than about what they do.
+
+   #53's argument does not reach up here. It says a control must not be
+   indistinguishable from something that is not one, and it was made about the
+   game's OWN controls, where a missing Use button and a Use button that is not
+   for this cell would look identical. Rulebook and Menu also do something, have
+   never been boxes, and nobody has mistaken them for prose. So the rule that
+   makes these consistent is the one already governing three of the five, not a
+   new pill on the other two.
+
+   SCOPED TO .topnav on purpose: .langswitch is a pill on the menu page, where
+   it stands alone on a quiet screen and has no row of siblings to agree with. */
+.topnav .topbtn,
+.topnav .langswitch {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: .95rem;
+  letter-spacing: normal;
+}
+.topnav .topbtn:hover,
+.topnav .langswitch:hover,
+.topnav .topbtn:focus-visible,
+.topnav .langswitch:focus-visible { color: var(--text); border-color: transparent; }
 .topnav .spacer { flex: 1; }
 
 /* ---- The banner at phone width (#83) -------------------------------------------
@@ -5320,6 +5352,14 @@ html[lang^="en"] .notesheet h2 {
 
    360 for the same reason 408 and 346 had slack: sitting on the edge makes any
    future change to the nav or a label a silent one-pixel scroll.
+
+   HALF OF THAT TABLE IS SYNTHETIC AND THIS IS THE HALF: the ROW HEIGHT is real,
+   53px measured on a rendered row with the merge against 65.6 without, but the
+   COUNT is three clones of it. A genuine four-option fight was not reachable by
+   either of the two people who tried — driven to a room with three ways out,
+   fightBeat still rendered one option. So 360 rests on four rows being four
+   times one real row. If this number is ever re-tuned near its edge, that is
+   the assumption to retire first.
 
    THE TILE COSTS 8px, NOT 44. Without the merged row the fold needed about 420
    and a tile of 145 — below the 152.5 #114 fought for. The row merge and three

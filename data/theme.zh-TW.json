@@ -328,6 +328,7 @@
     "aria-board-pane": "圖板",
     "aria-board": "遊戲圖板",
     "aria-actions": "輪到你",
+    "account-label": "手記",
     "aria-log": "旁白",
     "clock-said": "{time}，{phrase}",
     "turns-left-one": "再一回合就換時辰",
