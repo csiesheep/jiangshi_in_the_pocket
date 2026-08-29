@@ -148,6 +148,50 @@ def stamp_suites():
                                  "restamped" if changed else "already current"))
 
 
+def stamp_build(paths):
+    """Give js/shell.js an id that changes whenever any shell file changes.
+
+    THE QUESTION IT ANSWERS: which build is the page actually EXECUTING. The
+    service worker's CACHE name answers a different one — which build the worker
+    would serve — and the two disagree exactly when it matters, because a page
+    keeps the modules it was handed even after a newer worker claims it. So this
+    is stamped into a module the page imports, not into sw.js.
+
+    Working tree, not the blob, for the same reason as stamp_harness: the id has
+    to move the moment a file does, committed or not, or it cannot catch a stale
+    module in memory. The stamp line is blanked before hashing, or it would be
+    hashing itself.
+
+    Hashed over every shell file rather than shell.js alone, so a change to
+    audio.js — which is what provoked this — moves the number a player can read.
+    """
+    path = os.path.join(ROOT, "js", "shell.js")
+    pattern = re.compile(r'^export const BUILD_ID = "([^"]*)";$', re.M)
+    src = io.open(path, encoding="utf-8", newline="").read()
+    if not pattern.search(src):
+        print("  js/shell.js has no BUILD_ID marker; skipped")
+        return
+
+    h = hashlib.sha256()
+    for p in paths:
+        rel = "index.html" if p == "./" else p
+        full = os.path.join(ROOT, rel.replace("/", os.sep))
+        try:
+            body = io.open(full, "rb").read()
+        except IOError:
+            continue
+        if rel == "js/shell.js":
+            body = pattern.sub('export const BUILD_ID = "";',
+                               body.decode("utf-8")).encode("utf-8")
+        h.update(("%s:" % rel).encode("utf-8"))
+        h.update(body)
+    want = h.hexdigest()[:8]
+
+    changed = rewrite(path, lambda s: pattern.sub(
+        'export const BUILD_ID = "%s";' % want, s))
+    print("  js/shell.js BUILD_ID -> %s%s" % (want, "" if changed else " (already current)"))
+
+
 def main():
     sw = os.path.join(ROOT, "sw.js")
     src = io.open(sw, encoding="utf-8", newline="").read()
@@ -172,6 +216,7 @@ def main():
     print("sw.js %s" % ("rewritten" if changed else "already current"))
     print("  %d shell files, hashed from HEAD blobs" % len(rows))
     print("  CACHE %s -> %s" % (before, name))
+    stamp_build(paths)
     stamp_harness()
     stamp_suites()
     return 0

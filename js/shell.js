@@ -6,6 +6,40 @@
 
 import { sleep as sleepAudio } from "./audio.js";
 
+// ---- Which build is actually running ----------------------------------------
+// WHAT THIS EXISTS TO SETTLE. The shell is cache-first, so the page you are
+// reading was served by the worker that was installed BEFORE this deploy. The
+// handover below fixes that for the next load — but it is guarded, deliberately,
+// and a player who starts a run inside the grace window keeps the old modules
+// for the whole session. That is correct behaviour and it is also invisible:
+// nothing on the page says which version of the code is executing.
+//
+// It cost a listening test. A change to js/audio.js shipped, the owner listened,
+// heard nothing, and NOBODY COULD TELL whether they had run the new code or the
+// old — the change had no visual signal, so "still silent" and "still the old
+// build" are the same observation. A deploy whose arrival cannot be observed
+// gets re-tested by ear until somebody thinks of this.
+//
+// So: `window.__build` in any console, and compare it against
+// tools/record_shell.py's output for the commit you expect. Different means the
+// page is running an older shell, whatever the service worker has installed —
+// and those two CAN disagree, which is the whole trap.
+//
+// STAMPED FROM THE WORKING TREE, NOT THE COMMITTED BLOB, for the same reason
+// HARNESS_ID is: the point is to catch a module in memory that is older than the
+// file on disk, so the id has to move the moment the file does, committed or
+// not. record_shell.py blanks this line before hashing, or it would be hashing
+// itself.
+export const BUILD_ID = "7cac9b63";
+
+// Announced rather than merely exported, because the person who needs it is
+// standing at a console on a phone with no way to import anything.
+try {
+  window.__build = BUILD_ID || "(unstamped: run tools/record_shell.py)";
+} catch {
+  /* no window, nothing to announce to */
+}
+
 // ---- Service worker ---------------------------------------------------------
 // Registered relative, because this ships under a subpath and an absolute "/sw.js"
 // would ask for the domain root and get a 404 (or worse, somebody else's worker).
