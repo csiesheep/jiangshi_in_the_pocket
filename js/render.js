@@ -916,9 +916,9 @@ function handSlot(game, slot, id) {
     // and closes anything else that is open first.
     slotArt.addEventListener("click", (e) => {
       e.stopPropagation();
-      const open = box.classList.contains("cell--open");
-      closeAllCells();
-      if (!open) box.classList.add("cell--open");
+      if (tapSpentClosing(e)) return;
+      closeAllCells(e);
+      box.classList.add("cell--open");
     });
   }
 
@@ -1166,6 +1166,14 @@ function packCell(game, id, index) {
       : ui(game, spendable ? "use-blocked-title" : "use-elsewhere-title");
   use.addEventListener("click", (e) => {
     e.stopPropagation();
+    // DELIBERATELY NOT EXEMPT (#133). With an explanation open, a tap on 使用
+    // closes it and does not use the item; using then takes a second tap. That
+    // is a real cost on the one control the panel exists to support, and it
+    // follows from 「無論點到哪裡」 and from 先 — a stray tap must not act. If it
+    // turns out to feel wrong in the hand that is the owner's to reverse, and
+    // quietly exempting this button would make their next report impossible to
+    // read.
+    if (tapSpentClosing(e)) return;
     if (typeof packUse === "function") packUse(id);
   });
   cell.appendChild(use);
@@ -1177,9 +1185,11 @@ function packCell(game, id, index) {
   // is redundant with :hover and harmless.
   face.addEventListener("click", (e) => {
     e.stopPropagation();
-    const open = cell.classList.contains("cell--open");
-    closeAllCells();
-    if (!open) cell.classList.add("cell--open");
+    // If anything was open, this tap is spent (#133) — including when the thing
+    // that was open is this same place, which is how it closes.
+    if (tapSpentClosing(e)) return;
+    closeAllCells(e);
+    cell.classList.add("cell--open");
   });
   return cell;
 }
@@ -1195,8 +1205,69 @@ function emptyCell(game) {
   return cell;
 }
 
-function closeAllCells() {
+// 點第二下，無論點到哪裡，說明應該先消失 (#133). Once an explanation is open,
+// the next tap spends itself closing it and does not also do what it landed on.
+//
+// TWO THINGS CAN HOLD AN EXPLANATION OPEN and a fix that only knows about one
+// of them breaks on the device the ruling is for. The .cell--open class is what
+// a tap sets; :focus-within is the other, and css/style.css says in as many
+// words that it is load-bearing — it is what keeps the panel up while the Use
+// button has focus.
+//
+// MEASURED, BOTH WAYS, AT 390. Whether a tap leaves focus on the control is a
+// property of the device, not of this code, so both regimes were driven:
+//
+//   tap does not focus   open / close / switch / board closes  — the owner's
+//                        report exactly, and what the class alone produces
+//   tap focuses          NOTHING EVER CLOSES: the class is removed and
+//                        :focus-within holds the panel up anyway
+//
+// So closing has to release the focus as well as the class, or the panel is
+// undismissable on any device whose taps focus. That is not a hypothetical
+// improvement — it is the second row above.
+const PLACE = ".places .hand, .places .cell";
+
+function anyTipOpen() {
+  if (document.querySelector(".cell--open")) return true;
+  const a = document.activeElement;
+  return !!(a && a.closest && a.closest(PLACE));
+}
+
+// Whether an explanation was open BEFORE this gesture began. It has to be
+// sampled at pointerdown: by the time the click arrives the tap has already
+// moved focus into the place it landed on, so asking then would report "open"
+// because of this very tap and no place could ever be opened at all.
+let tipOpenBefore = false;
+if (typeof document !== "undefined") {
+  document.addEventListener("pointerdown", () => { tipOpenBefore = anyTipOpen(); }, true);
+}
+
+// A keyboard activation is not a tap. Enter on a focused Use button arrives as
+// a click with detail 0, and :focus-within means an explanation is ALWAYS open
+// when that happens — so applying the ruling to it would make the item
+// impossible to use with a keyboard. 「無論點到哪裡」 is about tapping, and this
+// is the one carve-out, named rather than hidden: it is by INPUT MODE, not by
+// control. The Use button is not exempt from anything a tap does.
+function isTap(e) {
+  return !e || e.detail > 0;
+}
+
+function closeAllCells(e) {
   for (const c of document.querySelectorAll(".cell--open")) c.classList.remove("cell--open");
+  // And let go of the control, or :focus-within keeps the panel open behind us.
+  // Only for taps: blurring on a keyboard activation would throw the focus ring
+  // away mid-sentence.
+  if (!isTap(e)) return;
+  const a = document.activeElement;
+  if (a && a.blur && a.closest && a.closest(PLACE)) a.blur();
+}
+
+// Consume a tap that only had to close things. Returns true when it did, so the
+// caller knows to stop rather than also acting.
+function tapSpentClosing(e) {
+  if (!isTap(e) || !tipOpenBefore) return false;
+  closeAllCells(e);
+  return true;
 }
 
 // One listener for the whole document rather than one per cell: the panel is

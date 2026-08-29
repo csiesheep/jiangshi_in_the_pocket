@@ -2102,6 +2102,149 @@ test("light: the gutter reaches the room and not the narration (#122)", serial(a
   }
 }));
 
+// 點第二下，無論點到哪裡，說明應該先消失 (#133).
+//
+// DRIVEN AS TAPS, NOT AS RENDERER CALLS. The mechanism is a click handler
+// sitting alongside a :focus-within rule, so the thing under test is what the
+// two do together — and a direct call reproduces neither the focus nor the
+// event order. These dispatch pointerdown / pointerup / click on the real
+// controls. The stylesheet is adopted because "is the explanation open" is a
+// question about VISIBILITY, and an unstyled document answers it the same way
+// for every case here.
+//
+// WHAT THIS GUARD DOES NOT COVER, said plainly: the :focus-within half. focus()
+// does not take in this document — activeElement stays on <body> — so the path
+// exercised here is .cell--open only. The focus path was driven in the product
+// instead, in an iframe at 390 where focus does take, and both regimes were
+// measured: with the tap focusing, the panel was previously IMPOSSIBLE to
+// dismiss at all, and after the change both regimes give open / close /
+// close-only / open again. If focus is ever made to work in this fixture, this
+// paragraph is the thing to delete.
+test("places: with an explanation open, the next tap only closes it (#133)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, css, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:0;top:0;width:390px";
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+
+  const tap = (el) => {
+    const o = { bubbles: true, cancelable: true, composed: true, detail: 1 };
+    el.dispatchEvent(new PointerEvent("pointerdown", { ...o, pointerType: "touch" }));
+    if (el.focus) el.focus();
+    el.dispatchEvent(new PointerEvent("pointerup", { ...o, pointerType: "touch" }));
+    el.dispatchEvent(new MouseEvent("click", o));
+  };
+
+  try {
+    host.appendChild(document.importNode(doc.querySelector(".board-pane"), true));
+    host.appendChild(document.importNode(doc.querySelector(".sidebar"), true));
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    game.state.items = { "sticky-rice": 1, "cinnabar": 1, "blood-talisman": 1 };
+    // THE CONTROL HAS TO BE CONNECTED, and this line is the product's own —
+    // app.js wires it at boot, not in the Game constructor. Without it every Use
+    // button renders DISABLED, and the "tapping Use did not act" assertion below
+    // would pass on a dead button rather than on the ruling.
+    //
+    // COUNTED, because "did the tap act?" is exactly "did it reach packUse?" —
+    // that is the extension point the Use control acts through, and a better
+    // instrument than the pack's item count: using some items opens a drop
+    // dialog first, so the count does not move on a use that plainly happened.
+    // Asserting on the count called a working tap broken on this guard's first
+    // run.
+    let useCalls = 0;
+    onPackUse((id) => { useCalls++; game.usePackItem(id); });
+    game.refresh();
+
+    const cells = [...host.querySelectorAll("#hud-items .cell:not(.cell--empty)")];
+    assert(cells.length >= 2,
+      "fewer than two carried places drew (" + cells.length + "), so there is no " +
+      "OTHER place to tap and the whole ruling is untestable here");
+    const isOpen = (c) => {
+      const t = c.querySelector(".celltip");
+      return !!t && getComputedStyle(t).visibility === "visible";
+    };
+
+    // The stylesheet reached the tooltips: without it every .celltip is
+    // "visible" and both halves below pass for the wrong reason.
+    assert(!isOpen(cells[0]),
+      "a place's explanation is showing before anything was tapped — the " +
+      "stylesheet did not apply, and 'it closed' is not a claim this run can make");
+
+    // ---- 1. TAP ANOTHER PLACE ------------------------------------------------
+    tap(cells[0].querySelector(".cellface"));
+    // PROVE THE REGION: if nothing ever opened, both halves below are vacuous.
+    assert(isOpen(cells[0]),
+      "the first tap did not open an explanation, so there was nothing for the " +
+      "second tap to close and this guard is asserting about an empty screen");
+
+    tap(cells[1].querySelector(".cellface"));
+    // TWO HALVES, DELIBERATELY SEPARATE. A single "exactly one is open" check
+    // would be satisfied by the old behaviour, which closed the first and
+    // opened the second in the same gesture.
+    assert(!isOpen(cells[0]),
+      "tapping another place left the first explanation open — the tap did not " +
+      "close it");
+    assert(!isOpen(cells[1]),
+      "tapping another place opened THAT place's explanation — the tap did the " +
+      "thing it landed on as well as closing, which is what 先 rules out");
+
+    // And a tap with nothing open still opens, or the ruling has cost the
+    // panel entirely rather than delaying it by one tap.
+    tap(cells[1].querySelector(".cellface"));
+    assert(isOpen(cells[1]),
+      "with nothing open, a tap no longer opens an explanation at all");
+
+    // ---- 2. TAP 使用 ---------------------------------------------------------
+    // The accepted cost: it closes and does NOT spend. The count is the half
+    // that catches the handler firing anyway behind a closed panel.
+    const use = cells[1].querySelector(".cellact");
+    assert(use, "the carried place has no Use control to tap");
+    assert(!use.disabled,
+      "the Use control rendered disabled, so a tap on it proves nothing about " +
+      "whether the tap was consumed");
+    assert(isOpen(cells[1]), "the explanation is not open before the Use tap");
+
+    tap(use);
+    assert(!isOpen(cells[1]),
+      "tapping Use with the explanation open did not close it");
+    eq(useCalls, 0,
+      "tapping Use with the explanation open ACTED — the tap was supposed to be " +
+      "consumed closing the panel. Using takes a second tap, and that cost is " +
+      "the ruling rather than an oversight");
+
+    // ---- 3. AND USE STILL WORKS ---------------------------------------------
+    // Otherwise the ruling has broken the control rather than delayed it — and
+    // this is also what keeps the assertion above from passing on a Use button
+    // that is simply not wired to anything.
+    tap(use);
+    eq(useCalls, 1,
+      "with nothing open, tapping Use no longer acts — the second tap has to do " +
+      "what the first one was spent instead of doing");
+  } finally {
+    host.remove();
+    spriteHost.remove();
+    styles.remove();
+    onPackUse(null);   // the registration is module-level; do not leave it aimed here
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);
