@@ -922,10 +922,15 @@ body.app .board-pane > .board { min-height: 0; }
    NAMES — without it "empty" sat at three different heights — and the names are
    gone, so the reserve now keeps the three pictures on one line and the labels
    above and the numeral below aligned across the row. */
+/* A SQUARE OF A STATED SIZE, CENTRED IN ITS PLACE — not a box that fills the
+   track (#131). At width: 100% this grew with the track, and its partner in the
+   pack grew differently, which is how two boxes that share a grid row still
+   held their drawings at different heights. */
 .handart {
   display: flex; align-items: center; justify-content: center;
   height: var(--handicon);
-  width: 100%;
+  width: var(--handicon);
+  justify-self: center;
   padding: 0;
   border: 0;
   background: none;
@@ -1161,8 +1166,23 @@ span.handart { cursor: default; }
 /* .cell's own flex column and width are gone: it is a subgrid in the shared
    row now, declared with .hand above (#130). */
 /* The picture keeps the square; the control sits under it rather than over it,
-   so nothing is ever covering the thing you are trying to recognise. */
-.cellface { aspect-ratio: 1; }
+   so nothing is ever covering the thing you are trying to recognise.
+
+   THE SQUARE IS A SIZE, NOT A RATIO (#131). aspect-ratio: 1 tied the height to
+   whatever width the track happened to have, so on a phone — where the row has
+   room to spare and the tracks open to 45.8px — the face became 45.8 tall
+   against the hand's 38, and the drawing inside it, centred, started 2.9px
+   lower than the drawings in the three worn places. The boxes were on one grid
+   row the whole time; it was their contents that were off the line, which is
+   the failure a guard measuring boxes cannot see.
+
+   It also keeps the empty place's ring CIRCULAR: border-radius: 50% on a
+   45.8x38 box draws an ellipse. */
+.cellface {
+  width: var(--handicon);
+  height: var(--handicon);
+  justify-self: center;
+}
 
 /* Use, visible at rest (#53). Bare-arrow discipline: no filled box competing
    with the board, just a quiet labelled control the width of its own cell. It

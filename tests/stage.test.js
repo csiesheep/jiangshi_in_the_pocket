@@ -1451,20 +1451,40 @@ test("places: the seven objects share one line, in both languages (#130)", seria
   // be here; a hand-written stand-in would be a second fixture to keep true.
   const pane = doc.querySelector(".board-pane");
   const host = document.createElement("div");
-  // The width the sidebar actually gets beside the board on a desktop, which is
-  // where this was reported and where the places are narrow enough that an
-  // English label wraps to the two lines that make the languages differ.
+  // TWO WIDTHS, AND THE SECOND ONE EARNED ITS PLACE. 300px is the sidebar
+  // beside the board on a desktop, where this was reported and where an English
+  // label wraps to the two lines that make the languages differ. 351px is the
+  // full-width column a phone gives it — and at 351 the row has space to spare,
+  // which is a different regime: the tracks open past the picture and anything
+  // sized as a share of a track stops agreeing with anything sized in pixels.
+  // A defect that existed only at 351 sat under this guard while it measured
+  // one width, so the width is now a dimension the guard varies.
+  const WIDTHS = [300, 351];
   host.style.cssText = "position:absolute;left:-9999px;top:0;width:300px";
   document.head.appendChild(styles);
   document.body.appendChild(spriteHost);
   document.body.appendChild(host);
 
-  const read = (lang, theme) => {
+  const read = (lang, theme, width) => {
+    host.style.width = width + "px";
     host.textContent = "";
     host.appendChild(document.importNode(pane, true));
     host.appendChild(document.importNode(side, true));
     const game = new Game({ tiles, items, search, events, theme,
                             baseTheme: theme, lang }, { seed: 5 });
+    // EVERY PLACE HOLDS SOMETHING, so all seven draw a real picture and the
+    // size check below has seven things to compare rather than four.
+    //
+    // It also takes the weapon place off its ghost, which matters more than it
+    // sounds: .hand--weapon .handghost is rotated 45deg, so its rect is the
+    // 1.414x envelope of its box and not its size. A real blade is not rotated.
+    // The stacks stay unequal — the blade carries its attack numeral, the charm
+    // and the tablet carry nothing, the cells carry their Use — which is the
+    // inequality this guard's alignment half needs to exist at all.
+    game.state.hands = { weapon: "peachwood-sword", charm: "protective-charm" };
+    game.state.tablet = true;
+    game.state.items = { "sticky-rice": 1, "cinnabar": 1,
+                         "blood-talisman": 1, "golden-elixir": 1 };
     game.refresh();
     const row = host.querySelector(".places");
     assert(row, "game.html has no .places, so there is no row to align");
@@ -1491,6 +1511,16 @@ test("places: the seven objects share one line, in both languages (#130)", seria
       unders: places.map((p) =>
         p.querySelector(".handattack") ? "numeral"
         : p.querySelector(".cellact") ? "use" : "nothing"),
+      // THE DRAWINGS THEMSELVES, not the boxes that hold them (#131). Rects
+      // rather than offsetWidth, because these are SVG elements and
+      // SVGElement has no offsetWidth — it reads undefined, and comparing
+      // undefined with undefined passes on every layout there is.
+      art: places.map((p) => {
+        const a = p.querySelector(".handicon, .cellicon");
+        if (!a) return null;
+        const r = a.getBoundingClientRect();
+        return { w: +r.width.toFixed(1), top: +r.top.toFixed(1) };
+      }),
       sepH: sep ? +sep.getBoundingClientRect().height.toFixed(1) : null,
     };
   };
@@ -1499,8 +1529,8 @@ test("places: the seven objects share one line, in both languages (#130)", seria
     assert(side, "game.html has no .sidebar, so there is no row of places");
     assert(pane, "game.html has no .board-pane — refresh() renders the board " +
       "first and would throw before reaching the places");
-    const en = read("en", themeEn);
-    const zh = read("zh-TW", themeZh);
+    const en = read("en", themeEn, 300);
+    const zh = read("zh-TW", themeZh, 300);
 
     // 1. THE FIXTURE IS STYLED AND POPULATED. Every number below is a rect, and
     //    rects agree with each other very happily in a document that has none
@@ -1533,6 +1563,44 @@ test("places: the seven objects share one line, in both languages (#130)", seria
         "the seven objects sit at " + spread + "px of spread in " + name + ": " +
         JSON.stringify(m.tops) + ". They are one row of things lying on a " +
         "table, and a broken line is read before any of the objects are.");
+    }
+
+    // 3b. ONE SIZE OF THING, ACROSS ALL SEVEN (#131). The places lining up is
+    //     not the same claim as the things in them being the same size, and
+    //     before #131 they were not: a hand drew at 38 and a pack cell at 34.2,
+    //     because one was a fixed px and the other 90% of whatever remained.
+    //
+    //     THAT DIFFERENCE ALSO MOVED THE PICTURES OFF THE LINE, which is the
+    //     part worth keeping in this guard rather than a separate one. Two
+    //     boxes can share a top and still hold their contents at different
+    //     heights: both drawings are centred, so a 3.8px difference in size is
+    //     a 1.9px difference in where the drawing starts — exactly half, and
+    //     invisible to a guard that measures only the boxes. Equalising the
+    //     size takes it to zero on its own; an offset would have been the wrong
+    //     repair for it.
+    const artRuns = [];
+    for (const width of WIDTHS)
+      for (const [lang, theme] of [["en", themeEn], ["zh-TW", themeZh]])
+        artRuns.push([lang + " at " + width, read(lang, theme, width)]);
+    for (const [name, m] of artRuns) {
+      const drawn = m.art.filter(Boolean);
+      eq(drawn.length, 7,
+        name + ": only " + drawn.length + " of the seven places drew a picture, " +
+        "so this is comparing a subset and would pass with a place empty");
+      const ws = drawn.map((a) => a.w);
+      const sizeSpread = +(Math.max(...ws) - Math.min(...ws)).toFixed(1);
+      assert(sizeSpread <= 1,
+        name + ": the seven pictures are drawn at " + JSON.stringify(ws) + " — a " +
+        "spread of " + sizeSpread + "px. A worn thing and a carried thing are " +
+        "both objects lying on the same table, and nothing states a reason for " +
+        "them to differ in size.");
+      const tops = drawn.map((a) => a.top);
+      const topSpread = +(Math.max(...tops) - Math.min(...tops)).toFixed(1);
+      assert(topSpread <= 1,
+        name + ": the pictures start at " + JSON.stringify(tops) + " — a spread " +
+        "of " + topSpread + "px. The BOXES agree, so this is the contents " +
+        "sitting at different heights inside them, which is what a size " +
+        "difference does to two centred drawings.");
     }
 
     // 4. AND THE TWO RUNS WERE ACTUALLY DIFFERENT. Without this, step 3 is one
