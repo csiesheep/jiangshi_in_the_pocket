@@ -101,6 +101,7 @@ const SHELL = [
   "js/engine.js",
   "js/board.js",
   "js/night.js",
+  "js/replay.js",
   "js/render.js",
   "js/icons.js",
   "js/audio.js",

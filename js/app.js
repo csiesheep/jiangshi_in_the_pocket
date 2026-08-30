@@ -76,6 +76,13 @@ import {
 import { registerWorker, keepAwake, wireSleep,
          markRunInProgress } from "./shell.js";
 import { recordVerdict } from "./tally.js";
+// The night, written down as it is played (#142). Every push below is a
+// PLAYER DECISION and nothing else — no RNG results, no DOM, no log lines.
+// The replayer reads this list instead of asking a person, so a decision
+// that is made and not pushed does not throw: it produces a different night
+// with a plausible score, which is the failure the whole design is against.
+import { FORMAT_V, verdictOf } from "./night.js";
+import { ACT } from "./replay.js";
 import { epilogue } from "./epilogue.js";
 import * as L from "./lang.js";
 import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
@@ -194,6 +201,10 @@ export class Game {
     this.board = Bd.createBoard(data, { seed });
     // Kept for the end-of-run verdict; the engine has no use for them.
     this.tally = { fights: 0, found: 0 };
+    // Appended to in the do* methods, which are the places a click becomes a
+    // decision. Recording at the engine call rather than at the button means a
+    // choice the engine refused is never written down.
+    this.actions = [];
     // 戰鬥中不能吃 (#112). Declared here so it is never undefined: the gate in
     // usePackItem and the disabled state in renderBackpack both read it, and a
     // flag that only exists once a fight has happened would leave them
@@ -231,6 +242,18 @@ export class Game {
   word(key) { return (this.data.theme.words && this.data.theme.words[key]) || key; }
 
   refresh() { renderHud(this); renderBoard(this); }
+
+  // One funnel, so a site that forgets the shape cannot exist.
+  rec(t, payload) { this.actions.push(payload ? { t, ...payload } : { t }); }
+
+  // The night as the leaderboard and the snapshot both want it. The verdict
+  // travels WITH it so a finished night knows its own score without a replay
+  // — #144's submit gate reads this, and #143 recomputes it from the actions
+  // rather than trusting it.
+  night() {
+    return { v: FORMAT_V, seed: this.state.seed, actions: this.actions.slice(),
+             verdict: verdictOf(this.state, this.tally) };
+  }
 
   start() {
     E.beginTurn(this.state);
@@ -282,6 +305,7 @@ export class Game {
   // STAY is a whole action. It ends in the same place every other one does, so
   // the room's own instructions and the end of the turn still run.
   doStay() {
+    this.rec(ACT.STAY);
     log(this.line("wait", { room: this.tileName(Bd.currentTile(this.board).id) }));
     this.arrive();
   }
@@ -291,6 +315,7 @@ export class Game {
   // keeps a way on into unexplored space, and is deterministic so a shared seed
   // still replays move for move.
   doExplore(dir) {
+    this.rec(ACT.EXPLORE, { dir });
     // peekTile, not decks[0]: the log has to name the room actually placed, and
     // which room that is belongs to the board rather than to the top of a deck.
     const revealed = Bd.peekTile(this.board, this.board.player.world);
@@ -312,6 +337,7 @@ export class Game {
   }
 
   doMove(dir) {
+    this.rec(ACT.MOVE, { dir });
     // Crossing the seam is a move like any other to the board, but it is the
     // one that changes world — worth hearing, in both directions.
     const from = Bd.currentTile(this.board).world;
@@ -324,6 +350,7 @@ export class Game {
   }
 
   doOutside(dir) {
+    this.rec(ACT.OUTSIDE, { dir });
     const out = Bd.goOutside(this.board);
     seamCross();
     log(this.line("step-out", { room: this.tileName(out.tile.id) }));
@@ -950,6 +977,7 @@ export class Game {
   }
 
   async doFight(n, o, opts, done) {
+    this.rec(ACT.FIGHT, { use: o.use || {} });
     const s = this.state;
     clearChoices();
     damageCameFrom(opts.from || null);
@@ -1014,6 +1042,7 @@ export class Game {
   }
 
   async doEscape(done) {
+    this.rec(ACT.ESCAPE);
     clearChoices();
     const r = E.escapeFight(this.state, { vsKing: false });
     if (!r.ok) return done(); // nothing held: the card should not have been there
@@ -1025,6 +1054,7 @@ export class Game {
   }
 
   async doFlee(dir, done) {
+    this.rec(ACT.FLEE, { dir });
     clearChoices();
     // The hit comes from the way you turned your back on.
     damageCameFrom(dir);
@@ -1069,6 +1099,11 @@ export class Game {
     }
 
     const give = await this.askVillager(ev, t);
+    // Only recorded when the game ASKED. With no rice held it never asks, and
+    // the replayer reads this action under the same condition — an action
+    // written on a turn the replay does not read one on is an off-by-one for
+    // the rest of the night.
+    this.rec(ACT.RICE, { give: !!give });
     const res = E.resolveEvent(this.state, ev, { giveRice: give });
 
     if (res.type === "GIFT") {
@@ -1189,6 +1224,7 @@ export class Game {
   // that finds nothing and a run that finds a sword have spent the same
   // randomness, which is what keeps a shared seed in step.
   doSearch(table) {
+    this.rec(ACT.SEARCH);
     this.searched = true;
     const out = E.search(this.state, table);
     renderActions([]);
@@ -1234,6 +1270,7 @@ export class Game {
           label: this.ui("replace-take", { item: name(out.id), n: out.incomingAttack }),
           sub: this.ui("replace-take-sub", { item: name(out.current), n: out.currentAttack }),
           onClick: () => {
+            this.rec(ACT.REPLACE, { take: true });
             const r = E.replaceWeapon(this.state, out.id);
             this.noteFound();
             log(this.line("search-replaced", { item: name(r.equipped), dropped: name(r.dropped) }), "good");
@@ -1248,6 +1285,7 @@ export class Game {
           sub: this.ui("replace-keep-sub", { item: name(out.id) }),
           onClick: () => {
             // Refusing it leaves it where it lies — and it stays there.
+            this.rec(ACT.REPLACE, { take: false });
             E.declineWeapon(this.state, out.id);
             log(this.line("search-left", { item: name(out.id) }), "muted");
             this.refresh();
@@ -1269,6 +1307,7 @@ export class Game {
           // A stack is one slot however deep it is, so dropping one of three
           // frees nothing. The whole stack goes down, then the find comes up
           // through the same door every other pickup uses.
+          this.rec(ACT.DROP, { id: dropId, n });
           E.dropItem(this.state, dropId, n);
           this.takeInstead(foundId, null);
         },
@@ -1313,6 +1352,7 @@ export class Game {
   }
 
   takeInstead(foundId, dropId) {
+    this.rec(ACT.TAKE, { foundId, dropId });
     const got = E.pickUpItem(this.state, foundId, dropId);
     if (got.ok) {
       this.noteFound();
@@ -1371,6 +1411,7 @@ export class Game {
     // returned.
     const before = this.state.health;
     const wasPoisoned = this.state.poisoned;
+    this.rec(ACT.USE, { id });
     const out = E.useMedicine(this.state, id);
     if (!out.ok) return;
     const name = iName(this, id);
@@ -1403,6 +1444,7 @@ export class Game {
   // least able to pay and most likely to want it.
   useTruefire() {
     const sword = E.bestSword(this.state);
+    this.rec(ACT.TRUEFIRE);
     const out = E.buffSword(this.state, sword);
     // The control is only offered when buffState says yes, so a refusal here
     // means the two disagreed. Fail quietly rather than half-acting.
@@ -1422,6 +1464,7 @@ export class Game {
   useCinnabar() {
     showCinnabarDialog(this, {
       onPick: (targetId) => {
+        this.rec(ACT.CINNABAR, { target: targetId });
         const out = E.useCinnabar(this.state, targetId);
         if (!out.ok) return;
         paperFlutter();
@@ -1461,6 +1504,9 @@ export class Game {
   }
 
   nextTurn() {
+    // The single funnel for ending a turn — the button and the automatic path
+    // both arrive here, so one push covers every turn end exactly once.
+    this.rec(ACT.NEXT);
     // The shell must never reload a run out from under the player, and a run is
     // not saved anywhere — so the moment a turn is actually spent, say so.
     markRunInProgress();
@@ -1549,6 +1595,7 @@ export class Game {
     // or not it was enough — bringing the banner and falling short is still
     // bringing the banner.
     if (use.talisman) paperFlutter();
+    this.rec(ACT.KIT, { use });
     const r = E.midnight(this.state, { use });
     // Kept for the verdict card, which is the only place either number is ever
     // allowed to appear.

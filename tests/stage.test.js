@@ -18,6 +18,10 @@ import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
          showNote, noteValues, noteSegments, NOTE_MARK,
          renderActions } from "../js/render.js";
 import { Game } from "../js/app.js";
+// The recorded night and its replay (#142). Imported here rather than in
+// engine.test.js because this guard PLAYS one through the real UI.
+import { verdictOf } from "../js/night.js";
+import { replayNight } from "../js/replay.js";
 // The board, for the burial guard: it walks a real run out to the Mass Grave
 // rather than placing the tile under the player, so what is tested is the
 // rite as it is actually reached.
@@ -2737,6 +2741,139 @@ test("burn: the fire is on him and it is warm (#140)", serial(async () => {
     for (const el of document.querySelectorAll(".evstage")) el.remove();
     spriteHost.remove();
     styles.remove();
+  }
+}));
+
+// A REAL NIGHT, PLAYED THROUGH THE UI AND REPLAYED (#142).
+//
+// This is the guard the whole design exists for. The leaderboard's anti-cheat is
+// that the client uploads the NIGHT and the server replays it, so a night that
+// does not replay to the same verdict is a scoring bug with a plausible face.
+//
+// EVERY FIELD THE CARD PRINTS, AS ONE COMPARISON. Not outcome, not turns — the
+// card. This project's endings have been miscounted by three unrelated
+// mechanisms, and while this guard was being written the replay agreed on
+// outcome, status, lossReason, turn, hour, health, found and tablet and was
+// wrong about KILLS by one: the fight that ends the night still counts, and the
+// replayer had guarded the counter with `if (status === "playing")`. Every
+// single-field check that could have been written here would have passed.
+//
+// It is driven by CLICKING, because a recorded night has to come from the same
+// path a person walks: the doorways on the board, the buttons in the actions
+// window, the panels that block until dismissed.
+test("replay: a night played through the UI replays to the same verdict (#142)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const DATA = { tiles, items, search, events };
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px";
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.innerHTML = sprite;
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+  host.appendChild(document.importNode(doc.querySelector(".board-pane"), true));
+  host.appendChild(document.importNode(doc.querySelector(".sidebar"), true));
+
+  const realMM = window.matchMedia;
+  // Reduced motion so the beats are short. It changes how long a stage is up,
+  // never which decisions are offered, so the night played is the same night.
+  window.matchMedia = (q) => /prefers-reduced-motion/.test(q)
+    ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} }
+    : realMM.call(window, q);
+
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 4242 });
+    game.start();
+    const t0 = Date.now();
+    while (game.state.status === "playing" && Date.now() - t0 < 25000) {
+      // Whatever is blocking, clear it; then take the turn's own control.
+      const stage = document.querySelector(".evstage");
+      if (stage) stage.click();
+      const rev = document.querySelector(".reveal");
+      if (rev) rev.click();
+      const note = document.querySelector(".notecard .notedismiss");
+      if (note) note.click();
+      const pick = host.querySelector("#actions .action") ||
+                   host.querySelector(".doorway:not([disabled])");
+      if (pick) pick.click();
+      await new Promise((r) => setTimeout(r, 15));
+    }
+
+    // PROVE THE REGION. A run still playing, or one that ended in two turns
+    // without a fight, satisfies every comparison below while testing nothing.
+    eq(game.state.status === "playing", false,
+      "the night never reached an ending in the budget, so there is no verdict " +
+      "to replay — everything below would be comparing two unfinished runs");
+    const night = game.night();
+    assert(night.actions.length >= 5,
+      "only " + night.actions.length + " actions were recorded; a night this " +
+      "short exercises almost none of the turn loop");
+    assert(night.actions.some((a) => a.t === "fight"),
+      "no fight was recorded, and the fight counter is the field that was wrong " +
+      "the first time this guard ran");
+
+    const played = verdictOf(game.state, game.tally);
+    const rep = replayNight(DATA, night);
+
+    // THE WHOLE CARD, ONE COMPARISON.
+    eq(JSON.stringify(rep.verdict), JSON.stringify(played),
+      "the replay produced a different night.\n  played:   " +
+      JSON.stringify(played) + "\n  replayed: " + JSON.stringify(rep.verdict));
+    eq(rep.unused, 0,
+      rep.unused + " recorded actions were never spent by the replay — it " +
+      "reached an ending by a different road");
+
+    // A DROPPED ACTION MUST BE DETECTED, and this is asserted rather than
+    // demonstrated once: an unrecorded decision is the failure mode the format
+    // exists to catch, and "it happened to diverge that time" is not a property.
+    // Detected means either a Divergence or a different verdict — both are the
+    // replay refusing to agree, which is all that is being claimed.
+    //
+    // WHAT CATCHES IT, MEASURED RATHER THAN ASSUMED: all eight drops on the
+    // recorded night are caught by the SEQUENCE check — the replay wants a
+    // decision of one kind and the list offers another ("a fight was answered
+    // with next"). None of them get as far as a different verdict. So this loop
+    // guards the sequencing, and the deep-equal above guards the arithmetic;
+    // they are two claims, not one restated.
+    //
+    // AND THE VERDICT IS A SCORE, NOT A FINGERPRINT — do not "strengthen" this
+    // into "any tampering is detected", because that is measurably false. Changing
+    // one recorded explore to another legal direction leaves the action types
+    // identical, so nothing above sees it; of the nine such swaps on this night,
+    // five replayed to a byte-identical verdict while ending in a DIFFERENT ROOM
+    // on a DIFFERENT LAYOUT. That is not a defect: whichever door is taken, the
+    // next tile off the deck is the same tile, so the same monster is met and the
+    // same fight is lost with the same counts. A replay verifies the score that
+    // was claimed; it does not pin the road walked to it, and #143 should promise
+    // no more than that.
+    for (let i = 0; i < night.actions.length; i++) {
+      const short = { ...night, actions: night.actions.filter((_, k) => k !== i) };
+      let detected = false;
+      try {
+        const bad = replayNight(DATA, short);
+        detected = JSON.stringify(bad.verdict) !== JSON.stringify(played) || bad.unused !== 0;
+      } catch (e) {
+        detected = true;
+      }
+      assert(detected,
+        "dropping action " + i + " (" + night.actions[i].t + ") still replayed to " +
+        "the same verdict — a recording can lose that decision and nobody finds out");
+    }
+  } finally {
+    window.matchMedia = realMM;
+    host.remove();
+    spriteHost.remove();
+    for (const el of document.querySelectorAll(".evstage, .notecard, .reveal, #overlay"))
+      el.remove();
+    clearChoices();
   }
 }));
 
