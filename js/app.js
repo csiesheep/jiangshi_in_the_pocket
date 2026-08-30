@@ -68,6 +68,8 @@ import {
   breakInCollapse,
   breakInClear,
   buryBeat,
+  graveDig,
+  GRAVE_CUTS,
   showCinnabarDialog,
 } from "./render.js";
 
@@ -515,10 +517,9 @@ export class Game {
       return;
     }
 
-    const r = E.completeRite(this.state, goal);
-    if (!r.ok) return;
-
     if (goal === "TAKE_TABLET") {
+      const r = E.completeRite(this.state, goal);
+      if (!r.ok) return;
       relicFound();
       // NOT counted as an item found. The 神主牌 is the object of the night —
       // it has its own line on the verdict card two rows down, and counting it
@@ -561,10 +562,67 @@ export class Game {
         });
       });
     }
-    // A burial ends the run. gameOver is reached from arrive(), which checks
-    // status the moment this returns; the beat here is the spade going in.
+    // ---- 下葬 -------------------------------------------------------------
+    // THE ACT HAPPENS BEFORE THE WIN, and the order is the whole care here.
+    // completeRite() calls finish(), which sets status to "won" SYNCHRONOUSLY —
+    // so from that line onward any refresh() paints the ending. Digging after
+    // it would be an animation playing over a finished game, and one stray
+    // refresh would cut to the verdict mid-dig.
+    //
+    // So: survive the rite's event (above), dig, lay the tablet, and only then
+    // tell the engine. The tablet is still held while the hole is being dug,
+    // which is both true and what completeRite requires.
     this.refresh();
-    return buryBeat("graveyard");
+    await this.buryTablet();
+
+    const r = E.completeRite(this.state, goal);
+    if (!r.ok) return;
+    this.refresh();
+  }
+
+  // Three presses, and nothing here advances on a timer. Each cut waits for the
+  // player, which is the entire point of #138: the night walked to this spot
+  // and the burial was a function call.
+  //
+  // DIGGING COSTS NO TURNS. The rules are a clean-room carry-over and the
+  // README says they carry over untouched; a turn per cut would make a run that
+  // reaches the grave at turn 28 holding the tablet unwinnable, which is a
+  // rules change wearing a presentation change's clothes.
+  async buryTablet() {
+    const dig = graveDig();
+    try {
+      for (let i = 0; i < GRAVE_CUTS; i++) {
+        await this.awaitCut(i, GRAVE_CUTS);
+        await dig.cut(i + 1, GRAVE_CUTS);
+      }
+      await dig.lay();
+    } finally {
+      // Whatever happens, the hole comes out of the tile and the scene is let
+      // go. A burial that threw would otherwise leave the board dimmed with a
+      // pit in it and no way back.
+      dig.close();
+      clearChoices();
+    }
+  }
+
+  // One press. The button is an ordinary action in the ordinary window, so it
+  // is a real <button>, reachable by keyboard, and renderActions puts focus
+  // back on the turn loop after each rebuild — which is what keeps the second
+  // and third presses from going nowhere.
+  awaitCut(done, of) {
+    return new Promise((resolve) => {
+      renderActions(
+        [{
+          kind: "dig",
+          label: this.ui("dig"),
+          sub: this.ui("dig-sub", { n: done + 1, of }),
+          primary: true,
+          onClick: () => { clearChoices(); resolve(); },
+        }],
+        this.line(done === 0 ? "bury-ask" : "bury-again"),
+        { health: this.state.health }
+      );
+    });
   }
 
   // ---- 破牆, the breach -----------------------------------------------------

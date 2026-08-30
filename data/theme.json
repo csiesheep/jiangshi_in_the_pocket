@@ -6,6 +6,8 @@
     "relic": "tablet"
   },
   "lines": {
+    "bury-ask": "The spade is in your hands. Nobody is coming to help.",
+    "bury-again": "Deeper. The tablet is still warm from being carried.",
     "_note": "Narration. Every player-visible sentence the turn loop speaks, so a translation is a data change and never a code change. Placeholders are {braced}. Keys are named for the MOMENT, not the function that happens to call them — a translator reads this file without the source beside them.",
     "wake": "You wake in the {room}. Find the {relic}{goal} before midnight.",
     "wake-goal": ", bury it in the {goal}",
@@ -58,6 +60,8 @@
     "search-replaced": "You take {item}, and let {dropped} fall."
   },
   "ui": {
+    "dig": "Dig",
+    "dig-sub": "{n} of {of}",
     "_note": "Labels, the small grey line under them, and the prompts over the choice window. Kept apart from `lines` because these are things you press and those are things the house says — a translator handles them differently, and these have to stay short enough for a narrow card.",
     "explore": "Go {dir} — explore",
     "explore-sub": "unexplored",

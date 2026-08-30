@@ -201,6 +201,8 @@
     "dismiss": "把它摺起來"
   },
   "lines": {
+    "bury-ask": "鏟子在你手上。沒有人會來幫你。",
+    "bury-again": "再深一點。神主牌還帶著你身上的溫度。",
     "wake": "你在{room}醒過來。天亮以前找到{relic}{goal}。",
     "wake-goal": "，埋回{goal}",
     "wait": "你在{room}裡等著。",
@@ -252,6 +254,8 @@
     "search-replaced": "你拿起{item}，讓{dropped}掉在地上。"
   },
   "ui": {
+    "dig": "挖",
+    "dig-sub": "第 {n} 下，共 {of} 下",
     "dir-N": "北",
     "dir-E": "東",
     "dir-S": "南",

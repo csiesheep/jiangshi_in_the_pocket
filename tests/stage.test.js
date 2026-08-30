@@ -18,6 +18,11 @@ import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
          showNote, noteValues, noteSegments, NOTE_MARK,
          renderActions } from "../js/render.js";
 import { Game } from "../js/app.js";
+// The board, for the burial guard: it walks a real run out to the Mass Grave
+// rather than placing the tile under the player, so what is tested is the
+// rite as it is actually reached.
+import { listMoves, explore, validExploreRotations, goOutside, moveTo,
+         currentTile } from "../js/board.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
@@ -2327,6 +2332,137 @@ test("hover: nothing that opens or lights anything hangs on :hover on touch (#13
       ":hover, so on a touch device nothing can open it at all");
   } finally {
     styles.remove();
+  }
+}));
+
+// 下葬 IS AN ACT NOW (#138): three presses, and two are not enough.
+//
+// The run is driven the whole way — a real Game, a real board explored until
+// the Mass Grave is on the table, the tablet held, riteBeat() awaited and the
+// buttons clicked. Nothing is stubbed except prefers-reduced-motion, and that
+// is stubbed BECAUSE the reduced-motion path is the one that silently breaks:
+// whatever advances the state is usually hung off an animation, and when the
+// animation does not run the sequence stops halfway with no way to finish.
+//
+// THE ASSERTION THAT MATTERS MOST IS THAT THE RUN STILL ENDS. A new ending beat
+// fails by never finishing, and a run that cannot reach its verdict is worse
+// than a flat verdict.
+test("burial: three presses bury the tablet, two do not (#138)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+  ]);
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const realMM = window.matchMedia;
+
+  // Walk out until the plot is placed, then stand on it. Same shape as the
+  // board suite's own helper: prefer new ground over pacing the seam.
+  const toTheGrave = (b) => {
+    for (let i = 0; i < 80; i++) {
+      for (const t of b.worlds.outdoor.values()) if (t.id === "mass-grave") return t;
+      const moves = listMoves(b);
+      if (!moves.length) return null;
+      const m = (!b.seamPlaced && moves.find((x) => x.type === "outside")) ||
+                moves.find((x) => x.type === "explore") ||
+                moves.find((x) => x.type === "move") || moves[0];
+      if (m.type === "explore") explore(b, m.dir, validExploreRotations(b, m.dir)[0]);
+      else if (m.type === "outside") goOutside(b);
+      else moveTo(b, m.dir);
+    }
+    return null;
+  };
+
+  const run = async ({ presses, reduced }) => {
+    const host = document.createElement("div");
+    host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px";
+    document.body.appendChild(host);
+    host.appendChild(document.importNode(doc.querySelector(".board-pane"), true));
+    host.appendChild(document.importNode(doc.querySelector(".sidebar"), true));
+    if (reduced) {
+      window.matchMedia = (q) => /prefers-reduced-motion/.test(q)
+        ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} }
+        : realMM.call(window, q);
+    }
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    if (game.start) game.start();
+    await new Promise((r) => setTimeout(r, 120));
+    const plot = toTheGrave(game.board);
+    const res = { reachedGrave: !!plot, digsOffered: 0, settled: false };
+    if (plot) {
+      game.board.player = { world: "outdoor", x: plot.x, y: plot.y };
+      game.state.tablet = true;
+      res.heldTablet = true;
+      res.goal = currentTile(game.board).def.goal;
+      game.riteBeat().then(() => { res.settled = true; });
+      // The label a player reads, from the theme rather than spelled here.
+      const DIG = themeEn.ui.dig;
+      for (let t = 0; t < 80 && !res.settled; t++) {
+        await new Promise((r) => setTimeout(r, 120));
+        const acts = [...host.querySelectorAll("#actions .action")];
+        if (!acts.length) continue;
+        const dig = acts.find((a) => {
+          const l = a.querySelector(".action-label");
+          return l && l.textContent.trim() === DIG;
+        });
+        if (dig) {
+          if (res.digsOffered >= presses) break;   // stop pressing, on purpose
+          res.digsOffered++;
+          dig.click();
+        } else {
+          acts[0].click();                          // answer the rite's own event
+        }
+      }
+    }
+    res.status = game.state.status;
+    res.outcome = game.state.outcome;
+    window.matchMedia = realMM;
+    host.remove();
+    clearChoices();
+    return res;
+  };
+
+  try {
+    // ---- 1. THREE PRESSES ---------------------------------------------------
+    const three = await run({ presses: 3, reduced: false });
+    // PROVE THE REGION FIRST: without the grave, the tablet and a button, every
+    // claim below is about a run that never got there.
+    assert(three.reachedGrave, "the Mass Grave was never placed, so nothing was buried");
+    eq(three.goal, "BURY_TABLET", "the tile stood on is not the burial ground");
+    assert(three.heldTablet, "the tablet was not held, so there was no rite");
+    eq(three.digsOffered, 3,
+      "the dig button was offered " + three.digsOffered + " times, not three — " +
+      "the act is supposed to take three presses");
+    eq(three.status, "won", "three presses did not end the run");
+    eq(three.outcome, "WIN_BURIAL",
+      "three presses ended the run as " + three.outcome + " rather than a burial");
+
+    // ---- 2. TWO PRESSES ARE NOT ENOUGH -------------------------------------
+    //      Asserted separately and falsifiable separately: "three wins" and
+    //      "two does not" can both be made to fail on their own, which is the
+    //      difference between two assertions and one.
+    const two = await run({ presses: 2, reduced: false });
+    eq(two.digsOffered, 2, "the harness did not stop at two presses");
+    eq(two.status, "playing",
+      "two presses ended the run (" + two.status + "/" + two.outcome + ") — the " +
+      "burial completed without the last cut, so the third press is decoration");
+    assert(!two.outcome, "two presses produced an outcome: " + two.outcome);
+
+    // ---- 3. AND IT STILL FINISHES WITH THE ANIMATION TURNED OFF ------------
+    const calm = await run({ presses: 3, reduced: true });
+    eq(calm.digsOffered, 3,
+      "under reduced motion the dig was offered " + calm.digsOffered + " times — " +
+      "the presses are waiting on an animation that never runs");
+    eq(calm.status, "won",
+      "under reduced motion the burial never completed, so the run cannot end. " +
+      "A player who asked for less motion is stuck on the last screen of the game");
+    eq(calm.outcome, "WIN_BURIAL", "reduced motion reached " + calm.outcome);
+  } finally {
+    window.matchMedia = realMM;
+    clearChoices();
+    for (const el of document.querySelectorAll(".notecard, .revealcard")) el.remove();
   }
 }));
 

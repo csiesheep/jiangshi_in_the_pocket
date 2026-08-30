@@ -2422,6 +2422,83 @@ const DIG_CUTS = { graveyard: 3, temple: 2 };
 const DIG_GAP_MS = 640;
 
 
+// 下葬, AS AN ACT RATHER THAN A FUNCTION CALL (#138).
+//
+// buryBeat() below still exists and still runs itself: it is the TEMPLE burial
+// and the reduced-motion path for anything that is not the player's own hands.
+// This one is the grave at the end of the night, and the difference is that
+// nothing here advances on a timer — each cut waits for a press.
+//
+// THE HOLE IS A CSS SHAPE, NOT A DRAWING. Nothing in assets/icons.svg draws a
+// spade or a hole and none is added here: .grave is a radial gradient whose
+// width, height and opacity all read --depth, so "deeper" is one number moving
+// and the ground opens rather than a second picture replacing the first. That
+// was already true of the automatic version; what is new is who moves it.
+//
+// It returns a handle instead of a promise because the caller owns the rhythm:
+// the game decides when a cut happens, because the player does.
+export function graveDig() {
+  const box = document.querySelector(".focus-centre .tilebox");
+  const hole = document.createElement("span");
+  hole.className = "grave";
+  hole.setAttribute("aria-hidden", "true");
+  hole.style.setProperty("--depth", "0");
+  if (box) box.appendChild(hole);
+
+  const quiet = reducedMotion();
+  if (!quiet) {
+    enterScene();
+    document.body.classList.add("burying");
+  }
+
+  let closed = false;
+  return {
+    // One cut. The cue plays either way — the same rule the door, the wall and
+    // the automatic burial follow: what reduced motion removes is the picture,
+    // never the fact that something happened.
+    cut(n, of) {
+      shovel();
+      heartbeat(1);
+      hole.style.setProperty("--depth", String(n / of));
+      return quiet ? Promise.resolve() : pause(DIG_STEP_MS);
+    },
+
+    // The 神主牌 goes in. This is the moment the whole night is for, so it gets
+    // its own beat rather than being the tail of the last cut.
+    lay() {
+      const tab = uiIcon("relic", "gravetablet");
+      if (!tab) return Promise.resolve();
+      tab.setAttribute("aria-hidden", "true");
+      if (box) box.appendChild(tab);
+      if (quiet) {
+        // Still placed, still visible, no fall. Removing it immediately would
+        // mean the one act the player pressed for never appeared to them.
+        return pause(TABLET_REST_MS).then(() => { tab.remove(); });
+      }
+      tab.classList.add("gravetablet--falling");
+      return pause(TABLET_FALL_MS).then(() => { tab.remove(); });
+    },
+
+    close() {
+      if (closed) return;
+      closed = true;
+      hole.remove();
+      document.body.classList.remove("burying");
+      if (!quiet) leaveScene();
+    },
+  };
+}
+
+// How many cuts the grave takes. Read by the app and by the guard, so "three
+// presses" is one number rather than a count written down in three places.
+export const GRAVE_CUTS = DIG_CUTS.graveyard;
+const DIG_STEP_MS = 340;
+const TABLET_FALL_MS = 620;
+const TABLET_REST_MS = 420;
+// Timer-backed like every awaited beat in this file: a hidden tab advances no
+// animations, and a turn must never hang waiting for one.
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export function buryBeat(kind = "graveyard") {
   const full = kind === "graveyard";
   const cuts = DIG_CUTS[kind] || 2;

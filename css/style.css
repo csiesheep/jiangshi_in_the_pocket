@@ -5309,8 +5309,36 @@ body.burying .board-pane::after {
   animation: none;
 }
 
+/* The 神主牌 going in (#138). Over the hole, and small: it is the size of the
+   thing you have been carrying all night, not a title card. */
+.gravetablet {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 22%;
+  height: auto;
+  transform: translate(-50%, -160%);
+  color: var(--gold);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+/* Held, released, gone. The fall is short and it does not bounce — the ground
+   is soft, which is what rite-bury has been saying since before this existed. */
+.gravetablet--falling { animation: tabletfall 620ms ease-in forwards; }
+@keyframes tabletfall {
+  0%   { transform: translate(-50%, -160%); opacity: 0; }
+  22%  { transform: translate(-50%, -150%); opacity: 1; }
+  76%  { transform: translate(-50%, -46%);  opacity: 1; }
+  100% { transform: translate(-50%, -40%);  opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .grave { transition: none; }
+  /* No fall, and NOT no tablet: the one act the player pressed three times for
+     has to be visible to them. It is simply placed, and held for a beat. */
+  .gravetablet { opacity: 1; transform: translate(-50%, -46%); }
+  .gravetablet--falling { animation: none; }
 }
 
 /* ---- The menu as a cold open -------------------------------------------------
