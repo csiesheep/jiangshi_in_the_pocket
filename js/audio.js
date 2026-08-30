@@ -108,6 +108,7 @@ export function setMuted(next) {
     // Nothing is built while muted, so anything that was supposed to be
     // running has to be built now rather than waiting for the next event.
     if (murmurWanted) startMurmur(murmurWanted);
+    if (watchWanted) startWatch();
     if (scoreWanted) { buildScore(); applyScore(); }
     if (poundWanted) startPounding(poundWanted);
     // No fade: there is nothing to fade from, and the first cue after unmuting
@@ -115,6 +116,7 @@ export function setMuted(next) {
     applySpace(0);
   } else {
     tearDownMurmur();
+    tearDownWatch();
     tearDownScore();
     stopPounding();
     // The convolver is left alone. It holds no oscillators and costs nothing
@@ -1332,6 +1334,12 @@ function weight(lo, hi) {
 // moves a bed — see the note above — but it still feeds weight().
 export function setDread(x) {
   dread = Math.min(Math.max(Number(x) || 0, 0), 1);
+  // His PACE follows dread on its own, at the moment each pass is scheduled.
+  // This is only his level, and it is the one held sound left that has one.
+  if (watch && !ducked) {
+    const c = live();
+    if (c) watch.gain.gain.linearRampToValueAtTime(watchLevel(), c.currentTime + 2);
+  }
 }
 
 // ---- The room you are standing in --------------------------------------------
@@ -1538,12 +1546,14 @@ export function duckForScare() {
   const c = live();
   // Nothing audible means nothing to take away, and a silence nobody can hear
   // is just a delay.
-  if (!c || !murmur) return 0;
+  // The watch counts as audible (#125). After #128 the murmur is the only other
+  // held sound, so a guard naming one of the two things it ducks is a trap.
+  if (!c || (!murmur && !watch)) return 0;
 
   ducked = true;
   const t = c.currentTime;
   const fall = DUCK_MS / 1000;
-  for (const node of [murmur]) {
+  for (const node of [murmur, watch]) {
     if (!node) continue;
     const g = node.gain.gain;
     g.cancelScheduledValues(t);
@@ -1561,6 +1571,11 @@ export function unduck() {
   const c = live();
   if (!c) return;
   const t = c.currentTime;
+  if (watch) {
+    watch.gain.gain.cancelScheduledValues(t);
+    watch.gain.gain.setValueAtTime(Math.max(watch.gain.gain.value, 0.0001), t);
+    watch.gain.gain.exponentialRampToValueAtTime(watchLevel(), t + 1.6);
+  }
   if (murmur) {
     const weight = Math.min(Math.max((murmurWanted - 3) / 3, 0), 1);
     murmur.gain.gain.cancelScheduledValues(t);
@@ -1754,6 +1769,9 @@ export function setScoreRelief(x) {
 // nothing that lingers — but it still takes its six seconds, because the bell
 // is what the player should notice, not the music leaving.
 export function setScoreHour(hour) {
+  // The watch rides the same hour (#125). One call site, and the two things
+  // that empty the last hour are decided next to each other.
+  applyWatchHour(hour);
   scoreWanted = SCORE_LAYERS[hour] ?? 0;
   if (scoreWanted === 0) {
     if (score) applyScore();
@@ -1761,6 +1779,207 @@ export function setScoreHour(hour) {
   }
   buildScore();
   applyScore();
+}
+
+// ---- 打更, the watch being kept (#125) ------------------------------------
+// A man is walking the village striking the watches, and this is him between
+// the hours rather than on them. watchDrum() is the ANNOUNCEMENT — struck N
+// times on the hour, on master, where the count is the information. This is the
+// pulse underneath it: one soft strike and the two dry knocks of the 梆子
+// behind it, closer together as the night runs out.
+//
+// IT IS IN THE FICTION, NOT OVER IT. The letter already says 鼓一響他就醒了 —
+// the drum is a thing in the village that the game's own text refers to. So it
+// goes on the WEATHER bus with the wind, not on master with the score: it is a
+// sound in the world, and muffling the room has to muffle it.
+//
+// WHY NOT REUSE watchDrum(). Different bus, different level, and different job.
+// Folding them into one voice would mean editing a cue that currently works, to
+// save a few lines, in a session where nobody can hear the result. That trade is
+// not worth taking — see the note at the foot of this block.
+//
+// NO SEPARATE SWITCH. It rides jitp:muted like everything else, and its
+// lifecycle hangs off the hour the score already reads, so there is no new call
+// site in render.js and no second thing for a player to find and turn off.
+const WATCH_GAP_EARLY = 8.0; // seconds between passes at nine
+const WATCH_GAP_LATE = 4.5;  // ...and when the night has nearly run out
+const CLAP_GAP = 0.17;       // the 梆子 is TWO knocks, and the gap is the instrument
+// The shell's two modes: [hz, level, seconds]. Inharmonic on purpose — 762 and
+// 1013 are not a ratio of anything, because a drum is not. Both clear 700Hz,
+// which is the whole reason they exist.
+const SHELL = [[762, 0.14, 0.24], [1013, 0.09, 0.18]];
+
+// Which hours he is still walking. THE LAST HOUR IS EMPTY, and that is not a
+// separate decision from the score's — SCORE_LAYERS maps 23 to zero voices for
+// the reason written above it: the silence in the last hour is what three hours
+// of something under the floor were FOR. A drum still pulsing through it would
+// spend that silence.
+//
+// If the ruling turns out to be that 三更 means midnight rather than eleven,
+// this is the one line to change, and nothing else moves.
+const WATCH_HOURS = { 21: true, 22: true, 23: false };
+
+let watch = null;        // { gain, timer } while he is out there
+let watchWanted = false; // whether the game wants him at all
+
+// One pass: the drum, then the clapper a beat behind it. Deliberately quiet and
+// deliberately dull — this is a man two streets away, so there is no stick
+// attack to speak of and the top is gone off all of it.
+function watchPass(c) {
+  if (!watch) return;
+  const t = c.currentTime + 0.02;
+
+  // The skin, falling like watchDrum's but softer and slower: distance takes
+  // the edge off a drum before it takes the body.
+  const skin = c.createOscillator();
+  skin.type = "sine";
+  skin.frequency.setValueAtTime(88, t);
+  skin.frequency.exponentialRampToValueAtTime(54, t + 0.14);
+  const sg = c.createGain();
+  sg.gain.setValueAtTime(0.0001, t);
+  sg.gain.exponentialRampToValueAtTime(0.5, t + 0.012);
+  sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+  skin.connect(sg).connect(watch.gain);
+  skin.start(t);
+  skin.stop(t + 0.8);
+
+  // THE SHELL, AND IT IS WHY THIS IS A DRUM ON A PHONE (#125). The skin above
+  // is a pure SINE sweeping 88Hz to 54Hz — a sine has energy at one frequency
+  // and nowhere else, so it has NO harmonics and contributes exactly zero above
+  // a handset's rolloff. Measured analytically rather than through a filter:
+  // 96.4% of this strike's energy was the skin, and none of it reached a phone.
+  // What played was the 梆子 alone — two dry ticks and no drum under them.
+  //
+  // NOT THE SCORE'S FIX. #126 gave the drone consecutive harmonics so the ear
+  // reconstructs the fundamental from their spacing. A drum's overtones are
+  // INHARMONIC, so that trick is wrong here and would sound like a pitched
+  // instrument. This is the wooden body instead: two modes, well above the
+  // rolloff, dying faster than the skin does — which is what a struck shell
+  // actually does.
+  for (const [hz, level, life] of SHELL) {
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.value = hz;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(level, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + life);
+    o.connect(g).connect(watch.gain);
+    o.start(t);
+    o.stop(t + life + 0.05);
+  }
+
+  // 梆子: two knocks of hardwood on hardwood. Short, dry, no pitch to speak
+  // of — a bandpass high enough to read as wood and a decay too fast to ring.
+  for (let i = 0; i < 2; i++) {
+    const at = t + 0.28 + i * CLAP_GAP;
+    const src = c.createBufferSource();
+    src.buffer = noise(c);
+    const bp = c.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 2100;
+    bp.Q.value = 1.6;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    // The second knock is the lighter one. Two identical strikes read as a
+    // machine; a hand is never quite even.
+    g.gain.exponentialRampToValueAtTime(i === 0 ? 0.22 : 0.16, at + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.045);
+    src.connect(bp).connect(g).connect(watch.gain);
+    src.start(at);
+    src.stop(at + 0.08);
+  }
+
+  // The next pass is scheduled from the dread of the moment it is scheduled,
+  // not from a fixed table — so the night closing in shortens his round while
+  // he is walking it, rather than at a step when the hour changes.
+  const gap = weight(WATCH_GAP_EARLY, WATCH_GAP_LATE);
+  watch.timer = setTimeout(() => watchPass(c), gap * 1000);
+}
+
+function startWatch() {
+  const c = live();
+  if (!c || watch) return;
+  const gain = c.createGain();
+  // Six decibels under the score: he is the far side of the village, and the
+  // wind he used to sit beneath is gone (#128).
+  gain.gain.value = ducked ? 0.0001 : watchLevel();
+  gain.connect(weather || master);
+  watch = { gain, timer: 0 };
+  // Off-beat from the hour so his first strike does not land on top of
+  // watchDrum's announcement and read as one drum stuttering.
+  watch.timer = setTimeout(() => watchPass(c), 2200);
+}
+
+// THE LEVEL, ANCHORED TO SOMETHING THAT STILL EXISTS (#125).
+//
+// The old value — 0.010 + dread * 0.016 — was chosen to sit under the wind bed,
+// and #128 deleted the wind. A constant tuned against a reference that no longer
+// exists is not slightly wrong, it is UNANCHORED, so it was re-derived rather
+// than nudged.
+//
+// The reference is now the score, because after #128 it is the only other
+// continuous thing in the night. Its delivered level above a handset's rolloff
+// is 0.01159 (power sum of the six partials that clear 700Hz — the power sum,
+// not the arithmetic one, because sinusoids at different frequencies do not add
+// coherently and it is loudness we are aiming at).
+//
+// THE RATIO IS 6 dB UNDER THE SCORE AT NINE, and I am choosing it rather than
+// asking for it. A dB figure is not something to put to somebody who cannot
+// hear the thing being measured — that is how the peek floor came to be set
+// from a number nobody could perceive. So: a struck transient six decibels
+// under the continuous bed is audible without competing with it, which is what
+// a man two streets away should be. The strike's own amplitude above the
+// rolloff is about 0.275, so:
+//
+//     0.01159 / 2  =  0.0058 target        0.0058 / 0.275  =  0.021
+//
+// It rises with dread by the same proportion the old one did — the night
+// closing in makes him louder as well as faster.
+//
+// ADJUST THIS BY EAR. Nobody on this project has heard it; the arithmetic only
+// establishes that something arrives, not that it sounds right.
+function watchLevel() {
+  return 0.021 + dread * 0.013;
+}
+
+function tearDownWatch() {
+  if (!watch) return;
+  clearTimeout(watch.timer);
+  try {
+    watch.gain.disconnect();
+  } catch {
+    /* already gone */
+  }
+  watch = null;
+}
+
+// Hung off the hour rather than given its own setter, so renderHour needs no
+// new call and the two things that empty the last hour are read from one place.
+function applyWatchHour(hour) {
+  watchWanted = !!WATCH_HOURS[hour];
+  if (!watchWanted) return stopWatch();
+  startWatch();
+}
+
+// He walks away rather than vanishing. Cutting a repeating sound dead is the
+// one thing that would announce it as a sound effect.
+function stopWatch() {
+  const c = live();
+  if (!c || !watch) return tearDownWatch();
+  const dying = watch;
+  watch = null;
+  clearTimeout(dying.timer);
+  dying.gain.gain.cancelScheduledValues(c.currentTime);
+  dying.gain.gain.setValueAtTime(Math.max(dying.gain.gain.value, 0.0001), c.currentTime);
+  dying.gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 2.2);
+  setTimeout(() => {
+    try {
+      dying.gain.disconnect();
+    } catch {
+      /* fine */
+    }
+  }, 2500);
 }
 
 function tearDownScore() {

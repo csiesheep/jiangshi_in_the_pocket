@@ -5113,3 +5113,104 @@ function contrastOf(fg, bg) {
   const a = L(px(fg)), b = L(px(bg));
   return Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100;
 }
+
+// The watch drum has to put energy where a phone can move it (#125), and this
+// asserts THE EFFECT rather than the wiring.
+//
+// That distinction is the whole reason this test is shaped the way it is. The
+// burn shipped broken with 380 tests green because every assertion was about
+// mechanism — did it fire, on the right outcome, skippably — and all four would
+// have passed if it had rendered nothing. A check that SHELL is destructured
+// and connected is exactly that kind of test: it passes on a shell whose gain
+// is zero, which is the failure it exists to catch.
+//
+// So this renders the strike twice, offline, with and without the shell, and
+// requires the energy above 700Hz to actually RISE. Offline rendering needs no
+// user gesture, which is why this is measurable at all on a machine where
+// nobody can hear anything.
+test("the watch drum reaches a phone, and the shell is why", async () => {
+  const src = await fetch("../js/audio.js", NO_STORE).then((r) => r.text());
+
+  // The constants come from the shipped file, so this measures the product's
+  // numbers rather than a copy that can drift away from them.
+  const at = src.indexOf("const SHELL = ");
+  assert(at !== -1, "audio.js has no SHELL table - the drum has lost its body");
+  const shell = [...src.slice(at, src.indexOf(";", at))
+    .matchAll(/\[\s*(\d+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]/g)]
+    .map((m) => [Number(m[1]), Number(m[2]), Number(m[3])]);
+  assert(shell.length >= 2,
+    "fewer than two shell modes parsed from audio.js, so this guard is measuring almost nothing");
+  for (const [hz] of shell) {
+    assert(hz >= 700,
+      "a shell mode sits at " + hz + "Hz, under the rolloff it exists to clear - " +
+      "it would add nothing on the device this was written for");
+  }
+
+  const SR = 44100;
+  const strike = async (withShell) => {
+    const oc = new OfflineAudioContext(1, SR, SR);
+    const out = oc.createGain();
+    out.gain.value = 1;
+    out.connect(oc.destination);
+    // The skin, as watchPass builds it: a pure sine and therefore no harmonics.
+    const skin = oc.createOscillator();
+    skin.type = "sine";
+    skin.frequency.setValueAtTime(88, 0);
+    skin.frequency.exponentialRampToValueAtTime(54, 0.14);
+    const sg = oc.createGain();
+    sg.gain.setValueAtTime(0.0001, 0);
+    sg.gain.exponentialRampToValueAtTime(0.5, 0.012);
+    sg.gain.exponentialRampToValueAtTime(0.0001, 0.75);
+    skin.connect(sg).connect(out);
+    skin.start(0);
+    skin.stop(0.8);
+    if (withShell) {
+      for (const [hz, level, life] of shell) {
+        const o = oc.createOscillator();
+        o.type = "sine";
+        o.frequency.value = hz;
+        const g = oc.createGain();
+        g.gain.setValueAtTime(0.0001, 0);
+        g.gain.exponentialRampToValueAtTime(level, 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, life);
+        o.connect(g).connect(out);
+        o.start(0);
+        o.stop(life + 0.05);
+      }
+    }
+    return await oc.startRendering();
+  };
+
+  // Energy above the rolloff, by BAND rather than through a filter: a biquad
+  // highpass has resonant gain at its corner and flatters whatever sits just
+  // under it, which is how #126's first measurement reported a 0.4% fix as
+  // 22.4%. A Goertzel sum over the band has no such opinion.
+  const bandPower = (buf, lo, hi) => {
+    const d = buf.getChannelData(0);
+    let total = 0;
+    for (let f = lo; f <= hi; f += 25) {
+      const w = (2 * Math.PI * f) / SR;
+      const cw = 2 * Math.cos(w);
+      let s1 = 0, s2 = 0;
+      for (let i = 0; i < d.length; i++) {
+        const s0 = d[i] + cw * s1 - s2;
+        s2 = s1; s1 = s0;
+      }
+      total += s1 * s1 + s2 * s2 - cw * s1 * s2;
+    }
+    return total;
+  };
+
+  const bare = await strike(false);
+  const bodied = await strike(true);
+  const bareAbove = bandPower(bare, 700, 1400);
+  const bodiedAbove = bandPower(bodied, 700, 1400);
+
+  // PROVE THE REGION: the bare strike must actually be near-silent up there, or
+  // "the shell raised it" would be a claim about noise.
+  assert(bodiedAbove > 0, "no energy above 700Hz even WITH the shell - nothing was rendered");
+  assert(bodiedAbove > bareAbove * 50,
+    "the shell raises energy above 700Hz by only " +
+    (bodiedAbove / Math.max(bareAbove, 1e-30)).toFixed(1) + "x - it is wired but not " +
+    "sounding, which is what a check on the wiring alone would have missed");
+});
