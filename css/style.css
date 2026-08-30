@@ -6685,12 +6685,14 @@ body.asleep .fog {
    not a headline. */
 .menu-credit {
   margin: auto 0 0;
-  /* 10px, not the 28 first tried: the poster fit a 667-high phone exactly
-     before this line existed (638px of content), and every pixel spent here is
-     scroll on an SE. At 10px + 1.45 line-height the credit costs ~48px — whole
-     on anything 690 and taller, a small peek below the fold on the shortest
-     phones, which is acceptable for a credit and not for the talismans. */
-  padding-top: 10px;
+  /* 22px, and the exact-fit chase is abandoned on purpose. The poster fit a
+     667-high phone exactly before this line existed (638px of content); at 10px
+     the credit squeezed to 2px under the last talisman to buy back 15px of
+     scroll that remained anyway. So: comfortable spacing, ~27px of scroll on
+     the very shortest phones (SE-class, 667), nothing at 690+. A credit that
+     peeks below the fold invites the scroll; a credit jammed against the
+     talismans just looks like an accident. */
+  padding-top: 22px;
   line-height: 1.45;
   font-size: .74rem;
   color: color-mix(in srgb, var(--muted) 72%, transparent);
