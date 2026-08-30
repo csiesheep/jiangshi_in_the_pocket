@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-6b3ce901";
+const CACHE = "jiangshi-ead8b349";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -56,7 +56,7 @@ const SHELL_DIGEST = {
   "credits.html":                           "067a6ba293",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "c839cd7868",
-  "css/style.css":                          "d7ef792a54",
+  "css/style.css":                          "9dcaaef341",
   "js/app.js":                              "16a495b90c",
   "js/eventstage.js":                       "386cb3320d",
   "js/engine.js":                           "436c6f5a3d",
