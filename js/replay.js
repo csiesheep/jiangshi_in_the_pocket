@@ -34,12 +34,19 @@ export const ACT = {
   KIT: "kit",                          // what is brought to midnight
 };
 
-// THE DIG IS NOT RECORDED, deliberately. Three presses with no branch and no
-// draw: they are an act the player performs, not a decision the night turns on,
-// and completeRite happens after the third whatever else was pressed. Recording
-// them would put three entries in every winning night that the replay must skip
-// over, which is a shape that invites an off-by-one. If the burial ever becomes
-// a choice — dig or walk away — it becomes an action and belongs above.
+// THE RITE IS NOT RECORDED, and the reason is stronger than "it is only a few
+// presses": IT IS NOT A DECISION AT ALL. app.js:530 riteBeat fires from where
+// the player is STANDING — goal tile, riteDraws() true — with no button to
+// decline and no branch to take. completeRite() consumes no draw and reads only
+// state.fled and state.tablet, so a replay that arrives at the same tile in the
+// same state performs the same rite by arriving.
+//
+// Its one branch is `fled`, and fleeing IS recorded (ACT.FLEE), so the abort
+// path is derived from an action rather than guessed at. That is what makes the
+// omission checkable rather than a hope.
+//
+// If the burial ever becomes a choice — dig or walk away — it stops being a
+// consequence and becomes an action, and it belongs in the list above.
 
 class Divergence extends Error {}
 
