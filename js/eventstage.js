@@ -287,6 +287,22 @@ function buildBurn(inner, ctx) {
             'numOctaves="2" seed="1" result="n">' + writhe + '</feTurbulence>' +
           '<feDisplacementMap in="SourceGraphic" in2="n" scale="17" ' +
             'xChannelSelector="R" yChannelSelector="G"/>' +
+          // 邊緣模糊化. 「黃色遮罩很醜」 — and the reason is worth keeping,
+          // because the blur treats the symptom rather than the cause and the
+          // owner chose to try the cheap thing first, which is the right order.
+          //
+          // king-figure is fully PAINTED, so its alpha is a solid body: every
+          // pixel inside the outline takes the gradient at full strength. That
+          // is a silhouette fill — an orange cut-out of a man. Real fire is
+          // bright at its edges and its tips and thin through the middle, which
+          // is the opposite distribution. Softening the boundary makes the
+          // cut-out stop reading as a cut-out; it does NOT redistribute the
+          // brightness, and if this is still wrong the next thing to reach for
+          // is a rim (blurred minus sharp, so alpha survives only where the
+          // edge moved and his body stays dark) rather than more blur.
+          //
+          // Not motion, an edge — so it applies under reduced motion too.
+          '<feGaussianBlur stdDeviation="5"/>' +
         '</filter>' +
         // Hot low, cooling upward, and the hot core is MIXED from the early
         // flame rather than being a fourth colour invented for this screen.
