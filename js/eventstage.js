@@ -231,10 +231,27 @@ export function kingBurn() {
 }
 
 // The same figure and the same smoke as the arrival, so it reads as the same
-// man rather than a new picture of one. He is drawn in the candle's own colours
-// — --flame-early into --flame-late, the tokens the gutter already interpolates
-// — because the night has exactly one fire in it and this is that fire finally
-// getting him.
+// man rather than a new picture of one.
+//
+// THE FIRE IS ITS OWN LAYER, MASKED TO HIS SILHOUETTE, and that is forced
+// rather than chosen. The first version animated `color` on the span holding
+// the art and expected it to inherit. It could not, for two independent
+// reasons: .king-art sets color on the inner <svg> itself, and king-figure uses
+// NO currentColor at all — 40 hardcoded fills and 17 gradient references. It is
+// a painted figure, so repainting it by inheritance was never available. What
+// shipped was a grey man with an orange drop-shadow behind him, which is
+// exactly 「only from back」.
+//
+// mask-type="alpha" is what makes the mask work on painted art: a luminance
+// mask would read his own light and dark and give a ghost of the painting,
+// where alpha gives the SHAPE regardless of what colours are in it.
+//
+// AND THE MASK IS WHAT WRITHES, not the fire inside it. Displacing the fire
+// under a still mask keeps it inside the outline, which is a tint; displacing
+// the MASK breaks the silhouette, so the edges move and tongues lick off the
+// shoulders. One filter buys irregular edges and escape at once.
+const BURN_VB = "0 0 200 300";
+
 function buildBurn(inner, ctx) {
   const smoke = document.createElement("span");
   smoke.className = "burn-smoke";
@@ -248,6 +265,47 @@ function buildBurn(inner, ctx) {
   const art = icon("king", "figure", "king-art");
   if (art) fig.appendChild(art);
   inner.appendChild(fig);
+
+  // Built as markup because it is mostly defs, and every id here is namespaced
+  // so a second burn in one session cannot collide with the first.
+  const NS = "burn" + Math.random().toString(36).slice(2, 8);
+  const fire = document.createElement("span");
+  fire.className = "burn-fire";
+  fire.setAttribute("aria-hidden", "true");
+  // Real flame varies at roughly 10-20 Hz. A single ease across the whole beat
+  // IS a glow, which is why the first version read as one. Eight seeds at 80ms
+  // is 12.5 Hz. Under reduced motion the seed simply does not move: the fire is
+  // still there and still his shape, it just stops flickering.
+  const writhe = ctx && ctx.reduced ? "" :
+    '<animate attributeName="seed" values="1;7;3;9;2;8;4;6;1" ' +
+    'dur="0.64s" repeatCount="indefinite"/>';
+  fire.innerHTML =
+    '<svg class="burn-fire-svg" viewBox="' + BURN_VB + '" aria-hidden="true">' +
+      '<defs>' +
+        '<filter id="' + NS + 'w" x="-25%" y="-25%" width="150%" height="150%">' +
+          '<feTurbulence type="fractalNoise" baseFrequency="0.021 0.058" ' +
+            'numOctaves="2" seed="1" result="n">' + writhe + '</feTurbulence>' +
+          '<feDisplacementMap in="SourceGraphic" in2="n" scale="17" ' +
+            'xChannelSelector="R" yChannelSelector="G"/>' +
+        '</filter>' +
+        // Hot low, cooling upward, and the hot core is MIXED from the early
+        // flame rather than being a fourth colour invented for this screen.
+        '<linearGradient id="' + NS + 'g" x1="0" y1="1" x2="0" y2="0">' +
+          '<stop class="burn-stop burn-stop--low" offset="0"/>' +
+          '<stop class="burn-stop burn-stop--mid" offset="0.42"/>' +
+          '<stop class="burn-stop burn-stop--hot" offset="0.86"/>' +
+        '</linearGradient>' +
+        '<mask id="' + NS + 'm" mask-type="alpha" maskUnits="userSpaceOnUse" ' +
+          'x="-60" y="-90" width="320" height="480">' +
+          '<g filter="url(#' + NS + 'w)">' +
+            '<use href="#king-figure" x="0" y="0" width="200" height="300"/>' +
+          '</g>' +
+        '</mask>' +
+      '</defs>' +
+      '<rect class="burn-flame" x="-60" y="-90" width="320" height="480" ' +
+        'fill="url(#' + NS + 'g)" mask="url(#' + NS + 'm)"/>' +
+    '</svg>';
+  inner.appendChild(fire);
 }
 
 // He is already there. The only thing that arrives is the room's reaction to

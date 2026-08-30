@@ -8,7 +8,7 @@
 
 import { test, assert, eq, skipUnless, suite } from "./harness.js";
 import {
-  eventStage, kingScene, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
+  eventStage, kingScene, kingBurn, stageKinds, stageBudgetMs, kingBudgetMs, nightCostMs, BEAT_MS,
   resetStageHints,
 } from "../js/eventstage.js";
 import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
@@ -2594,6 +2594,149 @@ test("midnight: he burns on the seal and not on the loss (#139)", serial(async (
     window.matchMedia = realMM;
     clearChoices();
     for (const el of document.querySelectorAll(".evstage")) el.remove();
+  }
+}));
+
+// IS ANY OF IT ORANGE (#140).
+//
+// THIS IS THE ASSERTION WHOSE ABSENCE LET THE BUG SHIP. #139 checked that he
+// burned on a win, not on a loss, that the verdict was reached under reduced
+// motion and when skipped — every property of the burn except whether a single
+// pixel of it was warm. What was actually on screen was a grey man with an
+// orange drop-shadow behind him, because .king-art sets color on the inner
+// <svg> so the animated colour on the parent never inherited, and because
+// king-figure carries no currentColor at all: 40 hardcoded fills and 17
+// gradient references. It is painted, so repainting it by inheritance was never
+// available and no amount of animating `color` could have worked.
+//
+// SAMPLED MID-ANIMATION BY SEEKING, not by waiting. At rest the burn has not
+// started and every colour reads correct — the same shape as measuring a layout
+// at rest and missing what only happens in flight. Waiting does not work here
+// either: a hidden document does not advance CSS animations at all, so a
+// wall-clock sample reads frame zero forever.
+test("burn: the fire is on him and it is warm (#140)", serial(async () => {
+  const [css, sprite] = await Promise.all([
+    fetch("../css/style.css", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.setAttribute("aria-hidden", "true");
+  spriteHost.innerHTML = sprite;
+  document.head.appendChild(styles);
+  document.body.appendChild(spriteHost);
+
+  // Any CSS colour to rgb, through the browser — stop-color resolves to
+  // color(srgb ...) for a color-mix, which no regex written here would read.
+  const rgbOf = (col) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 2;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    x.fillStyle = "#000"; x.fillRect(0, 0, 2, 2);
+    x.fillStyle = col; x.fillRect(0, 0, 2, 2);
+    const d = x.getImageData(1, 1, 1, 1).data;
+    return [d[0], d[1], d[2]];
+  };
+  const isWarm = ([r, g, b]) => r > 120 && r > b + 40;
+
+  let stage = null;
+  try {
+    kingBurn();
+    await new Promise((r) => setTimeout(r, 60));
+    stage = document.querySelector(".evstage.kingburn");
+    assert(stage, "kingBurn() put no stage on the page");
+
+    const fire = stage.querySelector(".burn-fire");
+    const fig = stage.querySelector(".burn-fig");
+    assert(fire && fig, "the burn has no fire layer or no figure");
+
+    const seek = (el, frac) => {
+      const a = el.getAnimations()[0];
+      assert(a, "no animation on " + el.className + ", so there is no mid-flight to sample");
+      const d = a.effect.getTiming().duration;
+      a.pause();
+      a.currentTime = d * frac;
+      return d;
+    };
+    seek(fire, 0.45);
+    seek(fig, 0.45);
+    await new Promise((r) => setTimeout(r, 40));
+
+    // 1. THE FIRE IS ACTUALLY SHOWING at the frame being measured. Without this
+    //    every colour below is the paint of an invisible layer.
+    const shown = parseFloat(getComputedStyle(fire).opacity);
+    assert(shown > 0.5,
+      "the fire is at opacity " + shown + " midway through the burn, so nothing " +
+      "below is about anything a player can see");
+
+    // 2. AND IT IS WARM. This is the missing assertion, stated about the paint
+    //    the fire is actually filled with.
+    const stops = [...stage.querySelectorAll(".burn-stop")];
+    eq(stops.length, 3, "the flame gradient no longer has three stops");
+    const cols = stops.map((st) => rgbOf(getComputedStyle(st).stopColor));
+    for (const [i, c] of cols.entries()) {
+      assert(isWarm(c),
+        "flame stop " + i + " is rgb(" + c.join(",") + "), which is not a flame " +
+        "colour. This is the check that was missing: the first version animated " +
+        "a colour nothing downstream was listening to, and every other property " +
+        "of the burn asserted true while the screen stayed grey");
+    }
+
+    // 3. IT IS ON HIM RATHER THAN BEHIND HIM. An alpha mask bound to the figure
+    //    is what puts flame over the whole body; a luminance mask would read his
+    //    own painting instead of his shape, and no mask at all is a halo.
+    const mask = stage.querySelector("mask");
+    assert(mask, "the fire is not masked, so it is a shape over the screen rather than on him");
+    eq(mask.getAttribute("mask-type"), "alpha",
+      "the mask is not an alpha mask — king-figure is painted, so a luminance " +
+      "mask reads its lights and darks instead of its silhouette");
+    const use = mask.querySelector("use");
+    assert(use && /king-figure/.test(use.getAttribute("href") || ""),
+      "the mask is not built from king-figure, so the fire is not his shape");
+
+    // 4. IT MOVES LIKE FIRE. A single ease across the beat is a glow — that is
+    //    why the first one read as one. The mask is what writhes, so the edges
+    //    are irregular and tongues escape the outline.
+    const turb = stage.querySelector("feTurbulence");
+    assert(turb, "there is no turbulence, so the flame has smooth edges and is a lamp");
+    eq(turb.querySelectorAll("animate").length, 1,
+      "the turbulence seed is not animated, so the fire does not flicker");
+    assert(stage.querySelector("feDisplacementMap"),
+      "the turbulence drives nothing, so the outline never breaks");
+
+    // 5. HE CHARS RATHER THAN FADING. Measured at two frames: a man who simply
+    //    dissolves was never burning.
+    const midFilter = getComputedStyle(fig).filter;
+    seek(fig, 0.9);
+    await new Promise((r) => setTimeout(r, 40));
+    const lateFilter = getComputedStyle(fig).filter;
+    assert(/brightness/.test(midFilter) && midFilter !== lateFilter,
+      "the figure does not darken as it burns (" + midFilter + " then " +
+      lateFilter + ") — he is dissolving rather than being consumed");
+    const bright = (f) => {
+      const m = /brightness\(([\d.]+)\)/.exec(f);
+      return m ? parseFloat(m[1]) : null;
+    };
+    assert(bright(lateFilter) < bright(midFilter),
+      "the figure gets brighter as it burns, not darker");
+
+    // 6. AND THE SMOKE TAKES THE COLOUR. king-smoke is the one piece of this art
+    //    that does use currentColor, so it is the piece the inheritance bug
+    //    actually reached — and the place that regression would come back.
+    const smoke = stage.querySelector(".burn-smoke .king-art");
+    assert(smoke, "the burn has no smoke");
+    const smokeCol = rgbOf(getComputedStyle(smoke).color);
+    assert(isWarm(smokeCol),
+      "the smoke is rgb(" + smokeCol.join(",") + ") — .king-art's colour is " +
+      "overriding the flame again, which is the exact rule that made the first " +
+      "version a grey man with an orange halo");
+  } finally {
+    if (stage) stage.remove();
+    for (const el of document.querySelectorAll(".evstage")) el.remove();
+    spriteHost.remove();
+    styles.remove();
   }
 }));
 
