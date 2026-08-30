@@ -1430,14 +1430,42 @@ span.handart { cursor: default; }
   transition: opacity .12s ease-out;
   pointer-events: none;
 }
-.cell:hover .celltip,
+/* WHAT OPENS AN EXPLANATION, AND WHY :hover IS NOT IN THIS LIST ANY MORE (#133).
+
+   The ruling is that once an explanation is open the next tap closes it and
+   does nothing else. The first fix released .cell--open and released focus —
+   the two things JS can release — and on a real iPhone the panel still could
+   not be dismissed by any tap at all.
+
+   NOTHING IN JS CAN RELEASE :hover. On iOS Safari a tap APPLIES the hover state
+   and it sticks; tapping the same place again re-applies it. So while :hover
+   was one of the four routes into this rule, it held the panel open on its own
+   no matter what the other three did, and no handler could ever have fixed it.
+
+   AND NO TEST WE COULD WRITE HERE WOULD HAVE CAUGHT IT. Synthetic pointer
+   events produce no hover state, so :hover never matched and the JS branch was
+   the only thing under test — the check could not have failed whatever the code
+   did. Four separate falsifications were run against that fix and every one of
+   them was inside the branch that already worked. This is a Safari behaviour;
+   no Chrome-based harness reproduces it, which is why the guard on this is
+   structural (it reads this rule) rather than behavioural.
+
+   So the pointer affordance is gated, and on touch the only ways in are the two
+   JS owns. Desktop is unchanged: a mouse reports hover: hover and pointer: fine. */
 .cell:focus-within .celltip,
-.hand:hover .celltip,
 .hand:focus-within .celltip,
 .cell--open .celltip {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cell:hover .celltip,
+  .hand:hover .celltip {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
 }
 /* Same edge problem the pack cells have, and the same answer: the outer slots
    anchor to their own edge instead of centring, or the tooltip leaves the panel
@@ -2089,7 +2117,19 @@ span.handart { cursor: default; }
   filter: brightness(var(--peek-light)) saturate(.45);
   transition: filter 2s linear;
 }
-.halfroom:hover .halfglimpse { filter: brightness(calc(var(--peek-light) + .55)) saturate(.9); }
+/* Gated for the same reason as the explanation panel (#133): on iOS a tap
+   applies :hover and it sticks, which would leave ONE half-room permanently
+   lifted half a stop above its neighbours. That is not a cosmetic difference —
+   the whole point of the peek is that brightness says how much light reaches a
+   room, so a stuck one is the board telling a lie about the world, and there is
+   no gesture that takes it back.
+   The other hover rules in this file are NOT swept for consistency. A lift on
+   the talisman or a link changing colour is decoration: if it sticks, nothing
+   is misread and nothing is stuck open. Only rules that change what is READABLE
+   or what is OPEN have this fault. */
+@media (hover: hover) and (pointer: fine) {
+  .halfroom:hover .halfglimpse { filter: brightness(calc(var(--peek-light) + .55)) saturate(.9); }
+}
 /* Brighter than --muted, which the dimming filter was dragging to 2.8:1 even
    before dusk went continuous. The half-room is a glimpse, but the name in it
    is information — and now it is 13.4:1 at every hour, because it is outside

@@ -2245,6 +2245,91 @@ test("places: with an explanation open, the next tap only closes it (#133)", ser
   }
 }));
 
+// NOTHING THAT OPENS AN EXPLANATION MAY DEPEND ON :hover ON A TOUCH DEVICE
+// (#133, reopened).
+//
+// THIS GUARD IS STRUCTURAL ON PURPOSE, AND THAT IS THE FINDING. The ruling is
+// that the next tap closes the panel; the first fix released .cell--open and
+// released focus, and on a real iPhone the panel still could not be dismissed
+// by any tap. Nothing in JS can release :hover — on iOS Safari a tap applies it
+// and it sticks — so while :hover was one of the routes into the reveal rule it
+// held the panel open on its own, whatever the handlers did.
+//
+// A BEHAVIOURAL GUARD CANNOT SEE THIS, and writing one would be worse than
+// writing none. Synthetic pointer events produce no hover state, so :hover never
+// matches and only the JS branch is under test — four separate falsifications
+// were run against the first fix and every one of them was inside the branch
+// that already worked. The pane's own touch emulation removes hover states too,
+// which deletes the precondition rather than reproducing it. And the stickiness
+// is a Safari behaviour: no Chrome-based harness reproduces it at all. So this
+// asserts the RULE instead, and says plainly that it is not a behavioural check.
+//
+// It is deliberately NOT "no ungated :hover anywhere". 27 of them are left
+// ungated on purpose — a talisman lifting or a link changing colour is
+// decoration, and if it sticks nothing is misread and nothing is stuck open.
+// Only rules that change what is OPEN or what is READABLE carry this fault.
+test("hover: nothing that opens or lights anything hangs on :hover on touch (#133)", serial(async () => {
+  const css = await fetch("../css/style.css", NO_STORE).then((r) => r.text());
+  const styles = document.createElement("style");
+  styles.textContent = css;
+  document.head.appendChild(styles);
+  try {
+    // The browser's own parser, not a regex over the text: conditionText and
+    // selectorText come back normalised, and a rule nested in a media block is
+    // reachable as one rather than as a brace-counting exercise.
+    const found = { opens: [], peek: [] };
+    const walk = (rules, conds) => {
+      for (const r of rules) {
+        if (r.type === CSSRule.MEDIA_RULE) { walk(r.cssRules, conds.concat(r.conditionText)); continue; }
+        if (r.type === CSSRule.SUPPORTS_RULE) { walk(r.cssRules, conds); continue; }
+        if (r.type !== CSSRule.STYLE_RULE) continue;
+        const sel = r.selectorText || "";
+        const gated = conds.some((c) => /hover\s*:\s*hover/.test(c));
+        const hover = /:hover\b/.test(sel);
+        if (sel.indexOf(".celltip") !== -1 &&
+            (r.style.getPropertyValue("visibility") === "visible" ||
+             r.style.getPropertyValue("opacity") === "1")) {
+          found.opens.push({ sel, hover, gated });
+        }
+        if (/\.halfroom:hover\b/.test(sel) && r.style.getPropertyValue("filter")) {
+          found.peek.push({ sel, hover, gated });
+        }
+      }
+    };
+    walk(styles.sheet.cssRules, []);
+
+    // 1. PROVE THE REGION. A stylesheet that no longer opens the panel anywhere
+    //    satisfies every "must be gated" below without containing the subject.
+    assert(found.opens.length > 0,
+      "no rule in style.css makes a .celltip visible, so this guard is watching " +
+      "nothing — if the explanation panel was rebuilt, rewrite this against " +
+      "whatever opens it now");
+    assert(found.peek.length > 0,
+      "no .halfroom:hover rule sets a filter any more, so the peek half of this " +
+      "guard has lost its subject");
+
+    // 2. EVERY HOVER ROUTE IS GATED.
+    for (const r of found.opens.concat(found.peek)) {
+      if (!r.hover) continue;
+      assert(r.gated,
+        "`" + r.sel + "` depends on :hover and is not inside a (hover: hover) " +
+        "block. On iOS Safari a tap applies :hover and it STICKS, and nothing in " +
+        "JS can release it — so this selector holds the panel open (or the room " +
+        "lit) against every tap, and no handler can fix it");
+    }
+
+    // 3. AND A ROUTE SURVIVES THAT TOUCH CAN ACTUALLY USE. Gating everything
+    //    would satisfy step 2 perfectly and leave the panel unopenable on a
+    //    phone, which is the opposite failure and just as quiet.
+    const touchRoute = found.opens.some((r) => !r.hover && !r.gated);
+    assert(touchRoute,
+      "every rule that opens the explanation is now behind a hover gate or needs " +
+      ":hover, so on a touch device nothing can open it at all");
+  } finally {
+    styles.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);
