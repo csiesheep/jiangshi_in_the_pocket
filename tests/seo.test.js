@@ -150,6 +150,63 @@ test("seo: the structured data names every language the site ships", () => {
   }
 });
 
+// THE ROOMS ARE IN THE SERVED MARKUP (#134).
+//
+// tiles.html used to ship 315 indexable characters: a heading, two intro
+// paragraphs and two placeholders. Twenty rooms with names, in two languages,
+// were all injected at load — so the most distinctive vocabulary the game owns
+// existed nowhere a crawler or a reader without script could see it.
+// tools/render_tiles.py writes the words in ahead of time; this checks they
+// arrived and, more importantly, that they still MATCH.
+//
+// READ FROM theme.json, NEVER LISTED HERE. A guard with its own copy of the
+// twenty names is a guard testing its own copy — it passes while the page and
+// the data disagree, which is the drift the whole page exists to prevent. That
+// drift is not hypothetical here: the intro read "sixteen rooms" for a while
+// after the set had become twenty.
+test("seo: the tiles page serves every room name, from the data (#134)", async () => {
+  const [tiles, theme] = await Promise.all([
+    fetch("../data/tiles.json", NO_STORE).then((r) => r.json()),
+    fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
+  ]);
+  const defs = [].concat(tiles.indoor || [], tiles.outdoor || []);
+  const names = defs.map((d) => (theme.tiles || {})[d.id]).filter(Boolean);
+
+  // 1. COUNT FIRST, so nothing below can pass on an empty haystack. "every name
+  //    is present" is trivially true of no names at all.
+  eq(defs.length, 20, "the tile set is no longer twenty tiles (" + defs.length + ")");
+  eq(names.length, 20,
+    "only " + names.length + " of the twenty tiles have a name in theme.json, so " +
+    "this guard would be checking a short list against the page");
+
+  // 2. Strip what a crawler does not read, so a name surviving only inside a
+  //    comment or a <script> does not count as served.
+  const served = html.tiles
+    .replace(/<script[\s\S]*?<\/script>/g, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ");
+
+  const missing = names.filter((n) => served.indexOf(n) === -1);
+  eq(missing.length, 0,
+    "tiles.html does not serve " + missing.length + " of the twenty room names — " +
+    missing.join(", ") + ". Re-run: python tools/render_tiles.py");
+
+  // 3. AND THE COUNT IN THE PROSE IS THE REAL ONE. This is the specific drift
+  //    the intro was made dynamic for, so a pre-rendered page has to be held to
+  //    it too — a build step that is not re-run is exactly how "sixteen" got
+  //    there the first time.
+  const words = ((theme.tilesPage || {}).words) || [];
+  const spelled = words[defs.length];
+  assert(spelled,
+    "theme.json cannot spell " + defs.length + ", so the intro cannot be checked");
+  const intro = /<p class="muted" id="tile-intro">([\s\S]*?)<\/p>/.exec(served);
+  assert(intro, "tiles.html has no intro paragraph to check");
+  assert(new RegExp(spelled, "i").test(intro[1]),
+    "the served intro does not say " + spelled + " — it reads " +
+    JSON.stringify(intro[1].trim().slice(0, 60)) + ". The tile set changed and " +
+    "tools/render_tiles.py was not re-run, which is the drift this page exists " +
+    "to prevent");
+});
+
 test("seo: every page can be reached from every other", () => {
   for (const name of PUBLIC_PAGES) {
     // The menu is the hub, so it is the one link every page must carry.
