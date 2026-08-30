@@ -22,6 +22,7 @@ import { Game } from "../js/app.js";
 // engine.test.js because this guard PLAYS one through the real UI.
 import { verdictOf } from "../js/night.js";
 import { replayNight } from "../js/replay.js";
+import { verifyNight } from "../src/run.js";
 // The board, for the burial guard: it walks a real run out to the Mass Grave
 // rather than placing the tile under the player, so what is tested is the
 // rite as it is actually reached.
@@ -2900,6 +2901,56 @@ test("replay: a night played through the UI replays to the same verdict (#142)",
     assert(quiet < night.actions.length,
       "every single drop replayed to an identical verdict, so this loop tested " +
       "nothing — the replay is not reading the recording at all");
+
+    // ---- The submit gate (#143) -------------------------------------------
+    // Asserted on THIS night rather than in a test of its own, because this one
+    // has already been proven to contain fights, searches and acquisitions —
+    // a second guard would have to drive another twenty seconds of UI to earn
+    // the same standing, and would still be a weaker night unless it did.
+    //
+    // The API's verification is a pure function on purpose, so it can be driven
+    // with the real engine here. The Worker runtime cannot be: there is no node
+    // on this machine and no way to run wrangler, so what this proves is the
+    // LOGIC, and the routing is unproven until it deploys.
+    const honest = verifyNight(DATA, night);
+    eq(honest.ok, true,
+      "the API refused a night this suite has just replayed successfully" +
+      (honest.detail ? " — " + honest.detail : ""));
+    eq(JSON.stringify(honest.verdict), JSON.stringify(played),
+      "the API's score is not the one the night actually produced");
+
+    // THE CLAIMED SCORE IS NEVER READ. This is the assertion the whole design
+    // rests on, so it is made against a lie rather than against absence: send a
+    // night whose own verdict claims a win with 999 kills and the server must
+    // still return the true one. A check that the field is merely ignored would
+    // pass on code that reads it and happens to agree.
+    const lying = JSON.parse(JSON.stringify(night));
+    lying.verdict = { ...lying.verdict, kills: 999, health: 10, outcome: "WIN_BURIAL" };
+    const lied = verifyNight(DATA, lying);
+    eq(lied.ok, true, "a lie in the verdict field changed whether the night verified");
+    eq(JSON.stringify(lied.verdict), JSON.stringify(played),
+      "the API returned the score the CLIENT claimed rather than the one the " +
+      "actions produce — the submitted verdict is being read");
+
+    // A TAMPERED RECORDING IS REFUSED, and refused for a stated reason.
+    const cut = JSON.parse(JSON.stringify(night));
+    cut.actions.splice(Math.floor(cut.actions.length / 2), 1);
+    eq(verifyNight(DATA, cut).ok, false, "a night with an action removed still verified");
+
+    const extra = JSON.parse(JSON.stringify(night));
+    extra.actions.push({ t: "next" });
+    const over = verifyNight(DATA, extra);
+    eq(over.ok, false, "a night with an action appended still verified");
+    eq(over.reason, "unused-actions",
+      "an appended action was refused for the wrong reason (" + over.reason + ") — " +
+      "unused actions are returned by replayNight rather than thrown, so a " +
+      "handler that only catches would wave them through");
+
+    // The format gate is the API's own: replayNight does not check `v`.
+    const oldFormat = JSON.parse(JSON.stringify(night));
+    oldFormat.v = 0;
+    eq(verifyNight(DATA, oldFormat).reason, "format",
+      "a night in an unknown format was not refused at the door");
   } finally {
     window.matchMedia = realMM;
     host.remove();

@@ -5,6 +5,8 @@
 //
 // The public path segment is independent of the repo / Worker name — change
 // PREFIX alone to move the site to a different path.
+import { handleRun } from "./run.js";
+
 const PREFIX = "/jiangshi_in_the_pocket";
 
 // Has this actually shipped? One flag, one place, and it is deliberately next
@@ -50,6 +52,14 @@ const SITEMAP_XML =
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    // The leaderboard's verifier (#143). BEFORE the asset passthrough, because
+    // /api/* is not a file and must never reach env.ASSETS — an unmatched asset
+    // path 404s from the static handler, which would turn "the API is not wired"
+    // into "that page does not exist" and cost somebody an afternoon.
+    if (url.pathname === PREFIX + "/api/run") {
+      return handleRun(request, env);
+    }
 
     if (url.pathname === PREFIX + "/sitemap.xml") {
       return new Response(SITEMAP_XML, {
