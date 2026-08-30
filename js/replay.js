@@ -48,11 +48,6 @@ export const ACT = {
 // If the burial ever becomes a choice — dig or walk away — it stops being a
 // consequence and becomes an action, and it belongs in the list above.
 
-// THE FOUR WAYS A TURN CAN BE ANSWERED AT THE BOARD, named once because two
-// places ask the question: the turn loop dispatches them, and the end-of-turn
-// window has to recognise one arriving instead of a press of next.
-const BOARD_ACTS = new Set([ACT.STAY, ACT.EXPLORE, ACT.MOVE, ACT.OUTSIDE]);
-
 class Divergence extends Error {}
 
 // A replay reads decisions from the list instead of from a person. Running out
@@ -99,68 +94,63 @@ export function replayNight(data, night) {
     E.beginTurn(state);
     if (state.status !== "playing") break;
 
-    // ---- app.js:256 renderMoves --------------------------------------------
-    // A TURN IS NOT ONE BOARD ACTION, and assuming it was is what made a real
-    // recorded night fail to replay. app.js:347 arrive() is async and doMove
-    // does not await it, so the board's doorways are still live while the beat
-    // runs; a second press is taken. Measured on a robot-driven night at seed
-    // 99: turn 13 holds move(N) then move(S) and BOTH move the player, and turn
-    // 10 holds a second move(W) that the board refuses.
+    // ---- app.js:256 renderMoves — ONE board action, and that is enforced ----
+    // This loop briefly consumed board actions until a next, because a real
+    // recorded night held two moves in one turn and would not replay otherwise.
+    // THAT WAS MODELLING A BUG: app.js let a press land in the gap between a
+    // beat starting and its UI arriving, while the previous decision's doorways
+    // were still live. The fix went into app.js, where a turn once again holds
+    // exactly one board action.
     //
-    // The refused one is recorded too, and that is correct rather than sloppy:
-    // doMove ignores moveTo's result and calls arrive() anyway, so a move into a
-    // wall still DRAWS AN EVENT at the player — measured, eventRng advances by
-    // one. Dropping it from the recording would leave the replay one draw
-    // behind for the rest of the night, which is the silent divergence this
-    // whole format exists to prevent. So it is replayed exactly as it happened,
-    // wasted beat and all.
-    let inTurn = 0;
-    for (;;) {
-      if (++inTurn > 60) throw new Divergence("a turn did not end");
-      const a = act.next();
-      if (a.t === ACT.EXPLORE) {
-        // app.js:293 doExplore. The rotation is CHOSEN BY THE BOARD, not the
-        // player — pickExploreRotation scores and does not roll — so it is
-        // derived here rather than recorded.
-        B.explore(board, a.dir, B.pickExploreRotation(board, a.dir));
-      } else if (a.t === ACT.MOVE) {
-        B.moveTo(board, a.dir);                                // app.js:314
-      } else if (a.t === ACT.OUTSIDE) {
-        B.goOutside(board);                                    // app.js:326
-      } else if (a.t !== ACT.STAY) {                           // app.js:284
-        throw new Divergence("turn " + state.turn + " was answered at the board " +
-          "with " + a.t + " — that is stay, move, explore or outside");
-      }
+    // Teaching the replayer to accept two was worse than useless — it made
+    // DROPPING A `next` UNDETECTABLE. Measured on seed 1234: of 34 recorded
+    // actions, deleting any of the ten `next` entries replayed with no
+    // divergence, nothing left over, and a night one turn shorter than the one
+    // actually played. A tampered recording waved through is precisely what
+    // #143 exists to refuse, and the permissive loop was handing it past.
+    //
+    // So the strictness is the feature. If app.js ever regresses, this throws,
+    // and that is a finding about the game rather than a gap in the replayer.
+    const a = act.next();
+    if (a.t === ACT.EXPLORE) {
+      // app.js:293 doExplore. The rotation is CHOSEN BY THE BOARD, not the
+      // player — pickExploreRotation scores and does not roll — so it is
+      // derived here rather than recorded.
+      B.explore(board, a.dir, B.pickExploreRotation(board, a.dir));
+    } else if (a.t === ACT.MOVE) {
+      B.moveTo(board, a.dir);                                // app.js:314
+    } else if (a.t === ACT.OUTSIDE) {
+      B.goOutside(board);                                    // app.js:326
+    } else if (a.t !== ACT.STAY) {                           // app.js:284
+      throw new Divergence("turn " + state.turn + " was answered at the board " +
+        "with " + a.t + " — that is stay, move, explore or outside");
+    }
 
-      // ---- app.js:347 arrive(), and it runs AGAIN for each of them ---------
-      eventBeat(data, state, board, tally, act);
-      if (state.status !== "playing") break;
-      if (!state.fled) {
-        riteBeat(data, state, board, tally, act);
-        if (state.status !== "playing") break;
-      }
-      if (!state.fled) {
-        breachBeat(data, state, board, tally, act);
-        if (state.status !== "playing") break;
-      }
-      if (!state.fled) ghostBeat(state);
-
-      // ---- app.js:1125 endTurn --------------------------------------------
-      if (!state.fled) {
-        const tile = B.currentTile(board);
-        if (tile && tile.def.onTurnEnd === "HEAL_1") {
-          E.changeHealth(state, 1);
-          E.grantRelief(state, 0.7);
-        }
-      }
-      if (state.status !== "playing") break;
-
-      // ---- app.js:1142 endTurnChoices --------------------------------------
-      // Hands back "again" when the next recorded decision is another board
-      // action rather than a press of next, which is the turn continuing.
-      if (endTurnChoices(data, state, board, tally, act) !== "again") break;
+    // ---- app.js:347 arrive() -----------------------------------------------
+    eventBeat(data, state, board, tally, act);
+    if (state.status !== "playing") break;
+    if (!state.fled) {
+      riteBeat(data, state, board, tally, act);
       if (state.status !== "playing") break;
     }
+    if (!state.fled) {
+      breachBeat(data, state, board, tally, act);
+      if (state.status !== "playing") break;
+    }
+    if (!state.fled) ghostBeat(state);
+
+    // ---- app.js:1125 endTurn --------------------------------------------
+    if (!state.fled) {
+      const tile = B.currentTile(board);
+      if (tile && tile.def.onTurnEnd === "HEAL_1") {
+        E.changeHealth(state, 1);
+        E.grantRelief(state, 0.7);
+      }
+    }
+    if (state.status !== "playing") break;
+
+    // ---- app.js:1142 endTurnChoices ----------------------------------------
+    endTurnChoices(data, state, board, tally, act);
     if (state.status !== "playing") break;
 
     // ---- app.js:1474 — midnight intercepts, it is not a turn ---------------
@@ -197,6 +187,9 @@ function eventBeat(data, state, board, tally, act) {
     let give = false;
     if (E.held(state, "sticky-rice")) give = !!act.next(ACT.RICE).give;
     const res = E.resolveEvent(state, ev, { giveRice: give });
+    // app.js:1145. ONE OF THE FOUR WAYS TO ACQUIRE SOMETHING, and the easiest
+    // to forget because it is the only one that does not happen in a search.
+    if (res.type === "GIFT") tally.found += 1;
     if (res.type === "FIGHT") fightBeat(data, state, board, tally, act, res.n);
     return;
   }
@@ -291,19 +284,16 @@ function ghostBeat(state) {
 }
 
 // ---- app.js:1142 endTurnChoices ---------------------------------------------
-// Returns "over" when the turn ended, "again" when the player took another
-// board action instead of pressing next. app.js renders the end-of-turn window
-// WITHOUT taking the board away, so both are ordinary things to meet here; the
-// board action is left unconsumed for the turn loop to dispatch.
+// A board action met here is a DIVERGENCE, not a second go: app.js gates the
+// board while a beat is open, so the only thing that ends a turn is next, and a
+// recording claiming otherwise has had a next taken out of it.
 function endTurnChoices(data, state, board, tally, act) {
   let guard = 0;
   for (;;) {
     if (++guard > 60) throw new Divergence("the end of a turn did not end");
-    if (state.status !== "playing") return "over";
-    const ahead = act.peek();
-    if (ahead && BOARD_ACTS.has(ahead.t)) return "again";
+    if (state.status !== "playing") return;
     const a = act.next();
-    if (a.t === ACT.NEXT) return "over";
+    if (a.t === ACT.NEXT) return;
 
     if (a.t === ACT.SEARCH) {
       doSearch(data, state, board, tally, act);
@@ -326,20 +316,52 @@ function doSearch(data, state, board, tally, act) {
   if (!table) throw new Divergence("a search was recorded on a room with no table");
   const out = E.search(state, table);
 
+  // WHAT "{n} ITEMS FOUND" COUNTS, and app.js:1378 is the authority: four
+  // acquisition routes — a clean take, a blade swap, a take-after-drop, and the
+  // villager's thanks. That comment also records that until #67 only two of the
+  // four counted in the game itself. This replayer independently shipped the
+  // SAME defect, counting the take and the take-after-drop and missing the swap
+  // and the gift, and a 21-turn night read found 1 against a played 3 while
+  // agreeing on all eight other fields including kills at 9. Count every route
+  // or the number is decoration.
   if (out.result === "TOOK") { tally.found += 1; return; }
+
   if (out.result === "OFFER_REPLACE") {
     const a = act.next(ACT.REPLACE);
-    if (a.take) E.replaceWeapon(state, out.id);
-    else E.declineWeapon(state, out.id);
+    if (a.take) {
+      E.replaceWeapon(state, out.id);                  // app.js:1307
+      tally.found += 1;                                // app.js:1308
+    } else {
+      E.declineWeapon(state, out.id);                  // app.js:1322
+    }
     return;
   }
-  if (out.result === "PACK_FULL") {
-    // app.js:1272 — drop something for it, or leave it where it is.
-    const a = act.next();
-    if (a.t === ACT.DROP) { E.dropItem(state, a.id, a.n ?? 1); E.pickUpItem(state, out.id, a.id); tally.found += 1; }
-    else if (a.t === ACT.TAKE) { E.pickUpItem(state, a.foundId, a.dropId); tally.found += 1; }
-    else if (a.t !== ACT.NEXT) {
-      throw new Divergence("a full pack was answered with " + a.t);
+
+  // OFFER_DROP, not PACK_FULL — the engine has never returned PACK_FULL and a
+  // grep for it finds only the line that used to test for it, so this whole
+  // branch was unreachable. It went unnoticed because the guards never filled a
+  // pack: a recorded take would then fall through to endTurnChoices and throw
+  // "the end of a turn was answered with take", nowhere near the real cause.
+  if (out.result === "OFFER_DROP") {
+    // app.js:1336 showDropDialog, and its three answers record three different
+    // shapes. onLeave RECORDS NOTHING AT ALL, so meeting neither is the
+    // ordinary case of leaving it where it lies — peeked rather than consumed,
+    // because taking the next action here would eat the following turn's
+    // decision and put the rest of the night one step out.
+    const ahead = act.peek();
+    if (ahead && ahead.t === ACT.DROP) {
+      // onDropStack: the whole stack goes down, then the find comes up through
+      // takeInstead like every other pickup — which is why this records TWO.
+      const d = act.next(ACT.DROP);
+      E.dropItem(state, d.id, d.n ?? 1);               // app.js:1344
+      const t = act.next(ACT.TAKE);
+      if (E.pickUpItem(state, t.foundId, t.dropId).ok) tally.found += 1;
+    } else if (ahead && ahead.t === ACT.TAKE) {
+      // onDrop: straight to takeInstead. Counted only when the engine agrees it
+      // was picked up — app.js:1390 guards on got.ok, because a duplicate
+      // unique or a stack that freed nothing is a find that never happened.
+      const t = act.next(ACT.TAKE);
+      if (E.pickUpItem(state, t.foundId, t.dropId).ok) tally.found += 1;
     }
     return;
   }

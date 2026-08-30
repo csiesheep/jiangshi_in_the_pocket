@@ -210,6 +210,29 @@ export class Game {
     // flag that only exists once a fight has happened would leave them
     // disagreeing for the first one.
     this.inFight = false;
+    // THE BOARD IS SHUT WHILE A BEAT IS RUNNING.
+    //
+    // arrive() is async and doMove does not await it, so between a beat
+    // starting and its own UI landing, THE PREVIOUS DECISION'S CONTROLS ARE
+    // STILL MOUNTED AND STILL LIVE. A fight that has opened cleanly offers no
+    // doorways — renderActions has already cleared them — so this was never a
+    // rendered affordance; it is a gap, and clicking into it walked the player
+    // out of a fight with no flee roll and no damage, leaving inFight set and
+    // the fight card rendering over a room they had already left.
+    //
+    // Measured before the gate, on a robot night at seed 99: a stay and an
+    // explore both taken with inFight true, and inFight still set three turns
+    // later because close() — the single teardown for all six exits — never
+    // ran. The recorder is what made it visible: the night would not replay.
+    //
+    // BECAUSE THE TRIGGER IS A TIMING GAP AND NOT A BUTTON, clearing controls
+    // harder at render time cannot close it — the clicks land BEFORE that
+    // render. The gate has to go up when the beat STARTS, which is here: at the
+    // four ways to spend a turn, and at the press that ends one.
+    //
+    // It is lowered in exactly two places, and they are the only two where the
+    // game stops and waits for a person: renderMoves and renderEndTurn.
+    this.busy = false;
     // One search per turn, and turn 1 has not had its yet.
     this.searched = false;
   }
@@ -277,6 +300,8 @@ export class Game {
   // dead end or not. Both are drawn on the board rather than in the panel:
   // they are the same rank of choice and belong in the same place.
   renderMoves() {
+    // The board is open again: this is the game asking a person to choose.
+    this.busy = false;
     if (this.state.status !== "playing") return this.gameOver();
     const acts = Bd.listMoves(this.board).map((m) => {
       if (m.type === "explore") {
@@ -305,6 +330,8 @@ export class Game {
   // STAY is a whole action. It ends in the same place every other one does, so
   // the room's own instructions and the end of the turn still run.
   doStay() {
+    if (this.busy) return;
+    this.busy = true;
     this.rec(ACT.STAY);
     log(this.line("wait", { room: this.tileName(Bd.currentTile(this.board).id) }));
     this.arrive();
@@ -315,6 +342,8 @@ export class Game {
   // keeps a way on into unexplored space, and is deterministic so a shared seed
   // still replays move for move.
   doExplore(dir) {
+    if (this.busy) return;
+    this.busy = true;
     this.rec(ACT.EXPLORE, { dir });
     // peekTile, not decks[0]: the log has to name the room actually placed, and
     // which room that is belongs to the board rather than to the top of a deck.
@@ -337,6 +366,8 @@ export class Game {
   }
 
   doMove(dir) {
+    if (this.busy) return;
+    this.busy = true;
     this.rec(ACT.MOVE, { dir });
     // Crossing the seam is a move like any other to the board, but it is the
     // one that changes world — worth hearing, in both directions.
@@ -350,6 +381,8 @@ export class Game {
   }
 
   doOutside(dir) {
+    if (this.busy) return;
+    this.busy = true;
     this.rec(ACT.OUTSIDE, { dir });
     const out = Bd.goOutside(this.board);
     seamCross();
@@ -1480,6 +1513,10 @@ export class Game {
   }
 
   renderEndTurn(cued = false) {
+    // Lowered BEFORE the fall-through below, which calls nextTurn itself on a
+    // turn with nothing to decide — gate it after that and every such turn
+    // would stall with the night unfinished.
+    this.busy = false;
     const choices = this.endTurnChoices();
     // Nothing to decide, so do not ask. A prompt whose only answer is "yes,
     // continue" is a button that reads the player's mind wrong every single
@@ -1504,6 +1541,12 @@ export class Game {
   }
 
   nextTurn() {
+    // Gated with the board: midnightBeat below is async too, and a turn ended
+    // twice is the same fault wearing the other control. renderEndTurn lowers
+    // the gate before it falls through to here on a turn with nothing to
+    // decide, so the automatic path is not blocked by this.
+    if (this.busy) return;
+    this.busy = true;
     // The single funnel for ending a turn — the button and the automatic path
     // both arrive here, so one push covers every turn end exactly once.
     this.rec(ACT.NEXT);

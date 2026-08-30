@@ -2789,11 +2789,16 @@ test("replay: a night played through the UI replays to the same verdict (#142)",
     : realMM.call(window, q);
 
   try {
+    // SEED 1234 BECAUSE OF WHAT IT CONTAINS, not because it is long: 11 turns,
+    // 6 fights, 4 searches and 5 items acquired. The seed this guard shipped
+    // with produced 8 actions, 3 fights and NOT ONE SEARCH, so every acquisition
+    // route was unreachable — and that is exactly where the next defect was.
+    // Measured at ~20s against ~11s, which is what the coverage costs.
     const game = new Game({ tiles, items, search, events, theme: themeEn,
-                            baseTheme: themeEn, lang: "en" }, { seed: 4242 });
+                            baseTheme: themeEn, lang: "en" }, { seed: 1234 });
     game.start();
     const t0 = Date.now();
-    while (game.state.status === "playing" && Date.now() - t0 < 25000) {
+    while (game.state.status === "playing" && Date.now() - t0 < 35000) {
       // Whatever is blocking, clear it; then take the turn's own control.
       const stage = document.querySelector(".evstage");
       if (stage) stage.click();
@@ -2801,6 +2806,12 @@ test("replay: a night played through the UI replays to the same verdict (#142)",
       if (rev) rev.click();
       const note = document.querySelector(".notecard .notedismiss");
       if (note) note.click();
+      // A full pack asks before it takes. Without an answer here the night
+      // stops on the dialog and the run never reaches an ending — which is how
+      // this was found: the region proof below failed rather than the night
+      // quietly ending early.
+      const leave = document.querySelector(".notecard .dropleave");
+      if (leave) leave.click();
       const pick = host.querySelector("#actions .action") ||
                    host.querySelector(".doorway:not([disabled])");
       if (pick) pick.click();
@@ -2813,14 +2824,22 @@ test("replay: a night played through the UI replays to the same verdict (#142)",
       "the night never reached an ending in the budget, so there is no verdict " +
       "to replay — everything below would be comparing two unfinished runs");
     const night = game.night();
-    assert(night.actions.length >= 5,
-      "only " + night.actions.length + " actions were recorded; a night this " +
-      "short exercises almost none of the turn loop");
-    assert(night.actions.some((a) => a.t === "fight"),
-      "no fight was recorded, and the fight counter is the field that was wrong " +
-      "the first time this guard ran");
-
     const played = verdictOf(game.state, game.tally);
+
+    // WHAT THE NIGHT MUST CONTAIN, named one by one rather than as a length.
+    // "Long enough" is a proxy and it failed as one: the 8-action night this
+    // guard shipped with satisfied every comparison below while never opening a
+    // search, so the whole of doSearch — including a branch testing for a result
+    // the engine has never returned — sat unexecuted behind a green tick.
+    assert(night.actions.some((a) => a.t === "fight"),
+      "no fight was recorded, and kills is the field that was wrong the first " +
+      "time this guard ran");
+    assert(night.actions.some((a) => a.t === "search"),
+      "no search was recorded, so no acquisition route ran and `found` is being " +
+      "compared as 0 against 0");
+    assert(played.found > 0,
+      "nothing was picked up all night, so the four acquisition routes are " +
+      "untested — two of them were miscounted when this assertion was added");
     const rep = replayNight(DATA, night);
 
     // THE WHOLE CARD, ONE COMPARISON.
@@ -2831,42 +2850,158 @@ test("replay: a night played through the UI replays to the same verdict (#142)",
       rep.unused + " recorded actions were never spent by the replay — it " +
       "reached an ending by a different road");
 
-    // A DROPPED ACTION MUST BE DETECTED, and this is asserted rather than
-    // demonstrated once: an unrecorded decision is the failure mode the format
-    // exists to catch, and "it happened to diverge that time" is not a property.
-    // Detected means either a Divergence or a different verdict — both are the
-    // replay refusing to agree, which is all that is being claimed.
+    // A DROPPED ACTION MUST NEVER PASS AS A DIFFERENT NIGHT.
     //
-    // WHAT CATCHES IT, MEASURED RATHER THAN ASSUMED: all eight drops on the
-    // recorded night are caught by the SEQUENCE check — the replay wants a
-    // decision of one kind and the list offers another ("a fight was answered
-    // with next"). None of them get as far as a different verdict. So this loop
-    // guards the sequencing, and the deep-equal above guards the arithmetic;
-    // they are two claims, not one restated.
+    // The claim is deliberately NOT "every drop is detected", which is what this
+    // asserted first and which is measurably false: three of the four searches
+    // in this night find nothing, and searchRng is its own stream, so deleting
+    // one of them changes no other draw and replays to a byte-identical verdict.
+    // Nothing is gained by that and nothing is lost; asserting it would be
+    // asserting a property the format does not have.
     //
-    // AND THE VERDICT IS A SCORE, NOT A FINGERPRINT — do not "strengthen" this
-    // into "any tampering is detected", because that is measurably false. Changing
-    // one recorded explore to another legal direction leaves the action types
-    // identical, so nothing above sees it; of the nine such swaps on this night,
-    // five replayed to a byte-identical verdict while ending in a DIFFERENT ROOM
-    // on a DIFFERENT LAYOUT. That is not a defect: whichever door is taken, the
-    // next tile off the deck is the same tile, so the same monster is met and the
-    // same fight is lost with the same counts. A replay verifies the score that
-    // was claimed; it does not pin the road walked to it, and #143 should promise
-    // no more than that.
+    // The property it DOES have is the one that matters, and it is the exact
+    // fear this design was built against: a recording that has been altered must
+    // not be accepted while yielding a DIFFERENT night. Either the replay
+    // refuses it, or it agrees with the card that was actually played. Anything
+    // in between is a tampered night wearing a valid score.
+    //
+    // This caught a real one. While the replayer accepted two board actions in a
+    // turn — modelling an app.js bug since fixed — deleting ANY of the ten next
+    // entries replayed clean, with nothing left over, and produced a night one
+    // turn shorter than the one played. Ten silently valid forgeries out of 34
+    // actions, and the loop as first written called every one of them detected.
+    let quiet = 0;
     for (let i = 0; i < night.actions.length; i++) {
       const short = { ...night, actions: night.actions.filter((_, k) => k !== i) };
-      let detected = false;
+      let bad = null;
       try {
-        const bad = replayNight(DATA, short);
-        detected = JSON.stringify(bad.verdict) !== JSON.stringify(played) || bad.unused !== 0;
+        bad = replayNight(DATA, short);
       } catch (e) {
-        detected = true;
+        continue;                       // refused, which is the loud answer
       }
-      assert(detected,
-        "dropping action " + i + " (" + night.actions[i].t + ") still replayed to " +
-        "the same verdict — a recording can lose that decision and nobody finds out");
+      // Leftover actions are a refusal too, and the loud kind: the main
+      // comparison above requires unused === 0, so a replay that reaches an
+      // ending with six decisions unspent is a night #143 throws out. Only a
+      // recording that replays clean AND spends everything gets to be believed,
+      // which makes that pair — and not the absence of an exception — the line
+      // between a refusal and a forgery.
+      if (bad.unused !== 0) continue;
+      const same = JSON.stringify(bad.verdict) === JSON.stringify(played);
+      if (same) { quiet += 1; continue; }                       // inert, harmless
+      assert(false,
+        "dropping action " + i + " (" + night.actions[i].t + ") was accepted " +
+        "whole — no divergence, nothing left over — and produced a DIFFERENT " +
+        "night: " + JSON.stringify(bad.verdict) + " against the played " +
+        JSON.stringify(played) + ". A recording can be edited into another " +
+        "valid-looking score");
     }
+    // And the loop has to have been able to fail. If every drop were inert this
+    // would be a pass over nothing at all.
+    assert(quiet < night.actions.length,
+      "every single drop replayed to an identical verdict, so this loop tested " +
+      "nothing — the replay is not reading the recording at all");
+  } finally {
+    window.matchMedia = realMM;
+    host.remove();
+    spriteHost.remove();
+    for (const el of document.querySelectorAll(".evstage, .notecard, .reveal, #overlay"))
+      el.remove();
+    clearChoices();
+  }
+}));
+
+// THE BOARD IS SHUT WHILE A FIGHT IS OPEN.
+//
+// A jiangshi could be walked away from for free — no flee roll, no damage —
+// leaving inFight set and the fight card rendering over a room the player had
+// already left. It was never a rendered affordance: a fight that has opened
+// cleanly offers ZERO doorways, because renderActions has already cleared them.
+// The hole is the GAP between inFight going true and the fight's own render
+// landing, in which the PREVIOUS decision's doorways are still mounted and
+// still live. Clicking one in that window walked out of the fight.
+//
+// SO THE PROBE HAS TO FIRE IN THAT GAP, which is why it hangs off a setter on
+// inFight rather than waiting for a fight card to appear: by the time the card
+// exists the doorways are gone and there is nothing left to click. A guard
+// written against the visible fight would pass on the broken build.
+//
+// Measured both ways before being believed. Ungated: 4 fights with doorways
+// mounted, 4 walked out of. Gated: 4 fights with doorways mounted, 0.
+test("fight: the board is inert while a fight is open (#142)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html, sprite] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+    fetch("../assets/icons.svg", NO_STORE).then((r) => r.text()),
+  ]);
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px";
+  const spriteHost = document.createElement("div");
+  spriteHost.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  spriteHost.innerHTML = sprite;
+  document.body.appendChild(spriteHost);
+  document.body.appendChild(host);
+  host.appendChild(document.importNode(doc.querySelector(".board-pane"), true));
+  host.appendChild(document.importNode(doc.querySelector(".sidebar"), true));
+
+  const realMM = window.matchMedia;
+  window.matchMedia = (q) => /prefers-reduced-motion/.test(q)
+    ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} }
+    : realMM.call(window, q);
+
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 1234 });
+    const seen = [];
+    game._inFight = false;
+    Object.defineProperty(game, "inFight", {
+      configurable: true,
+      get() { return this._inFight; },
+      set(v) {
+        this._inFight = v;
+        if (!v) return;
+        const doors = [...host.querySelectorAll(".doorway:not([disabled])")];
+        const before = JSON.stringify(game.board.player);
+        if (doors.length) doors[0].click();
+        seen.push({ doors: doors.length,
+          moved: before !== JSON.stringify(game.board.player) });
+      },
+    });
+
+    game.start();
+    const t0 = Date.now();
+    while (game.state.status === "playing" && Date.now() - t0 < 30000 &&
+           seen.filter((o) => o.doors > 0).length < 2) {
+      const stage = document.querySelector(".evstage");
+      if (stage) stage.click();
+      const rev = document.querySelector(".reveal");
+      if (rev) rev.click();
+      const note = document.querySelector(".notecard .notedismiss");
+      if (note) note.click();
+      const leave = document.querySelector(".notecard .dropleave");
+      if (leave) leave.click();
+      const pick = host.querySelector("#actions .action") ||
+                   host.querySelector(".doorway:not([disabled])");
+      if (pick) pick.click();
+      await new Promise((r) => setTimeout(r, 0));
+    }
+
+    // PROVE THE REGION, and prove the RIGHT one. "The player did not move" is
+    // satisfied for free by a fight that offered nothing to click, which is what
+    // the first run of this probe actually measured — hadDoorway false, moved
+    // false, and a green tick proving nothing at all.
+    const armed = seen.filter((o) => o.doors > 0);
+    assert(armed.length > 0,
+      "no fight opened with doorways still mounted, so nothing was ever clicked " +
+      "and 'the player did not move' is vacuous (" + seen.length + " fights seen)");
+
+    const escaped = armed.filter((o) => o.moved);
+    eq(escaped.length, 0,
+      escaped.length + " of " + armed.length + " fights were walked out of by " +
+      "clicking a doorway still mounted from the previous decision — no flee " +
+      "roll, no damage, and inFight left set behind them");
   } finally {
     window.matchMedia = realMM;
     host.remove();
