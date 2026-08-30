@@ -30,7 +30,7 @@ import { sleep as sleepAudio } from "./audio.js";
 // file on disk, so the id has to move the moment the file does, committed or
 // not. record_shell.py blanks this line before hashing, or it would be hashing
 // itself.
-export const BUILD_ID = "3372d9e5";
+export const BUILD_ID = "c150b115";
 
 // Announced rather than merely exported, because the person who needs it is
 // standing at a console on a phone with no way to import anything.
