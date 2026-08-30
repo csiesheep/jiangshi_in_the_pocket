@@ -22,7 +22,7 @@ import { Game } from "../js/app.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "533655ae");
+suite(import.meta.url, "ef92a0b5");
 
 const NO_STORE = { cache: "no-store" };
 
