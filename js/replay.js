@@ -48,6 +48,11 @@ export const ACT = {
 // If the burial ever becomes a choice — dig or walk away — it stops being a
 // consequence and becomes an action, and it belongs in the list above.
 
+// THE FOUR WAYS A TURN CAN BE ANSWERED AT THE BOARD, named once because two
+// places ask the question: the turn loop dispatches them, and the end-of-turn
+// window has to recognise one arriving instead of a press of next.
+const BOARD_ACTS = new Set([ACT.STAY, ACT.EXPLORE, ACT.MOVE, ACT.OUTSIDE]);
+
 class Divergence extends Error {}
 
 // A replay reads decisions from the list instead of from a person. Running out
@@ -94,47 +99,68 @@ export function replayNight(data, night) {
     E.beginTurn(state);
     if (state.status !== "playing") break;
 
-    // ---- app.js:256 renderMoves — the one decision every turn has ----------
-    const a = act.next();
-    if (a.t === ACT.EXPLORE) {
-      // app.js:293 doExplore. The rotation is CHOSEN BY THE BOARD, not the
-      // player — pickExploreRotation scores and does not roll — so it is
-      // derived here rather than recorded.
-      B.explore(board, a.dir, B.pickExploreRotation(board, a.dir));
-    } else if (a.t === ACT.MOVE) {
-      B.moveTo(board, a.dir);                                  // app.js:314
-    } else if (a.t === ACT.OUTSIDE) {
-      B.goOutside(board);                                      // app.js:326
-    } else if (a.t !== ACT.STAY) {                             // app.js:284
-      throw new Divergence("turn " + state.turn + " began with " + a.t +
-        " — a turn starts with stay, move, explore or outside");
-    }
-
-    // ---- app.js:347 arrive() ----------------------------------------------
-    eventBeat(data, state, board, tally, act);
-    if (state.status !== "playing") break;
-    if (!state.fled) {
-      riteBeat(data, state, board, tally, act);
-      if (state.status !== "playing") break;
-    }
-    if (!state.fled) {
-      breachBeat(data, state, board, tally, act);
-      if (state.status !== "playing") break;
-    }
-    if (!state.fled) ghostBeat(state);
-
-    // ---- app.js:1125 endTurn ----------------------------------------------
-    if (!state.fled) {
-      const tile = B.currentTile(board);
-      if (tile && tile.def.onTurnEnd === "HEAL_1") {
-        E.changeHealth(state, 1);
-        E.grantRelief(state, 0.7);
+    // ---- app.js:256 renderMoves --------------------------------------------
+    // A TURN IS NOT ONE BOARD ACTION, and assuming it was is what made a real
+    // recorded night fail to replay. app.js:347 arrive() is async and doMove
+    // does not await it, so the board's doorways are still live while the beat
+    // runs; a second press is taken. Measured on a robot-driven night at seed
+    // 99: turn 13 holds move(N) then move(S) and BOTH move the player, and turn
+    // 10 holds a second move(W) that the board refuses.
+    //
+    // The refused one is recorded too, and that is correct rather than sloppy:
+    // doMove ignores moveTo's result and calls arrive() anyway, so a move into a
+    // wall still DRAWS AN EVENT at the player — measured, eventRng advances by
+    // one. Dropping it from the recording would leave the replay one draw
+    // behind for the rest of the night, which is the silent divergence this
+    // whole format exists to prevent. So it is replayed exactly as it happened,
+    // wasted beat and all.
+    let inTurn = 0;
+    for (;;) {
+      if (++inTurn > 60) throw new Divergence("a turn did not end");
+      const a = act.next();
+      if (a.t === ACT.EXPLORE) {
+        // app.js:293 doExplore. The rotation is CHOSEN BY THE BOARD, not the
+        // player — pickExploreRotation scores and does not roll — so it is
+        // derived here rather than recorded.
+        B.explore(board, a.dir, B.pickExploreRotation(board, a.dir));
+      } else if (a.t === ACT.MOVE) {
+        B.moveTo(board, a.dir);                                // app.js:314
+      } else if (a.t === ACT.OUTSIDE) {
+        B.goOutside(board);                                    // app.js:326
+      } else if (a.t !== ACT.STAY) {                           // app.js:284
+        throw new Divergence("turn " + state.turn + " was answered at the board " +
+          "with " + a.t + " — that is stay, move, explore or outside");
       }
-    }
-    if (state.status !== "playing") break;
 
-    // ---- app.js:1142 endTurnChoices, until the player ends the turn --------
-    endTurnChoices(data, state, board, tally, act);
+      // ---- app.js:347 arrive(), and it runs AGAIN for each of them ---------
+      eventBeat(data, state, board, tally, act);
+      if (state.status !== "playing") break;
+      if (!state.fled) {
+        riteBeat(data, state, board, tally, act);
+        if (state.status !== "playing") break;
+      }
+      if (!state.fled) {
+        breachBeat(data, state, board, tally, act);
+        if (state.status !== "playing") break;
+      }
+      if (!state.fled) ghostBeat(state);
+
+      // ---- app.js:1125 endTurn --------------------------------------------
+      if (!state.fled) {
+        const tile = B.currentTile(board);
+        if (tile && tile.def.onTurnEnd === "HEAL_1") {
+          E.changeHealth(state, 1);
+          E.grantRelief(state, 0.7);
+        }
+      }
+      if (state.status !== "playing") break;
+
+      // ---- app.js:1142 endTurnChoices --------------------------------------
+      // Hands back "again" when the next recorded decision is another board
+      // action rather than a press of next, which is the turn continuing.
+      if (endTurnChoices(data, state, board, tally, act) !== "again") break;
+      if (state.status !== "playing") break;
+    }
     if (state.status !== "playing") break;
 
     // ---- app.js:1474 — midnight intercepts, it is not a turn ---------------
@@ -265,13 +291,19 @@ function ghostBeat(state) {
 }
 
 // ---- app.js:1142 endTurnChoices ---------------------------------------------
+// Returns "over" when the turn ended, "again" when the player took another
+// board action instead of pressing next. app.js renders the end-of-turn window
+// WITHOUT taking the board away, so both are ordinary things to meet here; the
+// board action is left unconsumed for the turn loop to dispatch.
 function endTurnChoices(data, state, board, tally, act) {
   let guard = 0;
   for (;;) {
     if (++guard > 60) throw new Divergence("the end of a turn did not end");
-    if (state.status !== "playing") return;
+    if (state.status !== "playing") return "over";
+    const ahead = act.peek();
+    if (ahead && BOARD_ACTS.has(ahead.t)) return "again";
     const a = act.next();
-    if (a.t === ACT.NEXT) return;
+    if (a.t === ACT.NEXT) return "over";
 
     if (a.t === ACT.SEARCH) {
       doSearch(data, state, board, tally, act);
