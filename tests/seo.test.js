@@ -12,6 +12,10 @@
 // tiles.html shipped with a canonical and was never added to the list.
 
 import { test, assert, eq, suite } from "./harness.js";
+// The languages the site actually ships, from the module that decides it.
+// Listed here instead, this guard would go stale the day a third one lands —
+// which is the same drift it exists to catch, one level up.
+import { LANGS } from "../js/lang.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
@@ -105,6 +109,44 @@ test("seo: structured data parses", () => {
       assert(parsed["@context"] === "https://schema.org", `${name} names the vocabulary`);
       assert(parsed["@type"], `${name} names a type`);
     }
+  }
+});
+
+// A FALSE STATEMENT PARSES PERFECTLY, which is why the test above did not catch
+// this. "seo: structured data parses" asserts the JSON is well-formed and names
+// a vocabulary; it has no opinion about whether any of it is true. inLanguage
+// said "en" while the game had been fully playable in 繁體中文 at that URL for
+// weeks — and with DETECT on since 2026-08-24 a Chinese browser is SENT to the
+// Chinese version of a page whose own metadata calls itself English.
+//
+// DERIVED FROM js/lang.js, and the tag comes from there too rather than being
+// spelled here. LANGS carries "zh-Hant-TW", which is also what stampDocument
+// writes into <html lang>, so the page and its structured data make the same
+// claim in the same words. A third language then fails this guard on the day it
+// is added instead of quietly leaving the metadata a language short.
+test("seo: the structured data names every language the site ships", () => {
+  const tags = Object.values(LANGS).map((l) => l.tag);
+  assert(tags.length >= 2,
+    "js/lang.js exports fewer than two languages, so this guard is comparing " +
+    "against nothing — if the site is monolingual again, delete it");
+
+  const blocks = html.index.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g) || [];
+  const games = blocks
+    .map((b) => JSON.parse(b.replace(/<\/?script[^>]*>/g, "")))
+    .filter((p) => p["@type"] === "VideoGame");
+  eq(games.length, 1, "the landing page does not carry exactly one VideoGame block");
+
+  const declared = [].concat(games[0].inLanguage || []);
+  for (const t of tags) {
+    assert(declared.indexOf(t) !== -1,
+      "the VideoGame block does not name " + t + " in inLanguage (it says " +
+      JSON.stringify(games[0].inLanguage) + "), so the page understates what it " +
+      "is — js/lang.js ships that language and a browser asking for it is sent here");
+  }
+  for (const t of declared) {
+    assert(tags.indexOf(t) !== -1,
+      "inLanguage claims " + t + ", which js/lang.js does not ship — the page " +
+      "is promising a language a reader cannot get");
   }
 });
 
