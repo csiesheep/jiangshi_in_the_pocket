@@ -20,7 +20,7 @@
 
 import * as E from "./engine.js";
 import * as Bd from "./board.js";
-import { eventStage, kingScene, resetStageHints,
+import { eventStage, kingScene, kingBurn, resetStageHints,
          BEAT_MS as STAGE_BEAT_MS } from "./eventstage.js";
 import { isMuted, setMuted, relicFound, seamCross, verdictSting,
          stopScore, itemPickup, tollBell,
@@ -1554,7 +1554,20 @@ export class Game {
     // allowed to appear.
     this.king = r;
     this.refresh();
-    await wait(RESULT_BEAT_MS);
+
+    // ON THE WIN ONLY (#139). A losing player does not watch him burn, and the
+    // branch is on the outcome rather than on status: both endings here set
+    // status, and only one of them is him going.
+    //
+    // The burn REPLACES the beat rather than being added to it — it has its own
+    // budget and its own skip, and a pause in front of it would be the game
+    // waiting twice for the same moment. LOSS_KING keeps exactly what it had.
+    //
+    // Nothing refreshes between here and gameOver(): status is already decided,
+    // and the same ordering care as #138 applies — the verdict is reached by
+    // gameOver and must not be painted underneath a stage that is still running.
+    if (r.outcome === E.OUTCOMES.WIN_SEAL) await kingBurn();
+    else await wait(RESULT_BEAT_MS);
     return this.gameOver();
   }
 

@@ -5341,6 +5341,61 @@ body.burying .board-pane::after {
   .gravetablet--falling { animation: none; }
 }
 
+/* ---- 燒 (#139) ---------------------------------------------------------------
+   He burns in the candle's colours. --flame-early and --flame-late are the two
+   the gutter already interpolates between, so the one fire the night has is the
+   one that takes him — rather than a red invented for this screen and used
+   nowhere else.
+
+   IN SILENCE. There is no cue and no unduck; see kingBurn() and the comment in
+   midnightBeat that this deliberately does not contradict. */
+.kingburn { display: grid; place-items: center; }
+.kingburn .burn-fig,
+.kingburn .burn-smoke {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(46vmin, 340px);
+}
+.kingburn .burn-fig { color: var(--flame-early); z-index: 2; }
+.kingburn .burn-smoke { color: var(--flame-late); opacity: 0; z-index: 1; }
+
+/* Caught, consumed, gone. The colour walks from the early flame to the late one
+   — the same direction the candle walks across the night — and the light goes
+   out of him before the shape does. */
+.kingburn .burn-fig { animation: kingburnfig 2600ms ease-in forwards; }
+.kingburn .burn-smoke { animation: kingburnsmoke 2600ms ease-out forwards; }
+@keyframes kingburnfig {
+  0%   { color: var(--text);         opacity: 1; filter: none; }
+  18%  { color: var(--flame-early);  opacity: 1;
+         filter: drop-shadow(0 0 14px color-mix(in srgb, var(--flame-early) 70%, transparent)); }
+  62%  { color: var(--flame-late);   opacity: .92;
+         filter: drop-shadow(0 0 22px color-mix(in srgb, var(--flame-late) 55%, transparent)); }
+  100% { color: var(--flame-late);   opacity: 0;
+         filter: drop-shadow(0 0 4px color-mix(in srgb, var(--flame-late) 20%, transparent)); }
+}
+@keyframes kingburnsmoke {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.92); }
+  46%  { opacity: .34; transform: translate(-50%, -58%) scale(1.04); }
+  100% { opacity: 0;   transform: translate(-50%, -74%) scale(1.18); }
+}
+
+/* Reduced motion keeps the FACT and loses the flicker: he takes the flame
+   colour and fades, once, with no rise and no bloom. Losing the animation must
+   never mean losing the ending — the run still has to reach its verdict. */
+@media (prefers-reduced-motion: reduce) {
+  .kingburn .burn-fig {
+    animation: kingburnquiet 1200ms linear forwards;
+    filter: none;
+  }
+  .kingburn .burn-smoke { animation: none; opacity: 0; }
+  @keyframes kingburnquiet {
+    0%   { color: var(--flame-early); opacity: 1; }
+    100% { color: var(--flame-late);  opacity: 0; }
+  }
+}
+
 /* ---- The menu as a cold open -------------------------------------------------
    The register of the whole thing is set before the first click, and a clean
    text menu sets it to "website".

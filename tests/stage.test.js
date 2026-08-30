@@ -2466,6 +2466,137 @@ test("burial: three presses bury the tablet, two do not (#138)", serial(async ()
   }
 }));
 
+// 燒 — HE BURNS ON THE WIN AND ONLY ON THE WIN (#139).
+//
+// A win and a loss looked identical from outside: a pause, then the verdict.
+// This drives the real midnight — a real Game, midnightBeat() awaited, the kit
+// question answered by clicking, and the outcome read off the engine rather
+// than assumed.
+//
+// THE ASSERTION THAT MATTERS MOST IS THAT THE VERDICT IS STILL REACHED. The
+// failure mode of an ending beat is a run that never ends, which is worse than
+// a flat ending — so it is checked on the win, on the loss, with reduced motion
+// on, and with the stage skipped.
+test("midnight: he burns on the seal and not on the loss (#139)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [[tiles, items, search, events], html] = await Promise.all([
+    Promise.all(names.map((n) =>
+      fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))),
+    fetch("../game.html", NO_STORE).then((r) => r.text()),
+  ]);
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const realMM = window.matchMedia;
+
+  const run = async ({ win, reduced, skip }) => {
+    const host = document.createElement("div");
+    host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px";
+    document.body.appendChild(host);
+    host.appendChild(document.importNode(doc.querySelector(".board-pane"), true));
+    host.appendChild(document.importNode(doc.querySelector(".sidebar"), true));
+    if (reduced) {
+      window.matchMedia = (q) => /prefers-reduced-motion/.test(q)
+        ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} }
+        : realMM.call(window, q);
+    }
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    if (game.start) game.start();
+    await new Promise((r) => setTimeout(r, 120));
+
+    // Two kits, chosen so the engine decides rather than the test: for the win,
+    // carry the tablet (which lowers the threshold) and the best blade; for the
+    // loss, stand there with nothing. The outcome is ASSERTED afterwards, so a
+    // setup that stops producing what it intends fails loudly instead of
+    // quietly checking the other branch.
+    if (win) {
+      // The threshold is 12 with the tablet, and 13 is the most any kit can
+      // reach: a buffed 七星劍 is 4, the banner doubles it to 8, and 血符 adds
+      // 5. So the win needs ALL of it, and there is exactly one option that
+      // brings all of it.
+      game.state.tablet = true;
+      game.state.health = 10;                 // 血符 is paid in blood
+      game.state.hands = { weapon: "sevenstar-sword", charm: null };
+      game.state.buffed = { "sevenstar-sword": true };
+      game.state.items = { "soul-banner": 1, "blood-talisman": 1 };
+    } else {
+      game.state.tablet = false;
+      game.state.hands = { weapon: null, charm: null };
+      game.state.items = {};
+    }
+
+    const res = { sawBurn: false, sawVerdict: false, settled: false };
+    game.midnightBeat().then(() => { res.settled = true; });
+
+    for (let t = 0; t < 120 && !res.settled; t++) {
+      await new Promise((r) => setTimeout(r, 100));
+      if (document.querySelector(".evstage.kingburn")) {
+        res.sawBurn = true;
+        // Skipping is one of the two ways out runStage gives every stage. It
+        // must not cost the ending.
+        if (skip) document.querySelector(".evstage.kingburn").click();
+      }
+      const acts = [...host.querySelectorAll("#actions .action")];
+      // THE FIRST OPTION IS EVERYTHING AT ONCE. Measured rather than reasoned
+      // from the loop that builds them: the offered order is
+      // {banner+血符}, {血符}, {banner}, {} — strongest first. Taking the LAST
+      // one, which is what "banner outermost, talismans innermost" suggests,
+      // brings nothing and loses; that is what the first draft of this guard
+      // did, and the outcome assertion is what caught it.
+      if (acts.length) acts[0].click();
+    }
+    // The verdict card, which is the thing the run exists to reach.
+    for (let t = 0; t < 40 && !res.sawVerdict; t++) {
+      if (document.querySelector(".overlay-card")) { res.sawVerdict = true; break; }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    res.outcome = game.state.outcome;
+    res.status = game.state.status;
+    window.matchMedia = realMM;
+    host.remove();
+    for (const el of document.querySelectorAll(".evstage, .overlay-card, #overlay"))
+      el.classList && el.remove();
+    clearChoices();
+    return res;
+  };
+
+  try {
+    // ---- 1. THE WIN --------------------------------------------------------
+    const won = await run({ win: true, reduced: false, skip: false });
+    // PROVE THE REGION: everything below is about what a WIN showed, so the run
+    // has to have actually been one.
+    eq(won.outcome, "WIN_SEAL",
+      "the winning kit resolved to " + won.outcome + " — the setup no longer " +
+      "produces a seal, so nothing below is about the win");
+    assert(won.sawBurn, "he did not burn on WIN_SEAL");
+    assert(won.sawVerdict, "the verdict card was never reached after the burn");
+
+    // ---- 2. THE LOSS, asserted separately ----------------------------------
+    const lost = await run({ win: false, reduced: false, skip: false });
+    eq(lost.outcome, "LOSS_KING",
+      "the empty-handed kit resolved to " + lost.outcome + " rather than a loss");
+    assert(!lost.sawBurn,
+      "he burned on LOSS_KING — a losing player must not watch him go");
+    assert(lost.sawVerdict, "the verdict card was never reached on the loss");
+
+    // ---- 3. THE ENDING SURVIVES LOSING THE ANIMATION ----------------------
+    const calm = await run({ win: true, reduced: true, skip: false });
+    eq(calm.outcome, "WIN_SEAL", "reduced motion changed the outcome");
+    assert(calm.sawVerdict,
+      "under reduced motion the verdict was never reached — the run cannot end, " +
+      "which is worse than a flat ending");
+
+    // ---- 4. AND SKIPPING IT ------------------------------------------------
+    const skipped = await run({ win: true, reduced: false, skip: true });
+    assert(skipped.sawVerdict,
+      "skipping the burn lost the verdict — a skip may cost the picture and " +
+      "never the ending");
+  } finally {
+    window.matchMedia = realMM;
+    clearChoices();
+    for (const el of document.querySelectorAll(".evstage")) el.remove();
+  }
+}));
+
 test("stage: both languages carry the stage's own strings", () => {
   for (const key of ["stage-skip"]) {
     assert((themeEn.ui || {})[key], `English is missing ui.${key}`);

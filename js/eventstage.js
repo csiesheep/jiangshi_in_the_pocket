@@ -158,6 +158,9 @@ export function eventStage(kind, opts = {}) {
 // The safest way to keep a secret in a scene is to give the scene nothing to
 // say, and that is what this does.
 const KING_MS = 2500;
+// He takes a little longer to go than he took to arrive.
+const BURN_MS = 2600;
+const BURN_REDUCED_MS = 1200;
 const KING_REDUCED_MS = 1400;
 
 // Takes no options, and that is the §9 decision made structural. It was passed a
@@ -191,6 +194,60 @@ export function kingScene() {
     // his budget and his skip. One flag if that is ever ruled otherwise.
     onBuildError: () => undefined,
   });
+}
+
+// 燒 — HE BURNS, AND ONLY IF YOU WON (#139).
+//
+// A win and a loss looked identical from outside: refresh, a wait, the verdict
+// card. The one arrival the whole night walks toward resolved into a pause.
+//
+// NOTHING NEW WAS BUILT TO RUN IT. runStage already owns everything this needs
+// — a budget, two independent ways to skip, a reduced-motion path and a timer
+// that resolves whatever happens. That last is why this is the shape it is: the
+// failure mode of an ending beat is a run that never ends, and the safest
+// version of that is the one where the machinery guaranteeing an exit is the
+// machinery every other stage already uses.
+//
+// IN SILENCE, ON PURPOSE. midnightBeat() states that the room goes quiet and
+// STAYS quiet — duckForScare takes the bed and the murmur and nothing puts them
+// back, and the silence holds through the strike to the verdict. So there is no
+// cue here and no unduck. The design of the moment is that no question is being
+// asked, and a fire that roars asks one. If that is ever overruled, the comment
+// in midnightBeat has to change in the same commit: a cue underneath a comment
+// claiming otherwise is how a rationale outlives its reason.
+//
+// §9: no text, no numbers, nothing about the threshold. Same as his arrival.
+export function kingBurn() {
+  if (typeof document === "undefined" || !document.body) return Promise.resolve();
+  const reduced = reducedMotion();
+  return runStage({
+    cls: "kingburn",
+    build: buildBurn,
+    ctx: { reduced },
+    budget: reduced ? BURN_REDUCED_MS : BURN_MS,
+    reduced,
+    onBuildError: () => undefined,
+  });
+}
+
+// The same figure and the same smoke as the arrival, so it reads as the same
+// man rather than a new picture of one. He is drawn in the candle's own colours
+// — --flame-early into --flame-late, the tokens the gutter already interpolates
+// — because the night has exactly one fire in it and this is that fire finally
+// getting him.
+function buildBurn(inner, ctx) {
+  const smoke = document.createElement("span");
+  smoke.className = "burn-smoke";
+  smoke.setAttribute("aria-hidden", "true");
+  const sa = icon("king", "smoke", "king-art king-art--behind");
+  if (sa) { smoke.appendChild(sa); inner.appendChild(smoke); }
+
+  const fig = document.createElement("span");
+  fig.className = "burn-fig";
+  fig.setAttribute("aria-hidden", "true");
+  const art = icon("king", "figure", "king-art");
+  if (art) fig.appendChild(art);
+  inner.appendChild(fig);
 }
 
 // He is already there. The only thing that arrives is the room's reaction to
