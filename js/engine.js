@@ -112,15 +112,37 @@ export const HOUSE_RULES = {
 // ---- RNG -------------------------------------------------------------------
 // Small seeded PRNG (mulberry32) so shuffles are deterministic in tests and
 // runs can be shared by seed later.
-export function makeRng(seed) {
-  let a = seed >>> 0;
-  return function rng() {
+// THE WHOLE STATE IS ONE UINT32, AND IT IS ON THE FUNCTION (#141, #142).
+//
+// A stream's position used to live only in the captured `a`, which does not
+// serialise. Stringify a state, reload it, and every stream restarts from its
+// seed: the restored night draws different cards than the one being resumed.
+// That is worse than no resume, because it looks like one — and it is the same
+// failure a replay hits if it cannot be pinned to a known position.
+//
+// So `rng.s` carries the position after every draw, and a resume value can be
+// handed back in. Two properties make this safe to rely on: the exposed value
+// is the ENTIRE state (mulberry32 has no other), and reading it costs nothing,
+// so no caller has to remember to ask for it.
+//
+// Counting draws and fast-forwarding was the alternative and was rejected: a
+// count is a shadow of the truth, and one uncounted draw desynchronises
+// everything silently, which is the exact class of failure this repo keeps
+// paying for.
+export function makeRng(seed, resume) {
+  let a = (resume === undefined || resume === null ? seed : resume) >>> 0;
+  const rng = function () {
     a |= 0;
     a = (a + 0x6d2b79f5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    // Published AFTER the advance, so resuming from it and drawing again gives
+    // the draw that would have come next rather than repeating this one.
+    rng.s = a >>> 0;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+  rng.s = a >>> 0;
+  return rng;
 }
 
 export function shuffle(arr, rng) {

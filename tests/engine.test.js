@@ -21,6 +21,11 @@ const [items, search, events, tiles] = await Promise.all([
 const DATA = { items, search, events, tiles };
 const game = (opts) => E.newGame(DATA, opts);
 
+// The night format (#141, #142) is tested here because it is a property of the
+// pure engine: no DOM, no storage, no UI.
+import * as B from "../js/board.js";
+import { snapshot, restore, checkable, STREAMS, FORMAT_V, verdictOf } from "../js/night.js";
+
 // ---- Setup -----------------------------------------------------------------
 test("setup: starting stats", () => {
   const s = game({ seed: 1 });
@@ -1750,4 +1755,128 @@ test("cinnabar: cannot push a sword past one 真火符", () => {
   eq(E.buffSword(s, "sevenstar-sword").reason, "already-buffed");
   eq(E.swordAttack(s, "sevenstar-sword"), 4, "still four — the ceiling is the sword's, not the pack's");
   eq(E.heldCount(s, "truefire-talisman"), 2, "and the spare charms are still spare");
+});
+
+
+// ---- The night, written down (#141, #142) ------------------------------------
+// A RESUME THAT CHANGES THE FUTURE IS WORSE THAN NO RESUME, because it looks
+// like one. Nothing throws when a stream position is lost: the restored night
+// simply draws different cards and ends with a plausible score that is not the
+// score that was played. So these assert the SEQUENCE of what comes next, not
+// that a restore happened.
+
+// Consume an uneven number of draws from each stream, so a restore that quietly
+// re-seeds cannot pass by accident — with every stream at position zero, "the
+// same seed" and "the right position" are indistinguishable.
+function burnIn(state, board) {
+  E.beginTurn(state);
+  E.drawEvent(state, { warded: false });
+  E.search(state, "weapon");
+  E.search(state, "medicine");
+  state.phantomRng(); state.phantomRng(); state.phantomRng();
+  state.scareRng();
+  state.gutterRng(); state.gutterRng();
+  state.standingRng();
+  B.listMoves(board);
+  return state;
+}
+
+const nightPair = (seed) => {
+  const st = E.newGame(DATA, { seed });
+  const bd = B.createBoard(DATA, { seed });
+  return { st, bd };
+};
+
+test("night: a restored snapshot draws the same night, stream by stream (#141)", () => {
+  const SEED = 4242;
+  // Two identical runs. One is snapshotted and rebuilt; the other simply keeps
+  // going, and is the truth the rebuilt one is held to.
+  const kept = nightPair(SEED);
+  const cut = nightPair(SEED);
+  burnIn(kept.st, kept.bd);
+  burnIn(cut.st, cut.bd);
+
+  // PROVE THE STREAMS ARE ACTUALLY APART before asserting they are restored.
+  // If every position were still its seed this would pass on a re-seed, which
+  // is the bug rather than the fix.
+  const positions = STREAMS.map((n) => cut.st[n].s);
+  assert(new Set(positions).size === STREAMS.length,
+    "the streams are not at distinct positions after the burn-in (" +
+    positions.join(", ") + "), so this cannot tell a restore from a re-seed");
+
+  const snap = snapshot(cut.st, cut.bd, { tally: { fights: 2, found: 3 }, build: "b1" });
+  eq(snap.v, FORMAT_V, "the snapshot is not stamped with the format version");
+  const back = restore(DATA, snap, { build: "b1" });
+
+  // TEN DRAWS FROM EVERY STREAM, compared as a sequence. One draw agreeing is
+  // a coincidence a wrong position can produce; ten from seven streams is not.
+  for (let i = 0; i < 10; i++) {
+    for (const name of STREAMS) {
+      const want = kept.st[name]();
+      const got = back.state[name]();
+      eq(got, want,
+        "stream " + name + " draw " + (i + 1) + " after restore is " + got +
+        " and the unbroken run drew " + want + " — the restored night is a " +
+        "DIFFERENT night with a plausible score");
+    }
+  }
+
+  // And the board came back: the same deck order, the same tiles, the same
+  // place to stand. A deck rebuilt by re-shuffling would pass every draw
+  // assertion above and still deal the wrong rooms.
+  eq(back.board.decks.indoor.join(","), kept.bd.decks.indoor.join(","),
+    "the indoor deck came back in a different order");
+  eq(back.board.decks.outdoor.join(","), kept.bd.decks.outdoor.join(","),
+    "the outdoor deck came back in a different order");
+  eq(JSON.stringify(back.board.player), JSON.stringify(kept.bd.player),
+    "the player is standing somewhere else after the restore");
+  const tile = B.currentTile(back.board);
+  assert(tile && tile.def && tile.exits.length,
+    "the restored tile has no def or no exits — makeTile did not rebuild it");
+  eq(back.tally.fights, 2, "the tally did not survive");
+  eq(back.tally.found, 3, "the tally did not survive");
+});
+
+test("night: a snapshot from another build or format is refused, naming both (#141)", () => {
+  const { st, bd } = nightPair(7);
+  const snap = snapshot(st, bd, { tally: {}, build: "buildA" });
+
+  const wrongBuild = checkable(snap, "buildB");
+  assert(wrongBuild, "a snapshot from another build was accepted");
+  assert(/buildA/.test(wrongBuild) && /buildB/.test(wrongBuild),
+    "the refusal names only one build (" + wrongBuild + ") — a message that " +
+    "does not say what it found AND what it wanted cannot be acted on");
+
+  const older = { ...snap, v: FORMAT_V - 1 };
+  const wrongV = checkable(older, "buildA");
+  assert(wrongV && /v/.test(wrongV), "an older format version was accepted");
+
+  eq(checkable(snap, "buildA"), null, "a matching snapshot was refused");
+});
+
+test("night: a stream with no position is refused rather than saved as a guess", () => {
+  const { st, bd } = nightPair(11);
+  // The shape a stream would have if makeRng stopped publishing its position.
+  st.searchRng = () => 0.5;
+  let threw = null;
+  try { snapshot(st, bd, { tally: {}, build: "b" }); } catch (e) { threw = e.message; }
+  assert(threw && /searchRng/.test(threw),
+    "a stream with no position was saved anyway — it would restore as a fresh " +
+    "seed and the night would silently diverge. Got: " + threw);
+});
+
+test("night: the verdict is carried as data, not re-derived (#142, #144)", () => {
+  const { st } = nightPair(3);
+  st.outcome = "WIN_SEAL"; st.status = "won"; st.health = 4; st.tablet = true;
+  const v = verdictOf(st, { fights: 5, found: 2 });
+  // Every field the card prints and the submit gate reads. Named individually
+  // so a field that disappears fails here rather than silently stopping being
+  // compared by the replay guard.
+  for (const k of ["outcome", "status", "turn", "hour", "health", "kills", "found", "tablet"]) {
+    assert(k in v, "verdictOf does not carry " + k +
+      " — the replay comparison and the submit gate both read this object");
+  }
+  eq(v.kills, 5, "kills is not the fight count");
+  eq(v.found, 2, "found is not the item count");
+  eq(v.outcome, "WIN_SEAL");
 });

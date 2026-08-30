@@ -87,6 +87,41 @@ export function createBoard(data, opts = {}) {
   return board;
 }
 
+// Rebuild a board from a snapshot (#141). Tiles go back through makeTile so
+// their exits, exteriorDir and seamDir are derived from id and rotation exactly
+// as they were the first time — storing those would be storing a second copy of
+// something the data already decides, and a second copy is a thing that can
+// disagree.
+//
+// No rng is made. board.rng is spent inside createBoard on the two shuffles and
+// is never drawn from again, so what has to survive is the DECKS as they stand
+// rather than a position to re-shuffle from. See the note in js/night.js.
+export function restoreBoard(data, snap) {
+  const byId = {};
+  for (const d of [...data.tiles.indoor, ...data.tiles.outdoor]) byId[d.id] = d;
+
+  const board = {
+    rng: null,
+    byId,
+    worlds: { indoor: new Map(), outdoor: new Map() },
+    decks: { indoor: [...snap.decks.indoor], outdoor: [...snap.decks.outdoor] },
+    outsideId: snap.outsideId,
+    seamPlaced: snap.seamPlaced,
+    seam: snap.seam,
+    player: { ...snap.player },
+  };
+  for (const world of ["indoor", "outdoor"]) {
+    for (const t of snap.worlds[world]) {
+      const tile = makeTile(byId, t.id, world, t.x, t.y, t.rotation);
+      // Zombie doors are punched after placement, so they are stored rather
+      // than derived — nothing in the data says where a hole was made.
+      tile.holes = [...(t.holes || [])];
+      board.worlds[world].set(cellKey(t.x, t.y), tile);
+    }
+  }
+  return board;
+}
+
 // ---- Queries ---------------------------------------------------------------
 export function tileAt(board, world, x, y) {
   return board.worlds[world].get(cellKey(x, y)) || null;
