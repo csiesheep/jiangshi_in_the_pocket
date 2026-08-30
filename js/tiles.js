@@ -5,89 +5,12 @@
 import { loadIcons, icon } from "./render.js";
 import { mountLangSwitch } from "./langswitch.js";
 import * as L from "./lang.js";
+// The words a card says, with no DOM in them (#136). These were defined in
+// this file and were already pure; they are out there so that something
+// other than this page can ask what a tile SAYS without building a card.
+import { note, page, dirWord, chipsFor, noteFor } from "./tilewords.js";
 
 const DIRS = ["N", "E", "S", "W"];
-
-// The behaviour notes live in data/theme.json now, keyed off the same fields the
-// engine reads — so a tile cannot gain a power the gallery quietly omits, and a
-// translation of this page is a data change like every other. Anything
-// unrecognised is still surfaced rather than dropped (see noteFor).
-//
-// The two goal rooms are rites, not cards: each resolves the room's own event
-// and then draws ONE MORE for the rite itself, so a goal room is two events in
-// one turn and the second lands at the moment you least want it.
-const SEARCH_KEY = {
-  weapon: "search-weapon", magic: "search-magic",
-  medicine: "search-medicine", relic: "search-relic",
-};
-
-// A tile's display name, for the notes that have to refer to another room.
-function name(theme, id) {
-  return (theme && theme.tiles && theme.tiles[id]) || id;
-}
-
-// One lookup for this page, same contract as the game's: the key comes back if
-// it is missing, so a gap is a thing you can see rather than a blank card.
-function note(theme, key, values) {
-  const table = (theme && theme.tileNotes) || {};
-  return fill(table[key] || key, values);
-}
-
-function fill(line, values) {
-  if (!line) return line;
-  return String(line).replace(/\{(\w+)\}/g, (whole, k) =>
-    values && values[k] !== undefined ? values[k] : whole);
-}
-
-function noteFor(def, world, theme) {
-  const notes = [];
-  // The word for the 神主牌, taken from the theme so this page and the board
-  // cannot end up calling it two different things.
-  const tablet = (theme && theme.actions && theme.actions.tablet) || "tablet";
-
-  // Both decks have a `start` tile, but they mean different things: one is
-  // where the night begins, the other is what goes down the moment you step
-  // outside. Two cards reading "Where you begin" would just be confusing.
-  if (def.start) {
-    notes.push(note(theme, world === "indoor" ? "start-indoor" : "start-outdoor"));
-  }
-  if (def.search) {
-    // No "best of its kind" line: every room sharing a category rolls the
-    // identical table, so saying otherwise would teach a rule the game lacks.
-    notes.push(SEARCH_KEY[def.search]
-      ? note(theme, SEARCH_KEY[def.search])
-      : note(theme, "search-other", { what: def.search }));
-  }
-  if (def.exteriorDoor) {
-    notes.push(note(theme, "moon-gate", { dir: dirWord(theme, def.exteriorDoor) }));
-  }
-  if (def.seam) notes.push(note(theme, "seam"));
-  for (const f of def.flags || []) {
-    // RUNNING_WATER went with #56 and no tile carries it any more; the branch
-    // is gone rather than left describing a flag nothing can have.
-    notes.push(f === "WARDED" ? note(theme, "warded") : note(theme, "unknown", { what: f }));
-  }
-  // No tile carries an `action` since the post-launch redesign took the
-  // prayer and the coil, but the branch stays: the field is still read, and a
-  // tile that grows one should say so rather than say nothing.
-  if (def.action) notes.push(note(theme, "unknown", { what: def.action }));
-  if (def.goal) {
-    const key = def.goal === "TAKE_TABLET" ? "take-tablet"
-      : def.goal === "BURY_TABLET" ? "bury-tablet" : null;
-    notes.push(key ? note(theme, key, { tablet }) : note(theme, "unknown", { what: def.goal }));
-  }
-  if (def.onTurnEnd) {
-    notes.push(def.onTurnEnd === "HEAL_1"
-      ? note(theme, "heal-1")
-      : note(theme, "unknown", { what: def.onTurnEnd }));
-  }
-  return notes;
-}
-
-// The compass, spoken, from the theme like every other player-visible word.
-function dirWord(theme, dir) {
-  return ((theme && theme.ui) || {})[`dir-${dir}`] || dir;
-}
 
 // A compass of the tile's own doors. Not per rotation — the game turns tiles
 // as it places them, so what matters here is which walls have a way through.
@@ -127,38 +50,6 @@ function doorCompass(def) {
     svg.appendChild(gap);
   }
   return svg;
-}
-
-// The chip layer: the one category a room can be rummaged for, plus the handful
-// of roles worth spotting from across the page. Everything a chip says, noteFor
-// also says in a sentence — the chip is there to be scanned, the sentence to be
-// read, and the geography of the map (magic indoors only, weapons mostly out)
-// is only visible when twenty of these can be taken in at once.
-
-// This page's own prose (#80). It read the shared preference and themed the
-// tile NAMES from it while every sentence around them stayed English, so a
-// Chinese reader got Chinese names under an English introduction — which the
-// language switch #78 gave them made immediately visible.
-function page(theme, key, values) {
-  const table = (theme && theme.tilesPage) || {};
-  return fill(table[key] || key, values);
-}
-
-function chipsFor(def, theme) {
-  const chips = [];
-  const w = (k) => page(theme, k);
-  if (def.search) {
-    chips.push([w("chip-" + def.search), `tilechip--${def.search}`, true]);
-  }
-  if (def.onTurnEnd === "HEAL_1") chips.push([w("chip-heal"), "", false]);
-  if ((def.flags || []).includes("WARDED")) chips.push([w("chip-no-events"), "", false]);
-  if (def.action) chips.push([w("chip-once"), "", false]);
-  if (def.goal) chips.push([w("chip-goal"), "tilechip--goal", false]);
-  if (def.start) chips.push([w("chip-start"), "", false]);
-  if (def.exteriorDoor) chips.push([w("chip-moon-gate"), "", false]);
-  if (def.seam) chips.push([w("chip-seam"), "", false]);
-  if (!chips.length) chips.push([w("chip-transit"), "", false]);
-  return chips;
 }
 
 function card(def, theme, count, world, n) {
