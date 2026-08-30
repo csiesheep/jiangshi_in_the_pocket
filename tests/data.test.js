@@ -913,16 +913,38 @@ test("tiles: the page's own prose is themed, not typed into the script (#80)", a
   // themed the tile NAMES from the shared preference while every sentence
   // around them stayed English, so a Chinese reader got Chinese names under an
   // English introduction.
-  const src = await fetch("../js/tiles.js", NO_STORE).then((r) => r.text());
+  // BOTH MODULES. The page's words moved to js/tilewords.js (#136) and the
+  // reading of them did not stop being reading; searching only tiles.js would
+  // report every chip label as dead the moment they were extracted.
+  const src = (await Promise.all(
+    ["../js/tiles.js", "../js/tilewords.js"].map((p) =>
+      fetch(p, NO_STORE).then((r) => r.text())))).join("\n");
   for (const t of [themeEn, themeZh]) {
     assert(t.tilesPage, "a language has no tilesPage section");
   }
   // Every string the section declares is actually read, and every string the
   // page shows comes from there. A key nothing reads is how a translation
   // drifts out of use without anyone noticing.
+  //
+  // THE ESCAPE CLAUSE USED TO EXCUSE EVERY KEY. It read
+  //
+  //     src.includes('"' + key + '"') || src.includes('"chip-" + def.search')
+  //
+  // and the right-hand side does not mention `key` — so while that one
+  // construction existed anywhere in the file, EVERY key passed, whether it was
+  // read or not. This guard has been asserting nothing since that clause was
+  // added. It surfaced only because #136 moved chipsFor() to another module and
+  // took the string with it, at which point the first key in the list failed
+  // and three genuinely dead ones came out with it.
+  //
+  // Scoped now: the four chip-<search> keys are the only ones built rather than
+  // written, so they are the only ones that construction can excuse.
+  const BUILT = /^chip-(weapon|magic|medicine|relic)$/;
+  const constructed = src.includes('"chip-" + def.search');
   for (const key of Object.keys(themeEn.tilesPage)) {
     if (key === "_note" || key === "words") continue;
-    assert(src.includes('"' + key + '"') || src.includes('"chip-" + def.search'),
+    if (BUILT.test(key) && constructed) continue;
+    assert(src.includes('"' + key + '"'),
       "tilesPage." + key + " is declared and never read");
   }
   // The sentences that used to be typed here.

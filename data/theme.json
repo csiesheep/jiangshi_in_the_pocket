@@ -551,9 +551,6 @@
     "indoor-note": "Beams overhead, a plastered wall, a stone floor running away from you, and one oil lamp off to the left.",
     "outdoor-title": "The hillside",
     "outdoor-note": "Sky, the same moon in the same corner, hills on the horizon, cold ground and a band of mist.",
-    "counting": "Counting the tile set…",
-    "loading": "Loading the tile set…",
-    "failed": "Could not load the tile set.",
     "words": [
       "zero",
       "one",
