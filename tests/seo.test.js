@@ -20,7 +20,7 @@ import { LANGS } from "../js/lang.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "dc51c4cd");
+suite(import.meta.url, "d1b84ae6");
 
 const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits"];
 
