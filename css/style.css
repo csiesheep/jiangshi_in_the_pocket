@@ -6685,7 +6685,13 @@ body.asleep .fog {
    not a headline. */
 .menu-credit {
   margin: auto 0 0;
-  padding-top: 28px;
+  /* 10px, not the 28 first tried: the poster fit a 667-high phone exactly
+     before this line existed (638px of content), and every pixel spent here is
+     scroll on an SE. At 10px + 1.45 line-height the credit costs ~48px — whole
+     on anything 690 and taller, a small peek below the fold on the shortest
+     phones, which is acceptable for a credit and not for the talismans. */
+  padding-top: 10px;
+  line-height: 1.45;
   font-size: .74rem;
   color: color-mix(in srgb, var(--muted) 72%, transparent);
   text-wrap: balance;
