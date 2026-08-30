@@ -61,6 +61,33 @@ export const REFUSED = {
   UNFINISHED: "unfinished",
 };
 
+// ---- The name -----------------------------------------------------------
+// The owner ruled free-text names with a maximum length, and no account behind
+// them. THIS IS THE ONLY PLACE THAT LENGTH LIVES. sql/schema.sql deliberately
+// carries no CHECK mirroring it: two copies of one number drift, and the day
+// they disagree the symptom is a name that passes validation and is refused by
+// the database with an error nobody can read. The server is the only writer.
+//
+// 24 is my choice, not a ruling — long enough for a short CJK phrase or a Latin
+// nickname, short enough that a board row stays a row. Change it here and it
+// changes everywhere.
+export const NAME_MAX = 24;
+
+// COUNTED IN CODE POINTS, NOT UTF-16 UNITS. "".length counts units, so an emoji
+// is 2 and a name of twelve emoji would pass a naive check at 24 while being
+// twelve characters — and a CJK name is counted correctly either way only by
+// accident. Spreading the string iterates code points.
+//
+// The input field is a courtesy; this is the rule. A client that does not
+// truncate, or one that is not our client at all, gets the same answer.
+export function cleanName(raw) {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const points = [...trimmed];
+  return points.length > NAME_MAX ? points.slice(0, NAME_MAX).join("") : trimmed;
+}
+
 // The whole verification, with no HTTP in it, so the suite can drive it with
 // real data and a real night rather than through a Worker runtime that does not
 // exist on this machine.
@@ -161,7 +188,15 @@ export async function handleRun(request, env) {
   // build that DID the verifying, so the board can be segmented afterwards even
   // though it cannot be filtered at the door. Recording a fact we have beats
   // enforcing one we do not.
-  const verified = { ...result, verifiedBy: env.BUILD_ID ?? null };
+  // The name is normalised here even though there is no D1 to store it in yet:
+  // the cap is a server-side rule and the rule exists whether or not the row
+  // does. Echoed back so a client can see what was actually accepted rather
+  // than assuming its own truncation matched ours.
+  const verified = {
+    ...result,
+    name: cleanName(body && body.name),
+    verifiedBy: env.BUILD_ID ?? null,
+  };
   return json(verified, 200);
 }
 
