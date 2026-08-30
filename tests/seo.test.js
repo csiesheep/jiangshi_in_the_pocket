@@ -16,6 +16,9 @@ import { test, assert, eq, suite } from "./harness.js";
 // Listed here instead, this guard would go stale the day a third one lands —
 // which is the same drift it exists to catch, one level up.
 import { LANGS } from "../js/lang.js";
+// The page's OWN composition (#136). The build has a Python port of this;
+// the guard below runs the real one and holds the port to it.
+import { tileWords } from "../js/tilewords.js";
 
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
@@ -205,6 +208,64 @@ test("seo: the tiles page serves every room name, from the data (#134)", async (
     JSON.stringify(intro[1].trim().slice(0, 60)) + ". The tile set changed and " +
     "tools/render_tiles.py was not re-run, which is the drift this page exists " +
     "to prevent");
+});
+
+// THE BUILD'S OUTPUT AGAINST THE PAGE'S OWN (#136).
+//
+// tools/render_tiles.py carries a PORT of js/tilewords.js, because the build
+// cannot run the real thing: there is no JS runtime here — no node, bun, deno
+// or npx, no package.json, no CI. A port is two implementations of ten
+// branches, and two implementations drift. This is the check that makes that
+// safe, and it is the whole reason porting was the right choice rather than a
+// resigned one.
+//
+// IT COMPARES AGAINST tileWords() RUN LIVE, never against a list written here.
+// A hand-written expectation is a third implementation, and it agrees with
+// whichever of the other two it was copied from on the day it was copied —
+// which is precisely the drift being prevented.
+test("seo: the pre-rendered tile words match what the page composes (#136)", async () => {
+  const [tiles, theme] = await Promise.all([
+    fetch("../data/tiles.json", NO_STORE).then((r) => r.json()),
+    fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
+  ]);
+
+  const unesc = (t) => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  // What the served page actually carries, per <li>.
+  const items = [...html.tiles.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => {
+    const block = m[1];
+    const h3 = /<h3>([\s\S]*?)<\/h3>/.exec(block);
+    const ps = [...block.matchAll(/<p>([\s\S]*?)<\/p>/g)].map((x) => unesc(x[1].trim()));
+    return { name: h3 ? unesc(h3[1].trim()) : null, ps };
+  });
+
+  // 1. PROVE THE REGION. Every comparison below is "for each served item", and
+  //    a page that renders no items satisfies all of them.
+  const defs = [].concat(
+    (tiles.indoor || []).map((d) => [d, "indoor"]),
+    (tiles.outdoor || []).map((d) => [d, "outdoor"]));
+  eq(defs.length, 20, "the tile set is no longer twenty tiles");
+  eq(items.length, 20,
+    "tiles.html serves " + items.length + " tile entries, not twenty — the " +
+    "build did not run, or it no longer emits one <li> per tile. Re-run: " +
+    "python tools/render_tiles.py");
+
+  // 2. EVERY TILE, FIELD BY FIELD, AGAINST THE REAL COMPOSITION.
+  for (const [i, [def, world]] of defs.entries()) {
+    const want = tileWords(def, world, theme);
+    const got = items[i];
+    const expected = [want.doors]
+      .concat(want.chips.length ? [want.chips.join(" · ")] : [])
+      .concat(want.notes);
+
+    eq(got.name, want.name,
+      "tile " + i + " (" + def.id + ") is served as " + JSON.stringify(got.name) +
+      " and the page composes " + JSON.stringify(want.name));
+    eq(got.ps.join(" ¶ "), expected.join(" ¶ "),
+      "the served words for " + def.id + " are stale — the build and the page " +
+      "disagree.\n  served: " + JSON.stringify(got.ps) +
+      "\n  page:   " + JSON.stringify(expected) +
+      "\nRe-run: python tools/render_tiles.py");
+  }
 });
 
 test("seo: every page can be reached from every other", () => {

@@ -12,19 +12,28 @@ notices when the shell moves would be watching the wrong thing. A build step
 keeps the served file byte-identical to the repo file, so everything downstream
 of `git show HEAD:` stays true.
 
-WHAT IS RENDERED, AND WHAT IS DELIBERATELY NOT.
+WHAT IS RENDERED: the intro sentence, both section headings with their notes and
+counts, all twenty room names, and each tile's doors sentence, chips and notes.
 
-Rendered: the intro sentence, both section headings with their notes and counts,
-and all twenty room names. Every one of those is a direct lookup in
-data/theme.json or a count of data/tiles.json.
+THE PER-TILE SENTENCES ARE A PORT OF js/tilewords.js, AND THAT IS A DELIBERATE
+SECOND IMPLEMENTATION (#136). The first choice was to have this build run the
+REAL functions, which needs a JS runtime — and there is none here: no node, bun,
+deno or npx, no package.json, no CI, and every tool in this directory is Python.
+So the choice was between porting, moving the rules into a data table both sides
+walk, or having the page compose and committing the result.
 
-NOT rendered: the per-tile sentences — the doors line, the chips and the notes.
-Those are composed by noteFor() and chipsFor() in js/tiles.js from each tile's
-own properties, and reproducing them here would be a SECOND IMPLEMENTATION of
-that logic that drifts the first time either changes. The issue asked for the
-words; these are the words that are data. If the per-tile sentences are wanted
-in the served markup too, the honest way is to move that composition into
-something both can read, which is its own piece of work.
+Porting won because the objection to it is DRIFT, and drift is exactly what a
+check can remove: tests/seo.test.js runs tileWords() live in the page for all
+twenty tiles and compares it against what this file produced. The two
+implementations cannot disagree without the suite going red. The rules table
+would have turned ten branches into a small rule language with an evaluator
+written twice — more implementations, not fewer — and committing the page's own
+output would have introduced a second regeneration shape into a repo that has
+exactly one, the record_shell.py one this file already follows.
+
+KEEP THIS IN STEP WITH js/tilewords.js. The branches below are in the same order
+with the same fallbacks, and the guard is what proves it — if you change one
+side, the suite tells you about the other.
 
 THE COUNT IS COMPUTED, NEVER TYPED. The intro once read "sixteen rooms" after
 the set had become twenty, which is why it is filled at load in the first place.
@@ -68,6 +77,100 @@ def fill(template, values):
     return out
 
 
+# ---- the composition, ported from js/tilewords.js ---------------------------
+# Same branches, same order, same fallbacks. Read the two side by side.
+
+SEARCH_KEY = {
+    "weapon": "search-weapon", "magic": "search-magic",
+    "medicine": "search-medicine", "relic": "search-relic",
+}
+
+
+def note(theme, key, values=None):
+    table = theme.get("tileNotes") or {}
+    return fill(table.get(key, key), values or {})
+
+
+def page_str(theme, key, values=None):
+    table = theme.get("tilesPage") or {}
+    return fill(table.get(key, key), values or {})
+
+
+def dir_word(theme, d):
+    return (theme.get("ui") or {}).get("dir-%s" % d, d)
+
+
+def doors_sentence(d, theme):
+    named = [dir_word(theme, x) for x in d.get("exits", [])]
+    head = (note(theme, "doors-all") if len(named) == 4
+            else note(theme, "doors-some",
+                      {"dirs": note(theme, "doors-join").join(named)}))
+    seam = note(theme, "doors-seam", {"dir": dir_word(theme, d["seam"])}) if d.get("seam") else ""
+    return head + seam + note(theme, "doors-end")
+
+
+def chips_for(d, theme):
+    chips = []
+    if d.get("search"):
+        chips.append(page_str(theme, "chip-" + d["search"]))
+    if d.get("onTurnEnd") == "HEAL_1":
+        chips.append(page_str(theme, "chip-heal"))
+    if "WARDED" in (d.get("flags") or []):
+        chips.append(page_str(theme, "chip-no-events"))
+    if d.get("action"):
+        chips.append(page_str(theme, "chip-once"))
+    if d.get("goal"):
+        chips.append(page_str(theme, "chip-goal"))
+    if d.get("start"):
+        chips.append(page_str(theme, "chip-start"))
+    if d.get("exteriorDoor"):
+        chips.append(page_str(theme, "chip-moon-gate"))
+    if d.get("seam"):
+        chips.append(page_str(theme, "chip-seam"))
+    if not chips:
+        chips.append(page_str(theme, "chip-transit"))
+    return chips
+
+
+def notes_for(d, world, theme):
+    out = []
+    tablet = (theme.get("actions") or {}).get("tablet", "tablet")
+    if d.get("start"):
+        out.append(note(theme, "start-indoor" if world == "indoor" else "start-outdoor"))
+    if d.get("search"):
+        key = SEARCH_KEY.get(d["search"])
+        out.append(note(theme, key) if key
+                   else note(theme, "search-other", {"what": d["search"]}))
+    if d.get("exteriorDoor"):
+        out.append(note(theme, "moon-gate", {"dir": dir_word(theme, d["exteriorDoor"])}))
+    if d.get("seam"):
+        out.append(note(theme, "seam"))
+    for f in d.get("flags") or []:
+        out.append(note(theme, "warded") if f == "WARDED"
+                   else note(theme, "unknown", {"what": f}))
+    if d.get("action"):
+        out.append(note(theme, "unknown", {"what": d["action"]}))
+    if d.get("goal"):
+        key = ("take-tablet" if d["goal"] == "TAKE_TABLET"
+               else "bury-tablet" if d["goal"] == "BURY_TABLET" else None)
+        out.append(note(theme, key, {"tablet": tablet}) if key
+                   else note(theme, "unknown", {"what": d["goal"]}))
+    if d.get("onTurnEnd"):
+        out.append(note(theme, "heal-1") if d["onTurnEnd"] == "HEAL_1"
+                   else note(theme, "unknown", {"what": d["onTurnEnd"]}))
+    return out
+
+
+def tile_words(d, world, theme, names):
+    return {
+        "id": d["id"],
+        "name": names.get(d["id"], d["id"]),
+        "doors": doors_sentence(d, theme),
+        "chips": chips_for(d, theme),
+        "notes": notes_for(d, world, theme),
+    }
+
+
 def build():
     tiles = read_json("data/tiles.json")
     theme = read_json("data/theme.json")
@@ -86,18 +189,27 @@ def build():
     })
 
     rows = [BEGIN]
-    for group, title, note in (
-        (indoor, page["indoor-title"], page["indoor-note"]),
-        (outdoor, page["outdoor-title"], page["outdoor-note"]),
+    for group, world, title, blurb in (
+        (indoor, "indoor", page["indoor-title"], page["indoor-note"]),
+        (outdoor, "outdoor", page["outdoor-title"], page["outdoor-note"]),
     ):
         rows.append('    <section class="tilesection">')
         rows.append("      <h2>%s</h2>" % esc(title))
-        rows.append('      <p class="muted">%s</p>' % esc(note))
+        rows.append('      <p class="muted">%s</p>' % esc(blurb))
         rows.append('      <p class="muted">%s</p>'
                     % esc(fill(page["n-tiles"], {"n": len(group)})))
         rows.append("      <ul>")
         for d in group:
-            rows.append("        <li>%s</li>" % esc(names.get(d["id"], d["id"])))
+            w = tile_words(d, world, theme, names)
+            rows.append("        <li>")
+            rows.append("          <h3>%s</h3>" % esc(w["name"]))
+            rows.append("          <p>%s</p>" % esc(w["doors"]))
+            if w["chips"]:
+                rows.append("          <p>%s</p>"
+                            % esc(" · ".join(w["chips"])))
+            for n in w["notes"]:
+                rows.append("          <p>%s</p>" % esc(n))
+            rows.append("        </li>")
         rows.append("      </ul>")
         rows.append("    </section>")
     rows.append("    " + END)
