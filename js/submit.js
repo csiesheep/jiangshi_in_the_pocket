@@ -28,31 +28,46 @@ const api = (path) => new URL(path, location.href).href;
 // looking authoritative.
 const CUT = 50;
 
-// Which board a verdict can even be compared against, and on what.
-//
-// PRIMARY METRIC ONLY, DELIBERATELY. boards.js breaks ties on health, then on
-// id — reproducing that here would be a second copy of an ordering that is
-// allowed to change, and getting it subtly wrong hides a qualifying run. Ties
-// resolve towards offering instead: `better` returns true on equal, so the
-// worst case is a button that leads to a refusal rather than a record silently
-// dropped.
+// Which board a verdict can even be compared against, and on which number.
+// `lower` marks a board where a smaller value is the better one.
 const BOARDS = [
-  {
-    id: "burial",
-    eligible: (v) => v.outcome === "WIN_BURIAL",
-    better: (v, row) => v.turn <= row.turn,       // earlier is better
-  },
-  {
-    id: "seal",
-    eligible: (v) => v.outcome === "WIN_SEAL",
-    better: (v, row) => v.health >= row.health,
-  },
-  {
-    id: "kills",
-    eligible: (v) => v.status !== "playing",
-    better: (v, row) => v.kills >= row.kills,
-  },
+  { id: "burial", eligible: (v) => v.outcome === "WIN_BURIAL", metric: "turn", lower: true },
+  { id: "seal", eligible: (v) => v.outcome === "WIN_SEAL", metric: "health" },
+  { id: "kills", eligible: (v) => v.status !== "playing", metric: "kills" },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THE ONE PLACE A RUN IS RANKED, AND IT IS BUILT TO BE REPLACED.
+//
+// KNOWING THE CUT ROW DOES NOT TELL YOU HOW TO COMPARE AGAINST IT. boards.js
+// sorts the kills board by kills DESC, then survivors before the fallen, then
+// health DESC. Writing "would my run beat that row?" here means reimplementing
+// that three-level ordering in client code — a second copy of a rule the server
+// owns, in the one place where being wrong looks exactly like being right.
+//
+// So this does NOT encode that precedence, and nothing else in this file may
+// either. It compares the primary number only, and every case it cannot settle
+// resolves towards offering:
+//
+//   - equal on the metric        -> offer (the tie is the server's to break)
+//   - no cut row                 -> offer
+//   - the metric is missing      -> offer
+//
+// BE is adding a comparable sort key per row: the ordering as an array to be
+// compared elementwise WITHOUT knowing what the elements mean. When it lands,
+// the body below is replaced by building the same array for this run and
+// comparing it against the cut's — and the fail-open branches stay exactly as
+// they are, including the new one the rule already covers: A ROW WITH NO KEY,
+// OR A RESPONSE WITH NO KEYS AT ALL, IS THE SAME AS NOT BEING ABLE TO READ THE
+// CUT LINE. Never hide the button because the ordering could not be understood.
+// ─────────────────────────────────────────────────────────────────────────────
+function beatsCut(verdict, board, cut) {
+  if (!cut) return true;
+  const theirs = cut[board.metric];
+  const mine = verdict[board.metric];
+  if (typeof theirs !== "number" || typeof mine !== "number") return true;
+  return board.lower ? mine <= theirs : mine >= theirs;
+}
 
 // A run qualifies if it beats ANY board, so one unreachable board must not be
 // able to veto the other two — and all three unreachable must not veto at all.
@@ -79,7 +94,7 @@ export async function qualifies(verdict, fetcher = fetch) {
     const { board, rows } = a.value;
     // A board that is not full yet has no cut line to be under.
     if (rows.length < CUT) return { show: true, why: board.id + "-not-full" };
-    if (board.better(verdict, rows[rows.length - 1])) {
+    if (beatsCut(verdict, board, rows[rows.length - 1])) {
       return { show: true, why: board.id };
     }
   }

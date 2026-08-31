@@ -2796,6 +2796,21 @@ test("submit: a run under every cut line is not offered (#144)", serial(async ()
   assert(tie.show, "a run level with the cut line was hidden; ties resolve towards offering");
 }));
 
+test("submit: a cut line it cannot rank against still offers (#144)", serial(async () => {
+  // THE ORDERING IS THE SERVER'S, AND NOT UNDERSTANDING IT IS NOT A REASON TO
+  // HIDE. The kills board sorts on kills, then survivors before the fallen,
+  // then health — three levels this client deliberately does not reimplement.
+  // When the cut row cannot be read on the primary number at all, that is the
+  // same state as not having reached the board, and it resolves the same way.
+  // The same branch takes the comparable sort key BE is adding: a row without
+  // one, or a response carrying none, offers rather than hides.
+  const noMetric = Array.from({ length: 50 }, () => ({ name: "someone" }));
+  const out = await qualifies(verdict({ turn: 999 }), board(noMetric));
+  assert(out.show,
+    "a full board whose rows carry no comparable number hid the button — the " +
+    "ordering being unreadable is our problem, and the player loses the record");
+}));
+
 test("submit: a board with room offers regardless of the score (#144)", serial(async () => {
   const out = await qualifies(verdict({ turn: 999 }), board([]));
   assert(out.show, "an empty board has no cut line to be under, so everything qualifies");
