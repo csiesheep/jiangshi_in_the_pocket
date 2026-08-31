@@ -6756,6 +6756,10 @@ body.asleep .fog {
   color: var(--muted);
 }
 .ledger-strip:empty { display: none; }
+/* Each count is one unit. Without this a flex item is free to break inside
+   itself when the strip wraps, so "0 nights played" can leave "played" alone on
+   the next line looking like a fifth statistic. */
+.ledger-stat { white-space: nowrap; }
 .ledger-stat b {
   font-family: var(--font-cjk);
   font-size: 1.15rem;
@@ -6764,16 +6768,63 @@ body.asleep .fog {
   font-variant-numeric: tabular-nums;
 }
 
-.ledger-board { margin: 0 0 34px; }
-.ledger-board h2 { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; }
-.ledger-zh { font-family: var(--font-cjk); }
-.ledger-en {
-  font-family: var(--font-body);
-  font-size: .56em;
-  font-weight: 600;
+/* ---- The tabs (owner ruling) -------------------------------------------------
+   速葬 / 鎮屍 / 除魔 as a tab strip, one board on screen at a time. THE TAB
+   CARRIES THE CHINESE NAME AND THE PANEL CARRIES THE ENGLISH ONE: both halves
+   are still visible together, the same pairing the talismans use, split across
+   the control and the thing it controls. Three two-character labels fit a 375
+   row comfortably; three labels each carrying a full English name would not. */
+.ledger-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.ledger-tab {
+  flex: 0 1 auto;
+  padding: 9px 16px;
+  font-family: var(--font-cjk);
+  font-size: 1.2rem;
   letter-spacing: .06em;
   color: var(--muted);
+  background: none;
+  border: 0;
+  /* The selected marker sits ON the strip's own rule, so the two must be the
+     same weight or the tabs jump by a pixel as the selection moves. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color .18s, border-color .18s;
 }
+.ledger-tab:hover { color: var(--text); }
+.ledger-tab[aria-selected="true"] {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+/* The strip is one tab stop and the arrows move within it, so the focus ring
+   has to be visible on a control that is not the one the mouse would pick. */
+.ledger-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+
+.ledger-board { margin: 0 0 34px; }
+/* A panel is focusable so a keyboard can reach the table inside it; it is not
+   a clickable thing, so it gets no ring of its own beyond the browser's. */
+.ledger-board:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+/* Belt and braces on the hidden panels: [hidden] is a UA default that any
+   display rule on this element would silently beat, and "every panel visible
+   at once" is this layout's own worst failure. */
+.ledger-board[hidden] { display: none; }
+/* The panel's heading is the board's English name. Sized down from an <h2>
+   because the tab above it is already carrying the name in the other script —
+   this is the gloss, not a second title. */
+.ledger-en {
+  margin: 0 0 4px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--text);
+}
+.ledger-zh { font-family: var(--font-cjk); }
 /* The rule of the board, said out loud. A board whose ordering is invisible
    reads as arbitrary to the player whose run is not on it. */
 .ledger-rule { margin: 0 0 12px; color: var(--muted); font-size: .9rem; max-width: 68ch; }

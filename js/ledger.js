@@ -152,17 +152,25 @@ function boardTable(board, rows) {
 // "Nobody has done this yet" is an invitation; "we could not reach the board"
 // is a fault on our side. Collapsing them into one grey line would tell a
 // player on a train that nobody has ever buried the tablet.
-function boardSection(board, outcome) {
+//
+// THIS MATTERS MORE INSIDE A TAB, not less. With three boards stacked a reader
+// could infer what one meant from its neighbours; a tab shows one board and
+// nothing else, so the board's own sentence is the only thing on screen saying
+// what it ranks.
+function boardPanel(board, outcome) {
   const sec = el("section", "ledger-board");
-  const h = el("h2");
-  // BOTH HALVES, ALWAYS, in the talismans' idiom: the Chinese name and the
-  // English one side by side. NOT say() — that switches on the reader's
-  // language, which rendered the heading as "速葬速葬" in Chinese because both
-  // spans resolved to the same string. The rule below and the column heads do
-  // switch; the board's name does not, because it is a name.
-  h.appendChild(el("span", "ledger-zh", board.zh));
-  h.appendChild(el("span", "ledger-en", board.en));
-  sec.appendChild(h);
+  sec.id = "panel-" + board.id;
+  sec.setAttribute("role", "tabpanel");
+  sec.setAttribute("aria-labelledby", "tab-" + board.id);
+  // Focusable so a keyboard reaches the panel's own content after leaving the
+  // strip — a tabpanel that Tab cannot enter strands the table behind it.
+  sec.tabIndex = 0;
+
+  // The tab carries the Chinese name; the panel carries the English one. Both
+  // halves are still on screen together, the same pairing the talismans use,
+  // just split across the control and the thing it controls — which also keeps
+  // the tab strip narrow enough for three tabs at 375.
+  sec.appendChild(el("h2", "ledger-en", board.en));
   sec.appendChild(el("p", "ledger-rule", say(board, "rule")));
 
   if (!outcome.ok) {
@@ -181,6 +189,65 @@ function boardSection(board, outcome) {
   return sec;
 }
 
+// REAL TAB SEMANTICS, because the cheap version is indistinguishable by eye and
+// unusable without a mouse: role=tab/tablist/tabpanel, aria-selected, and a
+// ROVING TABINDEX so Tab moves in and out of the strip as one stop while the
+// arrow keys move between the tabs inside it.
+function mountTabs(host, panels) {
+  const list = el("div", "ledger-tabs");
+  list.setAttribute("role", "tablist");
+  list.setAttribute("aria-label", isZh() ? "夜榜" : "The ledger");
+
+  const tabs = BOARDS.map((board) => {
+    const t = el("button", "ledger-tab", board.zh);
+    t.type = "button";
+    t.id = "tab-" + board.id;
+    t.setAttribute("role", "tab");
+    t.setAttribute("aria-controls", "panel-" + board.id);
+    t.lang = "zh-Hant";
+    list.appendChild(t);
+    return t;
+  });
+
+  const show = (i, moveFocus) => {
+    tabs.forEach((t, k) => {
+      const on = k === i;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      // The roving part: only the selected tab is in the document's tab order.
+      t.tabIndex = on ? 0 : -1;
+      panels[k].hidden = !on;
+    });
+    if (moveFocus) tabs[i].focus();
+    // A linkable board that survives a reload. replaceState rather than
+    // location.hash: assigning the hash scrolls the panel into view, which
+    // yanks the page down every time somebody changes tab.
+    try { history.replaceState(null, "", "#" + BOARDS[i].id); } catch { /* file:// */ }
+  };
+
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => show(i, false));
+    t.addEventListener("keydown", (e) => {
+      const last = tabs.length - 1;
+      let to = null;
+      if (e.key === "ArrowRight") to = i === last ? 0 : i + 1;
+      else if (e.key === "ArrowLeft") to = i === 0 ? last : i - 1;
+      else if (e.key === "Home") to = 0;
+      else if (e.key === "End") to = last;
+      if (to === null) return;
+      e.preventDefault();
+      show(to, true);
+    });
+  });
+
+  // #kills opens on that board. An unknown or absent hash opens the first.
+  const asked = BOARDS.findIndex((b) => "#" + b.id === location.hash);
+  show(asked >= 0 ? asked : 0, false);
+  host.appendChild(list);
+  return tabs;
+}
+
+// The four counts across the top. It describes the whole ledger rather than
+// any one board, so it sits above the tab strip and outside every panel.
 function strip(stats) {
   const wrap = el("p", "ledger-strip");
   if (!stats.ok) return wrap;
@@ -212,10 +279,10 @@ async function paint() {
   if (!host) return;
   host.textContent = "";
 
-  // ONE REQUEST FOR THE WHOLE PAGE. Three boards and the strip used to be four
-  // reads, which meant four ways to half-load: a page showing two boards, one
-  // apology and no counts is worse than a page that says plainly it could not
-  // reach the ledger.
+  // ONE REQUEST FOR THE WHOLE PAGE, AND FOR ALL THREE TABS. Switching tabs
+  // shows a panel that is already built; it never fetches. A per-tab read would
+  // bring back the partial-failure matrix #146 removed, one tab at a time, and
+  // would turn "out of reach" into a state that only appears after a click.
   let body = null;
   try {
     body = await getJSON("api/leaderboard");
@@ -223,19 +290,23 @@ async function paint() {
     body = null;
   }
 
+  // The strip describes the whole ledger rather than any one board, so it sits
+  // above the tabs and outside every panel.
   host.appendChild(strip(body && body.stats
     ? { ok: true, data: body.stats }
     : { ok: false }));
 
-  for (const board of BOARDS) {
+  const panels = BOARDS.map((board) => {
     // A board missing from the response is reported as unreachable rather than
     // as empty. They are different sentences on purpose and this is exactly the
     // case that would blur them.
     const got = body && body.boards ? body.boards[board.id] : null;
-    host.appendChild(boardSection(board, got
-      ? { ok: true, rows: got.rows || [] }
-      : { ok: false }));
-  }
+    return boardPanel(board, got ? { ok: true, rows: got.rows || [] } : { ok: false });
+  });
+
+  // Tabs first in the DOM, then the panels they control.
+  mountTabs(host, panels);
+  for (const p of panels) host.appendChild(p);
 }
 
 function apply(lang) {

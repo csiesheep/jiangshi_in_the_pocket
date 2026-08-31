@@ -43,7 +43,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "8e030b83");
+suite(import.meta.url, "faef8177");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -2754,6 +2754,168 @@ test("burn: the fire is on him and it is warm (#140)", serial(async () => {
     spriteHost.remove();
     styles.remove();
   }
+}));
+
+// THE LEDGER IS LOOKED AT, NOT ONLY QUERIED (#144).
+//
+// WHY THIS EXISTS. The ledger page was reported as rendering the board headings
+// and the stats run together. Measured on the same URL, both readings came from
+// a page served by a STALE SERVICE-WORKER SHELL whose stylesheet predated the
+// ledger: window.__build read 9a056a7c before a reload and eaa667b7 after, and
+// document.styleSheets went from 859 rules with zero ledger rules to 22 of
+// them. There was no defect. But the false alarm and a real missing rule are
+// THE SAME STRING from the outside, and nothing in the suite could tell them
+// apart: tests/index.html links no stylesheet, so no test had ever seen this
+// page laid out at all.
+//
+// SO IT MEASURES SEPARATION AND EXCLUSIVITY, NOT SPACING. Any positive gap
+// passes and the design stays free; what cannot happen quietly is a rule that
+// stops matching, or a tab strip showing every panel at once or none.
+//
+// It runs in an IFRAME over the real ledger.html — shipped stylesheet, shipped
+// markup, shipped script, and nothing leaking into the suite's own document —
+// and it populates through the page's own paint() rather than by building rows,
+// so the thing measured is the thing that ships.
+test("ledger: one board on screen, and nothing running together (#144)", serial(async () => {
+  const drive = (width, hash) => new Promise((resolve, reject) => {
+    const f = document.createElement("iframe");
+    f.style.cssText = "position:absolute;left:-99999px;top:0;border:0;width:" +
+                      width + "px;height:900px";
+    f.src = "../ledger.html" + (hash || "");
+    const bail = setTimeout(() => { f.remove(); reject(new Error("ledger.html never loaded")); }, 9000);
+    f.onload = () => {
+      clearTimeout(bail);
+      setTimeout(async () => {
+        const d = f.contentDocument, cw = f.contentWindow;
+        cw.fetch = async () => new cw.Response(JSON.stringify({
+          ok: true, boardSize: 50,
+          boards: {
+            burial: { rows: [{ id: 1, name: "Ling", turn: 6, health: 4,
+                               created_at: "2026-08-30 21:14:02" }], full: false, cut: null },
+            seal: { rows: [], full: false, cut: null },
+            kills: { rows: [], full: false, cut: null },
+          },
+          stats: { nights: 128, burials: 12, seals: 7, deaths: 109 },
+        }), { status: 200, headers: { "content-type": "application/json" } });
+        // Repainted through the page's own path: two presses of the language
+        // switch land back on the language it started in.
+        const btn = d.querySelector("#btn-lang");
+        if (btn) { btn.click(); await new Promise((r) => setTimeout(r, 300)); btn.click(); }
+        setTimeout(() => {
+          const shown = (e) => !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length);
+          const tabs = [...d.querySelectorAll('[role="tab"]')];
+          const panels = [...d.querySelectorAll('[role="tabpanel"]')];
+          const read = () => {
+            const open = panels.filter(shown);
+            const picked = tabs.filter((t) => t.getAttribute("aria-selected") === "true");
+            return {
+              open: open.length,
+              openId: open.length === 1 ? open[0].id : null,
+              picked: picked.length,
+              controls: picked.length === 1 ? picked[0].getAttribute("aria-controls") : null,
+              label: picked.length === 1 ? picked[0].textContent.trim() : null,
+              heading: open.length === 1
+                ? ((open[0].querySelector(".ledger-en") || {}).textContent || "") : null,
+              rule: open.length === 1
+                ? ((open[0].querySelector(".ledger-rule") || {}).textContent || "") : null,
+              order: tabs.map((t) => t.tabIndex).join(","),
+            };
+          };
+          const first = read();
+          const i = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
+          if (i >= 0) {
+            tabs[i].focus();
+            tabs[i].dispatchEvent(new cw.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+          }
+          const afterArrow = read();
+          const strip = d.querySelector(".ledger-tabs");
+          const counts = d.querySelector(".ledger-strip");
+          const stats = counts ? [...counts.children] : [];
+          const gap = (a, b) => b.getBoundingClientRect().left - a.getBoundingClientRect().right;
+          resolve({
+            width, tabs: tabs.length, panels: panels.length, first, afterArrow,
+            oneRow: new Set(tabs.map((t) => Math.round(t.getBoundingClientRect().top))).size,
+            tabsOverflow: strip ? strip.scrollWidth - strip.clientWidth : 0,
+            stats: stats.length,
+            statPairs: stats.slice(1).map((s, k) => ({
+              gap: gap(stats[k], s),
+              sameRow: Math.abs(s.getBoundingClientRect().top -
+                                stats[k].getBoundingClientRect().top) < 4,
+            })),
+            docOverflow: d.documentElement.scrollWidth - d.documentElement.clientWidth,
+          });
+          f.remove();
+        }, 320);
+      }, 400);
+    };
+    document.body.appendChild(f);
+  });
+
+  // ONE FRAME, AT 375. Three full-page iframes inside an already-heavy suite
+  // destabilised the renderer here, so this drives the width that actually
+  // constrains the design — three tabs on one row — and the desktop case and
+  // the #kills deep link are checked by hand instead. A guard that takes the
+  // browser down is worse than a narrower one.
+  {
+    const width = 375;
+    const m = await drive(width);
+    const at = " (at " + width + "px)";
+
+    // REGION FIRST. Every assertion below is satisfied for free by a page that
+    // rendered nothing at all.
+    eq(m.tabs, 3, "the ledger did not render three tabs" + at);
+    eq(m.panels, 3, "the ledger did not render three panels" + at);
+    assert(m.stats >= 4, "the stats strip did not render" + at);
+
+    // THE TAB UI'S OWN FAILURE MODE, which is invisible to any text assertion:
+    // every panel on screen at once, or none.
+    eq(m.first.open, 1, "the ledger shows " + m.first.open + " boards at once" + at +
+      " — a tab strip whose panels are all visible, or all hidden, reads as a " +
+      "broken page and passes every check on the text inside it");
+    eq(m.first.picked, 1, "exactly one tab must be selected, found " + m.first.picked + at);
+    eq(m.first.controls, m.first.openId,
+      "the selected tab points at " + m.first.controls + " and the visible panel is " +
+      m.first.openId + at + " — the strip and the panels have come apart");
+    // Roving tabindex: the strip is ONE stop, not three.
+    eq(m.first.order.split(",").filter((n) => n === "0").length, 1,
+      "the tab strip put " + m.first.order + " in the document tab order" + at +
+      " — a keyboard should pass the strip in one press, then use the arrows");
+
+    // Both halves of the name are on screen, split across the control and the
+    // panel it opens: the tab carries the Chinese, the panel the English.
+    assert(m.first.label && m.first.label.length,
+      "the selected tab has no label" + at);
+    assert(m.first.heading && m.first.heading.trim().length,
+      "the open panel has no English name" + at);
+    assert(m.first.label !== m.first.heading,
+      "the tab and its panel are showing the same string" + at);
+    // The board's own sentence, which is the only thing saying what it ranks —
+    // and inside a tab there is no neighbouring board to infer it from.
+    assert(m.first.rule && m.first.rule.trim().length > 20,
+      "the open board has no rule sentence" + at + " — a tab shows one board and " +
+      "nothing else, so its sentence is all the reader has");
+
+    // The arrows move the selection, and exactly one board stays on screen.
+    eq(m.afterArrow.open, 1, "after ArrowRight, " + m.afterArrow.open + " boards are visible" + at);
+    assert(m.afterArrow.openId !== m.first.openId,
+      "ArrowRight did not change the board" + at + " — the strip looks like tabs " +
+      "and is not usable without a mouse");
+    eq(m.afterArrow.controls, m.afterArrow.openId,
+      "after ArrowRight the selected tab and the visible panel disagree" + at);
+
+    // Three two-character labels are meant to sit on one row at 375.
+    eq(m.oneRow, 1, "the tab labels wrapped onto " + m.oneRow + " rows" + at);
+    eq(m.tabsOverflow, 0, "the tab strip scrolls sideways" + at);
+
+    // The original complaint: counts running into one another.
+    for (const [k, p] of m.statPairs.entries()) {
+      if (!p.sameRow) continue;                  // wrapped to the next line
+      assert(p.gap > 0, "stats " + k + " and " + (k + 1) + " are touching (" +
+        Math.round(p.gap) + "px)" + at + " — they read as one run-together string");
+    }
+    eq(m.docOverflow, 0, "the ledger page scrolls sideways" + at);
+  }
+
 }));
 
 // THE LEDGER OFFER FAILS OPEN (#144).
