@@ -6741,7 +6741,14 @@ body.asleep .fog {
   letter-spacing: .06em;
   color: var(--muted);
 }
+/* The lede ships in both languages and the stylesheet hides one, following the
+   html[lang^=] idiom this sheet already uses for .notesheet. Defaults to English
+   because that is what an unstamped document and every crawler get; the switch
+   stamps zh and the pair swaps. */
 .ledger-lede { color: var(--muted); }
+.ledger-lede--zh { display: none; }
+html[lang^="zh"] .ledger-lede--zh { display: block; }
+html[lang^="zh"] .ledger-lede--en { display: none; }
 
 /* The strip. Four counts across the top, small, because they are context for
    the boards rather than a headline of their own. */
@@ -6842,10 +6849,10 @@ body.asleep .fog {
    display rule on this element would silently beat, and "every panel visible
    at once" is this layout's own worst failure. */
 .ledger-board[hidden] { display: none; }
-/* The panel's heading is the board's English name. Sized down from an <h2>
-   because the tab above it is already carrying the name in the other script —
-   this is the gloss, not a second title. */
-.ledger-en {
+/* The panel's heading is the board's name in whichever language is being read.
+   Sized down from an <h2> because the tab above it already carries the name in
+   the other script — this is the gloss, not a second title. */
+.ledger-boardname {
   margin: 0 0 4px;
   font-family: var(--font-body);
   font-size: 1rem;

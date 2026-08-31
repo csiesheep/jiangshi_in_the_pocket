@@ -2815,7 +2815,7 @@ test("ledger: one board on screen, and nothing running together (#144)", serial(
               controls: picked.length === 1 ? picked[0].getAttribute("aria-controls") : null,
               label: picked.length === 1 ? picked[0].textContent.trim() : null,
               heading: open.length === 1
-                ? ((open[0].querySelector(".ledger-en") || {}).textContent || "") : null,
+                ? ((open[0].querySelector(".ledger-boardname") || {}).textContent || "") : null,
               rule: open.length === 1
                 ? ((open[0].querySelector(".ledger-rule") || {}).textContent || "") : null,
               order: tabs.map((t) => t.tabIndex).join(","),

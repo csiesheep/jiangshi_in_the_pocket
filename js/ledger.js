@@ -30,6 +30,12 @@ const BOARDS = [
     // panel's heading and would not fit three-across at 375; this is what a
     // tab can hold beside two characters of Chinese.
     short: "Burial",
+    // The panel's heading in Chinese. It used to be English in BOTH languages,
+    // justified by a comment saying the tab carried the Chinese and the panel
+    // the English — a rationale that stopped being true the day the owner put
+    // both halves on the tab, at which point the heading was simply an
+    // untranslated string sitting under a tab that already said BURIAL.
+    zhLong: "最早入土的一夜",
     // Said in the page rather than left for the reader to infer from the
     // ordering: a board whose rule is invisible looks arbitrary when your run
     // is not on it.
@@ -45,6 +51,7 @@ const BOARDS = [
     zh: "鎮屍",
     en: "The sealing",
     short: "Sealing",
+    zhLong: "鎮住他的一夜",
     ruleZh: "鎮住他，看你還剩多少。",
     ruleEn: "Seal him, and keep what you can.",
     cols: [
@@ -57,6 +64,7 @@ const BOARDS = [
     zh: "除魔",
     en: "What was put down",
     short: "Kills",
+    zhLong: "放倒了多少",
     ruleZh: "任何走完的一夜都算，活著的排在前面。",
     ruleEn: "Any night that ended counts. Survivors rank above the fallen.",
     cols: [
@@ -66,11 +74,15 @@ const BOARDS = [
   },
 ];
 
+// The character is what shows; `en` and `srZh` are what it is CALLED. The
+// accessible name follows the reader's language — a Chinese screen-reader user
+// was being told "burials" under a page that is otherwise entirely in Chinese.
+// The Chinese names echo the boards on purpose, the same way the characters do.
 const STRIP = [
-  { key: "nights", zh: "夜", en: "nights played" },
-  { key: "burials", zh: "葬", en: "burials" },
-  { key: "seals", zh: "鎮", en: "sealings" },
-  { key: "deaths", zh: "殞", en: "deaths" },
+  { key: "nights", zh: "夜", en: "nights played", srZh: "總夜數" },
+  { key: "burials", zh: "葬", en: "burials", srZh: "速葬" },
+  { key: "seals", zh: "鎮", en: "sealings", srZh: "鎮屍" },
+  { key: "deaths", zh: "殞", en: "deaths", srZh: "殞命" },
 ];
 
 const isZh = () => document.documentElement.lang.startsWith("zh");
@@ -172,11 +184,13 @@ function boardPanel(board, outcome) {
   // strip — a tabpanel that Tab cannot enter strands the table behind it.
   sec.tabIndex = 0;
 
-  // The tab carries the Chinese name; the panel carries the English one. Both
-  // halves are still on screen together, the same pairing the talismans use,
-  // just split across the control and the thing it controls — which also keeps
-  // the tab strip narrow enough for three tabs at 375.
-  sec.appendChild(el("h2", "ledger-en", board.en));
+  // The board's name, in the language being read. The class is not called
+  // ledger-en any more: it held Chinese in Chinese mode while being named for
+  // English, which is the kind of stale name that survives long enough to be
+  // believed.
+  const name = el("h2", "ledger-boardname", isZh() ? board.zhLong : board.en);
+  name.lang = isZh() ? "zh-Hant" : "en";
+  sec.appendChild(name);
   sec.appendChild(el("p", "ledger-rule", say(board, "rule")));
 
   if (!outcome.ok) {
@@ -288,8 +302,9 @@ function strip(stats) {
     glyph.lang = "zh-Hant";
     glyph.setAttribute("aria-hidden", "true");
     item.appendChild(glyph);
-    item.appendChild(el("span", "sr-only", " " + s.en));
-    item.title = n + " " + s.en;
+    const spoken = isZh() ? s.srZh : s.en;
+    item.appendChild(el("span", "sr-only", " " + spoken));
+    item.title = n + " " + spoken;
     wrap.appendChild(item);
   }
   return wrap;
