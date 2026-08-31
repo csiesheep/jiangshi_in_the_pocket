@@ -438,11 +438,31 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
    red is the only thing left burning. Bright red on ochre measures 1.09:1 and
    all but disappears; on the darkened paper it reads as a flame. The English
    label lifts with it and never drops below 4.5:1. */
+/* FIVE TALISMANS IN THE HEIGHT OF FOUR (#144).
+   The row went from four to five when the ledger was added. Measured, a fifth
+   card costs +76px, which pushed the no-scroll threshold from ~695px to 771px
+   and put 667, 700 and 740-class phones into scroll. The owner chose to keep
+   five and flatten the cards to pay for it, with the cost measured first.
+
+   THE BUDGET, and it is a budget rather than a preference: five-up content must
+   come back to 695px or under, which is exactly what ships today with four, so
+   the fit profile is preserved rather than overturned — 28px of scroll at 667,
+   nothing at 690+, which is what the .menu-credit comment describes.
+
+   Paid for in three places rather than one, so no single one had to be
+   brutal: 3px off each vertical padding, 3px off the gap, and a line-height on
+   .talisman-script, which was the real cost — 1.46rem inheriting the body's
+   line-height gave a 37px line box for a 23px glyph.
+
+   THE FLOOR IS 44px OF TAPPABLE HEIGHT and it is not negotiable down: these are
+   the primary touch targets on a phone. There is room to spare today; if a
+   future change needs height, it comes out of the gap or the row, not out of
+   this. */
 .talismans {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 13px;
+  gap: 10px;
   width: auto;
 }
 .talisman {
@@ -451,7 +471,7 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
   align-items: center;
   gap: 11px;
   width: min(340px, 88vw);
-  padding: 12px 16px 12px 15px;
+  padding: 9px 16px 9px 15px;
   text-decoration: none;
   color: #33240d;
   background:
@@ -513,6 +533,11 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
 .talisman-script {
   font-family: var(--font-cjk);
   font-size: 1.46rem;
+  /* The card's height was this line box, not its padding: 1.46rem inheriting
+     the body's line-height boxed a 23px glyph in 37px. CJK has almost no
+     descender to protect, so the box can come in close — but not to 1, which
+     clips the tail of a glyph like 榜 at large text scales. */
+  line-height: 1.18;
   letter-spacing: .08em;
   color: #4f1511;
   transition: color .2s, filter .2s;
@@ -6701,3 +6726,97 @@ body.asleep .fog {
 .menu-credit a { color: color-mix(in srgb, var(--gold) 78%, var(--muted)); }
 .menu-credit a:hover { color: var(--gold); }
 .menu-credit em { font-style: italic; }
+
+/* ---- 夜榜, the ledger (#144) -------------------------------------------------
+   Three boards read from the Worker, on the article page's chrome. The layout
+   problem here is not the table, it is that THE ORDINARY STATE IS EMPTY: the
+   boards ship before anyone has played, and a phone that opened the installed
+   PWA offline cannot reach them at all. Both have to look deliberate rather
+   than broken, which is why the empty and unreachable lines are styled as
+   sentences rather than as error chrome. */
+.ledger-h1en {
+  font-family: var(--font-body);
+  font-size: .58em;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.ledger-lede { color: var(--muted); }
+
+/* The strip. Four counts across the top, small, because they are context for
+   the boards rather than a headline of their own. */
+.ledger-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0 0 26px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: .86rem;
+  color: var(--muted);
+}
+.ledger-strip:empty { display: none; }
+.ledger-stat b {
+  font-family: var(--font-cjk);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-board { margin: 0 0 34px; }
+.ledger-board h2 { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; }
+.ledger-zh { font-family: var(--font-cjk); }
+.ledger-en {
+  font-family: var(--font-body);
+  font-size: .56em;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+/* The rule of the board, said out loud. A board whose ordering is invisible
+   reads as arbitrary to the player whose run is not on it. */
+.ledger-rule { margin: 0 0 12px; color: var(--muted); font-size: .9rem; max-width: 68ch; }
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .94rem;
+}
+.ledger-table th {
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: 0 10px 6px 0;
+}
+.ledger-table td {
+  padding: 7px 10px 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+.ledger-table tr:last-child td { border-bottom: 0; }
+.ledger-rank { width: 2.5em; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* A name comes from another player, so it is given a hard limit and told to
+   break rather than allowed to push the numbers off a phone. The server caps
+   it at 24 code points; this is what happens when 24 of them are wide. */
+.ledger-name { max-width: 15ch; overflow-wrap: anywhere; }
+.ledger-anon { color: var(--muted); font-style: italic; }
+/* Right-aligned and tabular so the columns can be compared down the page, which
+   is the only reason a leaderboard is a table rather than a list. */
+.ledger-num, th.ledger-num { text-align: right; font-variant-numeric: tabular-nums; }
+.ledger-when, th.ledger-when { text-align: right; color: var(--muted); font-size: .82rem; white-space: nowrap; }
+
+.ledger-note { color: var(--muted); max-width: 68ch; }
+/* Unreachable is OUR fault and says so; empty is an invitation. Same muted
+   weight, because neither is an error the player has to act on. */
+.ledger-note--off { color: color-mix(in srgb, var(--danger) 62%, var(--muted)); }
+
+/* A phone has no room for a date column next to four numbers and a name. The
+   date is the least load-bearing thing on the row, so it is what goes. */
+@media (max-width: 460px) {
+  .ledger-when, th.ledger-when { display: none; }
+  .ledger-name { max-width: 11ch; }
+}

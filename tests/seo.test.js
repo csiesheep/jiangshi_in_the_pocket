@@ -25,7 +25,7 @@ import { tileWords } from "../js/tilewords.js";
 // even when the test count happens to match.
 suite(import.meta.url, "443dc19b");
 
-const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits"];
+const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits", "ledger"];
 
 // no-store: these assert about files on disk, and a cached copy of the file
 // you are checking is how a fixed page keeps reporting the old fault.

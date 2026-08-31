@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q4VS3P3T58"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-Q4VS3P3T58');
+  </script>
+  <title>夜榜 Ledger — The Third Watch: The Jiangshi</title>
+  <meta name="description" content="The night ledger of 三更：殭屍: the fastest burials, the sealings that cost least, and every jiangshi put down. Verified runs only.">
+  <link rel="canonical" href="https://games.csiesheep.com/jiangshi_in_the_pocket/ledger">
+  <meta name="theme-color" content="#0a0b0d">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="csiesheep games">
+  <meta property="og:title" content="The Third Watch: The Jiangshi — 夜榜 Ledger">
+  <meta property="og:description" content="The fastest burials, the sealings that cost least, and every jiangshi put down.">
+  <meta property="og:url" content="https://games.csiesheep.com/jiangshi_in_the_pocket/ledger">
+  <meta property="og:locale" content="en_GB">
+  <!-- Absolute, because crawlers do not reliably resolve relative OG paths, and
+       a new filename rather than a new picture at the old one — scrapers cache
+       by URL, so replacing the image in place would leave every link that has
+       ever been shared showing the old card. -->
+  <meta property="og:image" content="https://games.csiesheep.com/jiangshi_in_the_pocket/assets/social-jiangshi.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The gate of a walled village at night under a cold moon, two red lanterns burning either side of it, under the title 三更：殭屍 — The Third Watch: The Jiangshi.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Third Watch: The Jiangshi — 夜榜 Ledger">
+  <meta name="twitter:description" content="The fastest burials, the sealings that cost least, and every jiangshi put down.">
+  <meta name="twitter:image" content="https://games.csiesheep.com/jiangshi_in_the_pocket/assets/social-jiangshi.png">
+  <meta name="twitter:image:alt" content="The gate of a walled village at night under a cold moon, two red lanterns burning either side of it, under the title 三更：殭屍 — The Third Watch: The Jiangshi.">
+
+  <!-- The trail, so a search result shows "The Third Watch: The Jiangshi > Ledger" rather than a
+       bare URL. Positions are the real hierarchy: everything on this site is one
+       click from the menu. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "The Third Watch: The Jiangshi", "item": "https://games.csiesheep.com/jiangshi_in_the_pocket/" },
+      { "@type": "ListItem", "position": 2, "name": "Ledger", "item": "https://games.csiesheep.com/jiangshi_in_the_pocket/ledger" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="topnav">
+    <a class="brand" href="index.html">The Third Watch: The Jiangshi</a>
+    <span class="spacer"></span>
+    <a href="game.html">Play</a>
+    <a href="index.html">Menu</a>
+  </header>
+
+  <main class="wrap article">
+    <h1><span lang="zh-Hant">夜榜</span> <span class="ledger-h1en">The Ledger</span></h1>
+    <p class="ledger-lede">Every night here was replayed on the server before it
+      was written down. A run gets on the ledger by being reproducible from the
+      decisions the player actually made — not by claiming a score.</p>
+
+    <!-- Filled by js/ledger.js. EMPTY IN THE MARKUP ON PURPOSE: the boards are
+         a network read, and a hard-coded placeholder row would be indexed by a
+         crawler as though it were a real standing. What renders without script
+         is the sentence below, which is true in every state. -->
+    <div id="ledger"></div>
+
+    <noscript>
+      <p class="ledger-note">The ledger is read from the server as the page
+        loads, so it needs JavaScript. The game itself does too.</p>
+    </noscript>
+  </main>
+  <script type="module" src="js/ledger.js"></script>
+</body>
+</html>
