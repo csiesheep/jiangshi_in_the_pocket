@@ -43,7 +43,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "adcfeb11");
+suite(import.meta.url, "faef8177");
 
 const NO_STORE = { cache: "no-store" };
 
