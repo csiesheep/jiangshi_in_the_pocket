@@ -6756,10 +6756,18 @@ body.asleep .fog {
   color: var(--muted);
 }
 .ledger-strip:empty { display: none; }
-/* Each count is one unit. Without this a flex item is free to break inside
-   itself when the strip wraps, so "0 nights played" can leave "played" alone on
-   the next line looking like a fifth statistic. */
+/* Each count is one unit, so a wrap never splits a number from its character. */
 .ledger-stat { white-space: nowrap; }
+/* 葬 + 鎮 + 殞 = 夜. The three outcomes are the group; the total is set apart
+   from them by the extra space, so the arithmetic is visible to a reader who
+   looks for it and invisible to one who does not. */
+.ledger-stat--all { margin-right: 12px; }
+.ledger-glyph {
+  font-family: var(--font-cjk);
+  font-size: 1.02rem;
+  margin-left: 3px;
+  color: color-mix(in srgb, var(--gold) 55%, var(--muted));
+}
 .ledger-stat b {
   font-family: var(--font-cjk);
   font-size: 1.15rem;
@@ -6781,11 +6789,15 @@ body.asleep .fog {
   border-bottom: 1px solid var(--border);
 }
 .ledger-tab {
+  /* STACKED, NOT SIDE BY SIDE. Three bilingual labels in a row do not hold 375
+     without shrinking the type, and the ruling was to stack instead. Chinese
+     over English is the pairing the talismans already use — 開始 over START. */
   flex: 0 1 auto;
-  padding: 9px 16px;
-  font-family: var(--font-cjk);
-  font-size: 1.2rem;
-  letter-spacing: .06em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 14px;
   color: var(--muted);
   background: none;
   border: 0;
@@ -6797,6 +6809,23 @@ body.asleep .fog {
   transition: color .18s, border-color .18s;
 }
 .ledger-tab:hover { color: var(--text); }
+.ledger-tab-zh {
+  font-family: var(--font-cjk);
+  font-size: 1.2rem;
+  letter-spacing: .06em;
+  line-height: 1.25;
+}
+/* The gloss, deliberately quiet: the Chinese is the name and this is what it
+   says. Uppercase and tracked out so a six-letter word reads as a label rather
+   than as a second title competing with the characters above it. */
+.ledger-tab-en {
+  font-family: var(--font-body);
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
 .ledger-tab[aria-selected="true"] {
   color: var(--gold);
   border-bottom-color: var(--gold);

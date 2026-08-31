@@ -26,6 +26,10 @@ const BOARDS = [
     id: "burial",
     zh: "速葬",
     en: "The fastest burial",
+    // ONE WORD, because the tab carries it. "The fastest burial" is the
+    // panel's heading and would not fit three-across at 375; this is what a
+    // tab can hold beside two characters of Chinese.
+    short: "Burial",
     // Said in the page rather than left for the reader to infer from the
     // ordering: a board whose rule is invisible looks arbitrary when your run
     // is not on it.
@@ -40,6 +44,7 @@ const BOARDS = [
     id: "seal",
     zh: "鎮屍",
     en: "The sealing",
+    short: "Sealing",
     ruleZh: "鎮住他，看你還剩多少。",
     ruleEn: "Seal him, and keep what you can.",
     cols: [
@@ -51,6 +56,7 @@ const BOARDS = [
     id: "kills",
     zh: "除魔",
     en: "What was put down",
+    short: "Kills",
     ruleZh: "任何走完的一夜都算，活著的排在前面。",
     ruleEn: "Any night that ended counts. Survivors rank above the fallen.",
     cols: [
@@ -199,12 +205,19 @@ function mountTabs(host, panels) {
   list.setAttribute("aria-label", isZh() ? "夜榜" : "The ledger");
 
   const tabs = BOARDS.map((board) => {
-    const t = el("button", "ledger-tab", board.zh);
+    const t = el("button", "ledger-tab");
     t.type = "button";
     t.id = "tab-" + board.id;
     t.setAttribute("role", "tab");
     t.setAttribute("aria-controls", "panel-" + board.id);
-    t.lang = "zh-Hant";
+    // BOTH HALVES ON THE TAB, stacked rather than side by side: three bilingual
+    // labels in a row do not fit 375 honestly, and the ruling was to stack
+    // rather than shrink the type. Chinese over English is the talismans'
+    // pairing — 開始 over START — so the page already has this idiom.
+    const zh = el("span", "ledger-tab-zh", board.zh);
+    zh.lang = "zh-Hant";
+    t.appendChild(zh);
+    t.appendChild(el("span", "ledger-tab-en", board.short));
     list.appendChild(t);
     return t;
   });
@@ -248,6 +261,20 @@ function mountTabs(host, panels) {
 
 // The four counts across the top. It describes the whole ledger rather than
 // any one board, so it sits above the tab strip and outside every panel.
+// THE FOUR COUNTS, IN CHINESE IN BOTH LANGUAGES. 夜 葬 鎮 殞 are compact enough
+// to sit on one row at 375, which four English words are not — measured, the
+// English version wrapped to two lines. They also RHYME WITH THE TABS: 葬 and 鎮
+// echo 速葬 and 鎮屍, so the strip and the boards read as one composed thing
+// rather than a caption over a list. Do not swap either for a synonym.
+//
+// THE ENGLISH IS NOT LOST, it is the accessible name: an .sr-only word inside
+// each item, so a screen reader says "12 burials" and never "12 葬", plus a
+// title for a hover. The character is aria-hidden so it is not read twice.
+//
+// AND THE FOUR NUMBERS ARE AN IDENTITY: 葬 + 鎮 + 殞 = 夜, because every stored
+// night ended one of exactly three ways. The three outcomes are grouped and 夜
+// is set apart from them, so a reader who notices the arithmetic gets the shape
+// of the whole game from one line.
 function strip(stats) {
   const wrap = el("p", "ledger-strip");
   if (!stats.ok) return wrap;
@@ -255,8 +282,14 @@ function strip(stats) {
     const n = stats.data[s.key];
     if (n == null) continue;
     const item = el("span", "ledger-stat");
+    if (s.key === "nights") item.classList.add("ledger-stat--all");
     item.appendChild(el("b", null, String(n)));
-    item.appendChild(el("span", null, " " + say(s, "")));
+    const glyph = el("span", "ledger-glyph", s.zh);
+    glyph.lang = "zh-Hant";
+    glyph.setAttribute("aria-hidden", "true");
+    item.appendChild(glyph);
+    item.appendChild(el("span", "sr-only", " " + s.en));
+    item.title = n + " " + s.en;
     wrap.appendChild(item);
   }
   return wrap;
