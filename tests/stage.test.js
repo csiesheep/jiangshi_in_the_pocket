@@ -5551,7 +5551,7 @@ test("the watch drum reaches a phone, and the shell is why", async () => {
 // Stop the event without stopping the record and the replay draws one the game
 // did not: a valid night with a wrong score. The two must move together, so
 // this guard checks both together.
-test("a move into a wall costs nothing, and a legal one still costs a turn (#145)", serial(async () => {
+test("a move into a wall costs nothing, and a legal one still moves, records and draws (#145)", serial(async () => {
   const names = ["tiles", "items", "search", "events"];
   const [tiles, items, search, events] = await Promise.all(
     names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
@@ -5668,6 +5668,24 @@ test("a move into a wall costs nothing, and a legal one still costs a turn (#145
     assert(afterReal.streams !== beforeReal.streams,
       "a legal move drew no event — the replay draws one per board action, so " +
       "it would now be a draw ahead of the game");
+
+    // THE TURN IS NOT ASSERTED HERE, AND THE NAME NO LONGER PROMISES IT.
+    //
+    // It was called "...and a legal one still costs a turn", which nothing in
+    // this body checked — a name that promises more than its assertions is how
+    // a gap hides from anyone auditing coverage by reading names.
+    //
+    // The turn DOES advance, just not yet: E.advanceTurn runs in endTurn, after
+    // arrive()'s beats, so it has not moved by the time doMove returns.
+    // Measured on the live page — turn 2 before, 2 immediately after doMove, 3
+    // once the beats settled. There is no defect here.
+    //
+    // Asserting it would need a SECOND wait on the beats, and that wait is the
+    // known-flaky part of this guard: it already produced a false failure in a
+    // throttled pane where the beat never settles. A fourth signal for the same
+    // claim is not worth doubling that exposure — position, the recording and
+    // the event draw already establish that the refusal is not written so
+    // broadly that it eats real moves, which is what this half is for.
   } finally {
     host.remove();
     for (const el of document.querySelectorAll(".evstage, .notecard, .reveal, #overlay"))
