@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-9cc02d18";
+const CACHE = "jiangshi-8c93ea80";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -51,10 +51,10 @@ const SHELL_DIGEST = {
   "./":                                     "3aff87b224",
   "index.html":                             "3aff87b224",
   "game.html":                              "82c6fec338",
-  "rulebook.html":                          "b53d7ae608",
-  "tiles.html":                             "754a7f2ed5",
-  "credits.html":                           "067a6ba293",
-  "ledger.html":                            "ea6778d8ff",
+  "rulebook.html":                          "1950d97298",
+  "tiles.html":                             "4742f0d7c7",
+  "credits.html":                           "487fbab2c7",
+  "ledger.html":                            "480b801fb7",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "c839cd7868",
   "css/style.css":                          "7bfbfea85d",
@@ -69,16 +69,16 @@ const SHELL_DIGEST = {
   "js/icons.js":                            "36c76d4f67",
   "js/audio.js":                            "3384e2df1e",
   "js/menu.js":                             "e53fb78a06",
-  "js/tiles.js":                            "ab646b272a",
+  "js/tiles.js":                            "0532276ca9",
   "js/tilewords.js":                        "018a50b46a",
   "js/shell.js":                            "7a22315b0f",
   "js/tally.js":                            "b48bede2e4",
   "js/epilogue.js":                         "21104192de",
   "js/lang.js":                             "1e7b3f3b4a",
-  "js/langswitch.js":                       "a2493ab9de",
-  "js/rulebook.js":                         "035594a5da",
-  "js/credits.js":                          "e6cedc628e",
-  "js/ledger.js":                           "11dc092032",
+  "js/langswitch.js":                       "d953cffd54",
+  "js/rulebook.js":                         "5a4fa0f4b5",
+  "js/credits.js":                          "158b0d673e",
+  "js/ledger.js":                           "6d6b28122e",
   "js/submit.js":                           "68bc6277a9",
   "assets/icons.svg":                       "067a1aa6c8",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
