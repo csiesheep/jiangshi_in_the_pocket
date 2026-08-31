@@ -40,7 +40,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "53ef5bef");
+suite(import.meta.url, "18928bb9");
 
 const NO_STORE = { cache: "no-store" };
 
