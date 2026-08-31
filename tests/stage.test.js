@@ -2756,6 +2756,116 @@ test("burn: the fire is on him and it is warm (#140)", serial(async () => {
   }
 }));
 
+// THE LEDGER IS LOOKED AT, NOT ONLY QUERIED (#144).
+//
+// WHY THIS EXISTS. The ledger page was reported as rendering "速葬The fastest
+// burial" and "0 nights played0 burials" — headings and stats run together.
+// Both readings came from a page served by a STALE SERVICE-WORKER SHELL, whose
+// stylesheet predated the ledger's rules; window.__build said 9a056a7c before a
+// reload and eaa667b7 after, and after the reload every gap measured correctly.
+// So there was no defect. But the false alarm and the real bug are the same
+// shape from the outside, and NOTHING IN THE SUITE COULD TELL THEM APART:
+// tests/index.html links no stylesheet, so no test had ever seen this page's
+// layout at all. A guard asserting the heading "contains 速葬 and contains The
+// fastest burial" passes on genuinely run-together output, because textContent
+// has no idea whether a gap exists.
+//
+// SO IT MEASURES SEPARATION, NOT SPACING. Any positive gap passes; the design
+// can change freely. What cannot happen without this going red is the rule
+// disappearing — a renamed class, a deleted block, a selector that stops
+// matching — which is the one failure a text assertion is blind to.
+//
+// It runs in an IFRAME over the real ledger.html so the stylesheet, the markup
+// and the script are all the shipped ones, and so nothing it does leaks into
+// the suite's own document.
+test("ledger: the page's two-language headings and stats do not run together (#144)", serial(async () => {
+  const measure = (width) => new Promise((resolve, reject) => {
+    const f = document.createElement("iframe");
+    f.style.cssText = "position:absolute;left:-99999px;top:0;border:0;width:" +
+                      width + "px;height:900px";
+    f.src = "../ledger.html";
+    const bail = setTimeout(() => { f.remove(); reject(new Error("ledger.html never loaded")); }, 9000);
+    f.onload = () => {
+      clearTimeout(bail);
+      setTimeout(async () => {
+        const d = f.contentDocument, cw = f.contentWindow;
+        // Populated through the PAGE'S OWN paint(), not by building rows here:
+        // stub its fetch, then press the language switch twice, which repaints
+        // and lands back on the language it started in.
+        cw.fetch = async () => new cw.Response(JSON.stringify({
+          ok: true, boardSize: 50,
+          boards: { burial: { rows: [], full: false, cut: null },
+                    seal: { rows: [], full: false, cut: null },
+                    kills: { rows: [], full: false, cut: null } },
+          stats: { nights: 128, burials: 12, seals: 7, deaths: 109 },
+        }), { status: 200, headers: { "content-type": "application/json" } });
+        const btn = d.querySelector("#btn-lang");
+        if (btn) { btn.click(); await new Promise((r) => setTimeout(r, 350)); btn.click(); }
+        setTimeout(() => {
+          const gap = (a, b) =>
+            b.getBoundingClientRect().left - a.getBoundingClientRect().right;
+          const heads = [...d.querySelectorAll(".ledger-board h2")].map((h) => {
+            const zh = h.querySelector(".ledger-zh"), en = h.querySelector(".ledger-en");
+            return { name: zh ? zh.textContent : "(none)",
+                     both: !!(zh && en),
+                     gap: zh && en ? gap(zh, en) : null,
+                     zhSize: zh ? parseFloat(cw.getComputedStyle(zh).fontSize) : 0,
+                     enSize: en ? parseFloat(cw.getComputedStyle(en).fontSize) : 0 };
+          });
+          const strip = d.querySelector(".ledger-strip");
+          const stats = strip ? [...strip.children] : [];
+          const rowGaps = stats.slice(1).map((s, i) => ({
+            gap: gap(stats[i], s),
+            // Only pairs on the SAME ROW can be compared: a wrapped item sits to
+            // the left of its predecessor and its "gap" is a large negative.
+            sameRow: Math.abs(s.getBoundingClientRect().top -
+                              stats[i].getBoundingClientRect().top) < 4,
+          }));
+          resolve({ width, heads, stats: stats.length, rowGaps,
+                    stripOverflow: strip ? strip.scrollWidth - strip.clientWidth : 0,
+                    docOverflow: d.documentElement.scrollWidth - d.documentElement.clientWidth });
+          f.remove();
+        }, 350);
+      }, 400);
+    };
+    document.body.appendChild(f);
+  });
+
+  for (const width of [375, 900]) {
+    const m = await measure(width);
+    const at = " (at " + width + "px)";
+
+    // REGION FIRST. An empty page satisfies every "nothing runs together"
+    // assertion below for free, and an unreachable board renders no strip.
+    eq(m.heads.length, 3, "the ledger did not render its three boards" + at);
+    assert(m.stats >= 4, "the stats strip did not render" + at +
+      " — the assertions below would be comparing an empty list");
+
+    for (const h of m.heads) {
+      assert(h.both, "the " + h.name + " heading lost one of its two halves" + at);
+      assert(h.gap > 0,
+        "the halves of the " + h.name + " heading are touching (" +
+        Math.round(h.gap) + "px)" + at + " — it reads as one run-together word, " +
+        "which is what a missing rule for .ledger-zh/.ledger-en looks like");
+      assert(h.enSize < h.zhSize,
+        "the English half of " + h.name + " is " + h.enSize + "px against the " +
+        "Chinese " + h.zhSize + "px" + at + " — they are meant to be a name and " +
+        "its gloss, not two headings");
+    }
+
+    for (const [i, r] of m.rowGaps.entries()) {
+      if (!r.sameRow) continue;                 // wrapped to the next line
+      assert(r.gap > 0,
+        "stats " + i + " and " + (i + 1) + " are touching (" + Math.round(r.gap) +
+        "px)" + at + " — they render as one number-word run");
+    }
+
+    // Wrapping is fine; scrolling sideways on a phone is not.
+    eq(m.stripOverflow, 0, "the stats strip overflows its own width" + at);
+    eq(m.docOverflow, 0, "the ledger page scrolls sideways" + at);
+  }
+}));
+
 // THE LEDGER OFFER FAILS OPEN (#144).
 //
 // THE TWO MISTAKES ARE NOT THE SAME SIZE. A run offered and then refused costs
