@@ -75,9 +75,42 @@ export const REFUSED = {
 // 24 is my choice, not a ruling — long enough for a short CJK phrase or a Latin
 // nickname, short enough that a board row stays a row. Change it here and it
 // changes everywhere.
-// The number moved to js/night.js so the client's input and this enforcement
-// read the same one — see the note there. NAME_MAX stays as the name this file
-// and its tests already use.
+//
+// ---- WHY THIS IS A SHARED CONSTANT AND boardSize IS NOT --------------------
+// The two look like the same problem and are not, and the question that
+// separates them is worth more than either answer:
+//
+//     DOES THIS VALUE HAVE TO BE KNOWN BEFORE THE NETWORK ANSWERS?
+//
+// boardSize does not. It is consulted after a fetch, when deciding whether to
+// offer the submit button, and that path already has a defined fail-open
+// behaviour — so it ships in /api/leaderboard's response and the client reads
+// the policy rather than restating it.
+//
+// This one does. It is an input's maximum length, wanted at render time. Ship
+// it in a response and the field is uncapped until the fetch returns, and
+// uncapped forever when the fetch fails — which is precisely the case the gate
+// is built to survive. A cap that disappears when the network does is not much
+// of a cap. So it is a constant the client imports, not a field it receives.
+//
+// TO BE ACCURATE RATHER THAN DRAMATIC: that is a UX argument, not a correctness
+// one. The server truncates whatever arrives and echoes the accepted name back,
+// so a client that lets somebody type forty characters still stores twenty-four
+// and can show them what was kept. Nothing breaks either way. But a constant
+// with no failure mode beats a constant with one when both give the same
+// answer.
+//
+// The question above is the part to keep. It decides the shape for values
+// neither of us has thought of yet, without anyone having to remember which
+// precedent applied.
+//
+// AND KEEP THE ECHO. A cached shell means a client and the server can hold
+// different values for a while; neither direction is harmful, because the
+// server never over-accepts — but the echoed name is the only thing that makes
+// the disagreement visible instead of silent. It is not redundant.
+// WHERE IT LIVES: js/night.js, which this file already imports FORMAT_V
+// from, so the client's input and this enforcement read one number. NAME_MAX
+// stays as the name this file and its tests already use.
 export const NAME_MAX = NAME_LIMIT;
 
 // COUNTED IN CODE POINTS, NOT UTF-16 UNITS. "".length counts units, so an emoji
