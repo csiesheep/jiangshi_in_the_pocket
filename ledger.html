@@ -68,9 +68,22 @@
 
   <main class="wrap article">
     <h1><span lang="zh-Hant">夜榜</span> <span class="ledger-h1en">The Ledger</span></h1>
-    <p class="ledger-lede">Every night here was replayed on the server before it
-      was written down. A run gets on the ledger by being reproducible from the
-      decisions the player actually made — not by claiming a score.</p>
+    <!-- BOTH LANGUAGES IN THE MARKUP, not swapped by script. This is the
+         paragraph that says why the ledger can be trusted, so it has to be there
+         for a crawler and for a reader whose JavaScript never ran — which rules
+         out rendering it the way the boards are rendered. The language switch
+         stamps html[lang] and the stylesheet drops the other one. -->
+    <p class="ledger-lede ledger-lede--en" lang="en">Every night here was replayed
+      on the server before it was written down. A run gets on the ledger by being
+      reproducible from the decisions the player actually made — not by claiming a
+      score.</p>
+    <!-- ONE SOURCE LINE, AND IT MUST STAY ONE. HTML collapses a newline plus its
+         indent into a rendered SPACE. Between English words that is invisible and
+         correct; between two Chinese characters it is a space in the middle of a
+         sentence. This paragraph shipped wrapped and read 伺服器上 重跑過一遍.
+         Re-wrapping it to fit a column is the change that breaks it, so if a
+         formatter or a tidy-up ever splits this line, that is the bug. -->
+    <p class="ledger-lede ledger-lede--zh" lang="zh-Hant">這裡的每一夜，都先在伺服器上重跑過一遍，才記下來。能上榜的，是那些能從玩家真正做過的選擇裡重現出來的一夜——不是自己報一個分數就算。</p>
 
     <!-- Filled by js/ledger.js. EMPTY IN THE MARKUP ON PURPOSE: the boards are
          a network read, and a hard-coded placeholder row would be indexed by a
@@ -79,8 +92,14 @@
     <div id="ledger"></div>
 
     <noscript>
-      <p class="ledger-note">The ledger is read from the server as the page
-        loads, so it needs JavaScript. The game itself does too.</p>
+      <!-- Both, side by side and unconditionally: this is the one paragraph on
+           the page whose whole audience is a reader with no scripting, so the
+           language switch cannot help them and neither can the stylesheet rule
+           above, which only moves once a script has stamped html[lang]. -->
+      <p class="ledger-note" lang="zh-Hant">夜榜是在開啟頁面時從伺服器讀來的，需要
+        JavaScript。遊戲本身也需要。</p>
+      <p class="ledger-note" lang="en">The ledger is read from the server as the
+        page loads, so it needs JavaScript. The game itself does too.</p>
     </noscript>
   </main>
   <script type="module" src="js/ledger.js"></script>

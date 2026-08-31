@@ -43,7 +43,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "faef8177");
+suite(import.meta.url, "1c6fe2fa");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -2815,7 +2815,7 @@ test("ledger: one board on screen, and nothing running together (#144)", serial(
               controls: picked.length === 1 ? picked[0].getAttribute("aria-controls") : null,
               label: picked.length === 1 ? picked[0].textContent.trim() : null,
               heading: open.length === 1
-                ? ((open[0].querySelector(".ledger-en") || {}).textContent || "") : null,
+                ? ((open[0].querySelector(".ledger-boardname") || {}).textContent || "") : null,
               rule: open.length === 1
                 ? ((open[0].querySelector(".ledger-rule") || {}).textContent || "") : null,
               order: tabs.map((t) => t.tabIndex).join(","),

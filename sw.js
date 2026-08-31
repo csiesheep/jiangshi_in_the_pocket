@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-447e4513";
+const CACHE = "jiangshi-9cc02d18";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -54,10 +54,10 @@ const SHELL_DIGEST = {
   "rulebook.html":                          "b53d7ae608",
   "tiles.html":                             "754a7f2ed5",
   "credits.html":                           "067a6ba293",
-  "ledger.html":                            "53b9f48461",
+  "ledger.html":                            "ea6778d8ff",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "c839cd7868",
-  "css/style.css":                          "1f0e720e7c",
+  "css/style.css":                          "7bfbfea85d",
   "js/app.js":                              "83e0eb9f45",
   "js/eventstage.js":                       "386cb3320d",
   "js/engine.js":                           "c4aae264a7",
@@ -71,14 +71,14 @@ const SHELL_DIGEST = {
   "js/menu.js":                             "e53fb78a06",
   "js/tiles.js":                            "ab646b272a",
   "js/tilewords.js":                        "018a50b46a",
-  "js/shell.js":                            "ffb775c575",
+  "js/shell.js":                            "7a22315b0f",
   "js/tally.js":                            "b48bede2e4",
   "js/epilogue.js":                         "21104192de",
   "js/lang.js":                             "1e7b3f3b4a",
   "js/langswitch.js":                       "a2493ab9de",
   "js/rulebook.js":                         "035594a5da",
   "js/credits.js":                          "e6cedc628e",
-  "js/ledger.js":                           "63e4c73fb1",
+  "js/ledger.js":                           "11dc092032",
   "js/submit.js":                           "68bc6277a9",
   "assets/icons.svg":                       "067a1aa6c8",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",

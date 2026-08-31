@@ -23,7 +23,7 @@ import { tileWords } from "../js/tilewords.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "2100866e");
+suite(import.meta.url, "a85c950b");
 
 const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits", "ledger"];
 
@@ -52,6 +52,79 @@ const PAGES = tag(worker, /const PAGES = \[(.*?)\]/)
   .split(",")
   .map((p) => p.trim().replace(/^"|"$/g, ""));
 const ROOT = `${ORIGIN}${PREFIX}/`;
+
+// A NEWLINE BETWEEN TWO CHINESE CHARACTERS IS A SPACE (#144).
+//
+// HTML collapses a source newline and its indent into ONE RENDERED SPACE.
+// Between English words that is the whole point and is invisible. Between two
+// Chinese characters it is a space in the middle of a sentence, and the ledger's
+// Chinese lede shipped that way: 伺服器上 重跑過一遍.
+//
+// THIS IS A RULE ABOUT THE LANGUAGE, NOT ABOUT THAT PARAGRAPH. Any Chinese
+// written into markup has the same trap waiting, and the change that springs it
+// is the most innocent one there is — re-wrapping a long line to fit a column.
+// Nothing about the result looks wrong in the source.
+//
+// The test is "the line ends with a non-Latin character AND the next begins with
+// one", which is wider than checking for CJK on both sides and deliberately so:
+// the first version of this scan missed 一夜——\n不是, because an em dash is not a
+// CJK codepoint while still being a place Chinese wants no space. A break
+// between Chinese and LATIN is left alone — 需要\nJavaScript renders as
+// "需要 JavaScript", which is the correct spacing.
+const nonLatin = (ch) => !!ch && ch.codePointAt(0) > 0x7f;
+
+test("seo: no Chinese sentence is broken across source lines (#144)", () => {
+  let checked = 0;
+  for (const name of PUBLIC_PAGES) {
+    const lines = html[name].split("\n");
+    let inComment = false;
+    for (let i = 0; i < lines.length - 1; i++) {
+      // Comments are not rendered, so a wrapped Chinese sentence inside one is
+      // harmless. Flagging it would make this fire on prose nobody reads, which
+      // is how a guard teaches people to skip past it.
+      const line = lines[i];
+      if (inComment) {
+        if (line.includes("-->")) inComment = false;
+        continue;
+      }
+      if (line.includes("<!--") && !line.includes("-->")) { inComment = true; continue; }
+
+      const a = line.replace(/\s+$/, "");
+      const b = lines[i + 1].trim();
+      if (!a || !b) continue;
+      const last = [...a].pop();
+      const next = [...b][0];
+      if (!nonLatin(last) || !nonLatin(next)) continue;
+      checked += 1;
+      assert(false,
+        name + ".html line " + (i + 1) + " ends with a non-Latin character and " +
+        "line " + (i + 2) + " begins with one, so the newline renders as a SPACE " +
+        "inside the sentence: ..." + a.slice(-12) + " | " + b.slice(0, 12) + "... " +
+        "Put the sentence on one source line.");
+    }
+  }
+  eq(checked, 0, "unreachable: the loop asserts before it counts");
+});
+
+// AND THE SCAN HAS TO BE ABLE TO SEE THE FAULT. The guard above is an absence,
+// and an absence passes just as happily when the thing doing the looking is
+// broken — a regex that matched nothing, a page list that loaded nothing. So the
+// same predicate is run against a string that DOES have the fault.
+test("seo: the Chinese line-break scan can actually detect one", () => {
+  const broken = ["  <p>這裡的每一夜，都先在伺服器上", "  重跑過一遍。</p>"];
+  const a = broken[0].replace(/\s+$/, "");
+  const b = broken[1].trim();
+  assert(nonLatin([...a].pop()) && nonLatin([...b][0]),
+    "the predicate does not fire on a known-broken pair, so the guard above " +
+    "proves nothing about the pages it scanned");
+  // And it leaves a Chinese-to-Latin break alone, which is correct spacing.
+  const fine = ["  <p>需要", "  JavaScript。</p>"];
+  assert(!(nonLatin([...fine[0].replace(/\s+$/, "")].pop()) && nonLatin([...fine[1].trim()][0])),
+    "the predicate fires on 需要/JavaScript, which renders with the space Chinese " +
+    "typography actually wants");
+  assert(PUBLIC_PAGES.length > 0 && html[PUBLIC_PAGES[0]].length > 100,
+    "no page source was loaded, so the scan above walked nothing");
+});
 
 test("seo: every public page has a title and a description", () => {
   for (const name of PUBLIC_PAGES) {
