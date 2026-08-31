@@ -107,22 +107,31 @@ def check_insert(db):
 def sql_from_boards():
     """Rebuild the board queries from js/boardkey.js's TERMS.
 
-    THIS USED TO READ THE SQL AS A LITERAL, and that was better. Since #146 the
-    queries are GENERATED in src/boards.js from one ordering, so that the client's
-    comparison and the database's ORDER BY cannot disagree — which is the right
-    trade for the product and costs this file something real, said plainly:
+    THIS USED TO READ THE SQL AS A LITERAL. Since #146 the queries are GENERATED
+    in src/boards.js from one ordering, so the client's comparison and the
+    database's ORDER BY cannot disagree — and this file re-derives the query
+    from the same TERMS instead of reading it.
 
-      what it still proves   the ORDERING is the ruled one, against a real
-                             database, with rows planted to discriminate
-      what it no longer      that the exact string src/boards.js emits is the
-      proves                 string executed here — Python re-derives it from
-                             the same TERMS rather than reading it
+    WHAT THAT COSTS IS NARROWER THAN IT LOOKS, and the first version of this
+    note overstated it — which mattered, because a note that oversells a
+    weakness invites someone to "restore" the older, weaker checker.
 
-    So a drift between the two GENERATORS would go unseen here. It cannot make
-    the shipped query wrong — that one is built from TERMS by construction — it
-    would only mean this file tested a near-neighbour of it. The alternative was
-    a literal SQL that CAN disagree with the key, caught by a guard; a product
-    that cannot be wrong beats a check that cannot be fooled.
+      still proved   the ORDERING is the ruled one, against a real database,
+                     with rows planted to discriminate
+      still proved   A WRONG TERMS IS CAUGHT. The expectations below —
+                     expect_burial, expect_seal, expect_kills — are hand-written
+                     Python sorts stating the ruling, and they do NOT read TERMS.
+                     They cannot move with it. Demonstrated: delete the
+                     survivors-first term from TERMS and this exits 1 with
+                     "FAIL kills (kills DESC, survivors first, health DESC)".
+      not proved     that the exact string src/boards.js emits is the string
+                     executed here.
+
+    So the only thing given up is the case where the two GENERATORS disagree
+    while TERMS is right — which cannot make the shipped query wrong, only mean
+    this file tested a near-neighbour of it. The alternative was a literal SQL
+    that CAN disagree with the key; a product that cannot be wrong beats a check
+    that cannot be fooled.
     """
     src = io.open(os.path.join(ROOT, "js", "boardkey.js"), encoding="utf-8").read()
     block = src[src.index("export const TERMS"):src.index("export function sqlTerm")]
