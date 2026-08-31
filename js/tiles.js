@@ -3,7 +3,7 @@
 // hand-copying it would guarantee it drifts the first time a tile changes.
 
 import { loadIcons, icon } from "./render.js";
-import { mountLangSwitch } from "./langswitch.js";
+import { mountLangSwitch, paintTopnav } from "./langswitch.js";
 import * as L from "./lang.js";
 // The words a card says, with no DOM in them (#136). These were defined in
 // this file and were already pure; they are out there so that something
@@ -225,6 +225,8 @@ async function main() {
     // page's. The overlay falls through to English per key, exactly as there.
     const lang = L.preferred();
     L.stampDocument(lang);
+    // Once is enough here: the switch below reloads rather than re-rendering.
+    paintTopnav(lang);
     // The page has always themed itself from the shared preference and never
     // offered a way to change it, so a reader who wanted the other language had
     // to go somewhere else and come back. The switch reloads rather than

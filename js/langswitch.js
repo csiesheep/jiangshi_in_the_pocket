@@ -36,6 +36,45 @@ function otherThan(lang) {
 // `current` is asked for rather than read from the document, because the game
 // knows its own language before the document is stamped and the article pages
 // do not. `onPick` receives the language code to switch TO.
+// THE BAR FOLLOWS THE LANGUAGE TOO (#146).
+//
+// game.html has painted its own bar from the theme since the beginning, through
+// paintChrome. The four STATIC pages never did — they carry the same furniture
+// as plain English markup — so with the page in Chinese the brand, Play,
+// Rulebook, Tiles and Menu all stayed English. Every page looked fine to
+// whoever was working on it, because the strings do not belong to any of them.
+//
+// The words are NOT invented here. brand, nav-rulebook and nav-menu are the
+// ones game.html has been using; nav-play and nav-tiles are 開始 and 圖板 off
+// the talisman row, so a player has already read both on the poster they
+// arrived from. The theme is the one home for all five, which is what the
+// existing chrome guard in data.test.js checks in both directions.
+//
+// The switch itself is deliberately not in this list: it names the language it
+// would move TO, so "English" on a Chinese page is correct.
+const BAR = ["brand", "nav-play", "nav-rulebook", "nav-tiles", "nav-menu"];
+
+let basePromise = null;
+
+export async function paintTopnav(lang) {
+  // Nothing to paint is the ordinary case — index.html is the poster and has no
+  // bar — so this must not fetch a theme to discover that.
+  if (!BAR.some((id) => document.getElementById(id))) return;
+  try {
+    basePromise = basePromise || fetch("data/theme.json", { cache: "no-store" }).then((r) => r.json());
+    const theme = await L.themeFor(await basePromise, lang);
+    const ui = (theme && theme.ui) || {};
+    for (const id of BAR) {
+      const el = document.getElementById(id);
+      if (el && ui[id]) el.textContent = ui[id];
+    }
+  } catch {
+    // A bar that stays in English is a smaller failure than a page that throws
+    // on the way to painting it. The markup already holds the English.
+    basePromise = null;
+  }
+}
+
 export function mountLangSwitch({ host, current, onPick, className = "topbtn" } = {}) {
   const parent = hostFor(host);
   if (!parent) return null;

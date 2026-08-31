@@ -2891,9 +2891,19 @@ test("ledger: one board on screen, and nothing running together (#144)", serial(
       "the tab and its panel are showing the same string" + at);
     // The board's own sentence, which is the only thing saying what it ranks —
     // and inside a tab there is no neighbouring board to infer it from.
-    assert(m.first.rule && m.first.rule.trim().length > 20,
+    //
+    // NON-EMPTY AND NOT THE HEADING, rather than a length. This asserted
+    // length > 20 and passed for months, because 20 was measured against the
+    // ENGLISH sentences (32 to 61 characters). The Chinese ones are 11 to 18,
+    // so the moment another test left the shared language preference on zh-TW
+    // this went red on a page that was completely correct. A threshold taken
+    // from the subject rather than from the fault fires on the subject
+    // legitimately changing — and a language is exactly that.
+    assert(m.first.rule && m.first.rule.trim().length > 0,
       "the open board has no rule sentence" + at + " — a tab shows one board and " +
       "nothing else, so its sentence is all the reader has");
+    assert(m.first.rule.trim() !== (m.first.heading || "").trim(),
+      "the board's sentence and its heading are the same string" + at);
 
     // The arrows move the selection, and exactly one board stays on screen.
     eq(m.afterArrow.open, 1, "after ArrowRight, " + m.afterArrow.open + " boards are visible" + at);

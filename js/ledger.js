@@ -8,7 +8,7 @@
 // of them may look like a broken page.
 
 import * as L from "./lang.js";
-import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
+import { mountLangSwitch, paintLangSwitch, paintTopnav } from "./langswitch.js";
 import { wireSleep } from "./shell.js";
 
 // RESOLVED AGAINST THE PAGE, NOT HARD-CODED. In production this page is served
@@ -361,6 +361,7 @@ function apply(lang) {
   L.remember(lang);
   L.stampDocument(lang);
   paintLangSwitch(lang);
+  paintTopnav(lang);
   // Repainted rather than reloaded: the board names, the column heads and the
   // empty lines are all language-dependent, and the rows are already here.
   paint();
@@ -369,5 +370,6 @@ function apply(lang) {
 const lang = L.preferred();
 L.stampDocument(lang);
 mountLangSwitch({ current: lang, onPick: apply });
+paintTopnav(lang);
 wireSleep();
 paint();

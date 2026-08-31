@@ -69,6 +69,131 @@ const PAGES = tag(worker, /const PAGES = \[(.*?)\]/)
   .map((p) => p.trim().replace(/^"|"$/g, ""));
 const ROOT = `${ORIGIN}${PREFIX}/`;
 
+// WHAT ENGLISH IS ALLOWED TO SURVIVE IN CHINESE MODE (#146).
+//
+// The topnav was English on four pages at once and no per-page check reached it,
+// because the strings belong to the shared furniture rather than to any page —
+// each page looked fine to whoever was working on it. So this renders the page
+// in Chinese and asks what Latin is left, and every answer has to be one this
+// list PERMITS. A guard that passes because nothing happened to match is the
+// thing that let the bar sit there.
+//
+// WHICH PAGES, AND WHY NOT THE OTHER THREE — these are exclusions with reasons
+// rather than convenience:
+//   game.html      its bar is painted from the theme and its markup carries no
+//                  unpainted English at all (measured: zero text nodes). Booting
+//                  a whole game in an iframe inside this suite also destabilised
+//                  the renderer repeatedly.
+//   rulebook.html  already has its own guard — "the Chinese page carries no
+//                  English prose" — and its glossary shows both scripts on
+//                  purpose (真火符 True Fire Talisman).
+//   credits.html   deliberately not translated; js/credits.js says so in full.
+//                  Listing its thirty-odd English strings here would be
+//                  transcribing a decision, not checking one.
+// The shared bar those three DO carry is covered in data.test.js, page by page
+// and in both directions, which is the check that would have caught #146.
+const ALLOWED_LATIN = {
+  // Every page: the switch names the language it would move TO, so "English"
+  // on a Chinese page is correct and must never be "fixed".
+  "*": ["English"],
+  "index.html": [
+    // The poster's own title shows both scripts, 三更：殭屍 over the English —
+    // the same pairing the ledger's h1 and tabs use. The guard flagged this on
+    // its first run because it was not listed, which is the list doing its job.
+    "The Third Watch: The Jiangshi",
+    // The talisman row pairs each Chinese name with an English label, the same
+    // way the ledger's tabs do. Both halves are the design.
+    "Start", "Rulebook", "The Tiles", "Ledger", "About me",
+    // KNOWN GAP, NOT A DECISION. The lineage line under the poster is English
+    // prose in both languages. The two game titles are proper nouns and should
+    // stay, but "Inspired by" and "and" are not, and a Chinese reader gets an
+    // English sentence. Raised with the owner; listed here so it is visible
+    // rather than passing silently.
+    "Inspired by", "Zombie in my Pocket", "(2007) and",
+    "Betrayal at House on the Hill",
+  ],
+  "tiles.html": [],
+  "ledger.html": [
+    // 夜榜 The Ledger, and the tabs the owner asked to carry both halves.
+    "The Ledger", "Burial", "Sealing", "Kills",
+  ],
+};
+
+// Rendered, not read from the markup. A markup scan cannot answer this: rulebook
+// replaces its whole main with a Chinese fragment and tiles rebuilds its gallery
+// from the theme, so their sources are full of English that never reaches a
+// Chinese reader. Measured — the markup view of rulebook.html has 339 Latin text
+// nodes and its rendered Chinese view has the glossary and nothing else.
+// PUTS THE PREFERENCE BACK. jitp:lang is shared with every other test in this
+// browser, and leaving it on zh-TW made a later guard in stage.test.js render
+// its page in Chinese and fail on a threshold written for English sentences.
+// A test that changes global state and does not restore it does not fail — it
+// makes a DIFFERENT test fail, somewhere else, for a reason that reads as
+// unrelated.
+async function latinInChinese(page) {
+  const KEY = "jitp:lang";
+  let had = null;
+  try { had = localStorage.getItem(KEY); } catch { /* private mode */ }
+  const f = document.createElement("iframe");
+  f.style.cssText = "position:absolute;left:-99999px;top:0;border:0;width:375px;height:800px";
+  try { localStorage.setItem(KEY, "zh-TW"); } catch { /* private mode */ }
+  f.src = "../" + page;
+  document.body.appendChild(f);
+  try {
+    await new Promise((res, rej) => {
+      f.onload = res;
+      setTimeout(() => rej(new Error(page + " never loaded")), 12000);
+    });
+    await new Promise((r) => setTimeout(r, 600));
+    const d = f.contentDocument;
+    const btn = d.querySelector("#btn-lang");
+    for (let i = 0; i < 3 && !d.documentElement.lang.startsWith("zh"); i++) {
+      if (btn) btn.click();
+      await new Promise((r) => setTimeout(r, 450));
+    }
+    await new Promise((r) => setTimeout(r, 300));
+    // PROVE IT IS ACTUALLY IN CHINESE. Everything below is an absence, and an
+    // absence on an English page passes for the wrong reason.
+    const lang = d.documentElement.lang;
+    const seen = [];
+    const w = d.createTreeWalker(d.body, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = w.nextNode())) {
+      const t = (n.nodeValue || "").replace(/\s+/g, " ").trim();
+      if (!t || !/[A-Za-z]{2,}/.test(t)) continue;
+      const el = n.parentElement;
+      if (!el || !(el.offsetWidth || el.offsetHeight || el.getClientRects().length)) continue;
+      seen.push(t);
+    }
+    return { lang, latin: [...new Set(seen)] };
+  } finally {
+    f.remove();
+    try {
+      if (had === null) localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, had);
+    } catch { /* private mode */ }
+  }
+}
+
+test("chrome: only permitted English survives a Chinese page (#146)", async () => {
+  for (const page of Object.keys(ALLOWED_LATIN).filter((k) => k !== "*")) {
+    const { lang, latin } = await latinInChinese(page);
+    assert(lang.startsWith("zh"),
+      page + " never switched to Chinese (lang=" + lang + "), so finding no " +
+      "English would have meant nothing");
+    const allowed = ALLOWED_LATIN["*"].concat(ALLOWED_LATIN[page]);
+    const strays = latin.filter((t) => !allowed.some((ok) => t.includes(ok)));
+    eq(strays.length, 0,
+      page + " renders English this list does not permit: " +
+      JSON.stringify(strays.slice(0, 6)) + ". Either translate it, or add it to " +
+      "ALLOWED_LATIN with a line saying why it is allowed to stay.");
+    // And the page has to have been read at all.
+    assert(latin.length > 0,
+      page + " rendered no Latin whatsoever, not even the language switch — " +
+      "the sweep walked an empty or unrendered document");
+  }
+});
+
 // A NEWLINE BETWEEN TWO CHINESE CHARACTERS IS A SPACE (#144).
 //
 // HTML collapses a source newline and its indent into ONE RENDERED SPACE.

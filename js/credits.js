@@ -11,16 +11,18 @@
 // five, and worth revisiting if the credits are ever translated.
 
 import * as L from "./lang.js";
-import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
+import { mountLangSwitch, paintLangSwitch, paintTopnav } from "./langswitch.js";
 import { wireSleep } from "./shell.js";
 
 function apply(lang) {
   L.remember(lang);
   L.stampDocument(lang);
   paintLangSwitch(lang);
+  paintTopnav(lang);
 }
 
 const lang = L.preferred();
 L.stampDocument(lang);
 mountLangSwitch({ current: lang, onPick: apply });
+paintTopnav(lang);
 wireSleep();

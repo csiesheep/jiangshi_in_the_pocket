@@ -143,6 +143,8 @@
     "clock": "{time} {half}",
     "half-pm": "PM",
     "half-am": "AM",
+    "nav-play": "Play",
+    "nav-tiles": "Tiles",
     "nav-rulebook": "Rulebook",
     "nav-menu": "Menu",
     "page-title": "The Third Watch: The Jiangshi — play in your browser",

@@ -268,6 +268,81 @@ test("chrome: index.html's static words match the theme's English", async () => 
   await chromeMatchesTheme("index.html", [["tagline", "landing.tagline"]]);
 });
 
+// THE BAR IS SHARED FURNITURE, AND THAT IS WHY NOBODY SAW IT (#146).
+//
+// game.html has painted its own bar from the theme since the beginning. The four
+// STATIC pages carried the same furniture as plain English markup with nothing
+// to paint it, so in Chinese the brand, Play, Rulebook, Tiles and Menu all
+// stayed English — on every one of those pages at once. It survived a page-by-
+// page sweep because it does not belong to any page: whoever was working on one
+// saw a bar that looked exactly like the bar on all the others.
+//
+// So this checks the pages TOGETHER, and in both directions:
+//   - every id'd node in a bar has a theme key, or nothing will ever paint it
+//   - the markup's English matches the theme's English, or the page and the
+//     translation have drifted
+//   - every key in BAR is used by at least one page, or it is dead weight
+//
+// The English in the markup is not a bug — it is the fallback a reader gets
+// with no script and the crawler's copy. What was missing was anything to
+// replace it.
+const BAR_KEYS = ["brand", "nav-play", "nav-rulebook", "nav-tiles", "nav-menu"];
+const BAR_PAGES = ["credits.html", "ledger.html", "rulebook.html", "tiles.html", "game.html"];
+
+test("chrome: every page's top bar is painted from the theme (#146)", async () => {
+  const ui = themeEn.ui;
+  const used = new Set();
+  let bars = 0;
+
+  for (const page of BAR_PAGES) {
+    const doc = new DOMParser().parseFromString(
+      await fetch("../" + page, NO_STORE).then((r) => r.text()), "text/html");
+    const bar = doc.querySelector("header.topnav");
+    assert(bar, page + " has no header.topnav, so this guard skipped it silently");
+    bars += 1;
+
+    // Every LINK in the bar, whether or not it has an id — an id is exactly what
+    // this is checking for, so looking only at id'd nodes would let a new
+    // untranslated link in unnoticed.
+    for (const a of bar.querySelectorAll("a")) {
+      const id = a.id;
+      assert(id, page + " has a bar link reading " + JSON.stringify(a.textContent.trim()) +
+        " with no id, so nothing can paint it and it stays English in Chinese");
+      assert(BAR_KEYS.includes(id),
+        page + " bar link #" + id + " is not in BAR_KEYS, so paintTopnav will " +
+        "never write it — add the key or the link stays in one language");
+      assert(ui[id] !== undefined,
+        page + " #" + id + " has no theme.ui." + id + " to be painted from");
+      eq(a.textContent.trim(), ui[id],
+        page + " #" + id + " markup and theme.ui." + id + " disagree");
+      used.add(id);
+    }
+  }
+
+  eq(bars, BAR_PAGES.length, "not every page with a bar was read");
+  // A key nothing uses is the other direction, and it is how a rename leaves
+  // a translated string behind that no page will ever show.
+  for (const key of BAR_KEYS) {
+    assert(used.has(key), "theme.ui." + key + " is painted onto no page's bar");
+  }
+});
+
+// AND THE TRANSLATION HAS TO EXIST, which the English-side check above cannot
+// see: a key present in theme.json and absent from theme.zh-TW.json falls back
+// to English, which looks exactly like the bug this issue was about.
+test("chrome: the bar's words exist in Chinese too (#146)", () => {
+  for (const key of BAR_KEYS) {
+    const zh = themeZh.ui[key];
+    assert(zh !== undefined,
+      "theme.zh-TW.json has no ui." + key + ", so that word falls back to " +
+      "English and the bar is half-translated");
+    assert(zh !== themeEn.ui[key],
+      "ui." + key + " is the same string in both languages (" + JSON.stringify(zh) +
+      "). If that is deliberate for a wordmark, say so here; today it is the " +
+      "shape an untranslated key has.");
+  }
+});
+
 test("chrome: game.html's static words match the theme's English", async () => {
   const html = await fetch("../game.html", NO_STORE).then((r) => r.text());
   const doc = new DOMParser().parseFromString(html, "text/html");

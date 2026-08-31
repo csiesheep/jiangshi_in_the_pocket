@@ -11,7 +11,7 @@
 import * as L from "./lang.js";
 import { loadIcons } from "./icons.js";
 import { wireSleep } from "./shell.js";
-import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
+import { mountLangSwitch, paintLangSwitch, paintTopnav } from "./langswitch.js";
 
 const main = document.querySelector("main");
 // The English, kept in memory the moment the page loads, so switching back is
@@ -59,6 +59,10 @@ async function apply(lang) {
   L.stampDocument(lang);
   if (main) main.innerHTML = html;
   paintLangSwitch(lang);
+  // The bar sits OUTSIDE main, so the innerHTML swap above does not touch it —
+  // which is why it has to be repainted here rather than coming along with the
+  // fragment.
+  paintTopnav(lang);
   // An #anchor from the table of contents survives the swap because the ids do,
   // but the browser will not re-scroll on its own after a replacement.
   if (location.hash) {
