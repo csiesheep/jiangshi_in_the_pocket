@@ -73,7 +73,7 @@ import {
   showCinnabarDialog,
 } from "./render.js";
 
-import { registerWorker, keepAwake, wireSleep,
+import { BUILD_ID, registerWorker, keepAwake, wireSleep,
          markRunInProgress } from "./shell.js";
 import { recordVerdict } from "./tally.js";
 // The night, written down as it is played (#142). Every push below is a
@@ -84,6 +84,7 @@ import { recordVerdict } from "./tally.js";
 import { FORMAT_V, verdictOf } from "./night.js";
 import { ACT } from "./replay.js";
 import { epilogue } from "./epilogue.js";
+import { mountSubmit } from "./submit.js";
 import * as L from "./lang.js";
 import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
 
@@ -273,8 +274,26 @@ export class Game {
   // travels WITH it so a finished night knows its own score without a replay
   // — #144's submit gate reads this, and #143 recomputes it from the actions
   // rather than trusting it.
+  //
+  // `build` IS NOT `v`, AND THE DIFFERENCE IS THE POINT. FORMAT_V is the shape
+  // of the envelope: it says how to parse a recording. It does not move when a
+  // fight is retuned or a deck is changed, so two nights worth entirely
+  // different things are indistinguishable on the board without this field, and
+  // the season boundary cannot be drawn at all.
+  //
+  // READ THIS BEFORE TREATING IT AS A SEASON STAMP: BUILD_ID is a digest of the
+  // WHOLE SHELL, so it moves for a change to css/style.css or index.html as
+  // readily as for a change to the engine's numbers. It over-partitions, badly
+  // — several ids were burned in one afternoon rewriting comments. As a
+  // RECORDED FACT that is fine and strictly better than nothing, because a
+  // build id can be mapped to a rules era afterwards and an absent one cannot.
+  // As an ENFORCED gate it would be wrong, which is why the server does not
+  // read it. Taken from shell.js rather than restated here: record_shell.py
+  // generates that line, and a copied stamp goes stale while still looking
+  // authoritative.
   night() {
-    return { v: FORMAT_V, seed: this.state.seed, actions: this.actions.slice(),
+    return { v: FORMAT_V, build: BUILD_ID, seed: this.state.seed,
+             actions: this.actions.slice(),
              verdict: verdictOf(this.state, this.tally) };
   }
 
@@ -1858,6 +1877,14 @@ export class Game {
       epilogue: closing,
     };
     if (reasonFor[outcome]) opts.reason = reasonFor[outcome];
+
+    // #144. The night already knows its own score — night().verdict is the
+    // whole verdictOf set — so deciding whether to offer the ledger needs no
+    // replay and no round trip beyond reading where the cut lines are. What it
+    // does need is to fail towards showing: see the note at the top of
+    // submit.js. Hidden entirely when the run cannot reach any board, which is
+    // the owner's ruling: 如果成績不夠上榜，就不顯示上榜按鈕.
+    opts.mount = (card) => mountSubmit(card, this.night(), (k) => this.ui(k));
 
     // 🤫 The only place either number is ever printed, on the card of a player
     // he has just killed. See the note over verdict-compare in render.js: this

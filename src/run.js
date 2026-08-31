@@ -28,7 +28,7 @@
 // than in a catch block.
 
 import { replayNight, Divergence } from "../js/replay.js";
-import { FORMAT_V } from "../js/night.js";
+import { FORMAT_V, NAME_LIMIT } from "../js/night.js";
 import { BOARDS, STATS, DEFAULT_LIMIT, MAX_LIMIT, BOARD_SIZE } from "./boards.js";
 import { TERMS } from "../js/boardkey.js";
 
@@ -108,7 +108,10 @@ export const REFUSED = {
 // different values for a while; neither direction is harmful, because the
 // server never over-accepts — but the echoed name is the only thing that makes
 // the disagreement visible instead of silent. It is not redundant.
-export const NAME_MAX = 24;
+// WHERE IT LIVES: js/night.js, which this file already imports FORMAT_V
+// from, so the client's input and this enforcement read one number. NAME_MAX
+// stays as the name this file and its tests already use.
+export const NAME_MAX = NAME_LIMIT;
 
 // COUNTED IN CODE POINTS, NOT UTF-16 UNITS. "".length counts units, so an emoji
 // is 2 and a name of twelve emoji would pass a naive check at 24 while being

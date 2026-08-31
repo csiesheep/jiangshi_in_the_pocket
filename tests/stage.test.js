@@ -21,6 +21,17 @@ import { Game } from "../js/app.js";
 // The recorded night and its replay (#142). Imported here rather than in
 // engine.test.js because this guard PLAYS one through the real UI.
 import { verdictOf, STREAMS } from "../js/night.js";
+// The stamp the recording carries. Imported from where the engine defines it,
+// for the same reason app.js does: comparing night() against a literal here
+// would only prove two copies agree.
+import { BUILD_ID } from "../js/shell.js";
+// The ledger offer (#144). Pure functions with an injectable fetcher, so the
+// branch that matters can be driven without a network.
+import { qualifies, clip } from "../js/submit.js";
+// The fixture builds its cut keys with keyOf rather than by hand: a test that
+// spells out the ordering itself is a third copy of the thing #146 removed.
+import { keyOf } from "../js/boardkey.js";
+import { NAME_LIMIT } from "../js/night.js";
 import { replayNight } from "../js/replay.js";
 import { verifyNight } from "../src/run.js";
 // The board, for the burial guard: it walks a real run out to the Mass Grave
@@ -32,7 +43,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "97d71116");
+suite(import.meta.url, "8e030b83");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -2742,6 +2753,199 @@ test("burn: the fire is on him and it is warm (#140)", serial(async () => {
     for (const el of document.querySelectorAll(".evstage")) el.remove();
     spriteHost.remove();
     styles.remove();
+  }
+}));
+
+// THE LEDGER OFFER FAILS OPEN (#144).
+//
+// THE TWO MISTAKES ARE NOT THE SAME SIZE. A run offered and then refused costs
+// a button press. A run NEVER OFFERED is a record the player made and will
+// never learn about — there is no message, no retry, and nothing on screen that
+// went wrong. So when the cut line cannot be read at all (offline, API down,
+// the PWA opened on a train) the button must still appear and let the server
+// decide.
+//
+// This is the branch that breaks silently, so it is asserted in BOTH
+// directions: the same function must be able to say no, or "it fails open"
+// would be satisfied by a gate that is simply always open.
+// Shaped like /api/leaderboard answers: one response describing every board,
+// each with the server's own `full` flag and its cut row.
+const leaderboard = (boards) => async () => ({
+  ok: true, json: async () => ({ ok: true, boardSize: 50, boards, stats: {} }),
+});
+// Every board at once, since the boards a verdict is eligible for vary.
+const board = (rows, full) => leaderboard(Object.fromEntries(
+  ["burial", "seal", "kills"].map((id) => {
+    const last = rows.length ? rows[rows.length - 1] : null;
+    return [id, {
+      rows, full: full ?? rows.length >= 50,
+      cut: last ? { ...last, key: keyOf(id, last) } : null,
+    }];
+  })));
+const unreachable = async () => { throw new Error("offline"); };
+const verdict = (o) => ({
+  outcome: "WIN_BURIAL", status: "won", lossReason: null, turn: 10, hour: 21,
+  health: 5, kills: 3, found: 0, tablet: true, ...o,
+});
+// Deep enough to have a cut line at all. The depth is submit.js's CUT.
+const fullBoard = (turn) => Array.from({ length: 50 }, () => ({ turn, health: 5, kills: 9 }));
+
+test("submit: an unreachable board still offers the button (#144)", serial(async () => {
+  const out = await qualifies(verdict({}), unreachable);
+  assert(out.show,
+    "the ledger could not be reached and the button was hidden — that discards " +
+    "a real record silently, which is the one failure here with no way back");
+  eq(out.why, "unreachable", "shown for the wrong reason: " + out.why);
+}));
+
+test("submit: a run under every cut line is not offered (#144)", serial(async () => {
+  // PROVES THE GATE CAN SAY NO. Without this, the guard above passes on a
+  // function that returns true unconditionally, which is not a gate at all.
+  const out = await qualifies(verdict({ turn: 40 }), board(fullBoard(5)));
+  eq(out.show, false,
+    "a burial on turn 40 was offered against a full board of turn-5 burials — " +
+    "the owner's ruling is that a run which cannot reach a board shows no button");
+
+}));
+
+test("submit: a cut line it cannot rank against still offers (#144)", serial(async () => {
+  // THE ORDERING IS THE SERVER'S, AND NOT UNDERSTANDING IT IS NOT A REASON TO
+  // HIDE. The kills board sorts on kills, then survivors before the fallen,
+  // then health — three levels this client deliberately does not reimplement.
+  // When the cut row cannot be read on the primary number at all, that is the
+  // same state as not having reached the board, and it resolves the same way.
+  // The same branch takes the comparable sort key BE is adding: a row without
+  // one, or a response carrying none, offers rather than hides.
+  const keyless = leaderboard(Object.fromEntries(["burial", "seal", "kills"].map(
+    (id) => [id, { rows: [], full: true, cut: { name: "someone" } }])));
+  const out = await qualifies(verdict({ turn: 999 }), keyless);
+  assert(out.show,
+    "a full board whose cut row carries no key hid the button — the ordering " +
+    "being unreadable is our problem, and the player loses the record");
+
+  // And a key of the wrong shape is the same state, not a comparison to attempt.
+  const wrongWidth = leaderboard(Object.fromEntries(["burial", "seal", "kills"].map(
+    (id) => [id, { rows: [], full: true, cut: { key: [1] } }])));
+  const short = await qualifies(verdict({ outcome: "LOSS_HEALTH", status: "lost", kills: 0 }), wrongWidth);
+  assert(short.show, "a key of the wrong width was compared against instead of being refused");
+}));
+
+test("submit: a run level with the cut line on every term is NOT offered (#144)", serial(async () => {
+  // THE ONE CASE THE KEY DOES NOT FAIL OPEN, and it is deliberate on both sides.
+  // Stored rows break their last tie on id — oldest first — so a run arriving
+  // now cannot displace one equal to it on every element. "You did not displace
+  // them" is a correct answer, not a lost record.
+  //
+  // Asserted because the opposite was written first. An exception offering on a
+  // total tie looks like generosity and is a ranking decision taken by the
+  // client about a rule the server owns; this guard is what stops it coming
+  // back the next time somebody reads the false and thinks it looks unkind.
+  const same = { kills: 6, status: "lost", health: 0 };
+  const rows = Array.from({ length: 50 }, () => ({ ...same }));
+  const tie = await qualifies(
+    verdict({ outcome: "LOSS_HEALTH", status: "lost", kills: 6, health: 0 }), board(rows));
+  eq(tie.show, false,
+    "a run tying the cut row on every element was offered — the client decided " +
+    "a tie in the player's favour, which is the server's call and not ours");
+
+  // One element BETTER and it earns the place, which is what stops the
+  // assertion above from passing on a gate that never says yes. Same kills,
+  // survived rather than fallen: the second element of the key, which a
+  // comparison on kills alone cannot see.
+  const better = await qualifies(
+    verdict({ outcome: "WIN_SEAL", status: "won", kills: 6, health: 7 }), board(rows));
+  assert(better.show,
+    "six kills and survived did not beat six kills and fallen — this is exactly " +
+    "the case a primary-number-only comparison gets wrong");
+}));
+
+test("submit: a response it cannot read still offers (#144)", serial(async () => {
+  // TWO NEW WAYS TO FAIL NOW THAT ONE REQUEST CARRIES EVERY BOARD, and both are
+  // the same state as being offline: a body with no boards in it at all, and a
+  // body that simply does not describe the board this run belongs on. Neither
+  // is a reason to decide the player did not qualify.
+  const noBoards = async () => ({ ok: true, json: async () => ({ ok: true, stats: {} }) });
+  const a = await qualifies(verdict({ turn: 999 }), noBoards);
+  assert(a.show, "a response carrying no boards hid the button");
+
+  const wrongBoard = async () => ({ ok: true, json: async () => ({
+    ok: true, boardSize: 50, boards: { kills: { rows: [], full: true, cut: { kills: 99 } } },
+  }) });
+  // A burial win is ranked on the burial board, which this response omits.
+  const b = await qualifies(verdict({ turn: 999 }), wrongBoard);
+  assert(b.show, "the board this run belongs on was missing and the button was hidden");
+  assert(/missing/.test(b.why), "shown for the wrong reason: " + b.why);
+}));
+
+test("submit: a board with room offers regardless of the score (#144)", serial(async () => {
+  const out = await qualifies(verdict({ turn: 999 }), board([]));
+  assert(out.show, "an empty board has no cut line to be under, so everything qualifies");
+  assert(/not-full/.test(out.why), "shown for the wrong reason: " + out.why);
+}));
+
+test("submit: the name is capped in code points, not UTF-16 units (#144)", () => {
+  // 34 skulls measure 68 by .length. A naive cap at 24 units would both cut the
+  // wrong number of characters AND split a surrogate pair, which renders as a
+  // replacement character in somebody's leaderboard row forever.
+  const skulls = "\u{1F480}".repeat(34);
+  assert(skulls.length > NAME_LIMIT * 1.5,
+    "the fixture is not made of surrogate pairs, so this proves nothing");
+  const out = clip(skulls);
+  eq([...out].length, NAME_LIMIT, "the name was not capped at " + NAME_LIMIT + " code points");
+  eq(out.length, NAME_LIMIT * 2, "a surrogate pair was split: " + out.length + " units");
+  eq(clip("  Wei  "), "Wei", "the name was not trimmed");
+  eq(clip(null), "", "a non-string name is empty, not a crash");
+});
+
+// THE RECORDING SAYS WHICH ENGINE MADE IT (#144).
+//
+// v and build answer different questions and only one of them was being asked.
+// FORMAT_V is the SHAPE of the envelope — how to parse it — and it does not
+// move when a fight is retuned or a deck is reordered. Without a build stamp,
+// a night played under one set of rules and a night played under another are
+// identical on the board, and no season boundary can be drawn afterwards
+// because the fact was never written down.
+//
+// WHAT THIS CANNOT CATCH TODAY, said plainly: someone replacing the import with
+// the literal string would pass right now, because the literal would equal the
+// import. It fails the next time tools/record_shell.py runs — BUILD_ID is a
+// digest of the whole shell and moves on essentially every commit that touches
+// it — so the guard has teeth on a delay rather than immediately. That is worth
+// knowing rather than pretending otherwise.
+test("night: the recording carries the engine's build stamp (#144)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  // WITHOUT THIS THE TEST BELOW IS "" === "". An unrecorded shell leaves
+  // BUILD_ID empty, and a night stamped with nothing would compare equal to an
+  // engine stamped with nothing and report a pass for a field carrying no
+  // information at all.
+  assert(typeof BUILD_ID === "string" && BUILD_ID.length > 0,
+    "BUILD_ID is empty, so this guard would compare two empty strings and pass " +
+    "on a night carrying no stamp — run python tools/record_shell.py");
+
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-items"></div><div id="actions-pop" hidden>' +
+                   '<div id="actions"></div></div>';
+  document.body.appendChild(host);
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    const night = game.night();
+    eq(night.build, BUILD_ID,
+      "night() stamped the recording " + JSON.stringify(night.build) + " while the " +
+      "engine is " + JSON.stringify(BUILD_ID) + " — a season boundary drawn on " +
+      "this field would partition the board by a number that is not the build");
+    // And the two fields stay distinct: a build stamp that had quietly become a
+    // second copy of the format version would satisfy the line above forever.
+    assert(night.v !== night.build,
+      "v and build carry the same value, so one of them is not answering its " +
+      "own question");
+  } finally {
+    host.remove();
   }
 }));
 

@@ -60,6 +60,15 @@
     "search-replaced": "You take {item}, and let {dropped} fall."
   },
   "ui": {
+    "submit-offer": "Put this night on the ledger",
+    "submit-name": "Name",
+    "submit-send": "Send",
+    "submit-sending": "Sending…",
+    "submit-ok": "It is on the ledger.",
+    "submit-view": "See the ledger",
+    "submit-dup": "This night is already on the ledger.",
+    "submit-refused": "The ledger could not confirm this run’s score.",
+    "submit-offline": "Could not reach the ledger. Try again in a moment.",
     "dig": "Dig",
     "dig-sub": "{n} of {of}",
     "_note": "Labels, the small grey line under them, and the prompts over the choice window. Kept apart from `lines` because these are things you press and those are things the house says — a translator handles them differently, and these have to stay short enough for a narrow card.",

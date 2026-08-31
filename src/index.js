@@ -31,7 +31,7 @@ const CANONICAL = ORIGIN + PREFIX + "/";
 // robots.txt and ads.txt at the domain root, so those two stay the hub's job;
 // what we can own is a prefix-scoped sitemap, linked from the hub's sitemap
 // index or submitted to Search Console directly.
-const PAGES = ["", "game", "rulebook", "tiles", "credits"]; // "" = the menu / index
+const PAGES = ["", "game", "rulebook", "tiles", "credits", "ledger"]; // "" = the menu / index
 // Every page that carries a <link rel=canonical> belongs here and nothing else
 // does. Tiles was missing, which is the failure mode a hand-kept list has: the
 // page shipped, the canonical shipped, and the one line that tells a crawler it
