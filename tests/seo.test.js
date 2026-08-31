@@ -23,7 +23,7 @@ import { tileWords } from "../js/tilewords.js";
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "2100866e");
+suite(import.meta.url, "a85c950b");
 
 const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits", "ledger"];
 
