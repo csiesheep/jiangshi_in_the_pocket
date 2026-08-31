@@ -21,6 +21,10 @@ import { Game } from "../js/app.js";
 // The recorded night and its replay (#142). Imported here rather than in
 // engine.test.js because this guard PLAYS one through the real UI.
 import { verdictOf } from "../js/night.js";
+// The stamp the recording carries. Imported from where the engine defines it,
+// for the same reason app.js does: comparing night() against a literal here
+// would only prove two copies agree.
+import { BUILD_ID } from "../js/shell.js";
 import { replayNight } from "../js/replay.js";
 import { verifyNight } from "../src/run.js";
 // The board, for the burial guard: it walks a real run out to the Mass Grave
@@ -2742,6 +2746,58 @@ test("burn: the fire is on him and it is warm (#140)", serial(async () => {
     for (const el of document.querySelectorAll(".evstage")) el.remove();
     spriteHost.remove();
     styles.remove();
+  }
+}));
+
+// THE RECORDING SAYS WHICH ENGINE MADE IT (#144).
+//
+// v and build answer different questions and only one of them was being asked.
+// FORMAT_V is the SHAPE of the envelope — how to parse it — and it does not
+// move when a fight is retuned or a deck is reordered. Without a build stamp,
+// a night played under one set of rules and a night played under another are
+// identical on the board, and no season boundary can be drawn afterwards
+// because the fact was never written down.
+//
+// WHAT THIS CANNOT CATCH TODAY, said plainly: someone replacing the import with
+// the literal string would pass right now, because the literal would equal the
+// import. It fails the next time tools/record_shell.py runs — BUILD_ID is a
+// digest of the whole shell and moves on essentially every commit that touches
+// it — so the guard has teeth on a delay rather than immediately. That is worth
+// knowing rather than pretending otherwise.
+test("night: the recording carries the engine's build stamp (#144)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  // WITHOUT THIS THE TEST BELOW IS "" === "". An unrecorded shell leaves
+  // BUILD_ID empty, and a night stamped with nothing would compare equal to an
+  // engine stamped with nothing and report a pass for a field carrying no
+  // information at all.
+  assert(typeof BUILD_ID === "string" && BUILD_ID.length > 0,
+    "BUILD_ID is empty, so this guard would compare two empty strings and pass " +
+    "on a night carrying no stamp — run python tools/record_shell.py");
+
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-items"></div><div id="actions-pop" hidden>' +
+                   '<div id="actions"></div></div>';
+  document.body.appendChild(host);
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 5 });
+    const night = game.night();
+    eq(night.build, BUILD_ID,
+      "night() stamped the recording " + JSON.stringify(night.build) + " while the " +
+      "engine is " + JSON.stringify(BUILD_ID) + " — a season boundary drawn on " +
+      "this field would partition the board by a number that is not the build");
+    // And the two fields stay distinct: a build stamp that had quietly become a
+    // second copy of the format version would satisfy the line above forever.
+    assert(night.v !== night.build,
+      "v and build carry the same value, so one of them is not answering its " +
+      "own question");
+  } finally {
+    host.remove();
   }
 }));
 
