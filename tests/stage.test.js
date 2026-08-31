@@ -20,7 +20,7 @@ import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
 import { Game } from "../js/app.js";
 // The recorded night and its replay (#142). Imported here rather than in
 // engine.test.js because this guard PLAYS one through the real UI.
-import { verdictOf } from "../js/night.js";
+import { verdictOf, STREAMS } from "../js/night.js";
 import { replayNight } from "../js/replay.js";
 import { verifyNight } from "../src/run.js";
 // The board, for the burial guard: it walks a real run out to the Mass Grave
@@ -32,7 +32,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "3d284e83");
+suite(import.meta.url, "d9ebc5d4");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -5537,3 +5537,141 @@ test("the watch drum reaches a phone, and the shell is why", async () => {
     (bodiedAbove / Math.max(bareAbove, 1e-30)).toFixed(1) + "x - it is wired but not " +
     "sounding, which is what a check on the wiring alone would have missed");
 });
+
+// A move into a wall is not a turn (#145).
+//
+// moveTo's result used to be discarded, so a refused move narrated "you move to
+// X" — naming the room already stood in — and called arrive(), which draws the
+// turn's event. Position, turn and health did not change, and eventRng advanced
+// by exactly one.
+//
+// THE RECORDING IS HALF THE ASSERTION AND IT CUTS BOTH WAYS. The replay reads
+// one board action per turn and then draws an event unconditionally. So while
+// the refused move fired an event, recording it was CORRECT — both sides drew.
+// Stop the event without stopping the record and the replay draws one the game
+// did not: a valid night with a wrong score. The two must move together, so
+// this guard checks both together.
+test("a move into a wall costs nothing, and a legal one still costs a turn (#145)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-items"></div><div id="actions-pop" hidden>' +
+                   '<div id="actions"></div></div><div class="sr-only" id="log"></div>';
+  document.body.appendChild(host);
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 9 });
+    game.start();
+
+    const legal = () => listMoves(game.board)
+      .filter((m) => m.type === "move" || m.type === "cross").map((m) => m.dir);
+    const walls = () => ["N", "S", "E", "W"].filter((d) => !legal().includes(d));
+
+    // PROVE THE REGION. With no wall to walk into there is nothing to refuse,
+    // and every assertion below would pass on a test that did nothing.
+    assert(walls().length > 0,
+      "every direction from here is a legal move, so this guard never tried a wall");
+
+    const snap = () => ({
+      pos: JSON.stringify(game.board.player),
+      turn: game.state.turn,
+      health: game.state.health,
+      actions: game.actions.length,
+      log: host.querySelectorAll("#log *").length,
+      // EVERY stream, not just the one that moved. eventRng is what this bug
+      // advanced, but a refusal must not spend any of them, and naming only the
+      // known offender is how the next one goes unnoticed.
+      streams: STREAMS.map((n) => game.state[n] && game.state[n].s).join(","),
+    });
+
+    const before = snap();
+    // Three presses: a refusal that costs nothing must cost nothing repeatedly,
+    // which is also what caught the move prompt being re-announced once per
+    // press when the refusal went back through renderMoves().
+    for (let i = 0; i < 3; i++) game.doMove(walls()[0]);
+    await new Promise((r) => setTimeout(r, 60));
+    const after = snap();
+
+    eq(after.pos, before.pos, "a refused move moved the player");
+    eq(after.turn, before.turn, "a refused move spent a turn");
+    eq(after.health, before.health, "a refused move cost health");
+
+    // THE STREAMS ARE CHECKED BEFORE THE LOG, and the order is deliberate. A
+    // stray log line is cosmetic; a spent stream shifts every later draw in the
+    // night and produces a valid-looking run with a different score. It is also
+    // the assertion the issue asked to see fail, and with the log checked first
+    // that one fired instead and this never ran.
+    eq(after.streams, before.streams,
+      "a refused move spent a random stream: " +
+      STREAMS.filter((n, i) => before.streams.split(",")[i] !== after.streams.split(",")[i])
+        .join(", ") + " — every later draw in the night is now shifted");
+    eq(after.actions, before.actions,
+      "a refused move was RECORDED — the replay will read it, draw an event the " +
+      "game never drew, and score a different night");
+    eq(after.log, before.log, "a refused move wrote to the log");
+
+    // AND THE OTHER DIRECTION, or "refuse everything" would pass all of the
+    // above. Walk somewhere real and require the full cost.
+    //
+    // Reaching a legal move means exploring first — the board starts as one
+    // tile with nothing adjacent to walk to — so the game is driven the way the
+    // #142 guard drives it, which is the shape proven to complete in this
+    // stripped host. Rolling my own loop here left `busy` set and doMove became
+    // a no-op, which surfaced as "a legal move did not move the player": a true
+    // report of the wrong cause.
+    // BOTH CONDITIONS, and the second is not obvious: a legal move can appear
+    // WHILE a beat is still running, so a loop that stops at the first legal
+    // direction can hand over a game with busy still set — and doMove returns
+    // silently on its own busy guard. That is what the assertion below caught.
+    const t0 = Date.now();
+    while ((!legal().length || game.busy) && Date.now() - t0 < 20000) {
+      for (const a of document.getAnimations()) {
+        try {
+          const t = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+          if (!t || t.iterations === Infinity) continue;
+          a.finish();
+        } catch (e) { /* an infinite one must not stop the rest */ }
+      }
+      const stage = document.querySelector(".evstage");
+      if (stage) stage.click();
+      const rev = document.querySelector(".reveal");
+      if (rev) rev.click();
+      const leave = document.querySelector(".notecard .dropleave");
+      if (leave) leave.click();
+      const pick = host.querySelector("#actions .action") ||
+                   host.querySelector(".doorway:not([disabled])");
+      if (pick) pick.click();
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    const dirs = legal();
+    assert(dirs.length > 0, "could not reach a legal move inside the budget, so " +
+      "the second half of this guard tested nothing");
+    // Said separately, because doMove returns silently while busy and the
+    // failure then reads as "the move did nothing" rather than "it never ran".
+    eq(game.busy, false, "the game was still mid-beat, so doMove below would " +
+      "return on its own busy guard and prove nothing");
+    assert(game.state.status === "playing",
+      "the night ended while reaching a legal move");
+
+    const beforeReal = snap();
+    game.doMove(dirs[0]);
+    await new Promise((r) => setTimeout(r, 120));
+    const afterReal = snap();
+    assert(afterReal.pos !== beforeReal.pos, "a legal move did not move the player");
+    eq(afterReal.actions, beforeReal.actions + 1,
+      "a legal move was not recorded exactly once");
+    assert(afterReal.streams !== beforeReal.streams,
+      "a legal move drew no event — the replay draws one per board action, so " +
+      "it would now be a draw ahead of the game");
+  } finally {
+    host.remove();
+    for (const el of document.querySelectorAll(".evstage, .notecard, .reveal, #overlay"))
+      el.remove();
+    clearChoices();
+  }
+}));
