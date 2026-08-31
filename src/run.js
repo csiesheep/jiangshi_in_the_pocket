@@ -29,7 +29,8 @@
 
 import { replayNight, Divergence } from "../js/replay.js";
 import { FORMAT_V, NAME_LIMIT } from "../js/night.js";
-import { BOARDS, STATS, DEFAULT_LIMIT, MAX_LIMIT } from "./boards.js";
+import { BOARDS, STATS, DEFAULT_LIMIT, MAX_LIMIT, BOARD_SIZE } from "./boards.js";
+import { TERMS } from "../js/boardkey.js";
 
 // The engine's tables, fetched through the ASSETS binding rather than imported
 // as JSON modules. Both would work; this one is ALREADY PROVEN IN THIS WORKER —
@@ -278,6 +279,97 @@ export async function handleBoard(request, env, name) {
 
   const { results } = await env.DB.prepare(sql).bind(limit).all();
   return json({ ok: true, board: name, limit, rows: results ?? [] }, 200);
+}
+
+// ---- Everything, in one request -----------------------------------------------
+// All three boards and the strip together (#146), and the reason is not the
+// three saved round trips.
+//
+// THE SUBMIT GATE HAS TO FAIL OPEN: if it cannot read the boards it must offer
+// submission rather than refuse it, because refusing silently loses a run the
+// player earned. With four separate requests that is a PARTIAL-FAILURE MATRIX —
+// two boards answer and one does not, and the gate ends up deciding per board
+// on incomplete data, which is a condition nobody can state in one sentence or
+// falsify in one test. One request collapses it to one condition: this answered,
+// or it did not.
+//
+// Same envelope and error shapes as everything else here, so nothing new has to
+// be learned to read it.
+export async function handleLeaderboard(request, env) {
+  const url = new URL(request.url);
+  const asked = Number(url.searchParams.get("limit"));
+  const limit = Number.isFinite(asked) && asked > 0
+    ? Math.min(Math.floor(asked), MAX_LIMIT)
+    : DEFAULT_LIMIT;
+
+  // FETCH ENOUGH TO SEE THE CUT LINE, not just enough to show. The cut is the
+  // BOARD_SIZE-th row, which is past `limit` whenever a caller asks for fewer —
+  // so each board is read to whichever is deeper and the display is sliced from
+  // that. One query per board either way.
+  const depth = Math.max(limit, BOARD_SIZE);
+
+  const names = Object.keys(BOARDS);
+  // One batch, so this is a single round trip to D1 rather than four.
+  const answers = await env.DB.batch([
+    ...names.map((n) => env.DB.prepare(BOARDS[n]).bind(depth)),
+    env.DB.prepare(STATS),
+  ]);
+
+  const boards = {};
+  names.forEach((n, i) => {
+    // THE KEY COMES OFF THE ROW AS THE DATABASE SORTED IT. k0..kn are the
+    // ordering's own expressions, selected by the same query that ordered by
+    // them — so a row's key is not computed a second time here, it is read.
+    // Collapsed into an array and the k-columns dropped, because a client that
+    // can see a field name will eventually branch on one.
+    const width = TERMS[n].length;
+    const shape = (r) => {
+      const key = [];
+      const row = {};
+      for (const [f, val] of Object.entries(r)) {
+        if (/^k\d+$/.test(f)) key[Number(f.slice(1))] = val;
+        else row[f] = val;
+      }
+      return { ...row, key: key.slice(0, width) };
+    };
+    const rows = (answers[i].results ?? []).map(shape);
+    const full = rows.length >= BOARD_SIZE;
+    boards[n] = {
+      rows: rows.slice(0, limit),
+      // WHETHER THE BOARD IS FULL, said rather than left to be counted. A client
+      // counting rows to decide would be counting the rows it was SHOWN, which
+      // is `limit` and not BOARD_SIZE, and would conclude the board is short
+      // whenever it asked for fewer.
+      full,
+      // THE LAST PLACE, when there is one. null means the board has not filled
+      // and everything qualifies.
+      //
+      // WHAT THIS DOES NOT SOLVE, and it is worth saying here because this is
+      // where a client will look: knowing the cut row does not tell anyone how
+      // to COMPARE against it. The kills board sorts kills DESC, then survivors
+      // before the fallen, then health — a client comparing kills alone gets
+      // ties wrong, and that comparison is a second copy of an ordering that
+      // lives in the SQL. Shipping the row narrows the gap; it does not close
+      // it. See the note to the coordinator on #146.
+      cut: full ? rows[BOARD_SIZE - 1] : null,
+    };
+  });
+
+  const s = answers[answers.length - 1].results?.[0] ?? {};
+  return json({
+    ok: true,
+    limit,
+    // The cut-line policy, shipped so the client reads it rather than restating
+    // it. A change here reaches every client on the next request.
+    boardSize: BOARD_SIZE,
+    boards,
+    stats: {
+      nights: s.nights ?? 0,
+      burials: s.burials ?? 0,
+      seals: s.seals ?? 0,
+      deaths: s.deaths ?? 0,
+    },
+  }, 200);
 }
 
 export async function handleStats(env) {

@@ -1,4 +1,6 @@
-// The three boards and the stats strip, as SQL (#143).
+import { TERMS, sqlTerm } from "../js/boardkey.js";
+
+// The three boards and the stats strip, as SQL (#143, #146).
 //
 // THE QUERIES LIVE HERE AND NOWHERE ELSE. tools/check_boards.py reads these
 // exact strings out of this file and runs them against a real sqlite loaded
@@ -15,46 +17,57 @@
 // nothing. The verification has to be where a database is, and the only
 // database available without an account is sqlite in a Python process.
 
-// ---- 速葬 — the fastest burial ------------------------------------------------
-// WIN_BURIAL only. Turns ascending: the whole point of the board is that the
-// tablet went into the ground early. Health descending breaks a tie, because
-// two burials on the same turn are separated by what they cost.
-export const BURIAL = `
-  SELECT id, name, turn, health, created_at
-    FROM runs
-   WHERE outcome = 'WIN_BURIAL'
-   ORDER BY turn ASC, health DESC, id ASC
-   LIMIT ?`;
-
-// ---- 鎮屍 — the sealing ------------------------------------------------------
-// WIN_SEAL only, health descending. No turn term: sealing him is not a race,
-// it is a question of what you had left when it was done.
-export const SEAL = `
-  SELECT id, name, health, turn, created_at
-    FROM runs
-   WHERE outcome = 'WIN_SEAL'
-   ORDER BY health DESC, id ASC
-   LIMIT ?`;
-
-// ---- 除魔 — what was put down -------------------------------------------------
-// Any completed run, and this is the board the schema deliberately shipped
-// without an index for, because the middle term is not a column.
+// ---- The three boards, GENERATED from one ordering ---------------------------
+// The ORDER BY is built from js/boardkey.js's TERMS, and so are the k0..kn
+// columns each row carries. They cannot disagree because they are the same
+// list: the query orders by the key columns, ascending, in order.
 //
-// "SURVIVORS BEFORE THE FALLEN" IS AN ORDERING OVER A DERIVED VALUE. Written as
-// `status = 'lost'` it yields 0 for a run that ended won or over and 1 for one
-// that ended lost, so ASC puts survivors first. The alternatives — a CASE, or
-// `status != 'lost' DESC` — sort identically and would each want a differently
-// shaped index, which is exactly why this waited for the query to exist.
+// That is the whole point. Writing `ORDER BY kills DESC, (status='lost') ASC`
+// here and a matching comparison in the client would be two hand-maintained
+// things that must agree — the identical failure BOARD_SIZE was moved here to
+// fix, one layer down and invisible when it goes wrong, because ties do not
+// announce themselves.
 //
-// `status <> 'playing'` is defensive rather than necessary: /api/run refuses an
-// unfinished night, so no such row should exist. If one ever does, it is a bug
-// and it should not be silently ranked.
-export const KILLS = `
-  SELECT id, name, kills, status, health, created_at
+// 速葬 — WIN_BURIAL only, and turns ascending: the point of the board is that
+// the tablet went into the ground early. Health breaks the tie, because two
+// burials on the same turn are separated by what they cost.
+//
+// 鎮屍 — WIN_SEAL only, health alone. Sealing him is not a race; it is a
+// question of what you had left when it was done.
+//
+// 除魔 — any completed run. `status <> 'playing'` is defensive rather than
+// necessary: /api/run refuses an unfinished night, so no such row should exist,
+// and if one ever does it is a bug and should not be silently ranked.
+const WHERE = {
+  burial: "outcome = 'WIN_BURIAL'",
+  seal: "outcome = 'WIN_SEAL'",
+  kills: "status <> 'playing'",
+};
+
+// The row fields a board returns. `night` is deliberately absent — it is a few
+// KB per row and no board needs it.
+const SHOWN = "id, name, outcome, status, turn, hour, health, kills, found, tablet, created_at";
+
+function boardSql(board) {
+  const terms = TERMS[board];
+  const cols = terms.map((t, i) => sqlTerm(t) + " AS k" + i);
+  // EVERY KEY COLUMN ASCENDING, because the terms are already normalised so
+  // that smaller is better. One direction for every element of every board.
+  //
+  // `id ASC` last and NOT part of the key: it breaks ties between stored rows,
+  // oldest first, and a candidate has no id to compare with. See beats().
+  const order = terms.map((_, i) => "k" + i + " ASC").concat("id ASC");
+  return `
+  SELECT ${SHOWN}, ${cols.join(", ")}
     FROM runs
-   WHERE status <> 'playing'
-   ORDER BY kills DESC, (status = 'lost') ASC, health DESC, id ASC
+   WHERE ${WHERE[board]}
+   ORDER BY ${order.join(", ")}
    LIMIT ?`;
+}
+
+export const BURIAL = boardSql("burial");
+export const SEAL = boardSql("seal");
+export const KILLS = boardSql("kills");
 
 // ---- The strip ---------------------------------------------------------------
 // Four counts in one pass rather than four queries. SUM over a boolean is
@@ -84,3 +97,20 @@ export const BOARDS = { burial: BURIAL, seal: SEAL, kills: KILLS };
 // unbounded LIMIT is still a way to ask the database to sort the whole table.
 export const DEFAULT_LIMIT = 20;
 export const MAX_LIMIT = 100;
+
+// ---- How long a board is, and why the number lives here -----------------------
+// THE CUT LINE IS THE 50th ROW. A board holds this many; a run that would not
+// reach the last place on any board is not worth offering the leaderboard for,
+// and a board with fewer rows than this has no cut line at all — everything
+// qualifies until it fills.
+//
+// IT IS DEFINED HERE AND SHIPPED IN THE RESPONSE, and that is the whole point
+// of writing it down rather than leaving it to the caller. A client that knows
+// "50" because somebody typed 50 into it owns a policy it did not decide: the
+// day this becomes 100, the server fills a hundred places and the client still
+// stops offering at fifty, and nothing anywhere says they disagree. The client
+// should be able to READ the rule, not restate it.
+//
+// See the note by `cut` in run.js for the part this does NOT solve: knowing how
+// long the board is does not tell a client how to compare against its last row.
+export const BOARD_SIZE = 50;

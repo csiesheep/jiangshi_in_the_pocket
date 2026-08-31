@@ -11,6 +11,9 @@
 // name is theirs to leave empty.
 
 import { NAME_LIMIT } from "./night.js";
+// The ordering, declared once in #146 and generated into both the SQL and
+// this comparison. Imported rather than mirrored — that was the whole point.
+import { keyOf, beats } from "./boardkey.js";
 
 // Resolved against the page, like the ledger's own reads: production serves
 // this under /jiangshi_in_the_pocket/ with the API alongside, a local static
@@ -25,45 +28,61 @@ const api = (path) => new URL(path, location.href).href;
 // too and is deliberately not consulted: reading it would put the comparison
 // `rows.length >= boardSize` back in this file, which is the copy again.
 
-// Which board a verdict can even be compared against, and on which number.
-// `lower` marks a board where a smaller value is the better one.
+// Which board a verdict can be ranked on at all. HOW it ranks is not here —
+// that is the key's job, and this list no longer names a metric or a direction.
 const BOARDS = [
-  { id: "burial", eligible: (v) => v.outcome === "WIN_BURIAL", metric: "turn", lower: true },
-  { id: "seal", eligible: (v) => v.outcome === "WIN_SEAL", metric: "health" },
-  { id: "kills", eligible: (v) => v.status !== "playing", metric: "kills" },
+  { id: "burial", eligible: (v) => v.outcome === "WIN_BURIAL" },
+  { id: "seal", eligible: (v) => v.outcome === "WIN_SEAL" },
+  { id: "kills", eligible: (v) => v.status !== "playing" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// THE ONE PLACE A RUN IS RANKED, AND IT IS BUILT TO BE REPLACED.
+// THE ONE PLACE A RUN IS RANKED, AND IT NO LONGER KNOWS THE RULE.
 //
-// KNOWING THE CUT ROW DOES NOT TELL YOU HOW TO COMPARE AGAINST IT. boards.js
-// sorts the kills board by kills DESC, then survivors before the fallen, then
-// health DESC. Writing "would my run beat that row?" here means reimplementing
-// that three-level ordering in client code — a second copy of a rule the server
-// owns, in the one place where being wrong looks exactly like being right.
+// This used to compare the primary number, because knowing the cut ROW does not
+// tell a client how to compare against it: the kills board sorts kills, then
+// survivors before the fallen, then health, and reimplementing that here would
+// have been a second copy of an ordering the server owns.
 //
-// So this does NOT encode that precedence, and nothing else in this file may
-// either. It compares the primary number only, and every case it cannot settle
-// resolves towards offering:
+// It was on the safe side of that BY CHOICE rather than by construction, which
+// was the real problem. `mine >= theirs` offers a place to a run that will not
+// get one — harmless. `mine > theirs` HIDES the button from a run that would
+// have made the board, and BE measured a reachable case: six kills, survived,
+// more health than the cut row. It qualifies, and a kills-only client using `>`
+// refuses to offer it. One character apart, and one of them destroys records
+// silently. That hazard leaves with this code.
 //
-//   - equal on the metric        -> offer (the tie is the server's to break)
-//   - no cut row                 -> offer
-//   - the metric is missing      -> offer
-//
-// BE is adding a comparable sort key per row: the ordering as an array to be
-// compared elementwise WITHOUT knowing what the elements mean. When it lands,
-// the body below is replaced by building the same array for this run and
-// comparing it against the cut's — and the fail-open branches stay exactly as
-// they are, including the new one the rule already covers: A ROW WITH NO KEY,
-// OR A RESPONSE WITH NO KEYS AT ALL, IS THE SAME AS NOT BEING ABLE TO READ THE
-// CUT LINE. Never hide the button because the ordering could not be understood.
+// js/boardkey.js now declares the ordering once and BOTH the SQL and this
+// comparison are generated from it. The key is opaque on purpose: every element
+// is normalised so smaller is better, so there is nothing here to interpret and
+// nothing to branch on. Do not read an element. Do not name one.
 // ─────────────────────────────────────────────────────────────────────────────
 function beatsCut(verdict, board, cut) {
+  // No cut row: the board has not filled, so there is no last place to take.
   if (!cut) return true;
-  const theirs = cut[board.metric];
-  const mine = verdict[board.metric];
-  if (typeof theirs !== "number" || typeof mine !== "number") return true;
-  return board.lower ? mine <= theirs : mine >= theirs;
+
+  // THE FAIL-OPEN BRANCH THE KEY ARRIVES THROUGH. A row without a key, or one
+  // shaped differently from the candidate, is an ordering this cannot read —
+  // which is the same state as an unreachable board and takes the same answer.
+  const theirs = cut.key;
+  const mine = keyOf(board.id, verdict);
+  if (!Array.isArray(theirs) || !Array.isArray(mine)) return true;
+  if (!theirs.length || theirs.length !== mine.length) return true;
+  if (mine.some((n) => typeof n !== "number" || !Number.isFinite(n))) return true;
+  if (theirs.some((n) => typeof n !== "number" || !Number.isFinite(n))) return true;
+
+  // AND NOTHING AFTER THIS. beats() is the answer, including the one case where
+  // it does not fail open: a run level with the cut row on EVERY element gets
+  // false, because stored rows break their last tie on id — oldest first — and
+  // a candidate has no id, so it genuinely does not displace an equal run.
+  //
+  // An exception was written here and then removed. Offering on a total tie
+  // looks generous and is the same mistake this whole file was refactored to
+  // stop making: it is a ranking decision, taken by the client, about a rule the
+  // server owns. "You did not displace them" is a CORRECT answer rather than a
+  // lost record, and the moment this file starts having opinions about ties it
+  // has two homes for the ordering again.
+  return beats(mine, theirs);
 }
 
 // A run qualifies if it beats ANY board. ONE REQUEST, which is what makes the

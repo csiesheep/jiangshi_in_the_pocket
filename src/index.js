@@ -5,7 +5,7 @@
 //
 // The public path segment is independent of the repo / Worker name — change
 // PREFIX alone to move the site to a different path.
-import { handleRun, handleBoard, handleStats } from "./run.js";
+import { handleRun, handleBoard, handleStats, handleLeaderboard } from "./run.js";
 
 const PREFIX = "/jiangshi_in_the_pocket";
 
@@ -67,6 +67,14 @@ export default {
       ? url.pathname.slice((PREFIX + "/api/board/").length)
       : null;
     if (board) return handleBoard(request, env, board);
+
+    // Everything in one request (#146). Order does not matter here: the board
+    // match above is on the prefix "/api/board/", which "/api/leaderboard"
+    // does not start with. (An earlier version of this comment claimed the
+    // opposite and described a collision that cannot happen.)
+    if (url.pathname === PREFIX + "/api/leaderboard") {
+      return handleLeaderboard(request, env);
+    }
 
     if (url.pathname === PREFIX + "/api/stats") {
       return handleStats(env);

@@ -20,7 +20,7 @@ import { ghostIcon, revealPanel, HINT_TIMES as HINT_BUDGET,
 import { Game } from "../js/app.js";
 // The recorded night and its replay (#142). Imported here rather than in
 // engine.test.js because this guard PLAYS one through the real UI.
-import { verdictOf } from "../js/night.js";
+import { verdictOf, STREAMS } from "../js/night.js";
 // The stamp the recording carries. Imported from where the engine defines it,
 // for the same reason app.js does: comparing night() against a literal here
 // would only prove two copies agree.
@@ -28,6 +28,9 @@ import { BUILD_ID } from "../js/shell.js";
 // The ledger offer (#144). Pure functions with an injectable fetcher, so the
 // branch that matters can be driven without a network.
 import { qualifies, clip } from "../js/submit.js";
+// The fixture builds its cut keys with keyOf rather than by hand: a test that
+// spells out the ordering itself is a third copy of the thing #146 removed.
+import { keyOf } from "../js/boardkey.js";
 import { NAME_LIMIT } from "../js/night.js";
 import { replayNight } from "../js/replay.js";
 import { verifyNight } from "../src/run.js";
@@ -40,7 +43,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "86562152");
+suite(import.meta.url, "97d71116");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -2772,9 +2775,13 @@ const leaderboard = (boards) => async () => ({
 });
 // Every board at once, since the boards a verdict is eligible for vary.
 const board = (rows, full) => leaderboard(Object.fromEntries(
-  ["burial", "seal", "kills"].map((id) => [id, {
-    rows, full: full ?? rows.length >= 50, cut: rows.length ? rows[rows.length - 1] : null,
-  }])));
+  ["burial", "seal", "kills"].map((id) => {
+    const last = rows.length ? rows[rows.length - 1] : null;
+    return [id, {
+      rows, full: full ?? rows.length >= 50,
+      cut: last ? { ...last, key: keyOf(id, last) } : null,
+    }];
+  })));
 const unreachable = async () => { throw new Error("offline"); };
 const verdict = (o) => ({
   outcome: "WIN_BURIAL", status: "won", lossReason: null, turn: 10, hour: 21,
@@ -2813,11 +2820,47 @@ test("submit: a cut line it cannot rank against still offers (#144)", serial(asy
   // same state as not having reached the board, and it resolves the same way.
   // The same branch takes the comparable sort key BE is adding: a row without
   // one, or a response carrying none, offers rather than hides.
-  const noMetric = Array.from({ length: 50 }, () => ({ name: "someone" }));
-  const out = await qualifies(verdict({ turn: 999 }), board(noMetric, true));
+  const keyless = leaderboard(Object.fromEntries(["burial", "seal", "kills"].map(
+    (id) => [id, { rows: [], full: true, cut: { name: "someone" } }])));
+  const out = await qualifies(verdict({ turn: 999 }), keyless);
   assert(out.show,
-    "a full board whose rows carry no comparable number hid the button — the " +
-    "ordering being unreadable is our problem, and the player loses the record");
+    "a full board whose cut row carries no key hid the button — the ordering " +
+    "being unreadable is our problem, and the player loses the record");
+
+  // And a key of the wrong shape is the same state, not a comparison to attempt.
+  const wrongWidth = leaderboard(Object.fromEntries(["burial", "seal", "kills"].map(
+    (id) => [id, { rows: [], full: true, cut: { key: [1] } }])));
+  const short = await qualifies(verdict({ outcome: "LOSS_HEALTH", status: "lost", kills: 0 }), wrongWidth);
+  assert(short.show, "a key of the wrong width was compared against instead of being refused");
+}));
+
+test("submit: a run level with the cut line on every term is NOT offered (#144)", serial(async () => {
+  // THE ONE CASE THE KEY DOES NOT FAIL OPEN, and it is deliberate on both sides.
+  // Stored rows break their last tie on id — oldest first — so a run arriving
+  // now cannot displace one equal to it on every element. "You did not displace
+  // them" is a correct answer, not a lost record.
+  //
+  // Asserted because the opposite was written first. An exception offering on a
+  // total tie looks like generosity and is a ranking decision taken by the
+  // client about a rule the server owns; this guard is what stops it coming
+  // back the next time somebody reads the false and thinks it looks unkind.
+  const same = { kills: 6, status: "lost", health: 0 };
+  const rows = Array.from({ length: 50 }, () => ({ ...same }));
+  const tie = await qualifies(
+    verdict({ outcome: "LOSS_HEALTH", status: "lost", kills: 6, health: 0 }), board(rows));
+  eq(tie.show, false,
+    "a run tying the cut row on every element was offered — the client decided " +
+    "a tie in the player's favour, which is the server's call and not ours");
+
+  // One element BETTER and it earns the place, which is what stops the
+  // assertion above from passing on a gate that never says yes. Same kills,
+  // survived rather than fallen: the second element of the key, which a
+  // comparison on kills alone cannot see.
+  const better = await qualifies(
+    verdict({ outcome: "WIN_SEAL", status: "won", kills: 6, health: 7 }), board(rows));
+  assert(better.show,
+    "six kills and survived did not beat six kills and fallen — this is exactly " +
+    "the case a primary-number-only comparison gets wrong");
 }));
 
 test("submit: a response it cannot read still offers (#144)", serial(async () => {
@@ -5701,4 +5744,297 @@ test("the watch drum reaches a phone, and the shell is why", async () => {
     "the shell raises energy above 700Hz by only " +
     (bodiedAbove / Math.max(bareAbove, 1e-30)).toFixed(1) + "x - it is wired but not " +
     "sounding, which is what a check on the wiring alone would have missed");
+});
+
+// A move into a wall is not a turn (#145).
+//
+// moveTo's result used to be discarded, so a refused move narrated "you move to
+// X" — naming the room already stood in — and called arrive(), which draws the
+// turn's event. Position, turn and health did not change, and eventRng advanced
+// by exactly one.
+//
+// THE RECORDING IS HALF THE ASSERTION AND IT CUTS BOTH WAYS. The replay reads
+// one board action per turn and then draws an event unconditionally. So while
+// the refused move fired an event, recording it was CORRECT — both sides drew.
+// Stop the event without stopping the record and the replay draws one the game
+// did not: a valid night with a wrong score. The two must move together, so
+// this guard checks both together.
+test("a move into a wall costs nothing, and a legal one still moves, records and draws (#145)", serial(async () => {
+  const names = ["tiles", "items", "search", "events"];
+  const [tiles, items, search, events] = await Promise.all(
+    names.map((n) => fetch("../data/" + n + ".json", NO_STORE).then((r) => r.json()))
+  );
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:900px;height:600px";
+  host.innerHTML = '<div class="board-pane"><div id="board" class="board"></div></div>' +
+                   '<div id="hud-items"></div><div id="actions-pop" hidden>' +
+                   '<div id="actions"></div></div><div class="sr-only" id="log"></div>';
+  document.body.appendChild(host);
+  try {
+    const game = new Game({ tiles, items, search, events, theme: themeEn,
+                            baseTheme: themeEn, lang: "en" }, { seed: 9 });
+    game.start();
+
+    const legal = () => listMoves(game.board)
+      .filter((m) => m.type === "move" || m.type === "cross").map((m) => m.dir);
+    const walls = () => ["N", "S", "E", "W"].filter((d) => !legal().includes(d));
+
+    // PROVE THE REGION. With no wall to walk into there is nothing to refuse,
+    // and every assertion below would pass on a test that did nothing.
+    assert(walls().length > 0,
+      "every direction from here is a legal move, so this guard never tried a wall");
+
+    const snap = () => ({
+      pos: JSON.stringify(game.board.player),
+      turn: game.state.turn,
+      health: game.state.health,
+      actions: game.actions.length,
+      log: host.querySelectorAll("#log *").length,
+      // EVERY stream, not just the one that moved. eventRng is what this bug
+      // advanced, but a refusal must not spend any of them, and naming only the
+      // known offender is how the next one goes unnoticed.
+      streams: STREAMS.map((n) => game.state[n] && game.state[n].s).join(","),
+    });
+
+    const before = snap();
+    // Three presses: a refusal that costs nothing must cost nothing repeatedly,
+    // which is also what caught the move prompt being re-announced once per
+    // press when the refusal went back through renderMoves().
+    for (let i = 0; i < 3; i++) game.doMove(walls()[0]);
+    await new Promise((r) => setTimeout(r, 60));
+    const after = snap();
+
+    eq(after.pos, before.pos, "a refused move moved the player");
+    eq(after.turn, before.turn, "a refused move spent a turn");
+    eq(after.health, before.health, "a refused move cost health");
+
+    // THE STREAMS ARE CHECKED BEFORE THE LOG, and the order is deliberate. A
+    // stray log line is cosmetic; a spent stream shifts every later draw in the
+    // night and produces a valid-looking run with a different score. It is also
+    // the assertion the issue asked to see fail, and with the log checked first
+    // that one fired instead and this never ran.
+    eq(after.streams, before.streams,
+      "a refused move spent a random stream: " +
+      STREAMS.filter((n, i) => before.streams.split(",")[i] !== after.streams.split(",")[i])
+        .join(", ") + " — every later draw in the night is now shifted");
+    eq(after.actions, before.actions,
+      "a refused move was RECORDED — the replay will read it, draw an event the " +
+      "game never drew, and score a different night");
+    eq(after.log, before.log, "a refused move wrote to the log");
+
+    // AND THE OTHER DIRECTION, or "refuse everything" would pass all of the
+    // above. Walk somewhere real and require the full cost.
+    //
+    // Reaching a legal move means exploring first — the board starts as one
+    // tile with nothing adjacent to walk to — so the game is driven the way the
+    // #142 guard drives it, which is the shape proven to complete in this
+    // stripped host. Rolling my own loop here left `busy` set and doMove became
+    // a no-op, which surfaced as "a legal move did not move the player": a true
+    // report of the wrong cause.
+    // BOTH CONDITIONS, and the second is not obvious: a legal move can appear
+    // WHILE a beat is still running, so a loop that stops at the first legal
+    // direction can hand over a game with busy still set — and doMove returns
+    // silently on its own busy guard. That is what the assertion below caught.
+    const t0 = Date.now();
+    while ((!legal().length || game.busy) && Date.now() - t0 < 20000) {
+      for (const a of document.getAnimations()) {
+        try {
+          const t = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+          if (!t || t.iterations === Infinity) continue;
+          a.finish();
+        } catch (e) { /* an infinite one must not stop the rest */ }
+      }
+      const stage = document.querySelector(".evstage");
+      if (stage) stage.click();
+      const rev = document.querySelector(".reveal");
+      if (rev) rev.click();
+      const leave = document.querySelector(".notecard .dropleave");
+      if (leave) leave.click();
+      const pick = host.querySelector("#actions .action") ||
+                   host.querySelector(".doorway:not([disabled])");
+      if (pick) pick.click();
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    const dirs = legal();
+    assert(dirs.length > 0, "could not reach a legal move inside the budget, so " +
+      "the second half of this guard tested nothing");
+    // Said separately, because doMove returns silently while busy and the
+    // failure then reads as "the move did nothing" rather than "it never ran".
+    eq(game.busy, false, "the game was still mid-beat, so doMove below would " +
+      "return on its own busy guard and prove nothing");
+    assert(game.state.status === "playing",
+      "the night ended while reaching a legal move");
+
+    const beforeReal = snap();
+    game.doMove(dirs[0]);
+    await new Promise((r) => setTimeout(r, 120));
+    const afterReal = snap();
+    assert(afterReal.pos !== beforeReal.pos, "a legal move did not move the player");
+    eq(afterReal.actions, beforeReal.actions + 1,
+      "a legal move was not recorded exactly once");
+    assert(afterReal.streams !== beforeReal.streams,
+      "a legal move drew no event — the replay draws one per board action, so " +
+      "it would now be a draw ahead of the game");
+
+    // THE TURN IS NOT ASSERTED HERE, AND THE NAME NO LONGER PROMISES IT.
+    //
+    // It was called "...and a legal one still costs a turn", which nothing in
+    // this body checked — a name that promises more than its assertions is how
+    // a gap hides from anyone auditing coverage by reading names.
+    //
+    // The turn DOES advance, just not yet: E.advanceTurn runs in endTurn, after
+    // arrive()'s beats, so it has not moved by the time doMove returns.
+    // Measured on the live page — turn 2 before, 2 immediately after doMove, 3
+    // once the beats settled. There is no defect here.
+    //
+    // Asserting it would need a SECOND wait on the beats, and that wait is the
+    // known-flaky part of this guard: it already produced a false failure in a
+    // throttled pane where the beat never settles. A fourth signal for the same
+    // claim is not worth doubling that exposure — position, the recording and
+    // the event draw already establish that the refusal is not written so
+    // broadly that it eats real moves, which is what this half is for.
+  } finally {
+    host.remove();
+    for (const el of document.querySelectorAll(".evstage, .notecard, .reveal, #overlay"))
+      el.remove();
+    clearChoices();
+  }
+}));
+
+// The combined leaderboard, and where the cut line is defined (#146).
+//
+// TWO THINGS ARE BEING GUARDED AND THE SECOND IS THE POINT. The first is the
+// boundary arithmetic: a board one row short of BOARD_SIZE has no cut line and
+// everything qualifies; a board at it has one. The second is that the number
+// lives in src/ and TRAVELS IN THE RESPONSE — a client that knows 50 because
+// somebody typed 50 into it owns a policy it did not decide, and the day the
+// server fills a hundred places that client still stops offering at fifty with
+// nothing anywhere saying they disagree.
+test("the leaderboard ships its own cut line, and knows when there is none (#146)", async () => {
+  const { handleLeaderboard } = await import("../src/run.js");
+  const { BOARD_SIZE } = await import("../src/boards.js");
+
+  // A database that answers with however many rows the case wants, so both
+  // sides of the cut line can be driven. It is the SHAPE of D1's batch reply
+  // that is being modelled here, not D1 itself — the real surface is unproven
+  // from this machine and says so in the commit.
+  const dbWith = (rowCount) => ({
+    prepare(sql) {
+      return { _sql: sql, _p: null, bind(...p) { this._p = p; return this; } };
+    },
+    async batch(stmts) {
+      return stmts.map((st) => {
+        if (/COUNT\(\*\)/.test(st._sql)) return { results: [{ nights: rowCount }] };
+        const depth = st._p[0];
+        const rows = [];
+        for (let i = 0; i < Math.min(rowCount, depth); i++) rows.push({ id: i + 1 });
+        return { results: rows };
+      });
+    },
+  });
+  const ask = async (rowCount, qs) => {
+    const req = new Request("https://x/jiangshi_in_the_pocket/api/leaderboard" + (qs || ""));
+    return (await handleLeaderboard(req, { DB: dbWith(rowCount) })).json();
+  };
+
+  const full = await ask(BOARD_SIZE + 30);
+  const exact = await ask(BOARD_SIZE);
+  const under = await ask(BOARD_SIZE - 1);
+
+  // THE NUMBER TRAVELS. Without this the client is free to invent its own.
+  eq(full.boardSize, BOARD_SIZE,
+    "the response does not carry the cut-line size, so a client can only know " +
+    "it by restating it — which is the copy this exists to prevent");
+
+  // PROVE THE REGION: all three boards must be answered, or the assertions
+  // below are about one board that happens to exist.
+  eq(Object.keys(full.boards).sort().join(","), "burial,kills,seal",
+    "the combined response is missing a board");
+
+  for (const name of Object.keys(full.boards)) {
+    eq(under.boards[name].cut, null,
+      name + ": a board one row short of the cut line reported a cut — " +
+      "everything should qualify until it fills");
+    eq(under.boards[name].full, false, name + ": a short board reported itself full");
+    eq(exact.boards[name].full, true,
+      name + ": a board exactly at the cut line did not report itself full");
+    assert(full.boards[name].cut,
+      name + ": a full board reported no cut line");
+    eq(full.boards[name].cut.id, BOARD_SIZE,
+      name + ": the cut is not the " + BOARD_SIZE + "th row");
+  }
+
+  // THE CUT IS DEEPER THAN THE ROWS SHOWN, which is the case a client counting
+  // its own rows would get wrong: it would see `limit` rows and conclude the
+  // board is short whenever it asked for fewer than BOARD_SIZE.
+  assert(full.boards.burial.rows.length < BOARD_SIZE,
+    "this case is not testing what it says: the default limit is not below the " +
+    "cut line, so 'the cut is deeper than the rows shown' is vacuous here");
+  eq(full.boards.burial.full, true,
+    "a full board reported itself short because only the shown rows were counted");
+});
+
+// The sort key, and the ties a kills-only client gets wrong (#146).
+//
+// The cut row tells a client WHICH place is last. It does not tell it how to
+// COMPARE, and that is where a duplicate of the ranking rule would live —
+// invisibly, because ties do not announce themselves. So the ordering is
+// declared once in js/boardkey.js and both the SQL and this comparison are
+// generated from it.
+//
+// EVERY CASE BELOW TIES THE LEADING ELEMENT. A candidate that differs on the
+// first element is decided by the first element, so it passes against a naive
+// kills-only comparison too and proves nothing about the key. The cases that
+// bite are the ones where kills are equal and a later element decides.
+test("the board key decides ties that a kills-only comparison gets wrong (#146)", async () => {
+  const { keyOf, beats, TERMS } = await import("../js/boardkey.js");
+
+  // PROVE THE REGION: a board whose ordering has one term cannot have a tie
+  // broken by a later one, so these cases would be vacuous.
+  assert(TERMS.kills.length >= 3,
+    "the kills board no longer has a later term to break a tie on, so every " +
+    "case here is decided by the leading element and tests nothing");
+
+  const cut = keyOf("kills", { kills: 6, status: "won", health: 3 });
+  const k = (kills, status, health) => keyOf("kills", { kills, status, health });
+
+  // TIED ON KILLS, LOST ON A LATER ELEMENT — must not take the place.
+  eq(beats(k(6, "lost", 10), cut), false,
+    "a run that tied on kills but DIED took a place from one that survived, " +
+    "even with more health left");
+  eq(beats(k(6, "won", 1), cut), false,
+    "a run that tied on kills and survivorship but had less health took the place");
+
+  // TIED ON KILLS, WON ON A LATER ELEMENT — must take it. Without this the
+  // guard would pass on a comparison that simply refuses every tie.
+  eq(beats(k(6, "won", 7), cut), true,
+    "a run that tied on kills, survived like the cut row, and had MORE health " +
+    "was refused the place it earned");
+
+  // A FULL TIE LOSES, because stored rows break their last tie on id and the
+  // newcomer is by definition newest. Same answer the database gives.
+  eq(beats(k(6, "won", 3), cut), false, "an exact tie displaced the older row");
+
+  // And the ordinary directions still work.
+  eq(beats(k(7, "lost", 0), cut), true, "more kills did not win");
+  eq(beats(k(5, "won", 10), cut), false, "fewer kills won anyway");
+
+  // An unfilled board has no last place, so everything qualifies.
+  eq(beats(k(0, "lost", 0), null), true,
+    "a board with no cut line refused a run — everything qualifies until it fills");
+
+  // BOTH ERROR DIRECTIONS OF A KILLS-ONLY CLIENT ARE REACHABLE, and this is
+  // asserted rather than described because which one you get depends on
+  // whether the client writes >= or >, and one of them destroys a record.
+  const naiveGE = (kills) => kills >= 6;
+  const naiveGT = (kills) => kills > 6;
+  // >= offers a place to a run that would not get one: benign, the server
+  // simply does not rank it.
+  assert(naiveGE(6) !== beats(k(6, "lost", 10), cut),
+    "the >= mistake is no longer reachable, so the warning attached to it is stale");
+  // > HIDES THE BUTTON from a run that WOULD make the board. That one loses a
+  // real record silently and is the direction worth shouting about.
+  assert(naiveGT(6) !== beats(k(6, "won", 7), cut),
+    "the > mistake is no longer reachable, so the warning attached to it is stale");
 });

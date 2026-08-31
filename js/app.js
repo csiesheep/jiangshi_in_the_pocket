@@ -384,14 +384,44 @@ export class Game {
     });
   }
 
+  // A MOVE INTO A WALL IS NOT A TURN (#145).
+  //
+  // moveTo's result used to be discarded, so a refused move went on to do
+  // everything a successful one does: it logged "you move to X" naming the room
+  // the player was ALREADY STANDING IN, and it called arrive(), which draws the
+  // turn's event at them. Measured on a clean page: position, turn and health
+  // unchanged, and eventRng advanced by exactly one.
+  //
+  // THE RECORDING MOVES WITH THE EVENT, AND THAT COUPLING IS THE WHOLE CHANGE.
+  // The replay reads one board action per turn and then draws an event
+  // unconditionally — so while the refused move fired an event, RECORDING it
+  // was correct: both sides drew, and they agreed. Stop the event without
+  // stopping the record and the replay draws one the game did not, which is a
+  // valid night with a wrong score and nothing to show for it.
+  //
+  // So rec() now happens AFTER the move is known to have succeeded. Nothing is
+  // recorded, nothing is narrated, and no stream moves.
   doMove(dir) {
     if (this.busy) return;
     this.busy = true;
-    this.rec(ACT.MOVE, { dir });
     // Crossing the seam is a move like any other to the board, but it is the
     // one that changes world — worth hearing, in both directions.
     const from = Bd.currentTile(this.board).world;
-    Bd.moveTo(this.board, dir);
+    // THE REFUSAL IS A NO-OP, NOT A RE-RENDER. doExplore refuses with
+    // `return this.renderMoves()`, and that was the obvious thing to copy — but
+    // renderMoves RE-ANNOUNCES THE PROMPT, so every press at a wall added
+    // "Move on or stay put" to the log. Measured: one line per press, stacking.
+    // A line in the log is a narration of something that happened, and nothing
+    // happened.
+    //
+    // Nothing needs re-rendering either: doMove does not clear the choices, so
+    // the doorways are still on screen and still live. Releasing `busy` is the
+    // whole of what has to be undone.
+    if (!Bd.moveTo(this.board, dir).ok) {
+      this.busy = false;
+      return;
+    }
+    this.rec(ACT.MOVE, { dir });
     if (Bd.currentTile(this.board).world !== from) seamCross();
     log(this.line("move", { room: this.tileName(Bd.currentTile(this.board).id) }));
     this.refresh();

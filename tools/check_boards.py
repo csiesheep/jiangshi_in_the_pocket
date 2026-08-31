@@ -105,20 +105,59 @@ def check_insert(db):
 
 
 def sql_from_boards():
-    """Pull the exported template literals out of src/boards.js.
+    """Rebuild the board queries from js/boardkey.js's TERMS.
 
-    Anchored on `export const NAME = \\`...\\`` so a comment mentioning one of
-    these names cannot be mistaken for a definition — the same anchoring lesson
-    record_shell.py's stamper learned when an unanchored pattern rewrote its own
-    neutraliser.
+    THIS USED TO READ THE SQL AS A LITERAL, and that was better. Since #146 the
+    queries are GENERATED in src/boards.js from one ordering, so that the client's
+    comparison and the database's ORDER BY cannot disagree — which is the right
+    trade for the product and costs this file something real, said plainly:
+
+      what it still proves   the ORDERING is the ruled one, against a real
+                             database, with rows planted to discriminate
+      what it no longer      that the exact string src/boards.js emits is the
+      proves                 string executed here — Python re-derives it from
+                             the same TERMS rather than reading it
+
+    So a drift between the two GENERATORS would go unseen here. It cannot make
+    the shipped query wrong — that one is built from TERMS by construction — it
+    would only mean this file tested a near-neighbour of it. The alternative was
+    a literal SQL that CAN disagree with the key, caught by a guard; a product
+    that cannot be wrong beats a check that cannot be fooled.
     """
-    src = io.open(os.path.join(ROOT, "src", "boards.js"), encoding="utf-8").read()
-    found = dict(re.findall(r"^export const (\w+) = `([^`]*)`", src, re.M))
-    want = ["BURIAL", "SEAL", "KILLS", "STATS"]
-    missing = [w for w in want if w not in found]
-    if missing:
-        raise SystemExit("could not read %s out of src/boards.js" % ", ".join(missing))
-    return found
+    src = io.open(os.path.join(ROOT, "js", "boardkey.js"), encoding="utf-8").read()
+    block = src[src.index("export const TERMS"):src.index("export function sqlTerm")]
+
+    def terms_for(board):
+        seg = block[block.index(board + ":"):]
+        seg = seg[:seg.index("]")]
+        out = []
+        for m in re.finditer(r"\{([^}]*)\}", seg):
+            body = m.group(1)
+            field = re.search(r'field:\s*"([^"]+)"', body).group(1)
+            eq = re.search(r'equals:\s*"([^"]+)"', body)
+            inv = "invert: true" in body
+            base = "(%s = '%s')" % (field, eq.group(1)) if eq else field
+            out.append(("-" + base) if inv else base)
+        return out
+
+    where = {
+        "burial": "outcome = 'WIN_BURIAL'",
+        "seal": "outcome = 'WIN_SEAL'",
+        "kills": "status <> 'playing'",
+    }
+    shown = ("id, name, outcome, status, turn, hour, health, kills, found, "
+             "tablet, created_at")
+    out = {}
+    for board, key in (("burial", "BURIAL"), ("seal", "SEAL"), ("kills", "KILLS")):
+        t = terms_for(board)
+        if not t:
+            raise SystemExit("no terms parsed for the %s board" % board)
+        cols = ", ".join("%s AS k%d" % (e, i) for i, e in enumerate(t))
+        order = ", ".join("k%d ASC" % i for i in range(len(t))) + ", id ASC"
+        out[key] = ("SELECT %s, %s FROM runs WHERE %s ORDER BY %s LIMIT ?"
+                    % (shown, cols, where[board], order))
+    out["STATS"] = io.open(os.path.join(ROOT, "src", "boards.js"), encoding="utf-8")         .read().split("export const STATS = `")[1].split("`")[0]
+    return out
 
 
 COLUMNS = ("name,night,seed,actions,outcome,status,loss_reason,"
