@@ -2765,7 +2765,16 @@ test("burn: the fire is on him and it is warm (#140)", serial(async () => {
 // This is the branch that breaks silently, so it is asserted in BOTH
 // directions: the same function must be able to say no, or "it fails open"
 // would be satisfied by a gate that is simply always open.
-const board = (rows) => async () => ({ ok: true, json: async () => ({ ok: true, rows }) });
+// Shaped like /api/leaderboard answers: one response describing every board,
+// each with the server's own `full` flag and its cut row.
+const leaderboard = (boards) => async () => ({
+  ok: true, json: async () => ({ ok: true, boardSize: 50, boards, stats: {} }),
+});
+// Every board at once, since the boards a verdict is eligible for vary.
+const board = (rows, full) => leaderboard(Object.fromEntries(
+  ["burial", "seal", "kills"].map((id) => [id, {
+    rows, full: full ?? rows.length >= 50, cut: rows.length ? rows[rows.length - 1] : null,
+  }])));
 const unreachable = async () => { throw new Error("offline"); };
 const verdict = (o) => ({
   outcome: "WIN_BURIAL", status: "won", lossReason: null, turn: 10, hour: 21,
@@ -2805,10 +2814,28 @@ test("submit: a cut line it cannot rank against still offers (#144)", serial(asy
   // The same branch takes the comparable sort key BE is adding: a row without
   // one, or a response carrying none, offers rather than hides.
   const noMetric = Array.from({ length: 50 }, () => ({ name: "someone" }));
-  const out = await qualifies(verdict({ turn: 999 }), board(noMetric));
+  const out = await qualifies(verdict({ turn: 999 }), board(noMetric, true));
   assert(out.show,
     "a full board whose rows carry no comparable number hid the button — the " +
     "ordering being unreadable is our problem, and the player loses the record");
+}));
+
+test("submit: a response it cannot read still offers (#144)", serial(async () => {
+  // TWO NEW WAYS TO FAIL NOW THAT ONE REQUEST CARRIES EVERY BOARD, and both are
+  // the same state as being offline: a body with no boards in it at all, and a
+  // body that simply does not describe the board this run belongs on. Neither
+  // is a reason to decide the player did not qualify.
+  const noBoards = async () => ({ ok: true, json: async () => ({ ok: true, stats: {} }) });
+  const a = await qualifies(verdict({ turn: 999 }), noBoards);
+  assert(a.show, "a response carrying no boards hid the button");
+
+  const wrongBoard = async () => ({ ok: true, json: async () => ({
+    ok: true, boardSize: 50, boards: { kills: { rows: [], full: true, cut: { kills: 99 } } },
+  }) });
+  // A burial win is ranked on the burial board, which this response omits.
+  const b = await qualifies(verdict({ turn: 999 }), wrongBoard);
+  assert(b.show, "the board this run belongs on was missing and the button was hidden");
+  assert(/missing/.test(b.why), "shown for the wrong reason: " + b.why);
 }));
 
 test("submit: a board with room offers regardless of the score (#144)", serial(async () => {

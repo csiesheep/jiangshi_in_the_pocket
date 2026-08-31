@@ -212,23 +212,30 @@ async function paint() {
   if (!host) return;
   host.textContent = "";
 
-  // allSettled, not all: one board being unreachable must not blank the other
-  // two. Each section reports its own state.
-  const [statsRes, ...boardRes] = await Promise.allSettled([
-    getJSON("api/stats"),
-    ...BOARDS.map((b) => getJSON("api/board/" + b.id + "?limit=20")),
-  ]);
+  // ONE REQUEST FOR THE WHOLE PAGE. Three boards and the strip used to be four
+  // reads, which meant four ways to half-load: a page showing two boards, one
+  // apology and no counts is worse than a page that says plainly it could not
+  // reach the ledger.
+  let body = null;
+  try {
+    body = await getJSON("api/leaderboard");
+  } catch {
+    body = null;
+  }
 
-  host.appendChild(strip(statsRes.status === "fulfilled"
-    ? { ok: true, data: statsRes.value }
+  host.appendChild(strip(body && body.stats
+    ? { ok: true, data: body.stats }
     : { ok: false }));
 
-  BOARDS.forEach((board, i) => {
-    const r = boardRes[i];
-    host.appendChild(boardSection(board, r.status === "fulfilled"
-      ? { ok: true, rows: r.value.rows || [] }
+  for (const board of BOARDS) {
+    // A board missing from the response is reported as unreachable rather than
+    // as empty. They are different sentences on purpose and this is exactly the
+    // case that would blur them.
+    const got = body && body.boards ? body.boards[board.id] : null;
+    host.appendChild(boardSection(board, got
+      ? { ok: true, rows: got.rows || [] }
       : { ok: false }));
-  });
+  }
 }
 
 function apply(lang) {

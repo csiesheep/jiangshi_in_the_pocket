@@ -17,16 +17,13 @@ import { NAME_LIMIT } from "./night.js";
 // server has no Worker at all, and the second case has to behave.
 const api = (path) => new URL(path, location.href).href;
 
-// HOW DEEP A BOARD GOES BEFORE IT HAS A CUT LINE AT ALL.
-//
-// THIS IS A CLIENT-SIDE STAND-IN FOR A SERVER POLICY, not the definition. The
-// number appears nowhere in src/ — not in boards.js, not in run.js — so today
-// the rule deciding who is offered the leaderboard lives only here, while
-// looking from the outside like something the server decided. BE is adding it
-// to the combined /api/leaderboard response; when that lands, READ IT FROM
-// THERE AND DELETE THIS, because a copy of a policy goes stale while still
-// looking authoritative.
-const CUT = 50;
+// THE DEPTH OF A BOARD IS NOT COPIED HERE, and better than that, it is not read
+// here either. This file briefly carried a stand-in 50, which was a client copy
+// of a server policy wearing the server's authority. /api/leaderboard now ships
+// `full` per board — the ANSWER rather than the number the answer is computed
+// from — so there is nothing left to keep in step. boardSize is in the response
+// too and is deliberately not consulted: reading it would put the comparison
+// `rows.length >= boardSize` back in this file, which is the copy again.
 
 // Which board a verdict can even be compared against, and on which number.
 // `lower` marks a board where a smaller value is the better one.
@@ -69,8 +66,11 @@ function beatsCut(verdict, board, cut) {
   return board.lower ? mine <= theirs : mine >= theirs;
 }
 
-// A run qualifies if it beats ANY board, so one unreachable board must not be
-// able to veto the other two — and all three unreachable must not veto at all.
+// A run qualifies if it beats ANY board. ONE REQUEST, which is what makes the
+// fail-open rule a single condition rather than a partial-failure matrix: with
+// three separate reads, "two boards answered and one did not" is a state this
+// function would have to have an opinion about, and every opinion there is a
+// chance to hide a record by accident.
 export async function qualifies(verdict, fetcher = fetch) {
   const mine = BOARDS.filter((b) => b.eligible(verdict));
   // Not eligible anywhere is the one confident "no": an unfinished night, or a
@@ -78,25 +78,32 @@ export async function qualifies(verdict, fetcher = fetch) {
   // could have failed.
   if (!mine.length) return { show: false, why: "not-eligible" };
 
-  const answers = await Promise.allSettled(mine.map(async (b) => {
-    const r = await fetcher(api("api/board/" + b.id + "?limit=" + CUT), { cache: "no-store" });
-    const body = await r.json();
-    if (!r.ok || !body || body.ok !== true) throw new Error(b.id + " " + r.status);
-    return { board: b, rows: body.rows || [] };
-  }));
-
-  for (const a of answers) {
+  let body = null;
+  try {
+    const r = await fetcher(api("api/leaderboard"), { cache: "no-store" });
+    body = await r.json();
+    if (!r.ok || !body || body.ok !== true) throw new Error("leaderboard " + r.status);
+  } catch {
     // FAIL OPEN, and this is the branch to be most careful with: offline, API
     // down, or the player installed the PWA and is on a train. Hiding the
     // button here discards a real record and the player never finds out it
     // happened.
-    if (a.status === "rejected") return { show: true, why: "unreachable" };
-    const { board, rows } = a.value;
-    // A board that is not full yet has no cut line to be under.
-    if (rows.length < CUT) return { show: true, why: board.id + "-not-full" };
-    if (beatsCut(verdict, board, rows[rows.length - 1])) {
-      return { show: true, why: board.id };
-    }
+    return { show: true, why: "unreachable" };
+  }
+
+  const boards = body.boards;
+  if (!boards || typeof boards !== "object") return { show: true, why: "unreadable" };
+
+  for (const b of mine) {
+    const board = boards[b.id];
+    // A board the response does not describe is a board this cannot rank
+    // against, which is the same state as not having read it at all.
+    if (!board) return { show: true, why: b.id + "-missing" };
+    // `full` IS THE SERVER'S ANSWER, not a count to re-derive. An empty board —
+    // full false, cut null, which is where the game is today — has no cut line
+    // to be under, so everything qualifies.
+    if (!board.full) return { show: true, why: b.id + "-not-full" };
+    if (beatsCut(verdict, b, board.cut)) return { show: true, why: b.id };
   }
   return { show: false, why: "below-every-cut" };
 }
