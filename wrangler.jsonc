@@ -15,6 +15,16 @@
     { "pattern": "games.csiesheep.com/jiangshi_in_the_pocket", "zone_name": "csiesheep.com" },
     { "pattern": "games.csiesheep.com/jiangshi_in_the_pocket/*", "zone_name": "csiesheep.com" }
   ],
+  // The leaderboard's database (#143). Created 2026-08-31 on the owner's
+  // account; the id is a name, not a secret — access comes from the account
+  // and this binding. The table lives in sql/schema.sql, applied by hand.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "jiangshi-leaderboard",
+      "database_id": "af8a25df-9ea0-47b8-aea9-cdbeba3b1715"
+    }
+  ],
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
