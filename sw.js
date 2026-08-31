@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-cc5a99b1";
+const CACHE = "jiangshi-0a1f12c0";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -57,12 +57,12 @@ const SHELL_DIGEST = {
   "ledger.html":                            "53b9f48461",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "c839cd7868",
-  "css/style.css":                          "5185adf152",
-  "js/app.js":                              "6e98bc6f9d",
+  "css/style.css":                          "d6b4070106",
+  "js/app.js":                              "83e0eb9f45",
   "js/eventstage.js":                       "386cb3320d",
   "js/engine.js":                           "c4aae264a7",
   "js/board.js":                            "7a0b1caaca",
-  "js/night.js":                            "3b42429b66",
+  "js/night.js":                            "5351349ba1",
   "js/boardkey.js":                         "6b7e507268",
   "js/replay.js":                           "c13dd2980e",
   "js/render.js":                           "24507583f2",
@@ -79,7 +79,7 @@ const SHELL_DIGEST = {
   "js/rulebook.js":                         "035594a5da",
   "js/credits.js":                          "e6cedc628e",
   "js/ledger.js":                           "b3a5104801",
-  "js/submit.js":                           "6b59475c26",
+  "js/submit.js":                           "485452b470",
   "assets/icons.svg":                       "067a1aa6c8",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
   "assets/icons/icon-192.png":              "83b7d80dc2",
