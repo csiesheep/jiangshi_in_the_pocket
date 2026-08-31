@@ -5,7 +5,7 @@
 //
 // The public path segment is independent of the repo / Worker name — change
 // PREFIX alone to move the site to a different path.
-import { handleRun } from "./run.js";
+import { handleRun, handleBoard, handleStats } from "./run.js";
 
 const PREFIX = "/jiangshi_in_the_pocket";
 
@@ -59,6 +59,17 @@ export default {
     // into "that page does not exist" and cost somebody an afternoon.
     if (url.pathname === PREFIX + "/api/run") {
       return handleRun(request, env);
+    }
+
+    // The boards. One path segment names which, so adding a fourth board is a
+    // line in BOARDS rather than a line here.
+    const board = url.pathname.startsWith(PREFIX + "/api/board/")
+      ? url.pathname.slice((PREFIX + "/api/board/").length)
+      : null;
+    if (board) return handleBoard(request, env, board);
+
+    if (url.pathname === PREFIX + "/api/stats") {
+      return handleStats(env);
     }
 
     if (url.pathname === PREFIX + "/sitemap.xml") {

@@ -29,6 +29,7 @@
 
 import { replayNight, Divergence } from "../js/replay.js";
 import { FORMAT_V } from "../js/night.js";
+import { BOARDS, STATS, DEFAULT_LIMIT, MAX_LIMIT } from "./boards.js";
 
 // The engine's tables, fetched through the ASSETS binding rather than imported
 // as JSON modules. Both would work; this one is ALREADY PROVEN IN THIS WORKER —
@@ -59,6 +60,8 @@ export const REFUSED = {
   DIVERGED: "diverged",
   UNUSED: "unused-actions",
   UNFINISHED: "unfinished",
+  DUPLICATE: "duplicate",
+  NOT_STORED: "not-stored",
 };
 
 // ---- The name -----------------------------------------------------------
@@ -188,16 +191,103 @@ export async function handleRun(request, env) {
   // build that DID the verifying, so the board can be segmented afterwards even
   // though it cannot be filtered at the door. Recording a fact we have beats
   // enforcing one we do not.
-  // The name is normalised here even though there is no D1 to store it in yet:
-  // the cap is a server-side rule and the rule exists whether or not the row
-  // does. Echoed back so a client can see what was actually accepted rather
-  // than assuming its own truncation matched ours.
-  const verified = {
-    ...result,
-    name: cleanName(body && body.name),
+  const name = cleanName(body && body.name);
+  const night = body.night;
+
+  // THE SAME NIGHT TWICE IS A RESUBMISSION, NOT TWO RUNS.
+  //
+  // Without this, one good night can be posted a hundred times and the board is
+  // that night a hundred times. Two players CAN legitimately share a seed; what
+  // they cannot share is an identical decision sequence, so the pair (seed, the
+  // exact envelope) identifies a resubmission rather than a coincidence.
+  //
+  // IT IS A SELECT-THEN-INSERT AND THEREFORE RACY: two simultaneous posts of
+  // the same night can both find nothing and both write. The airtight version
+  // is a UNIQUE index, which needs another schema command against the owner's
+  // account, so this is what can be done without asking again. It stops the
+  // casual case, which is the one that actually happens, and the race costs a
+  // duplicate row rather than a wrong score.
+  const envelope = JSON.stringify(night);
+  const seen = await env.DB.prepare(
+    "SELECT id FROM runs WHERE seed = ? AND night = ? LIMIT 1"
+  ).bind(night.seed, envelope).first();
+  if (seen) {
+    return json({ ok: false, reason: REFUSED.DUPLICATE,
+                  detail: "this night has already been recorded" }, 200);
+  }
+
+  // EVERY COLUMN COMES FROM result.verdict, WHICH THE REPLAY COMPUTED. The
+  // request's own `verdict` is not read here any more than it was above.
+  const v = result.verdict;
+  let inserted;
+  try {
+    inserted = await env.DB.prepare(
+      "INSERT INTO runs (name, night, seed, actions, outcome, status, loss_reason," +
+      " turn, hour, health, kills, found, tablet, verified_by)" +
+      " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    ).bind(
+      name, envelope, night.seed, result.actions,
+      v.outcome, v.status, v.lossReason,
+      v.turn, v.hour, v.health, v.kills, v.found, v.tablet ? 1 : 0,
+      env.BUILD_ID ?? null
+    ).run();
+  } catch (e) {
+    // A VERIFIED NIGHT THAT DID NOT GET STORED MUST NOT LOOK STORED. Returning
+    // ok:true here would tell a player their run is on the board when it is
+    // not, and they would have no way to tell. The verification still happened
+    // and its result is reported; what failed is named.
+    return json({ ok: false, reason: REFUSED.NOT_STORED,
+                  detail: "verified, but the run could not be recorded: " + e.message,
+                  verdict: v }, 200);
+  }
+
+  return json({
+    ok: true,
+    id: inserted && inserted.meta ? inserted.meta.last_row_id : null,
+    verdict: v,
+    actions: result.actions,
+    // Echoed so a client sees what was actually accepted rather than assuming
+    // its own truncation matched ours.
+    name,
+    // WHICH ENGINE VERIFIED IT — recorded, not gated on. A season gate wants to
+    // refuse a night played against a different balance and cannot yet: the
+    // envelope carries no engine stamp, only FORMAT_V, which does not move when
+    // the engine's numbers do. Recording a fact we have beats enforcing one we
+    // do not.
     verifiedBy: env.BUILD_ID ?? null,
-  };
-  return json(verified, 200);
+  }, 200);
+}
+
+// ---- Reading the boards -------------------------------------------------------
+// One handler for all three, dispatched on a name from BOARDS. A board that is
+// not in that table does not exist, which is the right answer for a typo.
+export async function handleBoard(request, env, name) {
+  const sql = BOARDS[name];
+  if (!sql) return json({ ok: false, reason: "no-such-board", detail: name }, 404);
+
+  const url = new URL(request.url);
+  const asked = Number(url.searchParams.get("limit"));
+  // Clamped rather than rejected: a caller asking for too much gets the most we
+  // will give rather than an error it has to handle. NaN falls to the default.
+  const limit = Number.isFinite(asked) && asked > 0
+    ? Math.min(Math.floor(asked), MAX_LIMIT)
+    : DEFAULT_LIMIT;
+
+  const { results } = await env.DB.prepare(sql).bind(limit).all();
+  return json({ ok: true, board: name, limit, rows: results ?? [] }, 200);
+}
+
+export async function handleStats(env) {
+  const row = await env.DB.prepare(STATS).first();
+  // SUM over an empty table is NULL, not 0 — an empty board would otherwise
+  // report nulls to a client that is about to render them.
+  return json({
+    ok: true,
+    nights: row?.nights ?? 0,
+    burials: row?.burials ?? 0,
+    seals: row?.seals ?? 0,
+    deaths: row?.deaths ?? 0,
+  }, 200);
 }
 
 function json(body, status) {

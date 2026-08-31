@@ -28,6 +28,82 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def insert_from_run():
+    """Pull the INSERT out of src/run.js, for the same reason the SELECTs come
+    out of src/boards.js: so what is executed here is what the Worker sends.
+
+    It is written as three concatenated string literals in the source, which is
+    why this joins three groups rather than matching one.
+    """
+    src = io.open(os.path.join(ROOT, "src", "run.js"), encoding="utf-8").read()
+    m = re.search(r'"(INSERT INTO runs \([^"]*)"\s*\+\s*"([^"]*)"\s*\+\s*"([^"]*)"', src)
+    if not m:
+        raise SystemExit("could not read the INSERT out of src/run.js")
+    return m.group(1) + m.group(2) + m.group(3)
+
+
+def check_insert(db):
+    """Run the shipped INSERT against the real table, and check ORDER not just
+    length.
+
+    THE FIRST VERSION OF THIS WAS CIRCULAR AND PASSED A SABOTAGE. It wrote with
+    the column list extracted from the INSERT and then READ BACK USING THE SAME
+    LIST — so swapping `turn` and `hour` in that list swapped them on both sides
+    and cancelled out. It caught a length mismatch, which raises anyway, and
+    nothing else.
+
+    The fix is to say what each column should CONTAIN, by name, independently of
+    any order. Each binding is then checked against the expectation for the
+    column it is paired with, so a swapped list pairs 9 with `hour` and is
+    caught. The values are chosen to be distinct — no two columns share one, or
+    a swap between them would be invisible.
+    """
+    sql = insert_from_run()
+    cols = [c.strip() for c in sql[sql.index("(") + 1:sql.index(")")].split(",")]
+
+    # What belongs in each column, keyed by NAME. Written from the schema, not
+    # from the INSERT, and deliberately all different from one another.
+    WANT = {
+        "name": "nm", "night": '{"v":1}', "seed": 4242, "actions": 22,
+        "outcome": "LOSS_HEALTH", "status": "lost", "loss_reason": "health",
+        "turn": 9, "hour": 21, "health": 3, "kills": 2, "found": 1,
+        "tablet": 0, "verified_by": "deadbeef",
+    }
+    if len(cols) != sql.count("?"):
+        print("FAIL insert: %d columns, %d placeholders" % (len(cols), sql.count("?")))
+        return False
+    unknown = [c for c in cols if c not in WANT]
+    if unknown:
+        print("FAIL insert: column(s) this check does not know: %s" % ", ".join(unknown))
+        return False
+
+    # Bindings in the ORDER src/run.js passes them. A swap in the column list
+    # now mispairs against WANT and is caught below.
+    order = ["name", "night", "seed", "actions", "outcome", "status", "loss_reason",
+             "turn", "hour", "health", "kills", "found", "tablet", "verified_by"]
+    params = [WANT[c] for c in order]
+
+    db.execute(sql, params)
+    ok = True
+    for column, sent in zip(cols, params):
+        if sent != WANT[column]:
+            print("FAIL insert: column %s receives %r, which belongs in %s"
+                  % (column, sent,
+                     next(k for k, v in WANT.items() if v == sent)))
+            ok = False
+    # And read it back by name, so the table agrees too.
+    row = list(db.execute("SELECT %s FROM runs WHERE seed = 4242"
+                          % ",".join(WANT)))[0]
+    for column, stored in zip(WANT, row):
+        if stored != WANT[column]:
+            print("FAIL insert: %s stored %r, wanted %r" % (column, stored, WANT[column]))
+            ok = False
+    if ok:
+        print("ok   insert -> %d columns, every value in its own column" % len(cols))
+    db.execute("DELETE FROM runs WHERE seed = 4242")
+    return ok
+
+
 def sql_from_boards():
     """Pull the exported template literals out of src/boards.js.
 
@@ -155,9 +231,9 @@ def main():
     db = sqlite3.connect(":memory:")
     db.executescript(io.open(os.path.join(ROOT, "sql", "schema.sql"),
                              encoding="utf-8").read())
+    ok = check_insert(db)
     plant(db)
 
-    ok = True
     # 速葬: turn ascending, then health descending. late-best has the best
     # health in the table and must still come last.
     # NOTE lived-thin and lived-6 appear here and on the seal board as well as

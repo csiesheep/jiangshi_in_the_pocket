@@ -72,3 +72,15 @@ export const STATS = `
 // engine feels like, which means a leaderboard that reorders itself between two
 // identical requests. `id` ascending makes the older run win a dead heat, which
 // is also the fair answer.
+
+// ---- Routing table ------------------------------------------------------------
+// Name to query, so src/index.js can dispatch on a path segment without a
+// switch that has to be kept in step with the exports above. A board that is
+// not in here is not reachable, which is the behaviour we want for a typo.
+export const BOARDS = { burial: BURIAL, seal: SEAL, kills: KILLS };
+
+// How many rows a board returns when the caller does not say. Not unbounded:
+// `night` is a few KB per row and none of the boards select it, but an
+// unbounded LIMIT is still a way to ask the database to sort the whole table.
+export const DEFAULT_LIMIT = 20;
+export const MAX_LIMIT = 100;
