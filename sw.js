@@ -118,6 +118,7 @@ const SHELL = [
   "js/rulebook.js",
   "js/credits.js",
   "js/ledger.js",
+  "js/submit.js",
   "assets/icons.svg",
   "assets/fonts/imfellenglish-latin.woff2",
   "assets/icons/icon-192.png",

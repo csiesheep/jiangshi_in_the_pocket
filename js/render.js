@@ -5091,6 +5091,12 @@ export function showOverlay(title, sub, actions = [], opts = {}) {
     card.appendChild(list);
   }
 
+  // A place for something the card does not otherwise know about — #144's
+  // ledger offer mounts here. Inside the card so it sits within the frame with
+  // the summary, and BEFORE the actions row so "play again" stays the last
+  // thing on the card: the offer is an aside, not the way out.
+  if (typeof opts.mount === "function") opts.mount(card);
+
   // THE ACTIONS ARE A ROW, AND NEED TO BE ONE (#101). They were appended
   // straight onto the card as siblings of the heading and the summary, held
   // apart by a 4px margin each — which is not an arrangement, it is what you

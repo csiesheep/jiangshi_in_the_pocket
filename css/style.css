@@ -6820,3 +6820,42 @@ body.asleep .fog {
   .ledger-when, th.ledger-when { display: none; }
   .ledger-name { max-width: 11ch; }
 }
+
+/* ---- Putting a night on the ledger (#144) ------------------------------------
+   An aside on the verdict card, between the summary and the way out. It is
+   HIDDEN unless the run can actually reach a board — the owner's ruling — so
+   most cards never show it at all, and the layout has to look finished without
+   it. Hence a top border rather than a box: nothing is missing when it is
+   absent. */
+.submit {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.submit[hidden] { display: none; }
+.submit-row { display: flex; gap: 8px; width: 100%; max-width: 340px; }
+.submit-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: .95rem;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+.submit-name::placeholder { color: color-mix(in srgb, var(--muted) 80%, transparent); }
+.submit-name:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+/* The buttons in this row are the same height as the field they sit beside,
+   which .btn does not guarantee on its own. */
+.submit-row .btn { flex: none; }
+.submit-said { margin: 0; font-size: .88rem; color: var(--muted); text-align: center; }
+.submit-said--ok { color: var(--gold); }
+/* Reachability and refusal are the player's business but not their fault, so
+   they are said in the warning colour rather than the danger one. */
+.submit-said--off { color: color-mix(in srgb, var(--danger) 70%, var(--muted)); }

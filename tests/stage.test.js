@@ -25,6 +25,10 @@ import { verdictOf } from "../js/night.js";
 // for the same reason app.js does: comparing night() against a literal here
 // would only prove two copies agree.
 import { BUILD_ID } from "../js/shell.js";
+// The ledger offer (#144). Pure functions with an injectable fetcher, so the
+// branch that matters can be driven without a network.
+import { qualifies, clip } from "../js/submit.js";
+import { NAME_LIMIT } from "../js/night.js";
 import { replayNight } from "../js/replay.js";
 import { verifyNight } from "../src/run.js";
 // The board, for the burial guard: it walks a real run out to the Mass Grave
@@ -2748,6 +2752,69 @@ test("burn: the fire is on him and it is warm (#140)", serial(async () => {
     styles.remove();
   }
 }));
+
+// THE LEDGER OFFER FAILS OPEN (#144).
+//
+// THE TWO MISTAKES ARE NOT THE SAME SIZE. A run offered and then refused costs
+// a button press. A run NEVER OFFERED is a record the player made and will
+// never learn about — there is no message, no retry, and nothing on screen that
+// went wrong. So when the cut line cannot be read at all (offline, API down,
+// the PWA opened on a train) the button must still appear and let the server
+// decide.
+//
+// This is the branch that breaks silently, so it is asserted in BOTH
+// directions: the same function must be able to say no, or "it fails open"
+// would be satisfied by a gate that is simply always open.
+const board = (rows) => async () => ({ ok: true, json: async () => ({ ok: true, rows }) });
+const unreachable = async () => { throw new Error("offline"); };
+const verdict = (o) => ({
+  outcome: "WIN_BURIAL", status: "won", lossReason: null, turn: 10, hour: 21,
+  health: 5, kills: 3, found: 0, tablet: true, ...o,
+});
+// Deep enough to have a cut line at all. The depth is submit.js's CUT.
+const fullBoard = (turn) => Array.from({ length: 50 }, () => ({ turn, health: 5, kills: 9 }));
+
+test("submit: an unreachable board still offers the button (#144)", serial(async () => {
+  const out = await qualifies(verdict({}), unreachable);
+  assert(out.show,
+    "the ledger could not be reached and the button was hidden — that discards " +
+    "a real record silently, which is the one failure here with no way back");
+  eq(out.why, "unreachable", "shown for the wrong reason: " + out.why);
+}));
+
+test("submit: a run under every cut line is not offered (#144)", serial(async () => {
+  // PROVES THE GATE CAN SAY NO. Without this, the guard above passes on a
+  // function that returns true unconditionally, which is not a gate at all.
+  const out = await qualifies(verdict({ turn: 40 }), board(fullBoard(5)));
+  eq(out.show, false,
+    "a burial on turn 40 was offered against a full board of turn-5 burials — " +
+    "the owner's ruling is that a run which cannot reach a board shows no button");
+
+  // And the boundary is on the generous side of the tie, deliberately: an
+  // equal run is offered and refused rather than hidden and lost.
+  const tie = await qualifies(verdict({ turn: 5 }), board(fullBoard(5)));
+  assert(tie.show, "a run level with the cut line was hidden; ties resolve towards offering");
+}));
+
+test("submit: a board with room offers regardless of the score (#144)", serial(async () => {
+  const out = await qualifies(verdict({ turn: 999 }), board([]));
+  assert(out.show, "an empty board has no cut line to be under, so everything qualifies");
+  assert(/not-full/.test(out.why), "shown for the wrong reason: " + out.why);
+}));
+
+test("submit: the name is capped in code points, not UTF-16 units (#144)", () => {
+  // 34 skulls measure 68 by .length. A naive cap at 24 units would both cut the
+  // wrong number of characters AND split a surrogate pair, which renders as a
+  // replacement character in somebody's leaderboard row forever.
+  const skulls = "\u{1F480}".repeat(34);
+  assert(skulls.length > NAME_LIMIT * 1.5,
+    "the fixture is not made of surrogate pairs, so this proves nothing");
+  const out = clip(skulls);
+  eq([...out].length, NAME_LIMIT, "the name was not capped at " + NAME_LIMIT + " code points");
+  eq(out.length, NAME_LIMIT * 2, "a surrogate pair was split: " + out.length + " units");
+  eq(clip("  Wei  "), "Wei", "the name was not trimmed");
+  eq(clip(null), "", "a non-string name is empty, not a crash");
+});
 
 // THE RECORDING SAYS WHICH ENGINE MADE IT (#144).
 //

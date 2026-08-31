@@ -28,7 +28,7 @@
 // than in a catch block.
 
 import { replayNight, Divergence } from "../js/replay.js";
-import { FORMAT_V } from "../js/night.js";
+import { FORMAT_V, NAME_LIMIT } from "../js/night.js";
 import { BOARDS, STATS, DEFAULT_LIMIT, MAX_LIMIT } from "./boards.js";
 
 // The engine's tables, fetched through the ASSETS binding rather than imported
@@ -74,7 +74,10 @@ export const REFUSED = {
 // 24 is my choice, not a ruling — long enough for a short CJK phrase or a Latin
 // nickname, short enough that a board row stays a row. Change it here and it
 // changes everywhere.
-export const NAME_MAX = 24;
+// The number moved to js/night.js so the client's input and this enforcement
+// read the same one — see the note there. NAME_MAX stays as the name this file
+// and its tests already use.
+export const NAME_MAX = NAME_LIMIT;
 
 // COUNTED IN CODE POINTS, NOT UTF-16 UNITS. "".length counts units, so an emoji
 // is 2 and a name of twelve emoji would pass a naive check at 24 while being

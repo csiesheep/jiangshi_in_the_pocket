@@ -254,6 +254,15 @@
     "search-replaced": "你拿起{item}，讓{dropped}掉在地上。"
   },
   "ui": {
+    "submit-offer": "把這一夜記上夜榜",
+    "submit-name": "名號",
+    "submit-send": "送出",
+    "submit-sending": "送出中⋯",
+    "submit-ok": "已經記上夜榜了。",
+    "submit-view": "看夜榜",
+    "submit-dup": "這一夜已經在榜上了。",
+    "submit-refused": "夜榜無法確認這一夜的成績。",
+    "submit-offline": "連不上夜榜，等一下再試。",
     "dig": "挖",
     "dig-sub": "第 {n} 下，共 {of} 下",
     "dir-N": "北",

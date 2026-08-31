@@ -84,6 +84,7 @@ import { recordVerdict } from "./tally.js";
 import { FORMAT_V, verdictOf } from "./night.js";
 import { ACT } from "./replay.js";
 import { epilogue } from "./epilogue.js";
+import { mountSubmit } from "./submit.js";
 import * as L from "./lang.js";
 import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
 
@@ -1846,6 +1847,14 @@ export class Game {
       epilogue: closing,
     };
     if (reasonFor[outcome]) opts.reason = reasonFor[outcome];
+
+    // #144. The night already knows its own score — night().verdict is the
+    // whole verdictOf set — so deciding whether to offer the ledger needs no
+    // replay and no round trip beyond reading where the cut lines are. What it
+    // does need is to fail towards showing: see the note at the top of
+    // submit.js. Hidden entirely when the run cannot reach any board, which is
+    // the owner's ruling: 如果成績不夠上榜，就不顯示上榜按鈕.
+    opts.mount = (card) => mountSubmit(card, this.night(), (k) => this.ui(k));
 
     // 🤫 The only place either number is ever printed, on the card of a player
     // he has just killed. See the note over verdict-compare in render.js: this

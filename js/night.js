@@ -21,6 +21,17 @@ import { restoreBoard } from "./board.js";
 // with the wrong assumptions is exactly the plausible-but-wrong failure above.
 export const FORMAT_V = 1;
 
+// HOW LONG A NAME MAY BE, IN CODE POINTS, and it lives here because both sides
+// need it. src/run.js is the only writer and enforces it; #144's input mirrors
+// it so the field agrees with the rule rather than inventing a second one. Two
+// copies of one number drift, and the day they disagree the symptom is a name
+// that passes the field and comes back refused with a message nobody can read
+// — which is the same hazard src/run.js's own comment names about the schema.
+//
+// Counted in code points, never in "".length: an emoji is two UTF-16 units, so
+// a naive cap both measures wrong and truncates mid-surrogate.
+export const NAME_LIMIT = 24;
+
 // THE SEVEN STREAMS WHOSE POSITION MUST SURVIVE, named in ONE place. A stream
 // added to the state and not added here is a silent desynchronisation: the
 // snapshot restores, the night continues, and it draws different cards.
