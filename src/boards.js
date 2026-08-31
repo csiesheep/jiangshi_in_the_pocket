@@ -84,3 +84,20 @@ export const BOARDS = { burial: BURIAL, seal: SEAL, kills: KILLS };
 // unbounded LIMIT is still a way to ask the database to sort the whole table.
 export const DEFAULT_LIMIT = 20;
 export const MAX_LIMIT = 100;
+
+// ---- How long a board is, and why the number lives here -----------------------
+// THE CUT LINE IS THE 50th ROW. A board holds this many; a run that would not
+// reach the last place on any board is not worth offering the leaderboard for,
+// and a board with fewer rows than this has no cut line at all — everything
+// qualifies until it fills.
+//
+// IT IS DEFINED HERE AND SHIPPED IN THE RESPONSE, and that is the whole point
+// of writing it down rather than leaving it to the caller. A client that knows
+// "50" because somebody typed 50 into it owns a policy it did not decide: the
+// day this becomes 100, the server fills a hundred places and the client still
+// stops offering at fifty, and nothing anywhere says they disagree. The client
+// should be able to READ the rule, not restate it.
+//
+// See the note by `cut` in run.js for the part this does NOT solve: knowing how
+// long the board is does not tell a client how to compare against its last row.
+export const BOARD_SIZE = 50;

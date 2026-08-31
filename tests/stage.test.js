@@ -5675,3 +5675,76 @@ test("a move into a wall costs nothing, and a legal one still costs a turn (#145
     clearChoices();
   }
 }));
+
+// The combined leaderboard, and where the cut line is defined (#146).
+//
+// TWO THINGS ARE BEING GUARDED AND THE SECOND IS THE POINT. The first is the
+// boundary arithmetic: a board one row short of BOARD_SIZE has no cut line and
+// everything qualifies; a board at it has one. The second is that the number
+// lives in src/ and TRAVELS IN THE RESPONSE — a client that knows 50 because
+// somebody typed 50 into it owns a policy it did not decide, and the day the
+// server fills a hundred places that client still stops offering at fifty with
+// nothing anywhere saying they disagree.
+test("the leaderboard ships its own cut line, and knows when there is none (#146)", async () => {
+  const { handleLeaderboard } = await import("../src/run.js");
+  const { BOARD_SIZE } = await import("../src/boards.js");
+
+  // A database that answers with however many rows the case wants, so both
+  // sides of the cut line can be driven. It is the SHAPE of D1's batch reply
+  // that is being modelled here, not D1 itself — the real surface is unproven
+  // from this machine and says so in the commit.
+  const dbWith = (rowCount) => ({
+    prepare(sql) {
+      return { _sql: sql, _p: null, bind(...p) { this._p = p; return this; } };
+    },
+    async batch(stmts) {
+      return stmts.map((st) => {
+        if (/COUNT\(\*\)/.test(st._sql)) return { results: [{ nights: rowCount }] };
+        const depth = st._p[0];
+        const rows = [];
+        for (let i = 0; i < Math.min(rowCount, depth); i++) rows.push({ id: i + 1 });
+        return { results: rows };
+      });
+    },
+  });
+  const ask = async (rowCount, qs) => {
+    const req = new Request("https://x/jiangshi_in_the_pocket/api/leaderboard" + (qs || ""));
+    return (await handleLeaderboard(req, { DB: dbWith(rowCount) })).json();
+  };
+
+  const full = await ask(BOARD_SIZE + 30);
+  const exact = await ask(BOARD_SIZE);
+  const under = await ask(BOARD_SIZE - 1);
+
+  // THE NUMBER TRAVELS. Without this the client is free to invent its own.
+  eq(full.boardSize, BOARD_SIZE,
+    "the response does not carry the cut-line size, so a client can only know " +
+    "it by restating it — which is the copy this exists to prevent");
+
+  // PROVE THE REGION: all three boards must be answered, or the assertions
+  // below are about one board that happens to exist.
+  eq(Object.keys(full.boards).sort().join(","), "burial,kills,seal",
+    "the combined response is missing a board");
+
+  for (const name of Object.keys(full.boards)) {
+    eq(under.boards[name].cut, null,
+      name + ": a board one row short of the cut line reported a cut — " +
+      "everything should qualify until it fills");
+    eq(under.boards[name].full, false, name + ": a short board reported itself full");
+    eq(exact.boards[name].full, true,
+      name + ": a board exactly at the cut line did not report itself full");
+    assert(full.boards[name].cut,
+      name + ": a full board reported no cut line");
+    eq(full.boards[name].cut.id, BOARD_SIZE,
+      name + ": the cut is not the " + BOARD_SIZE + "th row");
+  }
+
+  // THE CUT IS DEEPER THAN THE ROWS SHOWN, which is the case a client counting
+  // its own rows would get wrong: it would see `limit` rows and conclude the
+  // board is short whenever it asked for fewer than BOARD_SIZE.
+  assert(full.boards.burial.rows.length < BOARD_SIZE,
+    "this case is not testing what it says: the default limit is not below the " +
+    "cut line, so 'the cut is deeper than the rows shown' is vacuous here");
+  eq(full.boards.burial.full, true,
+    "a full board reported itself short because only the shown rows were counted");
+});
