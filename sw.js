@@ -24,7 +24,7 @@
 // games sharing a prefix would evict each other on every visit: offline play
 // broken on both, and the whole shell re-fetched each time. Keep "jiangshi-".
 
-const CACHE = "jiangshi-ff54bd95";
+const CACHE = "jiangshi-06b74077";
 
 // A fingerprint of every file in SHELL, checked by tests/shell.test.js.
 //
@@ -48,22 +48,23 @@ const CACHE = "jiangshi-ff54bd95";
 // shell that goes stale, and a new tiles.json against an old engine.js is
 // exactly the mismatch #28 shipped.
 const SHELL_DIGEST = {
-  "./":                                     "a19d4f9d40",
-  "index.html":                             "a19d4f9d40",
+  "./":                                     "3aff87b224",
+  "index.html":                             "3aff87b224",
   "game.html":                              "82c6fec338",
   "rulebook.html":                          "b53d7ae608",
   "tiles.html":                             "754a7f2ed5",
   "credits.html":                           "067a6ba293",
+  "ledger.html":                            "53b9f48461",
   "manifest.webmanifest":                   "60800d6b98",
   "favicon.svg":                            "c839cd7868",
-  "css/style.css":                          "5185adf152",
-  "js/app.js":                              "57b24cfb24",
+  "css/style.css":                          "d6b4070106",
+  "js/app.js":                              "9db6278351",
   "js/eventstage.js":                       "386cb3320d",
   "js/engine.js":                           "c4aae264a7",
   "js/board.js":                            "7a0b1caaca",
-  "js/night.js":                            "3b42429b66",
+  "js/night.js":                            "5351349ba1",
   "js/replay.js":                           "c13dd2980e",
-  "js/render.js":                           "fc5e18e1cb",
+  "js/render.js":                           "24507583f2",
   "js/icons.js":                            "36c76d4f67",
   "js/audio.js":                            "3384e2df1e",
   "js/menu.js":                             "e53fb78a06",
@@ -76,6 +77,8 @@ const SHELL_DIGEST = {
   "js/langswitch.js":                       "a2493ab9de",
   "js/rulebook.js":                         "035594a5da",
   "js/credits.js":                          "e6cedc628e",
+  "js/ledger.js":                           "570538f05f",
+  "js/submit.js":                           "98784a8603",
   "assets/icons.svg":                       "067a1aa6c8",
   "assets/fonts/imfellenglish-latin.woff2": "248300df16",
   "assets/icons/icon-192.png":              "83b7d80dc2",
