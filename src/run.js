@@ -30,6 +30,7 @@
 import { replayNight, Divergence } from "../js/replay.js";
 import { FORMAT_V } from "../js/night.js";
 import { BOARDS, STATS, DEFAULT_LIMIT, MAX_LIMIT, BOARD_SIZE } from "./boards.js";
+import { TERMS } from "../js/boardkey.js";
 
 // The engine's tables, fetched through the ASSETS binding rather than imported
 // as JSON modules. Both would work; this one is ALREADY PROVEN IN THIS WORKER —
@@ -313,7 +314,22 @@ export async function handleLeaderboard(request, env) {
 
   const boards = {};
   names.forEach((n, i) => {
-    const rows = answers[i].results ?? [];
+    // THE KEY COMES OFF THE ROW AS THE DATABASE SORTED IT. k0..kn are the
+    // ordering's own expressions, selected by the same query that ordered by
+    // them — so a row's key is not computed a second time here, it is read.
+    // Collapsed into an array and the k-columns dropped, because a client that
+    // can see a field name will eventually branch on one.
+    const width = TERMS[n].length;
+    const shape = (r) => {
+      const key = [];
+      const row = {};
+      for (const [f, val] of Object.entries(r)) {
+        if (/^k\d+$/.test(f)) key[Number(f.slice(1))] = val;
+        else row[f] = val;
+      }
+      return { ...row, key: key.slice(0, width) };
+    };
+    const rows = (answers[i].results ?? []).map(shape);
     const full = rows.length >= BOARD_SIZE;
     boards[n] = {
       rows: rows.slice(0, limit),

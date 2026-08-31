@@ -32,7 +32,7 @@ import { listMoves, explore, validExploreRotations, goOutside, moveTo,
 // Which copy of this suite is speaking. Stamped by tools/record_shell.py;
 // report() compares it against the file on disk, so a stale module is caught
 // even when the test count happens to match.
-suite(import.meta.url, "f28f3447");
+suite(import.meta.url, "97d71116");
 
 const NO_STORE = { cache: "no-store" };
 
@@ -5765,4 +5765,68 @@ test("the leaderboard ships its own cut line, and knows when there is none (#146
     "cut line, so 'the cut is deeper than the rows shown' is vacuous here");
   eq(full.boards.burial.full, true,
     "a full board reported itself short because only the shown rows were counted");
+});
+
+// The sort key, and the ties a kills-only client gets wrong (#146).
+//
+// The cut row tells a client WHICH place is last. It does not tell it how to
+// COMPARE, and that is where a duplicate of the ranking rule would live —
+// invisibly, because ties do not announce themselves. So the ordering is
+// declared once in js/boardkey.js and both the SQL and this comparison are
+// generated from it.
+//
+// EVERY CASE BELOW TIES THE LEADING ELEMENT. A candidate that differs on the
+// first element is decided by the first element, so it passes against a naive
+// kills-only comparison too and proves nothing about the key. The cases that
+// bite are the ones where kills are equal and a later element decides.
+test("the board key decides ties that a kills-only comparison gets wrong (#146)", async () => {
+  const { keyOf, beats, TERMS } = await import("../js/boardkey.js");
+
+  // PROVE THE REGION: a board whose ordering has one term cannot have a tie
+  // broken by a later one, so these cases would be vacuous.
+  assert(TERMS.kills.length >= 3,
+    "the kills board no longer has a later term to break a tie on, so every " +
+    "case here is decided by the leading element and tests nothing");
+
+  const cut = keyOf("kills", { kills: 6, status: "won", health: 3 });
+  const k = (kills, status, health) => keyOf("kills", { kills, status, health });
+
+  // TIED ON KILLS, LOST ON A LATER ELEMENT — must not take the place.
+  eq(beats(k(6, "lost", 10), cut), false,
+    "a run that tied on kills but DIED took a place from one that survived, " +
+    "even with more health left");
+  eq(beats(k(6, "won", 1), cut), false,
+    "a run that tied on kills and survivorship but had less health took the place");
+
+  // TIED ON KILLS, WON ON A LATER ELEMENT — must take it. Without this the
+  // guard would pass on a comparison that simply refuses every tie.
+  eq(beats(k(6, "won", 7), cut), true,
+    "a run that tied on kills, survived like the cut row, and had MORE health " +
+    "was refused the place it earned");
+
+  // A FULL TIE LOSES, because stored rows break their last tie on id and the
+  // newcomer is by definition newest. Same answer the database gives.
+  eq(beats(k(6, "won", 3), cut), false, "an exact tie displaced the older row");
+
+  // And the ordinary directions still work.
+  eq(beats(k(7, "lost", 0), cut), true, "more kills did not win");
+  eq(beats(k(5, "won", 10), cut), false, "fewer kills won anyway");
+
+  // An unfilled board has no last place, so everything qualifies.
+  eq(beats(k(0, "lost", 0), null), true,
+    "a board with no cut line refused a run — everything qualifies until it fills");
+
+  // BOTH ERROR DIRECTIONS OF A KILLS-ONLY CLIENT ARE REACHABLE, and this is
+  // asserted rather than described because which one you get depends on
+  // whether the client writes >= or >, and one of them destroys a record.
+  const naiveGE = (kills) => kills >= 6;
+  const naiveGT = (kills) => kills > 6;
+  // >= offers a place to a run that would not get one: benign, the server
+  // simply does not rank it.
+  assert(naiveGE(6) !== beats(k(6, "lost", 10), cut),
+    "the >= mistake is no longer reachable, so the warning attached to it is stale");
+  // > HIDES THE BUTTON from a run that WOULD make the board. That one loses a
+  // real record silently and is the direction worth shouting about.
+  assert(naiveGT(6) !== beats(k(6, "won", 7), cut),
+    "the > mistake is no longer reachable, so the warning attached to it is stale");
 });
