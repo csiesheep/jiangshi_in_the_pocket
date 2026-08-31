@@ -31,12 +31,28 @@ const PUBLIC_PAGES = ["index", "game", "rulebook", "tiles", "credits", "ledger"]
 // you are checking is how a fixed page keeps reporting the old fault.
 const NO_STORE = { cache: "no-store" };
 
+// AND no-store IS NOT ENOUGH ON ITS OWN. It governs the HTTP cache. It does not
+// govern a SERVICE WORKER, whose fetch handler may answer from its own cache
+// whatever the request asked for — and this site ships a cache-first shell that
+// holds every page in this list. On a plain local server that never bites,
+// because registerWorker() bails unless the host is https or localhost; on the
+// deployed origin it does, and a suite reading its own shipped page can be
+// handed the copy from the last deploy.
+//
+// A UNIQUE QUERY DEFEATS BOTH, because a cache is matched on the URL and this
+// URL has never existed before. It cost a false RED — a reverted sabotage that
+// kept reporting itself — and the false GREEN is the same mechanism pointed the
+// other way: break the prose while a good copy is held, and the guard passes on
+// a file that is broken on disk.
+const stamp = Date.now() + "-" + Math.random().toString(36).slice(2);
+const fresh = (path) => fetch(path + (path.includes("?") ? "&" : "?") + "fresh=" + stamp, NO_STORE);
+
 const html = Object.fromEntries(
   await Promise.all(
-    PUBLIC_PAGES.map(async (name) => [name, await fetch(`../${name}.html`, NO_STORE).then((r) => r.text())]),
+    PUBLIC_PAGES.map(async (name) => [name, await fresh(`../${name}.html`).then((r) => r.text())]),
   ),
 );
-const worker = await fetch("../src/index.js", NO_STORE).then((r) => r.text());
+const worker = await fresh("../src/index.js").then((r) => r.text());
 
 // Read out of the Worker source, the same way PAGES is. One flag, one place.
 const SHIPPED = /export const SHIPPED\s*=\s*true/.test(worker);
@@ -242,8 +258,8 @@ test("seo: the structured data names every language the site ships", () => {
 // after the set had become twenty.
 test("seo: the tiles page serves every room name, from the data (#134)", async () => {
   const [tiles, theme] = await Promise.all([
-    fetch("../data/tiles.json", NO_STORE).then((r) => r.json()),
-    fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
+    fresh("../data/tiles.json").then((r) => r.json()),
+    fresh("../data/theme.json").then((r) => r.json()),
   ]);
   const defs = [].concat(tiles.indoor || [], tiles.outdoor || []);
   const names = defs.map((d) => (theme.tiles || {})[d.id]).filter(Boolean);
@@ -298,8 +314,8 @@ test("seo: the tiles page serves every room name, from the data (#134)", async (
 // which is precisely the drift being prevented.
 test("seo: the pre-rendered tile words match what the page composes (#136)", async () => {
   const [tiles, theme] = await Promise.all([
-    fetch("../data/tiles.json", NO_STORE).then((r) => r.json()),
-    fetch("../data/theme.json", NO_STORE).then((r) => r.json()),
+    fresh("../data/tiles.json").then((r) => r.json()),
+    fresh("../data/theme.json").then((r) => r.json()),
   ]);
 
   const unesc = (t) => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
