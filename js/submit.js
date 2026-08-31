@@ -3,9 +3,14 @@
 // THE ONE RULE THIS FILE IS ORGANISED AROUND: a run that is offered and then
 // refused costs the player a button press. A run that is NEVER OFFERED is a
 // record they made and will never learn about. Those two mistakes are not the
-// same size, so every uncertain case below resolves towards showing the button
-// — an unreachable board, a board we cannot rank against, a tie we cannot
-// break. The server is the authority on all of it; this is a courtesy.
+// same size, so every case where this code CANNOT TELL resolves towards showing
+// the button: the ledger unreachable, a response with no boards in it, a board
+// missing from one, a cut row with no key or a key of another shape.
+//
+// "Cannot tell" is the whole of it, and it does NOT mean "would rather say
+// yes". Where the ordering can be read, its answer stands — including a run
+// level with the cut line on every element, which loses. See beatsCut. The
+// server is the authority on ranking; this is a courtesy, not a second opinion.
 //
 // Opt-in throughout: nothing is sent until the player presses send, and the
 // name is theirs to leave empty.

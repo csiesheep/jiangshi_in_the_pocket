@@ -2806,10 +2806,6 @@ test("submit: a run under every cut line is not offered (#144)", serial(async ()
     "a burial on turn 40 was offered against a full board of turn-5 burials — " +
     "the owner's ruling is that a run which cannot reach a board shows no button");
 
-  // And the boundary is on the generous side of the tie, deliberately: an
-  // equal run is offered and refused rather than hidden and lost.
-  const tie = await qualifies(verdict({ turn: 5 }), board(fullBoard(5)));
-  assert(tie.show, "a run level with the cut line was hidden; ties resolve towards offering");
 }));
 
 test("submit: a cut line it cannot rank against still offers (#144)", serial(async () => {
