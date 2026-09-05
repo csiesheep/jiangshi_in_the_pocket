@@ -4649,10 +4649,39 @@ body.low-health .board-pane::after { animation: heartdark 860ms ease-in-out infi
 
 /* IM Fell has no CJK, so a name like 門廳 Gatehouse would fall back mid-word.
    System faces only — this site self-hosts its one web font and stays offline
-   capable, and a Google Fonts link would cost both. */
+   capable, and a Google Fonts link would cost both.
+
+   THIS VARIABLE IS THE 明體 ONE, and every face in it has to be a serif. The
+   stack used to read:
+
+     "Noto Serif TC", "Songti TC", "PingFang TC", "Microsoft JhengHei",
+     "Hiragino Mincho ProN", serif
+
+   which put TWO 黑體 faces — PingFang TC and Microsoft JhengHei — after the only
+   two 明體 (both macOS-only) and BEFORE the generic serif. A Windows machine
+   walked past the serifs it did not have and stopped on Microsoft JhengHei, so
+   it got sans where every other platform got serif, and the generic `serif` at
+   the end could never be reached to correct it. A sans face in a serif stack
+   does not fail, it silently wins.
+
+   It also named a webfont it never loaded. There is no @font-face for Noto
+   Serif TC and no Google Fonts link anywhere in the site, so it only ever
+   applied to a visitor who happened to have it installed — which made the
+   paragraph above, arguing against a webfont, describe a stack that named one.
+
+   MEASURED, and the measurement is why the order below is what it is: on a
+   Windows 11 machine with Noto Serif TC installed the OLD stack resolved to
+   Noto Serif TC (a 明體) rather than to JhengHei — so "Windows always got sans"
+   was true only of machines without it. The fault was real either way: the
+   outcome depended on a font nobody ships.
+
+   WHAT WOULD MAKE THIS WRONG: adding a face that is not 明體. PingFang, JhengHei,
+   YaHei, Heiti and anything called "Sans" are 黑體 and belong in --font-body, not
+   here. tests/data.test.js asserts exactly that, because the failure is
+   invisible on the platform whose face happens to be first. */
 :root {
-  --font-cjk: "Noto Serif TC", "Songti TC", "PingFang TC", "Microsoft JhengHei",
-              "Hiragino Mincho ProN", serif;
+  --font-cjk: "Songti TC", "Hiragino Mincho ProN", PMingLiU, MingLiU,
+              "MS Mincho", serif;
 }
 
 .tilesection { margin: 0 0 34px; }

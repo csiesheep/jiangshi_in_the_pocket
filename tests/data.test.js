@@ -268,6 +268,80 @@ test("chrome: index.html's static words match the theme's English", async () => 
   await chromeMatchesTheme("index.html", [["tagline", "landing.tagline"]]);
 });
 
+// --font-cjk IS THE SERIF ONE, AND A SANS FACE IN IT SILENTLY WINS (#147).
+//
+// The stack used to carry PingFang TC and Microsoft JhengHei — both 黑體 — AFTER
+// the only two 明體 faces, which are macOS-only, and BEFORE the generic serif. A
+// Windows machine walked past the serifs it did not have, stopped on JhengHei,
+// and never reached the `serif` at the end that would have corrected it. Nothing
+// failed. One platform simply got a different kind of face from every other, and
+// the fallback that existed to prevent exactly that was unreachable.
+//
+// NOT A PINNED LIST, deliberately. Asserting the exact stack would fire every
+// time someone legitimately tunes the order, which is how people learn to edit a
+// guard without reading it. This asserts the RULE — no 黑體 in the 明體 variable
+// — so tuning is free and the one change that broke it is not.
+//
+// The names below are substrings, matched case-insensitively, and each is a
+// family that is sans by definition rather than a specific file:
+const SANS_CJK = [
+  "PingFang",       // macOS 黑體
+  "JhengHei",       // Windows 黑體 (Traditional)
+  "YaHei",          // Windows 黑體 (Simplified)
+  "Heiti",          // 黑體, older macOS/iOS
+  "Hiragino Kaku",  // Japanese gothic — the Mincho sibling is the serif one
+  "Gothic",         // MS Gothic, Yu Gothic, Apple Gothic
+  "Noto Sans",
+  "Source Han Sans",
+  "sans-serif",
+];
+
+test("type: the CJK stack names no sans face (#147)", async () => {
+  const css = await fetch("../css/style.css?fresh=" + Date.now(),
+                          NO_STORE).then((r) => r.text());
+  const m = css.match(/--font-cjk:\s*([^;]+);/);
+  assert(m, "--font-cjk is not declared any more, so this guard is checking nothing");
+  const stack = m[1].replace(/\s+/g, " ").trim();
+
+  // PROVE THE STACK IS NOT EMPTY before asserting what is absent from it.
+  assert(stack.length > 10 && stack.includes("serif"),
+    "--font-cjk reads " + JSON.stringify(stack) + ", which has no generic serif " +
+    "at the end — every other assertion here would pass on a stack that names " +
+    "nothing at all");
+
+  for (const sans of SANS_CJK) {
+    // "sans-serif" is the one that would otherwise match inside "serif"'s own
+    // spelling, so it is compared against the whole declaration rather than
+    // hunted for loosely.
+    const hit = sans === "sans-serif"
+      ? /\bsans-serif\b/i.test(stack)
+      : stack.toLowerCase().includes(sans.toLowerCase());
+    assert(!hit,
+      "--font-cjk names " + sans + ", which is 黑體. In a stack whose later " +
+      "entries are serif it does not fail, it WINS on whichever platform has " +
+      "it — and the generic serif at the end is then unreachable. Stack: " + stack);
+  }
+});
+
+// AND THE GUARD HAS TO BE ABLE TO SEE ONE. It is an absence check over a string,
+// which passes just as happily if the regex stopped matching or the file came
+// back empty — both of which have happened in this suite before.
+test("type: the sans check can actually detect a sans face", () => {
+  const broken = '"Songti TC", "Microsoft JhengHei", serif';
+  const caught = SANS_CJK.some((sans) => sans === "sans-serif"
+    ? /\bsans-serif\b/i.test(broken)
+    : broken.toLowerCase().includes(sans.toLowerCase()));
+  assert(caught, "the sans list does not match a stack containing Microsoft JhengHei, " +
+    "so the guard above proves nothing about the real one");
+  // And it leaves a legitimate all-serif stack alone.
+  const fine = '"Songti TC", "Hiragino Mincho ProN", PMingLiU, MingLiU, "MS Mincho", serif';
+  const falsePositive = SANS_CJK.some((sans) => sans === "sans-serif"
+    ? /\bsans-serif\b/i.test(fine)
+    : fine.toLowerCase().includes(sans.toLowerCase()));
+  assert(!falsePositive,
+    "the sans list fires on an all-serif stack, so it would block legitimate tuning");
+});
+
 // THE BAR IS SHARED FURNITURE, AND THAT IS WHY NOBODY SAW IT (#146).
 //
 // game.html has painted its own bar from the theme since the beginning. The four
