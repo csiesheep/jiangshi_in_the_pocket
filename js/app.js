@@ -87,6 +87,26 @@ import { epilogue } from "./epilogue.js";
 import { mountSubmit } from "./submit.js";
 import * as L from "./lang.js";
 import { mountLangSwitch, paintLangSwitch } from "./langswitch.js";
+import { portalStart, portalResult, portalRestart, portalBeaconOnLeave } from "./portal.js"; // 遊戲路口 result reporting (a no-op without a gp_token)
+
+// One platform round per night. startNewGame() is the only place a Game is
+// built -- it is both the boot and the "new game" button -- so it is the whole
+// lifecycle: the first night opens the round, every later one restarts it in a
+// single request. Nothing is awaited, and without ?gp_token every call is a
+// no-op.
+const portal = { opened: false, live: false, key: null, n: 0 };
+function portalBegin(key) {
+  if (portal.key === key) return;
+  const unfinished = portal.live;
+  portal.key = key; portal.live = true;
+  if (!portal.opened) { portal.opened = true; portalStart(); }
+  else portalRestart(unfinished ? "abandon" : undefined);
+}
+function portalEnd(key, won) {
+  if (portal.key !== key || !portal.live) return;
+  portal.live = false;
+  portalResult(won ? "win" : "lose");
+}
 
 // How long the turn holds when something unexplained was put on the board. The
 // cues themselves live longer than this — the phantom 2.6s, the figure 9s — but
@@ -1798,6 +1818,10 @@ export class Game {
     if (!this.tallied) {
       this.tallied = true;
       recordVerdict(this.state.status !== "lost");
+      // Reported on the game's own ranking policy, the same line the tally
+      // uses: only "lost" is a loss, so 見到天亮 goes down as having got out.
+      // tally.js is explicit that it is not a scoreboard, so no score is sent.
+      portalEnd(this.pkey, this.state.status !== "lost");
     }
 
     // One silent beat before the dawn on a win: the release is the silence,
@@ -1934,6 +1958,8 @@ function startNewGame(seed) {
   // finished game is not quietly holding the phone awake.
   keepAwake(true);
   game = new Game(data, seed != null ? { seed } : {});
+  game.pkey = "night:" + ++portal.n;
+  portalBegin(game.pkey);
   window.__game = game; // handy for debugging
   // The pack spends medicine on its own account, and refresh() rebuilds the
   // panel without knowing about the turn loop — so the handler is registered
@@ -2201,4 +2227,8 @@ async function main() {
 //
 // #board is the marker because it is the game page's own root and no other page
 // has it. If this ever stops booting, that element was renamed.
+// Leaving the page mid-night reports the round as abandoned; a finished night
+// has already been reported and sends nothing.
+portalBeaconOnLeave(() => ({ outcome: "abandon" }));
+
 if (typeof document !== "undefined" && document.getElementById("board")) main();

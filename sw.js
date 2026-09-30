@@ -103,6 +103,7 @@ const SHELL = [
   "favicon.svg",
   "css/style.css",
   "js/app.js",
+  "js/portal.js",
   "js/eventstage.js",
   "js/engine.js",
   "js/board.js",
